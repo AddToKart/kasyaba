@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import * as argon2 from 'argon2';
+import { OAuth2Client } from 'google-auth-library';
 import { prisma } from '../../config/database';
 import { signAccessToken, TokenPayload } from '../../middleware/auth';
 import { AppError, ConflictError, NotFoundError, UnauthorizedError } from '../../lib/errors';
@@ -63,7 +64,6 @@ export async function googleAuth(idToken: string) {
     throw new AppError(501, 'NOT_CONFIGURED', 'Google authentication is not configured');
   }
 
-  const { OAuth2Client } = require('google-auth-library');
   const client = new OAuth2Client(env.GOOGLE_WEB_CLIENT_ID);
   const ticket = await client.verifyIdToken({
     idToken,

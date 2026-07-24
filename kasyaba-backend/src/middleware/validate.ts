@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { ZodSchema, ZodError } from 'zod';
+import { ValidationError } from '../lib/errors';
 
 type ValidationTarget = 'body' | 'query' | 'params';
 
@@ -18,11 +19,7 @@ export function validate(schema: ZodSchema, target: ValidationTarget = 'body') {
             fields[path] = issue.message;
           }
         }
-        const error = new (require('../lib/errors').ValidationError)(
-          'The request contains invalid fields.',
-          fields
-        );
-        return next(error);
+        return next(new ValidationError('The request contains invalid fields.', fields));
       }
       next(err);
     }

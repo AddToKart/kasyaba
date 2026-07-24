@@ -111,7 +111,10 @@ export async function markBillUnpaid(userId: string, billId: string) {
 
   // If there was an expense created, delete it
   if (bill.expenseEntryId) {
-    await prisma.expenseEntry.delete({ where: { id: bill.expenseEntryId } }).catch(() => {});
+    const expense = await prisma.expenseEntry.findUnique({ where: { id: bill.expenseEntryId } });
+    if (expense && expense.userId === userId) {
+      await prisma.expenseEntry.delete({ where: { id: bill.expenseEntryId } });
+    }
   }
 
   return prisma.billInstance.update({

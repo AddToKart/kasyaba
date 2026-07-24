@@ -35,6 +35,8 @@ final dioProvider = Provider<Dio>((ref) {
 
 class AuthInterceptor extends Interceptor {
   final Ref _ref;
+  bool _isRefreshing = false;
+  final _pendingRequests = <({RequestOptions options, ErrorInterceptorHandler handler})>[];
 
   AuthInterceptor(this._ref);
 
@@ -50,34 +52,74 @@ class AuthInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
-    if (err.response?.statusCode == 401) {
-      // Try to refresh token
+    if (err.response?.statusCode != 401) {
+      return handler.next(err);
+    }
+
+    if (_isRefreshing) {
+      // Queue this request to retry after refresh completes
+      _pendingRequests.add((options: err.requestOptions, handler: handler));
+      return;
+    }
+
+    _isRefreshing = true;
+    try {
+      await _refreshToken();
+      // Retry all queued requests including the current one
+      _retryPendingRequests();
+      final storage = _ref.read(secureStorageProvider);
+      final newToken = await storage.getAccessToken();
+      if (newToken != null) {
+        err.requestOptions.headers['Authorization'] = 'Bearer $newToken';
+        final response = await Dio().fetch(err.requestOptions);
+        return handler.resolve(response);
+      }
+    } catch (_) {
+      _pendingRequests.clear();
+      final storage = _ref.read(secureStorageProvider);
+      await storage.clearTokens();
+    } finally {
+      _isRefreshing = false;
+    }
+
+    handler.next(err);
+  }
+
+  Future<void> _refreshToken() async {
+    final storage = _ref.read(secureStorageProvider);
+    final refreshToken = await storage.getRefreshToken();
+    if (refreshToken == null) throw Exception('No refresh token');
+
+    final dio = _ref.read(dioProvider);
+    final response = await dio.post('/auth/refresh', data: {
+      'refreshToken': refreshToken,
+    });
+
+    if (response.statusCode == 200) {
+      final newAccessToken = response.data['data']['accessToken'] as String;
+      final newRefreshToken = response.data['data']['refreshToken'] as String;
+      await storage.saveTokens(newAccessToken, newRefreshToken);
+    } else {
+      throw Exception('Refresh failed');
+    }
+  }
+
+  void _retryPendingRequests() async {
+    final pending = List.from(_pendingRequests);
+    _pendingRequests.clear();
+    final storage = _ref.read(secureStorageProvider);
+    final newToken = await storage.getAccessToken();
+
+    for (final req in pending) {
+      if (newToken != null) {
+        req.options.headers['Authorization'] = 'Bearer $newToken';
+      }
       try {
-        final storage = _ref.read(secureStorageProvider);
-        final refreshToken = await storage.getRefreshToken();
-        if (refreshToken != null) {
-          final dio = _ref.read(dioProvider);
-          final response = await dio.post('/auth/refresh', data: {
-            'refreshToken': refreshToken,
-          });
-
-          if (response.statusCode == 200) {
-            final newAccessToken = response.data['data']['accessToken'] as String;
-            final newRefreshToken = response.data['data']['refreshToken'] as String;
-            await storage.saveTokens(newAccessToken, newRefreshToken);
-
-            // Retry original request
-            err.requestOptions.headers['Authorization'] = 'Bearer $newAccessToken';
-            final retryResponse = await dio.fetch(err.requestOptions);
-            return handler.resolve(retryResponse);
-          }
-        }
-      } catch (_) {
-        // Refresh failed, clear tokens
-        final storage = _ref.read(secureStorageProvider);
-        await storage.clearTokens();
+        final response = await Dio().fetch(req.options);
+        req.handler.resolve(response);
+      } catch (e) {
+        req.handler.reject(DioException(requestOptions: req.options, error: e));
       }
     }
-    handler.next(err);
   }
 }
