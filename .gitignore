@@ -1,0 +1,56 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build
+dist/
+build/
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.production
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+*.log
+
+# Flutter
+kasyaba-app/build/
+kasyaba-app/.dart_tool/
+kasyaba-app/.packages
+kasyaba-app/.pub/
+kasyaba-app/*.iml
+kasyaba-app/ios/Pods/
+kasyaba-app/ios/.symlinks/
+kasyaba-app/android/.gradle/
+kasyaba-app/android/local.properties
+kasyaba-app/android/app/build/
+kasyaba-app/coverage/
+
+# Docker
+docker-data/
+
+# Prisma
+kasyaba-backend/prisma/*.db
+kasyaba-backend/prisma/*.db-journal
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Agent files
+.agents/
+.reasonix/
