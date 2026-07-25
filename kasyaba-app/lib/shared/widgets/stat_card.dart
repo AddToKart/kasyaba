@@ -3,7 +3,7 @@ import '../../app/theme/app_theme.dart';
 import 'modern_card.dart';
 
 /// ─────────────────────────────────────────────────────────────
-///  StatCard — Sharp Luxury Metric Display Card
+///  StatCard — Ultra Luxury Metric Display Card
 /// ─────────────────────────────────────────────────────────────
 class StatCard extends StatelessWidget {
   final IconData icon;
@@ -32,9 +32,9 @@ class StatCard extends StatelessWidget {
 
     return ModernCard(
       onTap: onTap,
-      borderRadius: 0.0,
+      borderRadius: 18.0,
       backgroundColor: AppColors.surfaceCard,
-      borderColor: const Color(0xFF1F293D),
+      borderColor: const Color(0x33334155),
       padding: EdgeInsets.symmetric(
         horizontal: compact ? 12 : 14,
         vertical: compact ? 14 : 16,
@@ -44,12 +44,12 @@ class StatCard extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Sharp Icon container
+          // Icon Container
           Container(
             padding: const EdgeInsets.all(9),
             decoration: BoxDecoration(
               color: iconBg,
-              borderRadius: BorderRadius.zero,
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: color.withValues(alpha: 0.3),
                 width: 1,
@@ -82,7 +82,7 @@ class StatCard extends StatelessWidget {
             style: theme.textTheme.labelSmall?.copyWith(
               color: AppColors.textMuted,
               fontWeight: FontWeight.w500,
-              letterSpacing: 0.5,
+              letterSpacing: 0.3,
             ),
           ),
 
@@ -92,7 +92,7 @@ class StatCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.zero,
+                borderRadius: BorderRadius.circular(6),
                 border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
               ),
               child: Text(
@@ -101,7 +101,7 @@ class StatCard extends StatelessWidget {
                   color: color,
                   fontWeight: FontWeight.w800,
                   fontSize: 10,
-                  letterSpacing: 0.5,
+                  letterSpacing: 0.3,
                 ),
               ),
             ),

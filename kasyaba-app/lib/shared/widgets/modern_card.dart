@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../app/theme/app_theme.dart';
 
 /// ─────────────────────────────────────────────────────────────
-///  ModernCard — Sharp Luxury Rectilinear Card
+///  ModernCard — Ultra Luxury Glass & Metallic Card Widget
 /// ─────────────────────────────────────────────────────────────
 enum CardStyle {
   glass,
@@ -30,21 +30,18 @@ class ModernCard extends StatelessWidget {
     this.gradient,
     this.borderColor,
     this.backgroundColor,
-    this.borderRadius = 0.0, // Sharp rectilinear default
+    this.borderRadius = 20.0,
     this.style = CardStyle.glass,
     this.customShadow,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
     final effectiveBg = backgroundColor ?? AppColors.surfaceCard;
-    final effectiveBorder = borderColor ?? const Color(0xFF1F293D);
-    final shadow = customShadow ?? _buildShadow(isDark);
+    final effectiveBorder = borderColor ?? const Color(0x33334155);
+    final shadow = customShadow ?? _buildShadow();
 
-    final radius = borderRadius > 0 ? BorderRadius.circular(borderRadius) : BorderRadius.zero;
+    final radius = BorderRadius.circular(borderRadius);
 
     Widget innerChild =
         padding != null ? Padding(padding: padding!, child: child) : child;
@@ -64,8 +61,8 @@ class ModernCard extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: radius,
-          splashColor: AppColors.gold500.withValues(alpha: 0.1),
-          highlightColor: AppColors.gold500.withValues(alpha: 0.05),
+          splashColor: AppColors.emerald500.withValues(alpha: 0.12),
+          highlightColor: AppColors.emerald500.withValues(alpha: 0.05),
           child: Ink(
             decoration: decoration,
             child: ClipRRect(borderRadius: radius, child: innerChild),
@@ -80,14 +77,14 @@ class ModernCard extends StatelessWidget {
     );
   }
 
-  List<BoxShadow> _buildShadow(bool isDark) {
+  List<BoxShadow> _buildShadow() {
     switch (style) {
       case CardStyle.elevated:
         return [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.6),
-            blurRadius: 20,
-            offset: const Offset(0, 6),
+            color: Colors.black.withValues(alpha: 0.5),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
           ),
         ];
       case CardStyle.flat:
@@ -96,9 +93,9 @@ class ModernCard extends StatelessWidget {
       case CardStyle.glass:
         return [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.4),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.35),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
           ),
         ];
     }

@@ -2,17 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 /// ─────────────────────────────────────────────────────────────
-///  Kasyaba Design System — Sharp Luxurious Dark Theme
-///  Style: Rectilinear sharp edges, obsidian black surfaces, hairline gold/emerald metallic borders
+///  Kasyaba Design System — Luxury Ultra Fintech Theme
+///  Style: Apple Card / Revolut Metal aesthetic with dark obsidian glass,
+///  champagne gold & vibrant emerald glows, and smooth luxury curves.
 /// ─────────────────────────────────────────────────────────────
 class AppColors {
   AppColors._();
 
-  // ── Emerald Luxury Brand ────────────────────────────────────
+  // ── Brand Colors ───────────────────────────────────────────
   static const emerald50  = Color(0xFFECFDF5);
   static const emerald100 = Color(0xFFD1FAE5);
   static const emerald400 = Color(0xFF34D399);
-  static const emerald500 = Color(0xFF10B981);
+  static const emerald500 = Color(0xFF10B981); // Emerald Glow
   static const emerald600 = Color(0xFF059669);
   static const emerald700 = Color(0xFF047857);
   static const emerald900 = Color(0xFF064E3B);
@@ -20,74 +21,69 @@ class AppColors {
   // ── Champagne Gold Accent ──────────────────────────────────
   static const gold300    = Color(0xFFFDE68A);
   static const gold400    = Color(0xFFFBBF24);
-  static const gold500    = Color(0xFFD4AF37); // Champagne Metallic Gold
+  static const gold500    = Color(0xFFD4AF37); // Champagne Gold
   static const gold600    = Color(0xFFB45309);
 
-  // ── Deep Obsidian Dark Surfaces ────────────────────────────
-  static const obsidian   = Color(0xFF070A0F); // Pitch Obsidian
-  static const surface900 = Color(0xFF0C1017);
-  static const surface800 = Color(0xFF111722);
-  static const surface700 = Color(0xFF161E2E);
-  static const surface600 = Color(0xFF1E293B);
-  static const surface500 = Color(0xFF334155);
-  static const surfaceCard= Color(0xFF0E131F); // Sharp Dark Card Base
+  // ── Obsidian Dark Surfaces ────────────────────────────────
+  static const obsidian   = Color(0xFF080B11); // Deepest Obsidian
+  static const surface900 = Color(0xFF0D121D);
+  static const surface800 = Color(0xFF121927); // Main Card Base
+  static const surface700 = Color(0xFF182234); // Inner Container
+  static const surface600 = Color(0xFF202C42);
+  static const surface500 = Color(0xFF2A3A56);
+  static const surfaceCard= Color(0xFF121927);
 
-  // ── Light Surface ──────────────────────────────────────────
-  static const lightBg    = Color(0xFF070A0F); // Default to Dark Luxury
-  static const lightCard  = Color(0xFF0E131F);
-  static const lightCard2 = Color(0xFF161E2E);
-  static const lightBorder= Color(0xFF1F293D);
-  static const lightBorder2= Color(0xFF334155);
+  // ── Light Surface (Fallback) ──────────────────────────────
+  static const lightBg    = Color(0xFF080B11);
+  static const lightCard  = Color(0xFF121927);
+  static const lightCard2 = Color(0xFF182234);
+  static const lightBorder= Color(0xFF202C42);
+  static const lightBorder2= Color(0xFF2A3A56);
 
   // ── Status Colors ──────────────────────────────────────────
   static const income     = Color(0xFF10B981);
-  static const expense    = Color(0xFFEF4444);
+  static const expense    = Color(0xFFF87171);
   static const warning    = Color(0xFFF59E0B);
-  static const info       = Color(0xFF3B82F6);
+  static const info       = Color(0xFF38BDF8);
 
-  // ── Text ───────────────────────────────────────────────────
+  // ── Text Colors ────────────────────────────────────────────
   static const textDark   = Color(0xFFF8FAFC);
   static const textMuted  = Color(0xFF94A3B8);
   static const textLight  = Color(0xFFF8FAFC);
   static const textMutedL = Color(0xFF64748B);
 
-  // ── Gradients ──────────────────────────────────────────────
+  // ── Luxury Gradients ───────────────────────────────────────
+  static const gradientHeroCard = LinearGradient(
+    colors: [Color(0xFF121927), Color(0xFF1A2438), Color(0xFF0D121D)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
   static const gradientEmerald = LinearGradient(
-    colors: [Color(0xFF047857), Color(0xFF10B981)],
+    colors: [Color(0xFF059669), Color(0xFF10B981), Color(0xFF34D399)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const gradientGold = LinearGradient(
-    colors: [Color(0xFFB45309), Color(0xFFD4AF37)],
+    colors: [Color(0xFFB45309), Color(0xFFD4AF37), Color(0xFFFCD34D)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
-  static const gradientObsidian = LinearGradient(
-    colors: [Color(0xFF070A0F), Color(0xFF0C1017)],
+  static const gradientGlassCard = LinearGradient(
+    colors: [Color(0xCC182234), Color(0x99121927)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
-
-  static const gradientCardDark = LinearGradient(
-    colors: [Color(0xFF0E131F), Color(0xFF161E2E)],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
-
-  // ── Glass overlay (dark) ───────────────────────────────────
-  static Color glassDark(double opacity) =>
-      Color.fromRGBO(14, 19, 31, opacity);
-  static Color glassLight(double opacity) =>
-      Color.fromRGBO(14, 19, 31, opacity);
 }
 
 class AppTheme {
-  // ── SHARP RECTILINEAR EDGES (0px radius for razor cut geometry) ────
-  static const _navbarHeight  = 74.0;
+  static const double cardRadius   = 20.0;
+  static const double buttonRadius = 16.0;
+  static const double inputRadius  = 14.0;
+  static const double navbarHeight = 76.0;
 
-  // ───────────────────────── DARK THEME ──────────────────────
   ThemeData get dark {
     final colorScheme = ColorScheme(
       brightness: Brightness.dark,
@@ -101,7 +97,7 @@ class AppTheme {
       onSecondaryContainer: AppColors.gold300,
       tertiary:           AppColors.info,
       onTertiary:         Colors.white,
-      tertiaryContainer:  const Color(0xFF161E2E),
+      tertiaryContainer:  AppColors.surface700,
       onTertiaryContainer: Colors.white,
       error:              AppColors.expense,
       onError:            Colors.white,
@@ -111,8 +107,8 @@ class AppTheme {
       onSurface:          AppColors.textDark,
       surfaceContainerHighest: AppColors.surface700,
       onSurfaceVariant:   AppColors.textMuted,
-      outline:            const Color(0xFF1F293D),
-      outlineVariant:     const Color(0xFF334155),
+      outline:            const Color(0x40334155),
+      outlineVariant:     const Color(0x20334155),
       inverseSurface:     AppColors.textDark,
       onInverseSurface:   AppColors.surface900,
       inversePrimary:     AppColors.emerald700,
@@ -121,24 +117,20 @@ class AppTheme {
       surfaceTint:        AppColors.emerald500.withValues(alpha: 0.05),
     );
 
-    return _buildTheme(colorScheme, Brightness.dark);
+    return _buildTheme(colorScheme);
   }
 
-  // ───────────────────────── LIGHT THEME (Consolidated Dark Luxury) ───
   ThemeData get light => dark;
 
-  ThemeData _buildTheme(ColorScheme cs, Brightness brightness) {
+  ThemeData _buildTheme(ColorScheme cs) {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
       colorScheme: cs,
-
-      // ── Scaffold ───────────────────────────────────────────
       scaffoldBackgroundColor: AppColors.obsidian,
 
-      // ── App Bar ────────────────────────────────────────────
       appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.obsidian,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
@@ -159,55 +151,53 @@ class AppTheme {
           color: AppColors.textDark,
           fontSize: 20,
           fontWeight: FontWeight.w800,
-          letterSpacing: 0.5,
+          letterSpacing: -0.3,
         ),
       ),
 
-      // ── Card (Sharp Rectilinear Edges) ─────────────────────
-      cardTheme: const CardThemeData(
+      cardTheme: CardThemeData(
         elevation: 0,
         color: AppColors.surfaceCard,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.zero,
-          side: BorderSide(
-            color: Color(0xFF1F293D),
+          borderRadius: BorderRadius.circular(cardRadius),
+          side: const BorderSide(
+            color: Color(0x33334155),
             width: 1,
           ),
         ),
         margin: EdgeInsets.zero,
-        shadowColor: Colors.black,
+        shadowColor: Colors.black.withValues(alpha: 0.4),
       ),
 
-      // ── Input Decoration (Sharp Edges) ─────────────────────
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.surface700,
         contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-        border: const OutlineInputBorder(
-          borderRadius: BorderRadius.zero,
-          borderSide: BorderSide(color: Color(0xFF1F293D)),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(inputRadius),
+          borderSide: const BorderSide(color: Color(0x40334155)),
         ),
-        enabledBorder: const OutlineInputBorder(
-          borderRadius: BorderRadius.zero,
-          borderSide: BorderSide(
-            color: Color(0xFF1F293D),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(inputRadius),
+          borderSide: const BorderSide(
+            color: Color(0x40334155),
             width: 1,
           ),
         ),
-        focusedBorder: const OutlineInputBorder(
-          borderRadius: BorderRadius.zero,
-          borderSide: BorderSide(
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(inputRadius),
+          borderSide: const BorderSide(
             color: AppColors.gold500,
             width: 1.5,
           ),
         ),
-        errorBorder: const OutlineInputBorder(
-          borderRadius: BorderRadius.zero,
-          borderSide: BorderSide(color: AppColors.expense, width: 1),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(inputRadius),
+          borderSide: const BorderSide(color: AppColors.expense, width: 1),
         ),
-        focusedErrorBorder: const OutlineInputBorder(
-          borderRadius: BorderRadius.zero,
-          borderSide: BorderSide(color: AppColors.expense, width: 1.5),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(inputRadius),
+          borderSide: const BorderSide(color: AppColors.expense, width: 1.5),
         ),
         labelStyle: const TextStyle(
           color: AppColors.textMuted,
@@ -221,78 +211,71 @@ class AppTheme {
         prefixIconColor: AppColors.gold500,
       ),
 
-      // ── FilledButton (Sharp Razor Cut) ─────────────────────
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           minimumSize: const Size(0, 52),
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.zero,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(buttonRadius),
           ),
           backgroundColor: AppColors.emerald500,
           foregroundColor: Colors.black,
           textStyle: const TextStyle(
             fontWeight: FontWeight.w800,
-            fontSize: 14,
-            letterSpacing: 1.0,
+            fontSize: 15,
+            letterSpacing: 0.3,
           ),
           elevation: 0,
         ),
       ),
 
-      // ── OutlinedButton (Sharp Razor Cut) ───────────────────
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           minimumSize: const Size(0, 52),
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.zero,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(buttonRadius),
           ),
-          side: const BorderSide(color: Color(0xFF1F293D), width: 1),
+          side: const BorderSide(color: Color(0x40334155), width: 1),
           foregroundColor: AppColors.textDark,
           textStyle: const TextStyle(
             fontWeight: FontWeight.w700,
-            fontSize: 14,
-            letterSpacing: 0.5,
+            fontSize: 15,
           ),
         ),
       ),
 
-      // ── TextButton ─────────────────────────────────────────
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: AppColors.gold500,
           textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.zero,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
           ),
         ),
       ),
 
-      // ── Chip (Sharp Precision Tag) ─────────────────────────
-      chipTheme: const ChipThemeData(
+      chipTheme: ChipThemeData(
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.zero,
-          side: BorderSide(color: Color(0xFF1F293D)),
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: Color(0x33334155)),
         ),
         backgroundColor: AppColors.surface700,
-        labelStyle: TextStyle(
+        labelStyle: const TextStyle(
           fontWeight: FontWeight.w600,
           fontSize: 12,
           color: AppColors.textDark,
-          letterSpacing: 0.5,
         ),
-        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       ),
 
-      // ── NavigationBar (Sharp Obsidian Bar) ─────────────────
       navigationBarTheme: NavigationBarThemeData(
-        height: _navbarHeight,
+        height: navbarHeight,
         backgroundColor: AppColors.obsidian,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        indicatorColor: AppColors.gold500.withValues(alpha: 0.15),
+        indicatorColor: AppColors.emerald500.withValues(alpha: 0.15),
         iconTheme: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return const IconThemeData(color: AppColors.gold500, size: 24);
+            return const IconThemeData(color: AppColors.emerald500, size: 24);
           }
           return const IconThemeData(
             color: AppColors.textMuted,
@@ -302,10 +285,10 @@ class AppTheme {
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
             return const TextStyle(
-              color: AppColors.gold500,
+              color: AppColors.emerald500,
               fontWeight: FontWeight.w800,
               fontSize: 11,
-              letterSpacing: 0.5,
+              letterSpacing: 0.3,
             );
           }
           return const TextStyle(
@@ -316,15 +299,14 @@ class AppTheme {
         }),
       ),
 
-      // ── SnackBar ───────────────────────────────────────────
-      snackBarTheme: const SnackBarThemeData(
+      snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
         backgroundColor: AppColors.surface800,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.zero,
-          side: BorderSide(color: AppColors.gold500, width: 1),
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppColors.gold500, width: 1),
         ),
-        contentTextStyle: TextStyle(
+        contentTextStyle: const TextStyle(
           fontWeight: FontWeight.w600,
           fontSize: 14,
           color: AppColors.textDark,
@@ -332,58 +314,52 @@ class AppTheme {
         elevation: 12,
       ),
 
-      // ── ProgressIndicator ─────────────────────────────────
       progressIndicatorTheme: const ProgressIndicatorThemeData(
         color: AppColors.emerald500,
-        linearTrackColor: Color(0xFF161E2E),
+        linearTrackColor: Color(0xFF182234),
         linearMinHeight: 6,
       ),
 
-      // ── Divider ────────────────────────────────────────────
       dividerTheme: const DividerThemeData(
-        color: Color(0xFF1F293D),
+        color: Color(0x33334155),
         thickness: 1,
         space: 1,
       ),
 
-      // ── Icon ───────────────────────────────────────────────
       iconTheme: const IconThemeData(
         color: AppColors.textMuted,
         size: 22,
       ),
 
-      // ── ListTile ───────────────────────────────────────────
-      listTileTheme: const ListTileThemeData(
-        contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-        titleTextStyle: TextStyle(
+      listTileTheme: ListTileThemeData(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+        titleTextStyle: const TextStyle(
           fontWeight: FontWeight.w700,
           fontSize: 15,
           color: AppColors.textDark,
         ),
-        subtitleTextStyle: TextStyle(
+        subtitleTextStyle: const TextStyle(
           fontWeight: FontWeight.w400,
           fontSize: 13,
           color: AppColors.textMuted,
         ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         tileColor: Colors.transparent,
       ),
 
-      // ── FloatingActionButton ──────────────────────────────
-      floatingActionButtonTheme: const FloatingActionButtonThemeData(
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: AppColors.emerald500,
         foregroundColor: Colors.black,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         elevation: 6,
-        extendedPadding: EdgeInsets.symmetric(horizontal: 22),
-        extendedTextStyle: TextStyle(
+        extendedPadding: const EdgeInsets.symmetric(horizontal: 22),
+        extendedTextStyle: const TextStyle(
           fontWeight: FontWeight.w800,
-          fontSize: 14,
-          letterSpacing: 0.8,
+          fontSize: 15,
+          letterSpacing: 0.3,
         ),
       ),
 
-      // ── Typography ─────────────────────────────────────────
       textTheme: const TextTheme(
         displayLarge: TextStyle(
           fontSize: 57,
@@ -424,13 +400,13 @@ class AppTheme {
         titleLarge: TextStyle(
           fontSize: 20,
           fontWeight: FontWeight.w700,
-          letterSpacing: 0,
+          letterSpacing: -0.3,
           color: AppColors.textDark,
         ),
         titleMedium: TextStyle(
           fontSize: 17,
           fontWeight: FontWeight.w600,
-          letterSpacing: 0,
+          letterSpacing: -0.2,
           color: AppColors.textDark,
         ),
         titleSmall: TextStyle(
@@ -457,13 +433,13 @@ class AppTheme {
         labelLarge: TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w600,
-          letterSpacing: 0.5,
+          letterSpacing: 0.1,
           color: AppColors.textDark,
         ),
         labelMedium: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w500,
-          letterSpacing: 0.5,
+          letterSpacing: 0.4,
           color: AppColors.textMuted,
         ),
         labelSmall: TextStyle(

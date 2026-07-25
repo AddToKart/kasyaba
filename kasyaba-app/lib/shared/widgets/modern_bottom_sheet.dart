@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../app/theme/app_theme.dart';
 
 /// ─────────────────────────────────────────────────────────────
-///  ModernBottomSheet — Sharp Obsidian Luxury Modal Sheet
+///  ModernBottomSheet — Luxury Frosted Modal Sheet
 /// ─────────────────────────────────────────────────────────────
 class ModernBottomSheet extends StatelessWidget {
   final String title;
@@ -33,7 +33,7 @@ class ModernBottomSheet extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withValues(alpha: 0.8),
+      barrierColor: Colors.black.withValues(alpha: 0.75),
       useRootNavigator: useRootNavigator,
       builder: (ctx) => ModernBottomSheet(
         title: title,
@@ -55,16 +55,16 @@ class ModernBottomSheet extends StatelessWidget {
       padding: EdgeInsets.only(bottom: bottomInset),
       decoration: BoxDecoration(
         color: AppColors.surface800,
-        borderRadius: BorderRadius.zero, // Sharp rectilinear top edge
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         border: const Border(
           top: BorderSide(
-            color: Color(0xFFD4AF37), // Hairline Champagne Gold border
-            width: 1.5,
+            color: Color(0x66D4AF37), // Hairline Gold
+            width: 1,
           ),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.7),
+            color: Colors.black.withValues(alpha: 0.6),
             blurRadius: 32,
             offset: const Offset(0, -8),
           ),
@@ -78,15 +78,14 @@ class ModernBottomSheet extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // ── Drag Handle ──────────────────────────────
               if (showDragHandle) ...[
                 Center(
                   child: Container(
                     width: 40,
-                    height: 3,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF1F293D),
-                      borderRadius: BorderRadius.zero,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.surface600,
+                      borderRadius: BorderRadius.circular(2),
                     ),
                   ),
                 ),
@@ -95,7 +94,6 @@ class ModernBottomSheet extends StatelessWidget {
                 const SizedBox(height: 8),
               ],
 
-              // ── Header Row ───────────────────────────────
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -107,7 +105,7 @@ class ModernBottomSheet extends StatelessWidget {
                           title,
                           style: theme.textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w800,
-                            letterSpacing: 0.5,
+                            letterSpacing: -0.3,
                             color: AppColors.textDark,
                           ),
                         ),
@@ -128,20 +126,17 @@ class ModernBottomSheet extends StatelessWidget {
                     action!,
                     const SizedBox(width: 8),
                   ],
-                  // Close Button
                   const _CloseButton(),
                 ],
               ),
               const SizedBox(height: 20),
 
-              // ── Divider ───────────────────────────────────
               const Divider(
                 height: 1,
-                color: Color(0xFF1F293D),
+                color: Color(0x33334155),
               ),
               const SizedBox(height: 20),
 
-              // ── Content ──────────────────────────────────
               Flexible(
                 child: SingleChildScrollView(
                   physics: const ClampingScrollPhysics(),
@@ -163,19 +158,19 @@ class _CloseButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 34,
-      height: 34,
+      width: 36,
+      height: 36,
       decoration: BoxDecoration(
         color: AppColors.surface700,
-        borderRadius: BorderRadius.zero,
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: const Color(0xFF1F293D),
+          color: const Color(0x40334155),
           width: 1,
         ),
       ),
       child: IconButton(
         padding: EdgeInsets.zero,
-        iconSize: 16,
+        iconSize: 18,
         icon: const Icon(
           Icons.close_rounded,
           color: AppColors.textMuted,
