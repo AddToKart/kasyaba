@@ -78,10 +78,10 @@ class TransactionsScreen extends ConsumerWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: AppColors.emerald500.withValues(alpha: isDark ? 0.18 : 0.10),
-                          borderRadius: BorderRadius.circular(20),
+                          color: AppColors.emerald500.withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.zero,
                           border: Border.all(
-                            color: AppColors.emerald500.withValues(alpha: 0.3),
+                            color: AppColors.emerald500.withValues(alpha: 0.4),
                             width: 1,
                           ),
                         ),
@@ -210,11 +210,11 @@ class TransactionsScreen extends ConsumerWidget {
                                           height: 44,
                                           decoration: BoxDecoration(
                                             color: color.withValues(
-                                                alpha: isDark ? 0.15 : 0.10),
-                                            borderRadius: BorderRadius.circular(14),
+                                                alpha: 0.15),
+                                            borderRadius: BorderRadius.zero,
                                             border: Border.all(
                                               color: color.withValues(
-                                                  alpha: isDark ? 0.30 : 0.20),
+                                                  alpha: 0.30),
                                               width: 1,
                                             ),
                                           ),
@@ -349,17 +349,14 @@ class TransactionsScreen extends ConsumerWidget {
       ),
       floatingActionButton: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          gradient: const LinearGradient(
-            colors: [Color(0xFF059669), Color(0xFF10B981)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          borderRadius: BorderRadius.zero,
+          color: AppColors.emerald500,
+          border: Border.all(color: AppColors.gold500.withValues(alpha: 0.5), width: 1),
           boxShadow: [
             BoxShadow(
-              color: AppColors.emerald500.withValues(alpha: 0.45),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
+              color: Colors.black.withValues(alpha: 0.6),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
             ),
           ],
         ),
@@ -367,10 +364,11 @@ class TransactionsScreen extends ConsumerWidget {
           onPressed: () => context.go('/transactions/add'),
           backgroundColor: Colors.transparent,
           elevation: 0,
-          icon: const Icon(Icons.add_rounded, size: 22),
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          icon: const Icon(Icons.add_rounded, size: 22, color: Colors.black),
           label: const Text(
             'New',
-            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Colors.black, letterSpacing: 0.5),
           ),
           tooltip: 'Add Transaction',
         ),
@@ -408,16 +406,16 @@ class _TransactionsSliverAppBar extends StatelessWidget {
     return SliverAppBar(
       pinned: true,
       floating: false,
-      backgroundColor: isDark ? AppColors.obsidian : AppColors.lightBg,
+      backgroundColor: AppColors.obsidian,
       elevation: 0,
       scrolledUnderElevation: 0,
-      title: Text(
+      title: const Text(
         'Transactions',
         style: TextStyle(
           fontWeight: FontWeight.w800,
           fontSize: 22,
-          letterSpacing: -0.5,
-          color: isDark ? Colors.white : AppColors.textLight,
+          letterSpacing: 0.5,
+          color: AppColors.textDark,
         ),
       ),
       titleSpacing: 20,
@@ -463,35 +461,25 @@ class _AppBarIconBtn extends StatelessWidget {
       message: tooltip,
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
           child: Container(
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.zero,
               color: isActive
                   ? AppColors.emerald500.withValues(alpha: 0.2)
-                  : (isDark
-                      ? AppColors.surface700.withValues(alpha: 0.7)
-                      : AppColors.lightCard),
+                  : AppColors.surface700,
               border: Border.all(
-                color: isActive
-                    ? AppColors.emerald500
-                    : (isDark
-                        ? AppColors.surface600.withValues(alpha: 0.6)
-                        : AppColors.lightBorder),
+                color: isActive ? AppColors.emerald500 : const Color(0xFF1F293D),
                 width: 1,
               ),
             ),
             child: Icon(
               icon,
               size: 18,
-              color: isActive
-                  ? AppColors.emerald500
-                  : (isDark ? AppColors.textMuted : AppColors.textMutedL),
+              color: isActive ? AppColors.emerald500 : AppColors.textMuted,
             ),
           ),
         ),

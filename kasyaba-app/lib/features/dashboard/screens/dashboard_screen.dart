@@ -428,48 +428,22 @@ class _HeroBalanceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        gradient: const LinearGradient(
-          colors: [Color(0xFF047857), Color(0xFF059669), Color(0xFF10B981)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+        borderRadius: BorderRadius.zero,
+        color: AppColors.surface800,
+        border: Border.all(
+          color: AppColors.gold500.withValues(alpha: 0.6),
+          width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.emerald600.withValues(alpha: 0.45),
-            blurRadius: 32,
-            offset: const Offset(0, 12),
+            color: Colors.black.withValues(alpha: 0.7),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Stack(
         children: [
-          // Decorative orb
-          Positioned(
-            right: -30,
-            top: -30,
-            child: Container(
-              width: 140,
-              height: 140,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.07),
-              ),
-            ),
-          ),
-          Positioned(
-            right: 20,
-            bottom: -40,
-            child: Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.05),
-              ),
-            ),
-          ),
-
           // Content
           Padding(
             padding: const EdgeInsets.all(24),
@@ -480,16 +454,16 @@ class _HeroBalanceCard extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
+                    const Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Total Balance',
+                          'TOTAL LIQUID BALANCE',
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.75),
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            letterSpacing: 0.5,
+                            color: AppColors.gold400,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.2,
                           ),
                         ),
                       ],
@@ -513,8 +487,8 @@ class _HeroBalanceCard extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 38,
                       fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                      letterSpacing: -1.2,
+                      color: AppColors.textDark,
+                      letterSpacing: -0.5,
                       height: 1.1,
                     ),
                   ),
@@ -525,10 +499,10 @@ class _HeroBalanceCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(16),
+                    color: AppColors.surface700,
+                    borderRadius: BorderRadius.zero,
                     border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.1),
+                      color: const Color(0xFF1F293D),
                       width: 1,
                     ),
                   ),
@@ -541,14 +515,14 @@ class _HeroBalanceCard extends StatelessWidget {
                               ? '₱${_formatAmount(data.income)}'
                               : '••••',
                           icon: Icons.arrow_downward_rounded,
-                          iconColor: const Color(0xFF34D399),
-                          iconBg: const Color(0xFF34D399),
+                          iconColor: AppColors.emerald500,
+                          iconBg: AppColors.emerald500,
                         ),
                       ),
                       Container(
                         width: 1,
                         height: 32,
-                        color: Colors.white.withValues(alpha: 0.2),
+                        color: const Color(0xFF1F293D),
                       ),
                       Expanded(
                         child: _FinancePill(

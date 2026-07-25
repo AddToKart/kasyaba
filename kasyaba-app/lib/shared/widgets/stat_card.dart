@@ -3,7 +3,7 @@ import '../../app/theme/app_theme.dart';
 import 'modern_card.dart';
 
 /// ─────────────────────────────────────────────────────────────
-///  StatCard — Premium metric display card
+///  StatCard — Sharp Luxury Metric Display Card
 /// ─────────────────────────────────────────────────────────────
 class StatCard extends StatelessWidget {
   final IconData icon;
@@ -28,40 +28,30 @@ class StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    final iconBg = color.withValues(alpha: isDark ? 0.15 : 0.10);
-    final accentBg = color.withValues(alpha: isDark ? 0.05 : 0.04);
+    final iconBg = color.withValues(alpha: 0.15);
 
     return ModernCard(
       onTap: onTap,
+      borderRadius: 0.0,
+      backgroundColor: AppColors.surfaceCard,
+      borderColor: const Color(0xFF1F293D),
       padding: EdgeInsets.symmetric(
         horizontal: compact ? 12 : 14,
         vertical: compact ? 14 : 16,
-      ),
-      gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-          isDark ? AppColors.surfaceCard : AppColors.lightCard,
-          isDark
-              ? AppColors.surfaceCard.withValues(alpha: 0.95)
-              : accentBg.withValues(alpha: 0.3),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Icon container
+          // Sharp Icon container
           Container(
             padding: const EdgeInsets.all(9),
             decoration: BoxDecoration(
               color: iconBg,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.zero,
               border: Border.all(
-                color: color.withValues(alpha: isDark ? 0.25 : 0.15),
+                color: color.withValues(alpha: 0.3),
                 width: 1,
               ),
             ),
@@ -77,8 +67,8 @@ class StatCard extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w800,
-              letterSpacing: -0.6,
-              color: isDark ? AppColors.textDark : AppColors.textLight,
+              letterSpacing: -0.4,
+              color: AppColors.textDark,
             ),
           ),
 
@@ -90,9 +80,9 @@ class StatCard extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.labelSmall?.copyWith(
-              color: isDark ? AppColors.textMuted : AppColors.textMutedL,
+              color: AppColors.textMuted,
               fontWeight: FontWeight.w500,
-              letterSpacing: 0.3,
+              letterSpacing: 0.5,
             ),
           ),
 
@@ -101,16 +91,17 @@ class StatCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: color.withValues(alpha: isDark ? 0.15 : 0.1),
-                borderRadius: BorderRadius.circular(6),
+                color: color.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.zero,
+                border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
               ),
               child: Text(
                 subtitle!,
                 style: TextStyle(
                   color: color,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w800,
                   fontSize: 10,
-                  letterSpacing: 0.3,
+                  letterSpacing: 0.5,
                 ),
               ),
             ),

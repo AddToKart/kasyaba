@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../app/theme/app_theme.dart';
 
 /// ─────────────────────────────────────────────────────────────
-///  ModernBottomSheet — Luxury frosted-glass modal bottom sheet
+///  ModernBottomSheet — Sharp Obsidian Luxury Modal Sheet
 /// ─────────────────────────────────────────────────────────────
 class ModernBottomSheet extends StatelessWidget {
   final String title;
@@ -33,7 +33,7 @@ class ModernBottomSheet extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withValues(alpha: 0.65),
+      barrierColor: Colors.black.withValues(alpha: 0.8),
       useRootNavigator: useRootNavigator,
       builder: (ctx) => ModernBottomSheet(
         title: title,
@@ -48,26 +48,23 @@ class ModernBottomSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 0),
       padding: EdgeInsets.only(bottom: bottomInset),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.surface800 : AppColors.lightCard,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        border: Border(
+        color: AppColors.surface800,
+        borderRadius: BorderRadius.zero, // Sharp rectilinear top edge
+        border: const Border(
           top: BorderSide(
-            color: isDark
-                ? AppColors.surface600.withValues(alpha: 0.7)
-                : AppColors.lightBorder,
-            width: 1,
+            color: Color(0xFFD4AF37), // Hairline Champagne Gold border
+            width: 1.5,
           ),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.5 : 0.12),
+            color: Colors.black.withValues(alpha: 0.7),
             blurRadius: 32,
             offset: const Offset(0, -8),
           ),
@@ -86,12 +83,10 @@ class ModernBottomSheet extends StatelessWidget {
                 Center(
                   child: Container(
                     width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? AppColors.surface600
-                          : AppColors.lightBorder2,
-                      borderRadius: BorderRadius.circular(2),
+                    height: 3,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF1F293D),
+                      borderRadius: BorderRadius.zero,
                     ),
                   ),
                 ),
@@ -112,7 +107,8 @@ class ModernBottomSheet extends StatelessWidget {
                           title,
                           style: theme.textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w800,
-                            letterSpacing: -0.4,
+                            letterSpacing: 0.5,
+                            color: AppColors.textDark,
                           ),
                         ),
                         if (subtitle != null) ...[
@@ -120,7 +116,7 @@ class ModernBottomSheet extends StatelessWidget {
                           Text(
                             subtitle!,
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
+                              color: AppColors.textMuted,
                             ),
                           ),
                         ],
@@ -133,17 +129,15 @@ class ModernBottomSheet extends StatelessWidget {
                     const SizedBox(width: 8),
                   ],
                   // Close Button
-                  _CloseButton(isDark: isDark),
+                  const _CloseButton(),
                 ],
               ),
               const SizedBox(height: 20),
 
               // ── Divider ───────────────────────────────────
-              Divider(
+              const Divider(
                 height: 1,
-                color: isDark
-                    ? AppColors.surface600.withValues(alpha: 0.5)
-                    : AppColors.lightBorder.withValues(alpha: 0.7),
+                color: Color(0xFF1F293D),
               ),
               const SizedBox(height: 20),
 
@@ -164,30 +158,27 @@ class ModernBottomSheet extends StatelessWidget {
 }
 
 class _CloseButton extends StatelessWidget {
-  final bool isDark;
-  const _CloseButton({required this.isDark});
+  const _CloseButton();
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 36,
-      height: 36,
+      width: 34,
+      height: 34,
       decoration: BoxDecoration(
-        color: isDark
-            ? AppColors.surface700.withValues(alpha: 0.8)
-            : AppColors.lightCard2,
-        borderRadius: BorderRadius.circular(10),
+        color: AppColors.surface700,
+        borderRadius: BorderRadius.zero,
         border: Border.all(
-          color: isDark ? AppColors.surface600 : AppColors.lightBorder,
+          color: const Color(0xFF1F293D),
           width: 1,
         ),
       ),
       child: IconButton(
         padding: EdgeInsets.zero,
-        iconSize: 18,
-        icon: Icon(
+        iconSize: 16,
+        icon: const Icon(
           Icons.close_rounded,
-          color: isDark ? AppColors.textMuted : AppColors.textMutedL,
+          color: AppColors.textMuted,
         ),
         onPressed: () => Navigator.pop(context),
         tooltip: 'Close',
