@@ -461,6 +461,187 @@ export async function generateAlertsFromSnapshot(userId: string): Promise<void> 
       deduplicationKey: key,
     });
   }
+
+  // --- High Expense Spike / Deficit Alert ---
+  const expensesMTD = Number(snapshot.expensesMonthToDate);
+  const incomeMTD = Number(snapshot.incomeMonthToDate);
+
+  if (expensesMTD > 0 && (incomeMTD === 0 || expensesMTD > incomeMTD * 0.8)) {
+    const key = `${userId}:expense_spike:${now.getFullYear()}-${now.getMonth()}`;
+    const severity = expensesMTD > incomeMTD ? 'critical' : 'warning';
+    await alertService.createAlert({
+      userId,
+      snapshotId: snapshot.id,
+      type: 'budget_overrun',
+      severity,
+      title: severity === 'critical' ? 'High expense spike warning' : 'Elevated spending rate',
+      message: `Your month-to-date expenses (₱${expensesMTD.toFixed(2)}) reach ${incomeMTD > 0 ? ((expensesMTD / incomeMTD) * 100).toFixed(0) : '100'}% of your recorded income (₱${incomeMTD.toFixed(2)}).`,
+      reasonData: { expensesMTD, incomeMTD },
+      effectiveDate: now,
+      deduplicationKey: key,
+    });
+  }
+
+  // --- Health Score Alert ---
+  const healthGrade = snapshot.healthGrade;
+  if (healthGrade === 'Needs Attention' || healthGrade === 'Fair') {
+    const key = `${userId}:health_score:${now.getFullYear()}-${now.getMonth()}`;
+    await alertService.createAlert({
+      userId,
+      snapshotId: snapshot.id,
+      type: 'month_end',
+      severity: healthGrade === 'Needs Attention' ? 'critical' : 'warning',
+      title: `Financial Health: ${healthGrade}`,
+      message: `Your health score needs attention due to high spending relative to income or balance threshold. Check recovery steps below.`,
+      reasonData: { healthGrade, healthScore: snapshot.healthScore },
+      effectiveDate: now,
+      deduplicationKey: key,
+    });
+  }
+}
+
+export interface RecoveryPlanOutput {
+  healthScore: number;
+  healthGrade: string;
+  summaryMessage: string;
+  rootCauses: {
+    title: string;
+    description: string;
+    severity: 'critical' | 'warning' | 'info';
+  }[];
+  recommendedDailySpendLimit: number;
+  daysRemainingInMonth: number;
+  safeLiquidCash: number;
+  estimatedRecoveryDate: string | null;
+  actionSteps: {
+    stepNumber: number;
+    title: string;
+    description: string;
+    icon: string;
+  }[];
+}
+
+export async function evaluateFinancialRecoveryAnalysis(userId: string): Promise<RecoveryPlanOutput> {
+  const now = new Date();
+  const snapshot = await computeSnapshot(userId);
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { minimumBalanceThreshold: true, salaryAmount: true },
+  });
+
+  const activeBills = await prisma.billInstance.findMany({
+    where: {
+      userId,
+      status: 'upcoming',
+      dueDate: { gte: now, lte: new Date(now.getTime() + 30 * 86400000) },
+    },
+  });
+
+  const totalBills = activeBills.reduce((sum, b) => sum + Number(b.amount), 0);
+  const minThreshold = user?.minimumBalanceThreshold ? Number(user.minimumBalanceThreshold) : 0;
+  const actualBalance = Number(snapshot.actualBalance);
+  const expensesMTD = Number(snapshot.expensesMonthToDate);
+  const incomeMTD = Number(snapshot.incomeMonthToDate);
+  const projectedMonthEnd = Number(snapshot.predictedMonthEndBalance);
+
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const daysRemaining = Math.max(1, daysInMonth - now.getDate());
+
+  const safeLiquidCash = actualBalance - totalBills - minThreshold;
+  const rawDailyLimit = safeLiquidCash > 0 ? safeLiquidCash / daysRemaining : 0;
+  const recommendedDailySpendLimit = Math.max(0, Math.floor(rawDailyLimit));
+
+  const rootCauses: { title: string; description: string; severity: 'critical' | 'warning' | 'info' }[] = [];
+
+  if (expensesMTD > incomeMTD && incomeMTD > 0) {
+    rootCauses.push({
+      title: 'Expense Spike Exceeds Income',
+      description: `Your MTD expenses (₱${expensesMTD.toFixed(2)}) have exceeded your MTD income (₱${incomeMTD.toFixed(2)}).`,
+      severity: 'critical',
+    });
+  } else if (expensesMTD > 0 && incomeMTD === 0) {
+    rootCauses.push({
+      title: 'Expenses Recorded Without Salary/Income',
+      description: `Recorded ₱${expensesMTD.toFixed(2)} in expenses without a salary or income baseline configured.`,
+      severity: 'warning',
+    });
+  }
+
+  if (projectedMonthEnd < minThreshold) {
+    rootCauses.push({
+      title: 'Projected Month-End Below Safety Buffer',
+      description: `Projected month-end balance (₱${projectedMonthEnd.toFixed(2)}) falls below your ₱${minThreshold.toFixed(2)} safety buffer.`,
+      severity: projectedMonthEnd < 0 ? 'critical' : 'warning',
+    });
+  }
+
+  if (totalBills > 0 && actualBalance < totalBills) {
+    rootCauses.push({
+      title: 'Upcoming Bills Exceed Current Liquid Balance',
+      description: `Upcoming 30-day bills total ₱${totalBills.toFixed(2)}, which exceeds liquid balance (₱${actualBalance.toFixed(2)}).`,
+      severity: 'critical',
+    });
+  }
+
+  if (rootCauses.length === 0) {
+    rootCauses.push({
+      title: 'Normal Operations',
+      description: 'Your cash flow velocity and balance safety buffer are currently in healthy shape.',
+      severity: 'info',
+    });
+  }
+
+  let estimatedRecoveryDate: string | null = null;
+  const dailySurplus = Number(snapshot.incomeMonthToDate) > 0
+    ? (Number(snapshot.incomeMonthToDate) - Number(snapshot.expensesMonthToDate)) / 30
+    : 150;
+
+  if (safeLiquidCash < 0 && dailySurplus > 0) {
+    const deficit = Math.abs(safeLiquidCash);
+    const daysNeeded = Math.ceil(deficit / dailySurplus);
+    const recoverDate = new Date(now.getTime() + daysNeeded * 86400000);
+    estimatedRecoveryDate = recoverDate.toISOString().split('T')[0];
+  }
+
+  const actionSteps = [
+    {
+      stepNumber: 1,
+      title: `Cap Daily Variable Spend at ₱${recommendedDailySpendLimit.toFixed(0)}/day`,
+      description: `For the remaining ${daysRemaining} days of this month, limit discretionary spending to ₱${recommendedDailySpendLimit.toFixed(0)} per day to protect your bill buffer.`,
+      icon: 'savings',
+    },
+    {
+      stepNumber: 2,
+      title: `Secure ₱${totalBills.toFixed(0)} Bill Reserve`,
+      description: `Keep at least ₱${totalBills.toFixed(0)} untouchable in your main account to cover 30-day upcoming bill payments without penalties.`,
+      icon: 'receipt',
+    },
+    {
+      stepNumber: 3,
+      title: 'Pause Non-Essential Purchases',
+      description: 'Avoid large gadget, dining, or luxury expenses until your health score rebounds above 70 (Good).',
+      icon: 'pause_circle',
+    },
+  ];
+
+  let summaryMessage = 'Your overall finances look healthy and on track.';
+  if (snapshot.healthGrade === 'Needs Attention') {
+    summaryMessage = `Attention required: Recent expenses have created a cash flow deficit. Follow the recovery plan below to reach balance stability.`;
+  } else if (snapshot.healthGrade === 'Fair') {
+    summaryMessage = `Caution: Your cash flow buffer is tight. Pacing your daily spending will maintain healthy balance resilience.`;
+  }
+
+  return {
+    healthScore: snapshot.healthScore,
+    healthGrade: snapshot.healthGrade,
+    summaryMessage,
+    rootCauses,
+    recommendedDailySpendLimit,
+    daysRemainingInMonth: daysRemaining,
+    safeLiquidCash,
+    estimatedRecoveryDate,
+    actionSteps,
+  };
 }
 
 interface HealthInput {

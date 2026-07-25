@@ -1,8 +1,12 @@
 import { prisma } from '../../config/database';
 import { NotFoundError } from '../../lib/errors';
 import type { AlertType, AlertSeverity } from '@prisma/client';
+import { generateAlertsFromSnapshot } from '../forecasting/service';
 
 export async function listAlerts(userId: string, query: Record<string, any>) {
+  // Trigger dynamic alert evaluation on list request
+  await generateAlertsFromSnapshot(userId).catch(() => {});
+
   const where: any = { userId };
 
   if (query.status === 'unread') {

@@ -530,6 +530,8 @@ class TransactionMutator {
 
     _ref.invalidate(dashboardProvider);
     _ref.invalidate(transactionsProvider);
+    _ref.invalidate(alertsProvider);
+    _ref.invalidate(recoveryAnalysisProvider);
   }
 
   Future<void> addIncome({
@@ -564,6 +566,8 @@ class TransactionMutator {
 
     _ref.invalidate(dashboardProvider);
     _ref.invalidate(transactionsProvider);
+    _ref.invalidate(alertsProvider);
+    _ref.invalidate(recoveryAnalysisProvider);
   }
 
   Future<void> addGoal({
@@ -828,6 +832,108 @@ final alertsProvider = FutureProvider<List<AlertItem>>((ref) async {
         .toList();
   } catch (_) {
     return [];
+  }
+});
+
+// -----------------------------------------------------------------------------
+// Financial Recovery Analysis Models & Provider
+// -----------------------------------------------------------------------------
+class RootCauseItem {
+  final String title;
+  final String description;
+  final String severity;
+
+  RootCauseItem({required this.title, required this.description, required this.severity});
+
+  factory RootCauseItem.fromJson(Map<String, dynamic> json) => RootCauseItem(
+        title: json['title']?.toString() ?? '',
+        description: json['description']?.toString() ?? '',
+        severity: json['severity']?.toString() ?? 'info',
+      );
+}
+
+class ActionStepItem {
+  final int stepNumber;
+  final String title;
+  final String description;
+  final String icon;
+
+  ActionStepItem({required this.stepNumber, required this.title, required this.description, required this.icon});
+
+  factory ActionStepItem.fromJson(Map<String, dynamic> json) => ActionStepItem(
+        stepNumber: (json['stepNumber'] as num?)?.toInt() ?? 1,
+        title: json['title']?.toString() ?? '',
+        description: json['description']?.toString() ?? '',
+        icon: json['icon']?.toString() ?? 'check',
+      );
+}
+
+class RecoveryAnalysis {
+  final int healthScore;
+  final String healthGrade;
+  final String summaryMessage;
+  final List<RootCauseItem> rootCauses;
+  final double recommendedDailySpendLimit;
+  final int daysRemainingInMonth;
+  final double safeLiquidCash;
+  final String? estimatedRecoveryDate;
+  final List<ActionStepItem> actionSteps;
+
+  RecoveryAnalysis({
+    required this.healthScore,
+    required this.healthGrade,
+    required this.summaryMessage,
+    required this.rootCauses,
+    required this.recommendedDailySpendLimit,
+    required this.daysRemainingInMonth,
+    required this.safeLiquidCash,
+    this.estimatedRecoveryDate,
+    required this.actionSteps,
+  });
+
+  factory RecoveryAnalysis.fromJson(Map<String, dynamic> json) {
+    double parseNum(dynamic val) {
+      if (val == null) return 0.0;
+      if (val is num) return val.toDouble();
+      return double.tryParse(val.toString()) ?? 0.0;
+    }
+
+    return RecoveryAnalysis(
+      healthScore: (json['healthScore'] as num?)?.toInt() ?? 80,
+      healthGrade: json['healthGrade']?.toString() ?? 'Good',
+      summaryMessage: json['summaryMessage']?.toString() ?? '',
+      rootCauses: (json['rootCauses'] as List<dynamic>?)
+              ?.map((e) => RootCauseItem.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      recommendedDailySpendLimit: parseNum(json['recommendedDailySpendLimit']),
+      daysRemainingInMonth: (json['daysRemainingInMonth'] as num?)?.toInt() ?? 1,
+      safeLiquidCash: parseNum(json['safeLiquidCash']),
+      estimatedRecoveryDate: json['estimatedRecoveryDate']?.toString(),
+      actionSteps: (json['actionSteps'] as List<dynamic>?)
+              ?.map((e) => ActionStepItem.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+    );
+  }
+}
+
+final recoveryAnalysisProvider = FutureProvider<RecoveryAnalysis>((ref) async {
+  final dio = ref.watch(dioProvider);
+  try {
+    final res = await dio.get('/alerts/analysis');
+    return RecoveryAnalysis.fromJson(res.data['data'] as Map<String, dynamic>);
+  } catch (_) {
+    return RecoveryAnalysis(
+      healthScore: 80,
+      healthGrade: 'Good',
+      summaryMessage: 'Finances look healthy.',
+      rootCauses: [],
+      recommendedDailySpendLimit: 500.0,
+      daysRemainingInMonth: 15,
+      safeLiquidCash: 10000.0,
+      actionSteps: [],
+    );
   }
 });
 

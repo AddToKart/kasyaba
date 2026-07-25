@@ -1,13 +1,22 @@
 import { authenticate } from '../../middleware/auth';
 import * as alertService from './service';
+import { evaluateFinancialRecoveryAnalysis } from '../forecasting/service';
 import { sendSuccess, sendNoContent } from '../../lib/response';
 import type { Router } from 'express';
 import { Request, Response, NextFunction } from 'express';
+
 export function registerRoutes(app: Router) {
   app.get('/api/v1/alerts', authenticate, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const alerts = await alertService.listAlerts(req.userId!, req.query);
       sendSuccess(res, alerts);
+    } catch (err) { next(err); }
+  });
+
+  app.get('/api/v1/alerts/analysis', authenticate, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const analysis = await evaluateFinancialRecoveryAnalysis(req.userId!);
+      sendSuccess(res, analysis);
     } catch (err) { next(err); }
   });
 
