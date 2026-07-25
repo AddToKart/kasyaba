@@ -129,7 +129,11 @@ class SettingsScreen extends ConsumerWidget {
                   title: const Text('Notifications', style: TextStyle(fontWeight: FontWeight.w600)),
                   subtitle: const Text('Bill reminders & budget alerts'),
                   trailing: const Icon(Icons.chevron_right, size: 20),
-                  onTap: () {},
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Notifications enabled for bill reminders')),
+                    );
+                  },
                 ),
                 const Divider(height: 1, indent: 56),
                 ListTile(

@@ -43,11 +43,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   }
 
   Color _healthColor(String grade) => switch (grade.toLowerCase()) {
-        'excellent' => AppColors.emerald500,
-        'good'      => AppColors.info,
-        'fair'      => AppColors.warning,
-        'poor'      => AppColors.expense,
-        _           => AppColors.emerald500,
+        'excellent'        => AppColors.emerald500,
+        'good'             => AppColors.info,
+        'fair'             => AppColors.warning,
+        'poor'             => AppColors.expense,
+        'needs attention'  => AppColors.expense,
+        _                  => AppColors.emerald500,
       };
 
   @override

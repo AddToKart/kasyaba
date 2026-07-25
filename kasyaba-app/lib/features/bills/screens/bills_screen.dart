@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/providers/api_providers.dart';
+import '../../../core/notifications/notification_service.dart';
 import '../../../shared/widgets/modern_card.dart';
 import '../../../shared/widgets/empty_state_view.dart';
 import '../../../shared/widgets/modern_bottom_sheet.dart';
@@ -88,11 +89,22 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                 final name = nameController.text.trim();
                 final amount = double.tryParse(amountController.text.trim()) ?? 0.0;
                 final mutator = ref.read(transactionMutatorProvider);
+                final startsOn = DateTime.now().add(const Duration(days: 7));
                 await mutator.addBill(
                   name: name,
                   amount: amount,
-                  startsOn: DateTime.now().add(const Duration(days: 7)),
+                  startsOn: startsOn,
                 );
+                // Schedule a reminder 1 day before the bill's due date
+                final reminderDate = startsOn.subtract(const Duration(days: 1));
+                if (reminderDate.isAfter(DateTime.now())) {
+                  await NotificationService.instance.scheduleBillReminder(
+                    id: 'bill_${name}_${startsOn.millisecondsSinceEpoch}',
+                    title: name,
+                    body: 'Due tomorrow',
+                    scheduledDate: reminderDate,
+                  );
+                }
                 if (context.mounted) Navigator.pop(context);
               },
               icon: const Icon(Icons.check, size: 20),

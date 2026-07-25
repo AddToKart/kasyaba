@@ -145,10 +145,10 @@ class DashboardData {
         grade = 'Excellent';
       } else if (score >= 60) {
         grade = 'Good';
-      } else if (score >= 40) {
+      } else if (score >= 50) {
         grade = 'Fair';
       } else {
-        grade = 'Poor';
+        grade = 'Needs Attention';
       }
     }
 
@@ -437,4 +437,154 @@ class TransactionMutator {
 final transactionMutatorProvider = Provider<TransactionMutator>((ref) {
   final dio = ref.watch(dioProvider);
   return TransactionMutator(dio, ref);
+});
+
+// -----------------------------------------------------------------------------
+// Financial Alerts Model & Provider
+// -----------------------------------------------------------------------------
+class AlertItem {
+  final String id;
+  final String type;
+  final String severity;
+  final String title;
+  final String message;
+  final DateTime createdAt;
+  final bool isRead;
+
+  AlertItem({
+    required this.id,
+    required this.type,
+    required this.severity,
+    required this.title,
+    required this.message,
+    required this.createdAt,
+    required this.isRead,
+  });
+
+  factory AlertItem.fromJson(Map<String, dynamic> json) => AlertItem(
+        id: json['id'] as String,
+        type: json['type'] as String,
+        severity: json['severity'] as String,
+        title: json['title'] as String,
+        message: json['message'] as String,
+        createdAt: DateTime.parse(json['createdAt'] as String),
+        isRead: json['readAt'] != null,
+      );
+}
+
+final alertsProvider = FutureProvider<List<AlertItem>>((ref) async {
+  final dio = ref.watch(dioProvider);
+  try {
+    final res = await dio.get('/alerts', queryParameters: {'status': 'unread'});
+    final data = res.data['data'] as List<dynamic>;
+    return data
+        .map((e) => AlertItem.fromJson(e as Map<String, dynamic>))
+        .toList();
+  } catch (_) {
+    return [];
+  }
+});
+
+// -----------------------------------------------------------------------------
+// Budget Status Model & Provider
+// -----------------------------------------------------------------------------
+class BudgetItemStatus {
+  final String budgetId;
+  final String? categoryId;
+  final double amount;
+  final double spent;
+  final double remaining;
+  final double percentUsed;
+  final String status;
+
+  BudgetItemStatus({
+    required this.budgetId,
+    this.categoryId,
+    required this.amount,
+    required this.spent,
+    required this.remaining,
+    required this.percentUsed,
+    required this.status,
+  });
+
+  factory BudgetItemStatus.fromJson(Map<String, dynamic> json) {
+    double parseNum(dynamic val) {
+      if (val == null) return 0.0;
+      if (val is num) return val.toDouble();
+      return double.tryParse(val.toString()) ?? 0.0;
+    }
+
+    return BudgetItemStatus(
+      budgetId: json['budgetId']?.toString() ?? '',
+      categoryId: json['categoryId']?.toString(),
+      amount: parseNum(json['amount']),
+      spent: parseNum(json['spent']),
+      remaining: parseNum(json['remaining']),
+      percentUsed: parseNum(json['percentUsed']),
+      status: json['status']?.toString() ?? 'on_track',
+    );
+  }
+}
+
+class BudgetStatus {
+  final String month;
+  final double totalBudget;
+  final double totalSpent;
+  final double overallPercent;
+  final int budgetCount;
+  final List<BudgetItemStatus> budgets;
+
+  BudgetStatus({
+    required this.month,
+    required this.totalBudget,
+    required this.totalSpent,
+    required this.overallPercent,
+    required this.budgetCount,
+    required this.budgets,
+  });
+
+  factory BudgetStatus.empty() => BudgetStatus(
+        month: '',
+        totalBudget: 0,
+        totalSpent: 0,
+        overallPercent: 0,
+        budgetCount: 0,
+        budgets: [],
+      );
+
+  factory BudgetStatus.fromJson(Map<String, dynamic> json) {
+    double parseNum(dynamic val) {
+      if (val == null) return 0.0;
+      if (val is num) return val.toDouble();
+      return double.tryParse(val.toString()) ?? 0.0;
+    }
+
+    return BudgetStatus(
+      month: json['month']?.toString() ?? '',
+      totalBudget: parseNum(json['totalBudget']),
+      totalSpent: parseNum(json['totalSpent']),
+      overallPercent: parseNum(json['overallPercent']),
+      budgetCount: (json['budgetCount'] as num?)?.toInt() ?? 0,
+      budgets: (json['budgets'] as List<dynamic>?)
+              ?.map(
+                  (e) => BudgetItemStatus.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+    );
+  }
+}
+
+final budgetStatusProvider = FutureProvider<BudgetStatus>((ref) async {
+  final dio = ref.watch(dioProvider);
+  final now = DateTime.now();
+  final monthStr =
+      '${now.year}-${now.month.toString().padLeft(2, '0')}';
+  try {
+    final res =
+        await dio.get('/budgets/status', queryParameters: {'month': monthStr});
+    return BudgetStatus.fromJson(
+        res.data['data'] as Map<String, dynamic>);
+  } catch (_) {
+    return BudgetStatus.empty();
+  }
 });
