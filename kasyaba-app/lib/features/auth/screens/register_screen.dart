@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:reactive_forms/reactive_forms.dart';
 import '../../../core/auth/auth_provider.dart';
 import '../../../app/theme/app_theme.dart';
 import '../widgets/auth_widgets.dart';
@@ -14,11 +15,27 @@ class RegisterScreen extends ConsumerStatefulWidget {
 
 class _RegisterScreenState extends ConsumerState<RegisterScreen>
     with TickerProviderStateMixin {
-  final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
+  final formGroup = FormGroup(
+    {
+      'name': FormControl<String>(validators: [
+        Validators.required,
+      ]),
+      'email': FormControl<String>(validators: [
+        Validators.required,
+        Validators.email,
+      ]),
+      'password': FormControl<String>(validators: [
+        Validators.required,
+        Validators.minLength(8),
+      ]),
+      'confirmPassword': FormControl<String>(validators: [
+        Validators.required,
+      ]),
+    },
+    validators: [
+      Validators.mustMatch('password', 'confirmPassword'),
+    ],
+  );
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
 
@@ -56,20 +73,18 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
   void dispose() {
     _bgController.dispose();
     _entryController.dispose();
-    _nameController.dispose();
-    _emailController.dispose();
-    _passwordController.dispose();
-    _confirmPasswordController.dispose();
+    formGroup.dispose();
     super.dispose();
   }
 
   Future<void> _handleRegister() async {
-    if (!_formKey.currentState!.validate()) return;
+    formGroup.markAllAsTouched();
+    if (!formGroup.valid) return;
     try {
       await ref.read(authProvider.notifier).register(
-            _emailController.text.trim(),
-            _passwordController.text,
-            displayName: _nameController.text.trim(),
+            formGroup.control('email').value as String,
+            formGroup.control('password').value as String,
+            displayName: formGroup.control('name').value as String,
           );
       if (mounted) context.go('/dashboard');
     } catch (_) {}
@@ -112,8 +127,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                       opacity: _fadeIn,
                       child: SlideTransition(
                         position: _slideUp,
-                        child: Form(
-                          key: _formKey,
+                        child: ReactiveForm(
+                          formGroup: formGroup,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
@@ -167,88 +182,124 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                                       const SizedBox(height: 20),
                                     ],
 
-                                    AuthTextField(
-                                      controller: _nameController,
-                                      label: 'Full Name',
-                                      hint: 'John Doe',
-                                      icon: Icons.person_outline_rounded,
-                                      isDark: isDark,
-                                      validator: (v) =>
-                                          (v?.trim().length ?? 0) >= 1
-                                              ? null
-                                              : 'Please enter your name',
-                                    ),
-                                    const SizedBox(height: 16),
-
-                                    AuthTextField(
-                                      controller: _emailController,
-                                      label: 'Email Address',
-                                      hint: 'name@example.com',
-                                      icon: Icons.alternate_email_rounded,
-                                      keyboardType:
-                                          TextInputType.emailAddress,
-                                      isDark: isDark,
-                                      validator: (v) =>
-                                          v?.contains('@') == true
-                                              ? null
-                                              : 'Enter a valid email',
-                                    ),
-                                    const SizedBox(height: 16),
-
-                                    AuthTextField(
-                                      controller: _passwordController,
-                                      label: 'Password',
-                                      hint: '••••••••',
-                                      icon: Icons.lock_outline_rounded,
-                                      obscureText: _obscurePassword,
-                                      isDark: isDark,
-                                      validator: (v) =>
-                                          (v?.length ?? 0) >= 8
-                                              ? null
-                                              : 'At least 8 characters',
-                                      suffixIcon: IconButton(
-                                        icon: Icon(
-                                          _obscurePassword
-                                              ? Icons.visibility_off_outlined
-                                              : Icons.visibility_outlined,
-                                          size: 20,
-                                        ),
-                                        color: isDark
-                                            ? AppColors.textMuted
-                                            : AppColors.textMutedL,
-                                        onPressed: () => setState(() =>
-                                            _obscurePassword =
-                                                !_obscurePassword),
+                                    ReactiveTextField(
+                                      formControlName: 'name',
+                                      textInputAction: TextInputAction.next,
+                                      style: TextStyle(
+                                        color: isDark ? AppColors.textDark : AppColors.textLight,
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 15,
                                       ),
+                                      decoration: InputDecoration(
+                                        labelText: 'Full Name',
+                                        hintText: 'John Doe',
+                                        prefixIcon: Padding(
+                                          padding: const EdgeInsets.only(left: 4),
+                                          child: Icon(Icons.person_outline_rounded, size: 20),
+                                        ),
+                                      ),
+                                      validationMessages: {
+                                        ValidationMessage.required: (_) => 'Please enter your name',
+                                      },
                                     ),
                                     const SizedBox(height: 16),
 
-                                    AuthTextField(
-                                      controller: _confirmPasswordController,
-                                      label: 'Confirm Password',
-                                      hint: '••••••••',
-                                      icon: Icons.lock_outline_rounded,
+                                    ReactiveTextField(
+                                      formControlName: 'email',
+                                      keyboardType: TextInputType.emailAddress,
+                                      textInputAction: TextInputAction.next,
+                                      style: TextStyle(
+                                        color: isDark ? AppColors.textDark : AppColors.textLight,
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 15,
+                                      ),
+                                      decoration: InputDecoration(
+                                        labelText: 'Email Address',
+                                        hintText: 'name@example.com',
+                                        prefixIcon: Padding(
+                                          padding: const EdgeInsets.only(left: 4),
+                                          child: Icon(Icons.alternate_email_rounded, size: 20),
+                                        ),
+                                      ),
+                                      validationMessages: {
+                                        ValidationMessage.required: (_) => 'Email is required',
+                                        ValidationMessage.email: (_) => 'Enter a valid email',
+                                      },
+                                    ),
+                                    const SizedBox(height: 16),
+
+                                    ReactiveTextField(
+                                      formControlName: 'password',
+                                      obscureText: _obscurePassword,
+                                      textInputAction: TextInputAction.next,
+                                      style: TextStyle(
+                                        color: isDark ? AppColors.textDark : AppColors.textLight,
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 15,
+                                      ),
+                                      decoration: InputDecoration(
+                                        labelText: 'Password',
+                                        hintText: '••••••••',
+                                        prefixIcon: Padding(
+                                          padding: const EdgeInsets.only(left: 4),
+                                          child: Icon(Icons.lock_outline_rounded, size: 20),
+                                        ),
+                                        suffixIcon: IconButton(
+                                          icon: Icon(
+                                            _obscurePassword
+                                                ? Icons.visibility_off_outlined
+                                                : Icons.visibility_outlined,
+                                            size: 20,
+                                          ),
+                                          color: isDark
+                                              ? AppColors.textMuted
+                                              : AppColors.textMutedL,
+                                          onPressed: () => setState(() =>
+                                              _obscurePassword = !_obscurePassword),
+                                        ),
+                                      ),
+                                      validationMessages: {
+                                        ValidationMessage.required: (_) => 'At least 8 characters',
+                                        ValidationMessage.minLength: (_) => 'At least 8 characters',
+                                      },
+                                    ),
+                                    const SizedBox(height: 16),
+
+                                    ReactiveTextField(
+                                      formControlName: 'confirmPassword',
                                       obscureText: _obscureConfirm,
                                       textInputAction: TextInputAction.done,
                                       onSubmitted: (_) => _handleRegister(),
-                                      isDark: isDark,
-                                      validator: (v) =>
-                                          v == _passwordController.text
-                                              ? null
-                                              : 'Passwords do not match',
-                                      suffixIcon: IconButton(
-                                        icon: Icon(
-                                          _obscureConfirm
-                                              ? Icons.visibility_off_outlined
-                                              : Icons.visibility_outlined,
-                                          size: 20,
-                                        ),
-                                        color: isDark
-                                            ? AppColors.textMuted
-                                            : AppColors.textMutedL,
-                                        onPressed: () => setState(() =>
-                                            _obscureConfirm = !_obscureConfirm),
+                                      style: TextStyle(
+                                        color: isDark ? AppColors.textDark : AppColors.textLight,
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 15,
                                       ),
+                                      decoration: InputDecoration(
+                                        labelText: 'Confirm Password',
+                                        hintText: '••••••••',
+                                        prefixIcon: Padding(
+                                          padding: const EdgeInsets.only(left: 4),
+                                          child: Icon(Icons.lock_outline_rounded, size: 20),
+                                        ),
+                                        suffixIcon: IconButton(
+                                          icon: Icon(
+                                            _obscureConfirm
+                                                ? Icons.visibility_off_outlined
+                                                : Icons.visibility_outlined,
+                                            size: 20,
+                                          ),
+                                          color: isDark
+                                              ? AppColors.textMuted
+                                              : AppColors.textMutedL,
+                                          onPressed: () => setState(() =>
+                                              _obscureConfirm = !_obscureConfirm),
+                                        ),
+                                      ),
+                                      validationMessages: {
+                                        ValidationMessage.required: (_) => 'Please confirm your password',
+                                        ValidationMessage.mustMatch: (_) => 'Passwords do not match',
+                                      },
                                     ),
                                     const SizedBox(height: 28),
 

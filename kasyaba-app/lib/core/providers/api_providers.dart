@@ -1,22 +1,25 @@
+import 'dart:async';
+import '../database/cache_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 import '../api/api_client.dart';
+
+part 'api_providers.freezed.dart';
+part 'api_providers.g.dart';
 
 // -----------------------------------------------------------------------------
 // Financial Account Model & Provider
 // -----------------------------------------------------------------------------
-class Account {
-  final String id;
-  final String name;
-  final String type;
+@freezed
+class Account with _$Account {
+  const factory Account({
+    required String id,
+    required String name,
+    @Default('cash') String type,
+  }) = _Account;
 
-  Account({required this.id, required this.name, required this.type});
-
-  factory Account.fromJson(Map<String, dynamic> json) => Account(
-        id: json['id'] as String,
-        name: json['name'] as String,
-        type: (json['type'] as String?) ?? 'cash',
-      );
+  factory Account.fromJson(Map<String, dynamic> json) => _$AccountFromJson(json);
 }
 
 final accountsProvider = FutureProvider<List<Account>>((ref) async {
@@ -45,18 +48,15 @@ final accountsProvider = FutureProvider<List<Account>>((ref) async {
 // -----------------------------------------------------------------------------
 // Expense Category Model & Provider
 // -----------------------------------------------------------------------------
-class Category {
-  final String id;
-  final String name;
-  final String iconKey;
+@freezed
+class Category with _$Category {
+  const factory Category({
+    required String id,
+    required String name,
+    @Default('receipt') String iconKey,
+  }) = _Category;
 
-  Category({required this.id, required this.name, required this.iconKey});
-
-  factory Category.fromJson(Map<String, dynamic> json) => Category(
-        id: json['id'] as String,
-        name: json['name'] as String,
-        iconKey: (json['iconKey'] as String?) ?? 'receipt',
-      );
+  factory Category.fromJson(Map<String, dynamic> json) => _$CategoryFromJson(json);
 }
 
 final List<Category> defaultCategoriesList = [
@@ -87,15 +87,16 @@ final categoriesProvider = FutureProvider<List<Category>>((ref) async {
 // -----------------------------------------------------------------------------
 // Dashboard Data Model & Provider
 // -----------------------------------------------------------------------------
-class CategoryExpenseSummary {
-  final String categoryName;
-  final String iconKey;
-  final double total;
-
-  CategoryExpenseSummary({required this.categoryName, required this.iconKey, required this.total});
+@freezed
+class CategoryExpenseSummary with _$CategoryExpenseSummary {
+  const factory CategoryExpenseSummary({
+    @Default('Other') String categoryName,
+    @Default('receipt') String iconKey,
+    @Default(0.0) double total,
+  }) = _CategoryExpenseSummary;
 
   factory CategoryExpenseSummary.fromJson(Map<String, dynamic> json) {
-    return CategoryExpenseSummary(
+    return _CategoryExpenseSummary(
       categoryName: json['categoryName']?.toString() ?? 'Other',
       iconKey: json['iconKey']?.toString() ?? 'receipt',
       total: double.tryParse(json['total']?.toString() ?? '0') ?? 0.0,
@@ -103,24 +104,58 @@ class CategoryExpenseSummary {
   }
 }
 
-class DashboardData {
-  final double totalBalance;
-  final double income;
-  final double expenses;
-  final double savings;
-  final String healthScore;
-  final double predictedMonthEnd;
-  final List<CategoryExpenseSummary> categoryExpenses;
+extension CategoryExpenseSummaryJson on CategoryExpenseSummary {
+  Map<String, dynamic> toJson() => {
+    'categoryName': categoryName,
+    'iconKey': iconKey,
+    'total': total.toStringAsFixed(2),
+  };
+}
 
-  DashboardData({
-    required this.totalBalance,
-    required this.income,
-    required this.expenses,
-    required this.savings,
-    required this.healthScore,
-    required this.predictedMonthEnd,
-    required this.categoryExpenses,
-  });
+@freezed
+class DailyBalancePoint with _$DailyBalancePoint {
+  const factory DailyBalancePoint({
+    required String date,
+    required double balance,
+    double? projected,
+  }) = _DailyBalancePoint;
+
+  factory DailyBalancePoint.fromJson(Map<String, dynamic> json) {
+    double parseNum(dynamic val) {
+      if (val == null) return 0.0;
+      if (val is num) return val.toDouble();
+      return double.tryParse(val.toString()) ?? 0.0;
+    }
+    return DailyBalancePoint(
+      date: json['date']?.toString() ?? '',
+      balance: parseNum(json['balance']),
+      projected: json['predictedEnd'] != null
+          ? parseNum(json['predictedEnd'])
+          : (json['projected'] != null ? parseNum(json['projected']) : null),
+    );
+  }
+}
+
+extension DailyBalancePointJson on DailyBalancePoint {
+  Map<String, dynamic> toJson() => {
+    'date': date,
+    'balance': balance,
+    'predictedEnd': projected,
+  };
+}
+
+@freezed
+class DashboardData with _$DashboardData {
+  const factory DashboardData({
+    required double totalBalance,
+    required double income,
+    required double expenses,
+    required double savings,
+    required String healthScore,
+    required double predictedMonthEnd,
+    required List<CategoryExpenseSummary> categoryExpenses,
+    @Default([]) List<DailyBalancePoint> dailyBalance,
+  }) = _DashboardData;
 
   factory DashboardData.fromJson(Map<String, dynamic> json) {
     double parseNum(dynamic val) {
@@ -136,40 +171,70 @@ class DashboardData {
           .toList();
     }
 
-    String grade = 'Good';
+    List<DailyBalancePoint> dailyBalance = [];
+    if (json['charts'] != null && json['charts']['dailyBalance'] is List) {
+      dailyBalance = (json['charts']['dailyBalance'] as List)
+          .map((e) => DailyBalancePoint.fromJson(e as Map<String, dynamic>))
+          .toList();
+    }
+
+    String healthScore = 'Good';
     if (json['healthGrade'] != null) {
-      grade = json['healthGrade'].toString();
+      healthScore = json['healthGrade'].toString();
     } else if (json['healthScore'] != null) {
       final score = parseNum(json['healthScore']);
       if (score >= 80) {
-        grade = 'Excellent';
+        healthScore = 'Excellent';
       } else if (score >= 60) {
-        grade = 'Good';
+        healthScore = 'Good';
       } else if (score >= 50) {
-        grade = 'Fair';
+        healthScore = 'Fair';
       } else {
-        grade = 'Needs Attention';
+        healthScore = 'Needs Attention';
       }
     }
 
-    return DashboardData(
+    return _DashboardData(
       totalBalance: parseNum(json['balance'] ?? json['actualBalance'] ?? json['currentBalance']),
       income: parseNum(json['income'] ?? json['incomeMonthToDate'] ?? json['monthToDateIncome']),
       expenses: parseNum(json['expenses'] ?? json['expensesMonthToDate'] ?? json['monthToDateExpenses']),
       savings: parseNum(json['savings'] ?? json['savingsMonthToDate']),
-      healthScore: grade,
+      healthScore: healthScore,
       predictedMonthEnd: parseNum(json['predictedMonthEndBalance'] ?? json['predictedBalance']),
       categoryExpenses: cats,
+      dailyBalance: dailyBalance,
     );
   }
 }
 
+extension DashboardDataJson on DashboardData {
+  Map<String, dynamic> toJson() => {
+    'balance': totalBalance.toStringAsFixed(2),
+    'income': income.toStringAsFixed(2),
+    'expenses': expenses.toStringAsFixed(2),
+    'savings': savings.toStringAsFixed(2),
+    'healthGrade': healthScore,
+    'predictedMonthEndBalance': predictedMonthEnd.toStringAsFixed(2),
+    'charts': {
+      'expensesByCategory': categoryExpenses.map((c) => c.toJson()).toList(),
+      'dailyBalance': dailyBalance.map((d) => d.toJson()).toList(),
+    },
+  };
+}
+
 final dashboardProvider = FutureProvider<DashboardData>((ref) async {
   final dio = ref.watch(dioProvider);
+  final cacheService = ref.watch(cacheServiceProvider);
   try {
     final response = await dio.get('/dashboard');
-    return DashboardData.fromJson(response.data['data'] as Map<String, dynamic>);
+    final data = DashboardData.fromJson(response.data['data'] as Map<String, dynamic>);
+    // Update cache with fresh data (fire-and-forget)
+    unawaited(cacheService.cacheDashboard(data));
+    return data;
   } catch (e) {
+    // Try cached data as fallback
+    final cached = await cacheService.getCachedDashboard();
+    if (cached != null) return cached;
     return DashboardData(
       totalBalance: 0.0,
       income: 0.0,
@@ -185,22 +250,18 @@ final dashboardProvider = FutureProvider<DashboardData>((ref) async {
 // -----------------------------------------------------------------------------
 // Transaction Entry Model & List Provider
 // -----------------------------------------------------------------------------
-class TransactionEntry {
-  final String id;
-  final String title;
-  final double amount;
-  final bool isExpense;
-  final DateTime date;
-  final String categoryName;
+@freezed
+class TransactionEntry with _$TransactionEntry {
+  const factory TransactionEntry({
+    required String id,
+    required String title,
+    required double amount,
+    required bool isExpense,
+    required DateTime date,
+    required String categoryName,
+  }) = _TransactionEntry;
 
-  TransactionEntry({
-    required this.id,
-    required this.title,
-    required this.amount,
-    required this.isExpense,
-    required this.date,
-    required this.categoryName,
-  });
+  factory TransactionEntry.fromJson(Map<String, dynamic> json) => _$TransactionEntryFromJson(json);
 }
 
 final transactionsProvider = FutureProvider<List<TransactionEntry>>((ref) async {
@@ -245,20 +306,17 @@ final transactionsProvider = FutureProvider<List<TransactionEntry>>((ref) async 
 // -----------------------------------------------------------------------------
 // Savings Goals Model & Provider
 // -----------------------------------------------------------------------------
-class SavingsGoal {
-  final String id;
-  final String name;
-  final double targetAmount;
-  final double currentAmount;
-  final String? targetDate;
+@freezed
+class SavingsGoal with _$SavingsGoal {
+  const SavingsGoal._();
 
-  SavingsGoal({
-    required this.id,
-    required this.name,
-    required this.targetAmount,
-    required this.currentAmount,
-    this.targetDate,
-  });
+  const factory SavingsGoal({
+    required String id,
+    required String name,
+    required double targetAmount,
+    required double currentAmount,
+    String? targetDate,
+  }) = _SavingsGoal;
 
   double get progress => targetAmount > 0 ? (currentAmount / targetAmount).clamp(0.0, 1.0) : 0.0;
 
@@ -269,7 +327,7 @@ class SavingsGoal {
       return double.tryParse(val.toString()) ?? 0.0;
     }
 
-    return SavingsGoal(
+    return _SavingsGoal(
       id: json['id'] as String,
       name: json['name'] as String,
       targetAmount: parseNum(json['targetAmount']),
@@ -293,23 +351,18 @@ final goalsProvider = FutureProvider<List<SavingsGoal>>((ref) async {
 // -----------------------------------------------------------------------------
 // Bills Model & Provider
 // -----------------------------------------------------------------------------
-class BillItem {
-  final String id;
-  final String name;
-  final double amount;
-  final DateTime dueDate;
-  final String status;
-
-  BillItem({
-    required this.id,
-    required this.name,
-    required this.amount,
-    required this.dueDate,
-    required this.status,
-  });
+@freezed
+class BillItem with _$BillItem {
+  const factory BillItem({
+    required String id,
+    required String name,
+    required double amount,
+    required DateTime dueDate,
+    @Default('upcoming') String status,
+  }) = _BillItem;
 
   factory BillItem.fromJson(Map<String, dynamic> json) {
-    return BillItem(
+    return _BillItem(
       id: json['id'] as String,
       name: json['name'] as String,
       amount: double.tryParse(json['amount']?.toString() ?? '0') ?? 0.0,
@@ -347,6 +400,8 @@ class TransactionMutator {
     required DateTime spentAt,
     String? notes,
   }) async {
+    final cacheService = _ref.read(cacheServiceProvider);
+
     String realCategoryId = categoryId;
 
     if (categoryId.startsWith('cat_')) {
@@ -367,15 +422,25 @@ class TransactionMutator {
 
     final formattedAmount = amount.toStringAsFixed(2);
     final dateIso = spentAt.toIso8601String();
-
-    await _dio.post('/expenses', data: {
+    final data = {
       'accountId': accountId,
       'categoryId': realCategoryId,
       'amount': formattedAmount,
       'description': description,
       'spentAt': dateIso,
       if (notes != null && notes.isNotEmpty) 'notes': notes,
-    });
+    };
+
+    // Queue offline before API call
+    final txnId = await cacheService.queueTransaction('expense', data);
+
+    try {
+      await _dio.post('/expenses', data: data);
+      // Mark as synced on success
+      await cacheService.markSynced(txnId);
+    } catch (_) {
+      // API failed — transaction remains queued for later sync
+    }
 
     _ref.invalidate(dashboardProvider);
     _ref.invalidate(transactionsProvider);
@@ -388,16 +453,28 @@ class TransactionMutator {
     required DateTime receivedAt,
     String? notes,
   }) async {
+    final cacheService = _ref.read(cacheServiceProvider);
+
     final formattedAmount = amount.toStringAsFixed(2);
     final dateIso = receivedAt.toIso8601String();
-
-    await _dio.post('/income', data: {
+    final data = {
       'accountId': accountId,
       'amount': formattedAmount,
       'source': source,
       'receivedAt': dateIso,
       if (notes != null && notes.isNotEmpty) 'notes': notes,
-    });
+    };
+
+    // Queue offline before API call
+    final txnId = await cacheService.queueTransaction('income', data);
+
+    try {
+      await _dio.post('/income', data: data);
+      // Mark as synced on success
+      await cacheService.markSynced(txnId);
+    } catch (_) {
+      // API failed — transaction remains queued for later sync
+    }
 
     _ref.invalidate(dashboardProvider);
     _ref.invalidate(transactionsProvider);
@@ -408,11 +485,25 @@ class TransactionMutator {
     required double targetAmount,
     DateTime? targetDate,
   }) async {
-    await _dio.post('/goals', data: {
+    final cacheService = _ref.read(cacheServiceProvider);
+
+    final data = {
       'name': name,
       'targetAmount': targetAmount.toStringAsFixed(2),
       if (targetDate != null) 'targetDate': targetDate.toIso8601String(),
-    });
+    };
+
+    // Queue offline before API call
+    final txnId = await cacheService.queueTransaction('goal', data);
+
+    try {
+      await _dio.post('/goals', data: data);
+      // Mark as synced on success
+      await cacheService.markSynced(txnId);
+    } catch (_) {
+      // API failed — transaction remains queued for later sync
+    }
+
     _ref.invalidate(goalsProvider);
     _ref.invalidate(dashboardProvider);
   }
@@ -423,12 +514,26 @@ class TransactionMutator {
     required DateTime startsOn,
     String recurrence = 'monthly',
   }) async {
-    await _dio.post('/bill-templates', data: {
+    final cacheService = _ref.read(cacheServiceProvider);
+
+    final data = {
       'name': name,
       'defaultAmount': amount.toStringAsFixed(2),
       'startsOn': startsOn.toIso8601String(),
       'recurrence': recurrence,
-    });
+    };
+
+    // Queue offline before API call
+    final txnId = await cacheService.queueTransaction('bill', data);
+
+    try {
+      await _dio.post('/bill-templates', data: data);
+      // Mark as synced on success
+      await cacheService.markSynced(txnId);
+    } catch (_) {
+      // API failed — transaction remains queued for later sync
+    }
+
     _ref.invalidate(billsProvider);
     _ref.invalidate(dashboardProvider);
   }
@@ -442,34 +547,24 @@ final transactionMutatorProvider = Provider<TransactionMutator>((ref) {
 // -----------------------------------------------------------------------------
 // Financial Alerts Model & Provider
 // -----------------------------------------------------------------------------
-class AlertItem {
-  final String id;
-  final String type;
-  final String severity;
-  final String title;
-  final String message;
-  final DateTime createdAt;
-  final bool isRead;
+@freezed
+class AlertItem with _$AlertItem {
+  const factory AlertItem({
+    required String id,
+    required String type,
+    required String severity,
+    required String title,
+    required String message,
+    required DateTime createdAt,
+    bool? readAt,
+  }) = _AlertItem;
 
-  AlertItem({
-    required this.id,
-    required this.type,
-    required this.severity,
-    required this.title,
-    required this.message,
-    required this.createdAt,
-    required this.isRead,
-  });
+  factory AlertItem.fromJson(Map<String, dynamic> json) => _$AlertItemFromJson(json);
+}
 
-  factory AlertItem.fromJson(Map<String, dynamic> json) => AlertItem(
-        id: json['id'] as String,
-        type: json['type'] as String,
-        severity: json['severity'] as String,
-        title: json['title'] as String,
-        message: json['message'] as String,
-        createdAt: DateTime.parse(json['createdAt'] as String),
-        isRead: json['readAt'] != null,
-      );
+
+extension AlertItemRead on AlertItem {
+  bool get isRead => readAt != null;
 }
 
 final alertsProvider = FutureProvider<List<AlertItem>>((ref) async {
@@ -488,24 +583,17 @@ final alertsProvider = FutureProvider<List<AlertItem>>((ref) async {
 // -----------------------------------------------------------------------------
 // Budget Status Model & Provider
 // -----------------------------------------------------------------------------
-class BudgetItemStatus {
-  final String budgetId;
-  final String? categoryId;
-  final double amount;
-  final double spent;
-  final double remaining;
-  final double percentUsed;
-  final String status;
-
-  BudgetItemStatus({
-    required this.budgetId,
-    this.categoryId,
-    required this.amount,
-    required this.spent,
-    required this.remaining,
-    required this.percentUsed,
-    required this.status,
-  });
+@freezed
+class BudgetItemStatus with _$BudgetItemStatus {
+  const factory BudgetItemStatus({
+    @Default('') String budgetId,
+    String? categoryId,
+    @Default(0.0) double amount,
+    @Default(0.0) double spent,
+    @Default(0.0) double remaining,
+    @Default(0.0) double percentUsed,
+    @Default('on_track') String status,
+  }) = _BudgetItemStatus;
 
   factory BudgetItemStatus.fromJson(Map<String, dynamic> json) {
     double parseNum(dynamic val) {
@@ -514,7 +602,7 @@ class BudgetItemStatus {
       return double.tryParse(val.toString()) ?? 0.0;
     }
 
-    return BudgetItemStatus(
+    return _BudgetItemStatus(
       budgetId: json['budgetId']?.toString() ?? '',
       categoryId: json['categoryId']?.toString(),
       amount: parseNum(json['amount']),
@@ -526,31 +614,18 @@ class BudgetItemStatus {
   }
 }
 
-class BudgetStatus {
-  final String month;
-  final double totalBudget;
-  final double totalSpent;
-  final double overallPercent;
-  final int budgetCount;
-  final List<BudgetItemStatus> budgets;
+@freezed
+class BudgetStatus with _$BudgetStatus {
+  const factory BudgetStatus({
+    @Default('') String month,
+    @Default(0.0) double totalBudget,
+    @Default(0.0) double totalSpent,
+    @Default(0.0) double overallPercent,
+    @Default(0) int budgetCount,
+    required List<BudgetItemStatus> budgets,
+  }) = _BudgetStatus;
 
-  BudgetStatus({
-    required this.month,
-    required this.totalBudget,
-    required this.totalSpent,
-    required this.overallPercent,
-    required this.budgetCount,
-    required this.budgets,
-  });
-
-  factory BudgetStatus.empty() => BudgetStatus(
-        month: '',
-        totalBudget: 0,
-        totalSpent: 0,
-        overallPercent: 0,
-        budgetCount: 0,
-        budgets: [],
-      );
+  factory BudgetStatus.empty() => _BudgetStatus(budgets: []);
 
   factory BudgetStatus.fromJson(Map<String, dynamic> json) {
     double parseNum(dynamic val) {
@@ -559,15 +634,14 @@ class BudgetStatus {
       return double.tryParse(val.toString()) ?? 0.0;
     }
 
-    return BudgetStatus(
+    return _BudgetStatus(
       month: json['month']?.toString() ?? '',
       totalBudget: parseNum(json['totalBudget']),
       totalSpent: parseNum(json['totalSpent']),
       overallPercent: parseNum(json['overallPercent']),
       budgetCount: (json['budgetCount'] as num?)?.toInt() ?? 0,
       budgets: (json['budgets'] as List<dynamic>?)
-              ?.map(
-                  (e) => BudgetItemStatus.fromJson(e as Map<String, dynamic>))
+              ?.map((e) => BudgetItemStatus.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
     );

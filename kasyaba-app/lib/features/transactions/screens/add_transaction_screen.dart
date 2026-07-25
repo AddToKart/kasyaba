@@ -332,7 +332,7 @@ class _AddTransactionScreenState
                         loading: () => const LinearProgressIndicator(
                           color: AppColors.emerald500,
                         ),
-                        error: (_, __) => _AccountChip(
+                        error: (_, _) => _AccountChip(
                           label: 'Cash Wallet',
                           icon: '💵',
                           isSelected: true,

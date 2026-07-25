@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:reactive_forms/reactive_forms.dart';
 import '../../../core/auth/auth_provider.dart';
 import '../../../app/theme/app_theme.dart';
 import '../widgets/auth_widgets.dart';
@@ -14,9 +15,15 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen>
     with TickerProviderStateMixin {
-  final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
+  final formGroup = FormGroup({
+    'email': FormControl<String>(validators: [
+      Validators.required,
+      Validators.email,
+    ]),
+    'password': FormControl<String>(validators: [
+      Validators.required,
+    ]),
+  });
   bool _obscurePassword = true;
 
   late final AnimationController _bgController;
@@ -53,17 +60,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   void dispose() {
     _bgController.dispose();
     _entryController.dispose();
-    _emailController.dispose();
-    _passwordController.dispose();
+    formGroup.dispose();
     super.dispose();
   }
 
   Future<void> _handleLogin() async {
-    if (!_formKey.currentState!.validate()) return;
+    formGroup.markAllAsTouched();
+    if (!formGroup.valid) return;
     try {
       await ref.read(authProvider.notifier).login(
-            _emailController.text.trim(),
-            _passwordController.text,
+            formGroup.control('email').value as String,
+            formGroup.control('password').value as String,
           );
       if (mounted) context.go('/dashboard');
     } catch (_) {}
@@ -97,8 +104,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                   opacity: _fadeIn,
                   child: SlideTransition(
                     position: _slideUp,
-                    child: Form(
-                      key: _formKey,
+                    child: ReactiveForm(
+                      formGroup: formGroup,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -150,47 +157,64 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                   const SizedBox(height: 20),
                                 ],
 
-                                AuthTextField(
-                                  controller: _emailController,
-                                  label: 'Email Address',
-                                  hint: 'name@example.com',
-                                  icon: Icons.alternate_email_rounded,
+                                ReactiveTextField(
+                                  formControlName: 'email',
                                   keyboardType: TextInputType.emailAddress,
                                   textInputAction: TextInputAction.next,
-                                  isDark: isDark,
-                                  validator: (v) =>
-                                      v?.contains('@') == true
-                                          ? null
-                                          : 'Enter a valid email',
+                                  style: TextStyle(
+                                    color: isDark ? AppColors.textDark : AppColors.textLight,
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 15,
+                                  ),
+                                  decoration: InputDecoration(
+                                    labelText: 'Email Address',
+                                    hintText: 'name@example.com',
+                                    prefixIcon: Padding(
+                                      padding: const EdgeInsets.only(left: 4),
+                                      child: Icon(Icons.alternate_email_rounded, size: 20),
+                                    ),
+                                  ),
+                                  validationMessages: {
+                                    ValidationMessage.required: (_) => 'Email is required',
+                                    ValidationMessage.email: (_) => 'Enter a valid email',
+                                  },
                                 ),
                                 const SizedBox(height: 16),
 
-                                AuthTextField(
-                                  controller: _passwordController,
-                                  label: 'Password',
-                                  hint: '••••••••',
-                                  icon: Icons.lock_outline_rounded,
+                                ReactiveTextField(
+                                  formControlName: 'password',
                                   obscureText: _obscurePassword,
                                   textInputAction: TextInputAction.done,
                                   onSubmitted: (_) => _handleLogin(),
-                                  isDark: isDark,
-                                  validator: (v) =>
-                                      (v?.length ?? 0) >= 8
-                                          ? null
-                                          : 'Password must be at least 8 chars',
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      _obscurePassword
-                                          ? Icons.visibility_off_outlined
-                                          : Icons.visibility_outlined,
-                                      size: 20,
-                                    ),
-                                    color: isDark
-                                        ? AppColors.textMuted
-                                        : AppColors.textMutedL,
-                                    onPressed: () => setState(() =>
-                                        _obscurePassword = !_obscurePassword),
+                                  style: TextStyle(
+                                    color: isDark ? AppColors.textDark : AppColors.textLight,
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 15,
                                   ),
+                                  decoration: InputDecoration(
+                                    labelText: 'Password',
+                                    hintText: '••••••••',
+                                    prefixIcon: Padding(
+                                      padding: const EdgeInsets.only(left: 4),
+                                      child: Icon(Icons.lock_outline_rounded, size: 20),
+                                    ),
+                                    suffixIcon: IconButton(
+                                      icon: Icon(
+                                        _obscurePassword
+                                            ? Icons.visibility_off_outlined
+                                            : Icons.visibility_outlined,
+                                        size: 20,
+                                      ),
+                                      color: isDark
+                                          ? AppColors.textMuted
+                                          : AppColors.textMutedL,
+                                      onPressed: () => setState(() =>
+                                          _obscurePassword = !_obscurePassword),
+                                    ),
+                                  ),
+                                  validationMessages: {
+                                    ValidationMessage.required: (_) => 'Password is required',
+                                  },
                                 ),
                                 const SizedBox(height: 28),
 

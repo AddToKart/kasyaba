@@ -1,11 +1,12 @@
 import cron from 'node-cron';
 import { prisma } from './config/database';
 import { env } from './config/env';
+import { logger } from './app';
 import * as forecastingService from './modules/forecasting/service';
 import * as billService from './modules/bills/service';
 
 async function runSnapshotJob() {
-  console.log('[Worker] Starting daily snapshot job...');
+  logger.info('Starting daily snapshot job...');
 
   const jobRun = await prisma.jobRun.create({
     data: {
@@ -25,13 +26,15 @@ async function runSnapshotJob() {
         await forecastingService.generateAlertsFromSnapshot(user.id);
         processed++;
       } catch (err) {
-        console.error(`[Worker] Failed for user ${user.id}:`, err);
+        logger.error({ err, userId: user.id }, 'Snapshot failed for user');
         failed++;
       }
 
       // Small delay to avoid overwhelming the database
       if (processed % 10 === 0) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        const { promise, resolve } = Promise.withResolvers<void>();
+        setTimeout(resolve, 100);
+        await promise;
       }
     }
 
@@ -45,22 +48,22 @@ async function runSnapshotJob() {
       },
     });
 
-    console.log(`[Worker] Snapshot job completed: ${processed} processed, ${failed} failed`);
-  } catch (err: any) {
+    logger.info({ processed, failed }, 'Snapshot job completed');
+  } catch (err) {
     await prisma.jobRun.update({
       where: { id: jobRun.id },
       data: {
         status: 'failed',
         finishedAt: new Date(),
-        errorSummary: err.message,
+        errorSummary: err instanceof Error ? err.message : String(err),
       },
     });
-    console.error('[Worker] Snapshot job failed:', err);
+    logger.error({ err }, 'Snapshot job failed');
   }
 }
 
 async function runBillGenerationJob() {
-  console.log('[Worker] Starting bill generation job...');
+  logger.info('Starting bill generation job...');
 
   const jobRun = await prisma.jobRun.create({
     data: {
@@ -72,14 +75,16 @@ async function runBillGenerationJob() {
   try {
     const users = await prisma.user.findMany({ select: { id: true } });
     let totalCreated = 0;
+    let failed = 0;
 
     for (const user of users) {
-      const created = await billService.generateBillInstances(user.id, 2);
-      totalCreated += created;
-
-      const overdueCount = await billService.updateOverdueBills(user.id);
-      if (overdueCount > 0) {
-        console.log(`[Worker] Marked ${overdueCount} overdue bills for user ${user.id}`);
+      try {
+        const created = await billService.generateBillInstances(user.id);
+        await billService.updateOverdueBills(user.id);
+        totalCreated += created;
+      } catch (err) {
+        logger.error({ err, userId: user.id }, 'Bill generation failed for user');
+        failed++;
       }
     }
 
@@ -89,60 +94,59 @@ async function runBillGenerationJob() {
         status: 'completed',
         finishedAt: new Date(),
         processedCount: totalCreated,
+        failedCount: failed,
       },
     });
 
-    console.log(`[Worker] Bill generation completed: ${totalCreated} instances created`);
-  } catch (err: any) {
+    logger.info({ totalCreated, failed }, 'Bill generation job completed');
+  } catch (err) {
     await prisma.jobRun.update({
       where: { id: jobRun.id },
       data: {
         status: 'failed',
         finishedAt: new Date(),
-        errorSummary: err.message,
+        errorSummary: err instanceof Error ? err.message : String(err),
       },
     });
-    console.error('[Worker] Bill generation failed:', err);
+    logger.error({ err }, 'Bill generation job failed');
   }
 }
 
 async function main() {
-  console.log(`[Worker] KASYABA Worker started (timezone: ${env.WORKER_TIMEZONE})`);
+  logger.info({ timezone: env.WORKER_TIMEZONE }, 'KASYABA Worker started');
 
   // Connect to database
   await prisma.$connect();
 
   // Schedule daily snapshot
   cron.schedule(env.SNAPSHOT_CRON, () => {
-    runSnapshotJob().catch(console.error);
+    runSnapshotJob().catch((err) => logger.error({ err }, 'Snapshot cron failed'));
   }, {
     timezone: env.WORKER_TIMEZONE,
   });
 
   // Schedule bill generation every hour (to catch new templates)
   cron.schedule('0 * * * *', () => {
-    runBillGenerationJob().catch(console.error);
+    runBillGenerationJob().catch((err) => logger.error({ err }, 'Bill gen cron failed'));
   }, {
     timezone: env.WORKER_TIMEZONE,
   });
 
-  console.log(`[Worker] Cron jobs scheduled with timezone ${env.WORKER_TIMEZONE}`);
-  console.log(`[Worker] Snapshot cron: ${env.SNAPSHOT_CRON}`);
-  console.log(`[Worker] Bill generation cron: 0 * * * *`);
+  logger.info({ snapshotCron: env.SNAPSHOT_CRON, billGenCron: '0 * * * *' }, 'Cron jobs scheduled');
 
   // Run initial jobs on startup
-  console.log('[Worker] Running initial jobs...');
+  logger.info('Running initial jobs...');
   await runBillGenerationJob();
 
   // Keep process alive
   process.on('SIGTERM', async () => {
-    console.log('[Worker] Shutting down...');
+    logger.info('Worker shutting down...');
     await prisma.$disconnect();
     process.exit(0);
   });
 }
 
 main().catch((err) => {
-  console.error('[Worker] Failed to start:', err);
+  logger.fatal({ err }, 'Failed to start worker');
   process.exit(1);
 });

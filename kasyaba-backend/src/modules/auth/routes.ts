@@ -1,3 +1,4 @@
+import type { Router } from 'express';
 import { Request, Response, NextFunction } from 'express';
 import rateLimit from 'express-rate-limit';
 import { authenticate } from '../../middleware/auth';
@@ -39,9 +40,9 @@ const googleAuthLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-export function registerRoutes(app: import('express').Router) {
+export function registerRoutes(router: Router) {
   // POST /api/v1/auth/register
-  app.post(
+  router.post(
     '/api/v1/auth/register',
     registerLimiter,
     validate(registerSchema),
@@ -56,7 +57,7 @@ export function registerRoutes(app: import('express').Router) {
   );
 
   // POST /api/v1/auth/login
-  app.post(
+  router.post(
     '/api/v1/auth/login',
     loginLimiter,
     validate(loginSchema),
@@ -71,7 +72,7 @@ export function registerRoutes(app: import('express').Router) {
   );
 
   // POST /api/v1/auth/google
-  app.post(
+  router.post(
     '/api/v1/auth/google',
     googleAuthLimiter,
     validate(googleAuthSchema),
@@ -86,7 +87,7 @@ export function registerRoutes(app: import('express').Router) {
   );
 
   // POST /api/v1/auth/refresh
-  app.post(
+  router.post(
     '/api/v1/auth/refresh',
     refreshLimiter,
     validate(refreshSchema),
@@ -101,7 +102,7 @@ export function registerRoutes(app: import('express').Router) {
   );
 
   // POST /api/v1/auth/logout
-  app.post(
+  router.post(
     '/api/v1/auth/logout',
     authenticate,
     validate(refreshSchema),
@@ -116,7 +117,7 @@ export function registerRoutes(app: import('express').Router) {
   );
 
   // POST /api/v1/auth/logout-all
-  app.post(
+  router.post(
     '/api/v1/auth/logout-all',
     authenticate,
     async (req: Request, res: Response, next: NextFunction) => {
@@ -130,7 +131,7 @@ export function registerRoutes(app: import('express').Router) {
   );
 
   // GET /api/v1/auth/me
-  app.get(
+  router.get(
     '/api/v1/auth/me',
     authenticate,
     async (req: Request, res: Response, next: NextFunction) => {

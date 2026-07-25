@@ -65,20 +65,20 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/settings',
             builder: (context, state) => const SettingsScreen(),
           ),
+          GoRoute(
+            path: '/budgets',
+            builder: (context, state) => const BudgetsScreen(),
+          ),
+          GoRoute(
+            path: '/alerts',
+            builder: (context, state) => const AlertsScreen(),
+          ),
         ],
       ),
       // Sub-routes without bottom navigation bar
       GoRoute(
         path: '/transactions/add',
         builder: (context, state) => const AddTransactionScreen(),
-      ),
-      GoRoute(
-        path: '/budgets',
-        builder: (context, state) => const BudgetsScreen(),
-      ),
-      GoRoute(
-        path: '/alerts',
-        builder: (context, state) => const AlertsScreen(),
       ),
     ],
   );

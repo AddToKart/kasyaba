@@ -21,7 +21,7 @@ class AuthBackground extends StatelessWidget {
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: rotateAnimation,
-      builder: (_, __) {
+      builder: (_, _) {
         return Container(
           width: size.width,
           height: size.height,

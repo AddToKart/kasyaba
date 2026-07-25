@@ -178,7 +178,27 @@ export async function computeSnapshot(userId: string): Promise<ForecastResult> {
   });
   const savingsMTD = new Decimal(Number(savingsContribAgg._sum.amount) || 0);
 
-  // --- 8. Health Score ---
+  // --- 8. Bill payment rate (last 3 months) ---
+  const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+  const [paidBills, totalBills] = await Promise.all([
+    prisma.billInstance.count({
+      where: {
+        userId,
+        status: 'paid',
+        dueDate: { gte: threeMonthsAgo, lte: now },
+      },
+    }),
+    prisma.billInstance.count({
+      where: {
+        userId,
+        status: { in: ['paid', 'overdue', 'cancelled'] },
+        dueDate: { gte: threeMonthsAgo, lte: now },
+      },
+    }),
+  ]);
+  const billPaymentRate = totalBills > 0 ? paidBills / totalBills : -1;
+
+  // --- 9. Health Score ---
   const healthResult = computeHealthScore({
     incomeMTD,
     expensesMTD,
@@ -188,9 +208,10 @@ export async function computeSnapshot(userId: string): Promise<ForecastResult> {
     predictedMonthEndBalance,
     userId,
     now,
+    billPaymentRate,
   });
 
-  // --- 9. Build result ---
+  // --- 10. Build result ---
   const result: ForecastResult = {
     actualBalance: actualBalance.toFixed(2),
     incomeMonthToDate: incomeMTD.toFixed(2),
@@ -451,6 +472,7 @@ interface HealthInput {
   predictedMonthEndBalance: Decimal;
   userId: string;
   now: Date;
+  billPaymentRate: number; // -1 means no billing history
 }
 
 interface HealthOutput {
@@ -458,7 +480,7 @@ interface HealthOutput {
   grade: HealthGrade;
 }
 
-function computeHealthScore(input: HealthInput): HealthOutput {
+export function computeHealthScore(input: HealthInput): HealthOutput {
   const { incomeMTD, savingsMTD } = input;
 
   // --- Savings score (30%) ---
@@ -481,11 +503,20 @@ function computeHealthScore(input: HealthInput): HealthOutput {
     if (budgetRatio <= 1.15) return 30 + (1.15 - budgetRatio) / 0.15 * 39;
     return Math.max(0, 30 - (budgetRatio - 1.15) / 0.15 * 30);
   })();
-
   // --- Bill reliability score (20%) ---
-  // For MVP, simplified constant. In production, track payment history over 3 months
-  const billScore = 70;
-
+  const rate = input.billPaymentRate;
+  let billScore: number;
+  if (rate === -1) {
+    billScore = 85; // No bill history
+  } else if (rate >= 0.95) {
+    billScore = 100;
+  } else if (rate >= 0.80) {
+    billScore = 70 + (rate - 0.80) / 0.15 * 29;
+  } else if (rate >= 0.50) {
+    billScore = 30 + (rate - 0.50) / 0.30 * 39;
+  } else {
+    billScore = Math.max(0, rate / 0.50 * 30);
+  }
   // --- Balance resilience score (20%) ---
   const projectedBalance = Number(input.predictedMonthEndBalance);
   const resilienceScore = projectedBalance > 0

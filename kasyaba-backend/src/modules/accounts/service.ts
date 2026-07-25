@@ -1,5 +1,6 @@
 import { prisma } from '../../config/database';
 import { NotFoundError } from '../../lib/errors';
+import { toDecimal } from '../../lib/decimal';
 import type { CreateAccountInput, UpdateAccountInput } from './validation';
 
 export async function listAccounts(userId: string) {
@@ -58,9 +59,9 @@ export async function getAccountBalance(userId: string, accountId: string) {
     _sum: { amount: true },
   });
 
-  const balance = Number(account.openingBalance)
-    + (Number(incomeSum._sum.amount) || 0)
-    - (Number(expenseSum._sum.amount) || 0);
+  const balance = toDecimal(account.openingBalance)
+    .plus(toDecimal(incomeSum._sum.amount || 0))
+    .minus(toDecimal(expenseSum._sum.amount || 0));
 
   return { accountId: account.id, name: account.name, balance: balance.toFixed(2), currencyCode: account.currencyCode };
 }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:table_calendar/table_calendar.dart';
+import '../../../app/theme/app_theme.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/notifications/notification_service.dart';
 import '../../../shared/widgets/modern_card.dart';
@@ -16,6 +18,9 @@ class BillsScreen extends ConsumerStatefulWidget {
 
 class _BillsScreenState extends ConsumerState<BillsScreen> {
   String _selectedFilter = 'upcoming';
+  CalendarFormat _calendarFormat = CalendarFormat.month;
+  DateTime _selectedDay = DateTime.now();
+  DateTime _focusedDay = DateTime.now();
 
   void _showAddBillBottomSheet(BuildContext context) {
     final nameController = TextEditingController();
@@ -121,6 +126,79 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
     );
   }
 
+  List<Widget> _buildSelectedDayBills(AsyncValue<List<BillItem>> billsAsync) {
+    final bills = billsAsync.valueOrNull;
+    if (bills == null || bills.isEmpty) return [];
+
+    final dueBills = bills.where((b) =>
+      b.dueDate.year == _selectedDay.year &&
+      b.dueDate.month == _selectedDay.month &&
+      b.dueDate.day == _selectedDay.day,
+    ).toList();
+
+    if (dueBills.isEmpty) return [];
+
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return [
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+        child: Row(
+          children: [
+            Icon(Icons.event, size: 14, color: AppColors.emerald500),
+            const SizedBox(width: 6),
+            Text(
+              'Due on ${_selectedDay.day}/${_selectedDay.month}/${_selectedDay.year}',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: isDark ? AppColors.textMuted : AppColors.textMutedL,
+              ),
+            ),
+          ],
+        ),
+      ),
+      ...dueBills.map((bill) => Padding(
+        padding: const EdgeInsets.only(bottom: 4),
+        child: ModernCard(
+          padding: EdgeInsets.zero,
+          child: ListTile(
+            dense: true,
+            visualDensity: VisualDensity.compact,
+            leading: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: AppColors.expense.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.receipt_long_outlined, color: AppColors.expense, size: 16),
+            ),
+            title: Text(
+              bill.name,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: isDark ? AppColors.textDark : AppColors.textLight,
+              ),
+            ),
+            subtitle: Text(
+              bill.status,
+              style: TextStyle(
+                fontSize: 12,
+                color: isDark ? AppColors.textMuted : AppColors.textMutedL,
+              ),
+            ),
+            trailing: Text(
+              '₱${bill.amount.toStringAsFixed(2)}',
+              style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.expense, fontSize: 14),
+            ),
+          ),
+        ),
+      )),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -147,6 +225,112 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           children: [
+            // ── Calendar ───────────────────────────────────────
+            TableCalendar(
+              firstDay: DateTime.now().subtract(const Duration(days: 365)),
+              lastDay: DateTime.now().add(const Duration(days: 365)),
+              focusedDay: _focusedDay,
+              calendarFormat: _calendarFormat,
+              locale: 'en_US',
+              onFormatChanged: (format) {
+                if (mounted) setState(() => _calendarFormat = format);
+              },
+              onDaySelected: (selectedDay, focusedDay) {
+                setState(() {
+                  _selectedDay = selectedDay;
+                  _focusedDay = focusedDay;
+                });
+              },
+              onPageChanged: (focusedDay) {
+                if (mounted) setState(() => _focusedDay = focusedDay);
+              },
+              eventLoader: (day) {
+                final bills = billsAsync.valueOrNull ?? [];
+                return bills.where((b) =>
+                  b.dueDate.year == day.year &&
+                  b.dueDate.month == day.month &&
+                  b.dueDate.day == day.day,
+                ).toList();
+              },
+              calendarBuilders: CalendarBuilders(
+                markerBuilder: (context, day, events) {
+                  if (events.isEmpty) return const SizedBox.shrink();
+                  return Align(
+                    alignment: Alignment.bottomCenter,
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 2),
+                      width: 5,
+                      height: 5,
+                      decoration: const BoxDecoration(
+                        color: AppColors.emerald500,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              calendarStyle: CalendarStyle(
+                todayDecoration: BoxDecoration(
+                  color: AppColors.emerald500.withValues(alpha: 0.25),
+                  shape: BoxShape.circle,
+                ),
+                todayTextStyle: TextStyle(
+                  color: AppColors.emerald400,
+                  fontWeight: FontWeight.bold,
+                ),
+                selectedDecoration: const BoxDecoration(
+                  color: AppColors.emerald500,
+                  shape: BoxShape.circle,
+                ),
+                selectedTextStyle: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+                defaultTextStyle: TextStyle(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? AppColors.textDark
+                      : AppColors.textLight,
+                ),
+                weekendTextStyle: TextStyle(
+                  color: AppColors.expense.withValues(alpha: 0.7),
+                ),
+                outsideTextStyle: TextStyle(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? AppColors.textMuted.withValues(alpha: 0.35)
+                      : AppColors.textMutedL.withValues(alpha: 0.35),
+                ),
+              ),
+              headerStyle: HeaderStyle(
+                titleTextStyle: TextStyle(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? AppColors.textDark
+                      : AppColors.textLight,
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                ),
+                formatButtonVisible: true,
+                formatButtonTextStyle: const TextStyle(
+                  color: AppColors.emerald500,
+                  fontSize: 14,
+                ),
+                formatButtonDecoration: BoxDecoration(
+                  border: Border.all(color: AppColors.emerald500.withValues(alpha: 0.4)),
+                  borderRadius: BorderRadius.all(Radius.circular(12.0)),
+                ),
+                leftChevronIcon: Icon(
+                  Icons.chevron_left,
+                  color: AppColors.emerald400,
+                ),
+                rightChevronIcon: Icon(
+                  Icons.chevron_right,
+                  color: AppColors.emerald400,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            // ── Bills Due This Day ──────────────────────────────
+            ..._buildSelectedDayBills(billsAsync),
+            const SizedBox(height: 16),
             // Segmented Filter
             SegmentedButton<String>(
               segments: const [

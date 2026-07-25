@@ -20,7 +20,8 @@ class AppShell extends StatelessWidget {
     if (location.startsWith('/goals')) return 2;
     if (location.startsWith('/bills')) return 3;
     if (location.startsWith('/settings')) return 4;
-    return 0;
+    if (location.startsWith('/dashboard')) return 0;
+    return -1;
   }
 
   void _onDestinationSelected(BuildContext context, int index) {
@@ -116,7 +117,7 @@ class _LuxuryNavBar extends StatelessWidget {
           child: SafeArea(
             top: false,
             child: SizedBox(
-              height: 64,
+              height: 68,
               child: Row(
                 children: [
                   for (int i = 0; i < _destinations.length; i++)

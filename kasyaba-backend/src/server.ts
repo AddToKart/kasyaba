@@ -1,26 +1,26 @@
-import { createApp } from './app';
+import { createApp, logger } from './app';
 import { env } from './config/env';
 import { prisma } from './config/database';
+import { seedDefaultCategories } from './modules/categories/service';
 
 async function main() {
   const app = createApp();
 
   // Connect to database
   await prisma.$connect();
-  console.log('Database connected');
+  logger.info('Database connected');
 
   // Seed default categories
-  const { seedDefaultCategories } = await import('./modules/categories/service');
   await seedDefaultCategories();
-  console.log('Default categories seeded');
+  logger.info('Default categories seeded');
 
   const server = app.listen(env.PORT, () => {
-    console.log(`KASYABA API running on port ${env.PORT}`);
+    logger.info({ port: env.PORT }, 'KASYABA API running');
   });
 
   // Graceful shutdown
   const shutdown = async () => {
-    console.log('Shutting down gracefully...');
+    logger.info('Shutting down gracefully...');
     server.close(async () => {
       await prisma.$disconnect();
       process.exit(0);
@@ -34,6 +34,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error('Failed to start server:', err);
+  logger.fatal({ err }, 'Failed to start server');
   process.exit(1);
 });

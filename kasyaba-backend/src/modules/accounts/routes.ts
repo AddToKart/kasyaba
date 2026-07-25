@@ -1,3 +1,4 @@
+import type { Router } from 'express';
 import { Request, Response, NextFunction } from 'express';
 import { authenticate } from '../../middleware/auth';
 import { validate } from '../../middleware/validate';
@@ -5,8 +6,7 @@ import { createAccountSchema, updateAccountSchema } from './validation';
 import * as accountService from './service';
 import { sendSuccess, sendCreated } from '../../lib/response';
 
-export function registerRoutes(app: import('express').Router) {
-  const router = app as any;
+export function registerRoutes(router: Router) {
 
   // GET /api/v1/accounts
   router.get('/api/v1/accounts', authenticate, async (req: Request, res: Response, next: NextFunction) => {

@@ -114,7 +114,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                   // ── Stat Grid ────────────────────────
                   dashboardAsync.when(
                     loading: () => const SizedBox.shrink(),
-                    error: (_, __) => const SizedBox.shrink(),
+                    error: (_, _) => const SizedBox.shrink(),
                     data: (data) => _StatGrid(
                       data: data,
                       isDark: isDark,
@@ -129,7 +129,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                   // ── Forecast Card ────────────────────
                   dashboardAsync.when(
                     loading: () => const SizedBox.shrink(),
-                    error: (_, __) => const SizedBox.shrink(),
+                    error: (_, _) => const SizedBox.shrink(),
                     data: (data) => _ForecastCard(
                       data: data,
                       isDark: isDark,
@@ -140,7 +140,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                   // ── Spending Breakdown ───────────────
                   dashboardAsync.when(
                     loading: () => const SizedBox.shrink(),
-                    error: (_, __) => const SizedBox.shrink(),
+                    error: (_, _) => const SizedBox.shrink(),
                     data: (data) {
                       if (data.categoryExpenses.isEmpty) {
                         return const SizedBox.shrink();
@@ -189,7 +189,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                   const SizedBox(height: 12),
                   goalsAsync.when(
                     loading: () => const SizedBox.shrink(),
-                    error: (_, __) => const SizedBox.shrink(),
+                    error: (_, _) => const SizedBox.shrink(),
                     data: (goals) => goals.isEmpty
                         ? ModernCard(
                             child: EmptyStateView(
@@ -216,7 +216,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                   const SizedBox(height: 12),
                   billsAsync.when(
                     loading: () => const SizedBox.shrink(),
-                    error: (_, __) => const SizedBox.shrink(),
+                    error: (_, _) => const SizedBox.shrink(),
                     data: (bills) => bills.isEmpty
                         ? ModernCard(
                             child: EmptyStateView(
@@ -271,99 +271,79 @@ class _DashboardAppBar extends StatelessWidget {
       floating: true,
       snap: true,
       backgroundColor: Colors.transparent,
-      expandedHeight: 0,
       toolbarHeight: 72,
-      leading: const SizedBox.shrink(),
-      flexibleSpace: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: isDark
-                ? [
-                    AppColors.obsidian,
-                    AppColors.obsidian.withValues(alpha: 0.0),
-                  ]
-                : [
-                    AppColors.lightBg,
-                    AppColors.lightBg.withValues(alpha: 0.0),
-                  ],
-          ),
-        ),
-        child: SafeArea(
-          child: FadeTransition(
-            opacity: fadeAnim,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
+      automaticallyImplyLeading: false,
+      titleSpacing: 20,
+      title: FadeTransition(
+        opacity: fadeAnim,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              _greeting(),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: isDark
+                    ? AppColors.textMuted
+                    : AppColors.textMutedL,
+                letterSpacing: 0.3,
+              ),
+            ),
+            const SizedBox(height: 2),
+            RichText(
+              text: TextSpan(
                 children: [
-                  // Greeting
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          _greeting(),
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: isDark
-                                ? AppColors.textMuted
-                                : AppColors.textMutedL,
-                            letterSpacing: 0.3,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        RichText(
-                          text: TextSpan(
-                            children: [
-                              TextSpan(
-                                text: firstName,
-                                style: TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: -0.5,
-                                  color: isDark
-                                      ? Colors.white
-                                      : AppColors.textLight,
-                                ),
-                              ),
-                              const TextSpan(text: ' '),
-                              const TextSpan(
-                                text: '✦',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: AppColors.gold400,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                  TextSpan(
+                    text: firstName,
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.5,
+                      color: isDark
+                          ? Colors.white
+                          : AppColors.textLight,
                     ),
                   ),
-
-                  // Action buttons
-                  _AppBarAction(
-                    icon: Icons.notifications_outlined,
-                    isDark: isDark,
-                    onTap: onNotificationsTap,
-                    tooltip: 'Alerts',
-                  ),
-                  const SizedBox(width: 10),
-                  _AppBarAction(
-                    icon: Icons.settings_outlined,
-                    isDark: isDark,
-                    onTap: onSettingsTap,
-                    tooltip: 'Settings',
+                  const TextSpan(text: ' '),
+                  const TextSpan(
+                    text: '✦',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppColors.gold400,
+                    ),
                   ),
                 ],
               ),
             ),
-          ),
+          ],
         ),
       ),
+      actions: [
+        FadeTransition(
+          opacity: fadeAnim,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _AppBarAction(
+                icon: Icons.notifications_outlined,
+                isDark: isDark,
+                onTap: onNotificationsTap,
+                tooltip: 'Alerts',
+              ),
+              const SizedBox(width: 10),
+              _AppBarAction(
+                icon: Icons.settings_outlined,
+                isDark: isDark,
+                onTap: onSettingsTap,
+                tooltip: 'Settings',
+              ),
+              const SizedBox(width: 20),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -960,8 +940,227 @@ class _ForecastCard extends StatelessWidget {
               ],
             ),
           ),
+          // ── Daily Balance Trend ────────────────────────
+          if (data.dailyBalance.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'BALANCE TREND',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.2,
+                      color: isDark
+                          ? AppColors.textMuted
+                          : AppColors.textMutedL,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    height: 140,
+                    child: Builder(
+                      builder: (context) {
+                        final minY = _computeMinY(data.dailyBalance);
+                        final maxY = _computeMaxY(data.dailyBalance);
+                        final range = maxY - minY;
+                        final interval = range > 0 ? (range / 3) : 1000.0;
+
+                        return LineChart(
+                          LineChartData(
+                            gridData: FlGridData(
+                              show: true,
+                              drawVerticalLine: false,
+                              horizontalInterval: interval > 0 ? interval : 1000.0,
+                              getDrawingHorizontalLine: (value) {
+                                return FlLine(
+                                  color: (isDark ? Colors.white : AppColors.textMutedL)
+                                      .withValues(alpha: 0.1),
+                                  strokeWidth: 1,
+                                );
+                              },
+                            ),
+                            titlesData: FlTitlesData(
+                              leftTitles: const AxisTitles(
+                                sideTitles: SideTitles(showTitles: false),
+                              ),
+                              rightTitles: const AxisTitles(
+                                sideTitles: SideTitles(showTitles: false),
+                              ),
+                              topTitles: const AxisTitles(
+                                sideTitles: SideTitles(showTitles: false),
+                              ),
+                              bottomTitles: AxisTitles(
+                                sideTitles: SideTitles(
+                                  showTitles: true,
+                                  reservedSize: 18,
+                                  getTitlesWidget: (value, meta) {
+                                    final idx = value.toInt();
+                                    final list = data.dailyBalance;
+                                    if (idx < 0 || idx >= list.length) {
+                                      return const SizedBox.shrink();
+                                    }
+                                    return Padding(
+                                      padding: const EdgeInsets.only(top: 6),
+                                      child: Text(
+                                        list[idx].date.split('-').last,
+                                        style: TextStyle(
+                                          fontSize: 9,
+                                          color: isDark
+                                              ? AppColors.textMuted
+                                              : AppColors.textMutedL,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                            borderData: FlBorderData(show: false),
+                            lineBarsData: [
+                              // Actual balance line
+                              LineChartBarData(
+                                spots: _buildBalanceSpots(
+                                  data.dailyBalance,
+                                  'balance',
+                                ),
+                                isCurved: true,
+                                preventCurveOverShooting: true,
+                                color: const Color(0xFF0284C7),
+                                barWidth: 2.5,
+                                dotData: const FlDotData(show: false),
+                                belowBarData: BarAreaData(
+                                  show: true,
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      const Color(0xFF0284C7)
+                                          .withValues(alpha: 0.22),
+                                      const Color(0xFF0284C7)
+                                          .withValues(alpha: 0.0),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              // Projected balance line
+                              LineChartBarData(
+                                spots: _buildBalanceSpots(
+                                  data.dailyBalance,
+                                  'projected',
+                                ),
+                                isCurved: true,
+                                preventCurveOverShooting: true,
+                                color: const Color(0xFF38BDF8)
+                                    .withValues(alpha: 0.7),
+                                barWidth: 2,
+                                dashArray: [5, 5],
+                                dotData: const FlDotData(show: false),
+                              ),
+                            ],
+                            minY: minY,
+                            maxY: maxY,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      _LegendDot(
+                        color: const Color(0xFF0284C7),
+                        isDark: isDark,
+                        label: 'Actual',
+                      ),
+                      const SizedBox(width: 16),
+                      _LegendDot(
+                        color: const Color(0xFF38BDF8).withValues(alpha: 0.7),
+                        isDark: isDark,
+                        label: 'Projected',
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
+    );
+  }
+}
+
+// ─── Forecast Helpers ──────────────────────────────────────────
+
+List<FlSpot> _buildBalanceSpots(List<DailyBalancePoint> list, String field) {
+  return [
+    for (int i = 0; i < list.length; i++)
+      FlSpot(
+        i.toDouble(),
+        field == 'balance'
+            ? list[i].balance
+            : (list[i].projected ?? list[i].balance),
+      ),
+  ];
+}
+
+double _computeMinY(List<DailyBalancePoint> list) {
+  double min = double.infinity;
+  for (final item in list) {
+    final b = item.balance;
+    final p = item.projected ?? b;
+    final m = b < p ? b : p;
+    if (m < min) min = m;
+  }
+  return min == double.infinity ? 0 : min * 0.95;
+}
+
+double _computeMaxY(List<DailyBalancePoint> list) {
+  double max = double.negativeInfinity;
+  for (final item in list) {
+    final b = item.balance;
+    final p = item.projected ?? b;
+    final m = b > p ? b : p;
+    if (m > max) max = m;
+  }
+  return max == double.negativeInfinity ? 1 : max * 1.05;
+}
+
+class _LegendDot extends StatelessWidget {
+  final Color color;
+  final bool isDark;
+  final String label;
+  const _LegendDot({
+    required this.color,
+    required this.isDark,
+    required this.label,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+            color: isDark ? AppColors.textMuted : AppColors.textMutedL,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -978,7 +1177,7 @@ const _chartColors = [
 ];
 
 class _SpendingSection extends StatelessWidget {
-  final dynamic data;
+  final DashboardData data;
   final bool isDark;
   final ThemeData theme;
   const _SpendingSection({
@@ -989,6 +1188,12 @@ class _SpendingSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cats = data.categoryExpenses;
+    final total = cats.fold<double>(
+      0,
+      (sum, cat) => sum + cat.total,
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -999,23 +1204,61 @@ class _SpendingSection extends StatelessWidget {
           child: Column(
             children: [
               SizedBox(
-                height: 180,
-                child: PieChart(
-                  PieChartData(
-                    sectionsSpace: 3,
-                    centerSpaceRadius: 46,
-                    sections: [
-                      for (int i = 0;
-                          i < data.categoryExpenses.length;
-                          i++)
-                        PieChartSectionData(
-                          color: _chartColors[i % _chartColors.length],
-                          value: data.categoryExpenses[i].total,
-                          title: '',
-                          radius: 44,
+                height: 160,
+                child: Stack(
+                  children: [
+                    PieChart(
+                      PieChartData(
+                        sectionsSpace: 3,
+                        centerSpaceRadius: 42,
+                        sections: [
+                          for (int i = 0; i < cats.length; i++)
+                            PieChartSectionData(
+                              color: _chartColors[i % _chartColors.length],
+                              value: cats[i].total,
+                              title: total > 0
+                                  ? '${(cats[i].total / total * 100).toStringAsFixed(0)}%'
+                                  : '',
+                              radius: 40,
+                              titleStyle: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    Positioned.fill(
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '₱${total.toStringAsFixed(0)}',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                color: isDark
+                                    ? Colors.white
+                                    : AppColors.textLight,
+                              ),
+                            ),
+                            Text(
+                              'Total',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w500,
+                                color: isDark
+                                    ? AppColors.textMuted
+                                    : AppColors.textMutedL,
+                              ),
+                            ),
+                          ],
                         ),
-                    ],
-                  ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 16),
@@ -1023,7 +1266,7 @@ class _SpendingSection extends StatelessWidget {
                 spacing: 16,
                 runSpacing: 10,
                 children: [
-                  for (int i = 0; i < data.categoryExpenses.length; i++)
+                  for (int i = 0; i < cats.length; i++)
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -1037,7 +1280,7 @@ class _SpendingSection extends StatelessWidget {
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          data.categoryExpenses[i].categoryName,
+                          cats[i].categoryName,
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
@@ -1176,7 +1419,7 @@ class _TransactionTile extends StatelessWidget {
 // ─── Goals Card ──────────────────────────────────────────────
 
 class _GoalsCard extends StatelessWidget {
-  final List<dynamic> goals;
+  final List<SavingsGoal> goals;
   final bool isDark;
   final ThemeData theme;
   const _GoalsCard({
@@ -1202,13 +1445,13 @@ class _GoalsCard extends StatelessWidget {
 }
 
 class _GoalItem extends StatelessWidget {
-  final dynamic goal;
+  final SavingsGoal goal;
   final bool isDark;
   const _GoalItem({required this.goal, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
-    final progress = (goal.progress as double).clamp(0.0, 1.0);
+    final progress = goal.progress.clamp(0.0, 1.0);
     final pct = (progress * 100).toStringAsFixed(0);
 
     return Column(
@@ -1219,7 +1462,7 @@ class _GoalItem extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                goal.name as String,
+                goal.name,
                 style: TextStyle(
                   fontWeight: FontWeight.w700,
                   fontSize: 14,
@@ -1242,14 +1485,14 @@ class _GoalItem extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              '₱${(goal.currentAmount as double).toStringAsFixed(0)}',
+              '₱${goal.currentAmount.toStringAsFixed(0)}',
               style: TextStyle(
                 fontSize: 12,
                 color: isDark ? AppColors.textMuted : AppColors.textMutedL,
               ),
             ),
             Text(
-              '₱${(goal.targetAmount as double).toStringAsFixed(0)}',
+              '₱${goal.targetAmount.toStringAsFixed(0)}',
               style: TextStyle(
                 fontSize: 12,
                 color: isDark ? AppColors.textMuted : AppColors.textMutedL,
@@ -1277,7 +1520,7 @@ class _GoalItem extends StatelessWidget {
 // ─── Bills List ───────────────────────────────────────────────
 
 class _BillsList extends StatelessWidget {
-  final List<dynamic> bills;
+  final List<BillItem> bills;
   final bool isDark;
   final ThemeData theme;
   const _BillsList({
@@ -1308,15 +1551,14 @@ class _BillsList extends StatelessWidget {
 }
 
 class _BillTile extends StatelessWidget {
-  final dynamic bill;
+  final BillItem bill;
   final bool isDark;
   const _BillTile({required this.bill, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
-    final dueDate =
-        (bill.dueDate as DateTime).toIso8601String().split('T')[0];
-    final amount = (bill.amount as double).toStringAsFixed(2);
+    final dueDate = bill.dueDate.toIso8601String().split('T')[0];
+    final amount = bill.amount.toStringAsFixed(2);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -1345,7 +1587,7 @@ class _BillTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  bill.name as String,
+                  bill.name,
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 14,

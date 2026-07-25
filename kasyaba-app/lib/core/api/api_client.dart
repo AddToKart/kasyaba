@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../storage/secure_storage_service.dart';
+import '../connectivity/connectivity_service.dart';
 
 // API configuration
 const String kApiBaseUrl = String.fromEnvironment(
@@ -18,6 +19,9 @@ final dioProvider = Provider<Dio>((ref) {
       'Accept': 'application/json',
     },
   ));
+
+  // Add connectivity check interceptor (must be first to fail-fast)
+  dio.interceptors.add(ConnectivityInterceptor(ref));
 
   // Add auth interceptor
   dio.interceptors.add(AuthInterceptor(ref, dio));
@@ -97,5 +101,28 @@ class AuthInterceptor extends Interceptor {
       await storage.clearTokens();
       rethrow;
     }
+  }
+}
+
+/// Interceptor that checks connectivity before making API requests.
+/// If the device is offline, the request is rejected immediately with a
+/// user-friendly error instead of waiting for a timeout.
+class ConnectivityInterceptor extends Interceptor {
+  final Ref _ref;
+
+  ConnectivityInterceptor(this._ref);
+
+  @override
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+    final isOnline = _ref.read(isOnlineProvider);
+    if (!isOnline) {
+      return handler.reject(DioException(
+        requestOptions: options,
+        message:
+            'No internet connection. Please check your network settings and try again.',
+        type: DioExceptionType.connectionError,
+      ));
+    }
+    handler.next(options);
   }
 }

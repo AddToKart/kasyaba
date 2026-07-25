@@ -92,7 +92,7 @@ class TransactionsScreen extends ConsumerWidget {
                 itemCount: items.length,
                 itemBuilder: (context, index) {
                   final item = items[index];
-                  final isExpense = item.isExpense as bool;
+                  final isExpense = item.isExpense;
                   final color =
                       isExpense ? AppColors.expense : AppColors.income;
 
@@ -139,7 +139,7 @@ class TransactionsScreen extends ConsumerWidget {
                                     CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    item.title as String,
+                                    item.title,
                                     style: TextStyle(
                                       fontWeight: FontWeight.w600,
                                       fontSize: 14,
@@ -150,7 +150,7 @@ class TransactionsScreen extends ConsumerWidget {
                                   ),
                                   const SizedBox(height: 3),
                                   Text(
-                                    item.categoryName as String,
+                                    item.categoryName,
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: isDark
@@ -167,7 +167,7 @@ class TransactionsScreen extends ConsumerWidget {
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
                                 Text(
-                                  '${isExpense ? '–' : '+'}₱${(item.amount as double).toStringAsFixed(2)}',
+                                  '${isExpense ? '–' : '+'}₱${item.amount.toStringAsFixed(2)}',
                                   style: TextStyle(
                                     fontWeight: FontWeight.w800,
                                     fontSize: 15,
