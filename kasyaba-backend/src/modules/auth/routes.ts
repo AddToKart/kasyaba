@@ -143,4 +143,18 @@ export function registerRoutes(router: Router) {
       }
     }
   );
+
+  // PATCH /api/v1/auth/me
+  router.patch(
+    '/api/v1/auth/me',
+    authenticate,
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const updated = await authService.updateProfile(req.userId!, req.body);
+        sendSuccess(res, updated);
+      } catch (err) {
+        next(err);
+      }
+    }
+  );
 }

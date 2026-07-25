@@ -333,6 +333,103 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
     );
   }
 
+  void _showPurchaseCheckBottomSheet(BuildContext context) {
+    final titleController = TextEditingController();
+    final amountController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    PurchaseCheckResult? checkResult;
+    bool isLoading = false;
+
+    ModernBottomSheet.show(
+      context: context,
+      title: 'Can I Buy This? 🛍️📱',
+      subtitle: 'Deterministic financial impact calculation on cash flow, bills, and threshold.',
+      child: StatefulBuilder(
+        builder: (context, setModalState) {
+          return Form(
+            key: formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ModernTextField(
+                  controller: titleController,
+                  label: 'Item / Purchase Name',
+                  hint: 'e.g. Smartphone, New Headphones, Concert Ticket',
+                  prefixIcon: Icons.shopping_bag_outlined,
+                  validator: (v) => (v?.trim().length ?? 0) > 0 ? null : 'Item name is required',
+                ),
+                const SizedBox(height: 14),
+
+                ModernTextField(
+                  controller: amountController,
+                  label: 'Item Price (₱)',
+                  hint: '5000.00',
+                  prefixIcon: Icons.account_balance_wallet_outlined,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) return 'Enter item price';
+                    if (double.tryParse(v) == null || (double.tryParse(v)! <= 0)) return 'Enter a valid amount';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 20),
+
+                FilledButton.icon(
+                  onPressed: isLoading
+                      ? null
+                      : () async {
+                          if (!formKey.currentState!.validate()) return;
+                          setModalState(() => isLoading = true);
+                          final title = titleController.text.trim();
+                          final amount = double.tryParse(amountController.text.trim()) ?? 0.0;
+
+                          try {
+                            final mutator = ref.read(transactionMutatorProvider);
+                            final result = await mutator.evaluatePurchaseCheck(
+                              itemTitle: title,
+                              amount: amount,
+                            );
+                            setModalState(() {
+                              checkResult = result;
+                              isLoading = false;
+                            });
+                          } catch (err) {
+                            setModalState(() => isLoading = false);
+                          }
+                        },
+                  icon: isLoading
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.analytics_outlined, size: 20),
+                  label: Text(
+                    isLoading ? 'Calculating Impact...' : 'Evaluate Affordability',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF0284C7),
+                    minimumSize: const Size.fromHeight(50),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                ),
+
+                if (checkResult != null) ...[
+                  const SizedBox(height: 20),
+                  _PurchaseCheckCardResult(result: checkResult!),
+                ],
+                const SizedBox(height: 12),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -360,6 +457,53 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           children: [
+            // ── "Can I Buy This?" Prominent Purchase Checker Card ──────────────────
+            ModernCard(
+              onTap: () => _showPurchaseCheckBottomSheet(context),
+              padding: const EdgeInsets.all(16),
+              gradient: LinearGradient(
+                colors: isDark
+                    ? const [Color(0xFF0F172A), Color(0xFF1E293B)]
+                    : const [Color(0xFFF0F9FF), Color(0xFFE0F2FE)],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0284C7).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(Icons.shopping_bag_outlined, color: Color(0xFF0284C7), size: 24),
+                  ),
+                  const SizedBox(width: 14),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Can I Buy This? 🛍️📱',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF0284C7),
+                          ),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Calculate if you can afford a gadget, trip, or item right now.',
+                          style: TextStyle(fontSize: 11, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right_rounded, color: Color(0xFF0284C7)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+
             goalsAsync.when(
               loading: () => const SizedBox(
                 height: 200,
@@ -516,6 +660,83 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
         onPressed: () => _showAddGoalBottomSheet(context),
         icon: const Icon(Icons.add),
         label: const Text('New Goal'),
+      ),
+    );
+  }
+}
+
+class _PurchaseCheckCardResult extends StatelessWidget {
+  final PurchaseCheckResult result;
+
+  const _PurchaseCheckCardResult({required this.result});
+
+  @override
+  Widget build(BuildContext context) {
+    Color cardColor;
+    IconData icon;
+
+    if (result.verdict == 'AFFORDABLE') {
+      cardColor = const Color(0xFF10B981);
+      icon = Icons.check_circle_rounded;
+    } else if (result.verdict == 'RISKY') {
+      cardColor = const Color(0xFFF59E0B);
+      icon = Icons.warning_rounded;
+    } else {
+      cardColor = const Color(0xFFEF4444);
+      icon = Icons.cancel_rounded;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cardColor.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cardColor.withValues(alpha: 0.3), width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: cardColor, size: 24),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  result.statusTitle,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: cardColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            result.statusMessage,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+          ),
+          const Divider(height: 24),
+
+          for (final reason in result.reasons) ...[
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('• ', style: TextStyle(fontWeight: FontWeight.bold, color: cardColor)),
+                  Expanded(
+                    child: Text(
+                      reason,
+                      style: const TextStyle(fontSize: 12, height: 1.3),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

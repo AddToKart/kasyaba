@@ -167,12 +167,49 @@ export async function getCurrentUser(userId: string) {
       timezone: true,
       currencyCode: true,
       minimumBalanceThreshold: true,
+      salaryAmount: true,
+      paydayFrequency: true,
+      paydaySchedule: true,
       createdAt: true,
       lastLoginAt: true,
     },
   });
   if (!user) throw new NotFoundError('User not found');
   return user;
+}
+
+export async function updateProfile(userId: string, input: {
+  displayName?: string;
+  salaryAmount?: number;
+  paydayFrequency?: string;
+  paydaySchedule?: string;
+  minimumBalanceThreshold?: number;
+}) {
+  const data: any = {};
+  if (input.displayName !== undefined) data.displayName = input.displayName;
+  if (input.salaryAmount !== undefined) data.salaryAmount = input.salaryAmount;
+  if (input.paydayFrequency !== undefined) data.paydayFrequency = input.paydayFrequency;
+  if (input.paydaySchedule !== undefined) data.paydaySchedule = input.paydaySchedule;
+  if (input.minimumBalanceThreshold !== undefined) data.minimumBalanceThreshold = input.minimumBalanceThreshold;
+
+  return prisma.user.update({
+    where: { id: userId },
+    data,
+    select: {
+      id: true,
+      email: true,
+      displayName: true,
+      avatarUrl: true,
+      timezone: true,
+      currencyCode: true,
+      minimumBalanceThreshold: true,
+      salaryAmount: true,
+      paydayFrequency: true,
+      paydaySchedule: true,
+      createdAt: true,
+      lastLoginAt: true,
+    },
+  });
 }
 
 async function createSession(userId: string, email: string) {

@@ -1895,6 +1895,287 @@ abstract class _BillItem implements BillItem {
       throw _privateConstructorUsedError;
 }
 
+/// @nodoc
+mixin _$UserProfile {
+  String get id => throw _privateConstructorUsedError;
+  String get email => throw _privateConstructorUsedError;
+  String? get displayName => throw _privateConstructorUsedError;
+  double? get salaryAmount => throw _privateConstructorUsedError;
+  String? get paydayFrequency => throw _privateConstructorUsedError;
+  String? get paydaySchedule => throw _privateConstructorUsedError;
+  double? get minimumBalanceThreshold => throw _privateConstructorUsedError;
+
+  /// Create a copy of UserProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $UserProfileCopyWith<UserProfile> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $UserProfileCopyWith<$Res> {
+  factory $UserProfileCopyWith(
+    UserProfile value,
+    $Res Function(UserProfile) then,
+  ) = _$UserProfileCopyWithImpl<$Res, UserProfile>;
+  @useResult
+  $Res call({
+    String id,
+    String email,
+    String? displayName,
+    double? salaryAmount,
+    String? paydayFrequency,
+    String? paydaySchedule,
+    double? minimumBalanceThreshold,
+  });
+}
+
+/// @nodoc
+class _$UserProfileCopyWithImpl<$Res, $Val extends UserProfile>
+    implements $UserProfileCopyWith<$Res> {
+  _$UserProfileCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of UserProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? email = null,
+    Object? displayName = freezed,
+    Object? salaryAmount = freezed,
+    Object? paydayFrequency = freezed,
+    Object? paydaySchedule = freezed,
+    Object? minimumBalanceThreshold = freezed,
+  }) {
+    return _then(
+      _value.copyWith(
+            id: null == id
+                ? _value.id
+                : id // ignore: cast_nullable_to_non_nullable
+                      as String,
+            email: null == email
+                ? _value.email
+                : email // ignore: cast_nullable_to_non_nullable
+                      as String,
+            displayName: freezed == displayName
+                ? _value.displayName
+                : displayName // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            salaryAmount: freezed == salaryAmount
+                ? _value.salaryAmount
+                : salaryAmount // ignore: cast_nullable_to_non_nullable
+                      as double?,
+            paydayFrequency: freezed == paydayFrequency
+                ? _value.paydayFrequency
+                : paydayFrequency // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            paydaySchedule: freezed == paydaySchedule
+                ? _value.paydaySchedule
+                : paydaySchedule // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            minimumBalanceThreshold: freezed == minimumBalanceThreshold
+                ? _value.minimumBalanceThreshold
+                : minimumBalanceThreshold // ignore: cast_nullable_to_non_nullable
+                      as double?,
+          )
+          as $Val,
+    );
+  }
+}
+
+/// @nodoc
+abstract class _$$UserProfileImplCopyWith<$Res>
+    implements $UserProfileCopyWith<$Res> {
+  factory _$$UserProfileImplCopyWith(
+    _$UserProfileImpl value,
+    $Res Function(_$UserProfileImpl) then,
+  ) = __$$UserProfileImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({
+    String id,
+    String email,
+    String? displayName,
+    double? salaryAmount,
+    String? paydayFrequency,
+    String? paydaySchedule,
+    double? minimumBalanceThreshold,
+  });
+}
+
+/// @nodoc
+class __$$UserProfileImplCopyWithImpl<$Res>
+    extends _$UserProfileCopyWithImpl<$Res, _$UserProfileImpl>
+    implements _$$UserProfileImplCopyWith<$Res> {
+  __$$UserProfileImplCopyWithImpl(
+    _$UserProfileImpl _value,
+    $Res Function(_$UserProfileImpl) _then,
+  ) : super(_value, _then);
+
+  /// Create a copy of UserProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? email = null,
+    Object? displayName = freezed,
+    Object? salaryAmount = freezed,
+    Object? paydayFrequency = freezed,
+    Object? paydaySchedule = freezed,
+    Object? minimumBalanceThreshold = freezed,
+  }) {
+    return _then(
+      _$UserProfileImpl(
+        id: null == id
+            ? _value.id
+            : id // ignore: cast_nullable_to_non_nullable
+                  as String,
+        email: null == email
+            ? _value.email
+            : email // ignore: cast_nullable_to_non_nullable
+                  as String,
+        displayName: freezed == displayName
+            ? _value.displayName
+            : displayName // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        salaryAmount: freezed == salaryAmount
+            ? _value.salaryAmount
+            : salaryAmount // ignore: cast_nullable_to_non_nullable
+                  as double?,
+        paydayFrequency: freezed == paydayFrequency
+            ? _value.paydayFrequency
+            : paydayFrequency // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        paydaySchedule: freezed == paydaySchedule
+            ? _value.paydaySchedule
+            : paydaySchedule // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        minimumBalanceThreshold: freezed == minimumBalanceThreshold
+            ? _value.minimumBalanceThreshold
+            : minimumBalanceThreshold // ignore: cast_nullable_to_non_nullable
+                  as double?,
+      ),
+    );
+  }
+}
+
+/// @nodoc
+
+class _$UserProfileImpl implements _UserProfile {
+  const _$UserProfileImpl({
+    required this.id,
+    required this.email,
+    this.displayName,
+    this.salaryAmount,
+    this.paydayFrequency,
+    this.paydaySchedule,
+    this.minimumBalanceThreshold,
+  });
+
+  @override
+  final String id;
+  @override
+  final String email;
+  @override
+  final String? displayName;
+  @override
+  final double? salaryAmount;
+  @override
+  final String? paydayFrequency;
+  @override
+  final String? paydaySchedule;
+  @override
+  final double? minimumBalanceThreshold;
+
+  @override
+  String toString() {
+    return 'UserProfile(id: $id, email: $email, displayName: $displayName, salaryAmount: $salaryAmount, paydayFrequency: $paydayFrequency, paydaySchedule: $paydaySchedule, minimumBalanceThreshold: $minimumBalanceThreshold)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$UserProfileImpl &&
+            (identical(other.id, id) || other.id == id) &&
+            (identical(other.email, email) || other.email == email) &&
+            (identical(other.displayName, displayName) ||
+                other.displayName == displayName) &&
+            (identical(other.salaryAmount, salaryAmount) ||
+                other.salaryAmount == salaryAmount) &&
+            (identical(other.paydayFrequency, paydayFrequency) ||
+                other.paydayFrequency == paydayFrequency) &&
+            (identical(other.paydaySchedule, paydaySchedule) ||
+                other.paydaySchedule == paydaySchedule) &&
+            (identical(
+                  other.minimumBalanceThreshold,
+                  minimumBalanceThreshold,
+                ) ||
+                other.minimumBalanceThreshold == minimumBalanceThreshold));
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    runtimeType,
+    id,
+    email,
+    displayName,
+    salaryAmount,
+    paydayFrequency,
+    paydaySchedule,
+    minimumBalanceThreshold,
+  );
+
+  /// Create a copy of UserProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$UserProfileImplCopyWith<_$UserProfileImpl> get copyWith =>
+      __$$UserProfileImplCopyWithImpl<_$UserProfileImpl>(this, _$identity);
+}
+
+abstract class _UserProfile implements UserProfile {
+  const factory _UserProfile({
+    required final String id,
+    required final String email,
+    final String? displayName,
+    final double? salaryAmount,
+    final String? paydayFrequency,
+    final String? paydaySchedule,
+    final double? minimumBalanceThreshold,
+  }) = _$UserProfileImpl;
+
+  @override
+  String get id;
+  @override
+  String get email;
+  @override
+  String? get displayName;
+  @override
+  double? get salaryAmount;
+  @override
+  String? get paydayFrequency;
+  @override
+  String? get paydaySchedule;
+  @override
+  double? get minimumBalanceThreshold;
+
+  /// Create a copy of UserProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$UserProfileImplCopyWith<_$UserProfileImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
 AlertItem _$AlertItemFromJson(Map<String, dynamic> json) {
   return _AlertItem.fromJson(json);
 }

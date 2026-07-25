@@ -653,12 +653,147 @@ class TransactionMutator {
     _ref.invalidate(billsProvider);
     _ref.invalidate(dashboardProvider);
   }
+
+  Future<void> updateProfile({
+    String? displayName,
+    double? salaryAmount,
+    String? paydayFrequency,
+    String? paydaySchedule,
+    double? minimumBalanceThreshold,
+  }) async {
+    final data = {
+      'displayName':? displayName,
+      'salaryAmount':? salaryAmount?.toStringAsFixed(2),
+      'paydayFrequency':? paydayFrequency,
+      'paydaySchedule':? paydaySchedule,
+      'minimumBalanceThreshold':? minimumBalanceThreshold?.toStringAsFixed(2),
+    };
+    await _dio.patch('/auth/me', data: data);
+    _ref.invalidate(userProfileProvider);
+    _ref.invalidate(dashboardProvider);
+  }
+
+  Future<PurchaseCheckResult> evaluatePurchaseCheck({
+    required String itemTitle,
+    required double amount,
+  }) async {
+    final res = await _dio.post('/forecasting/purchase-check', data: {
+      'itemTitle': itemTitle,
+      'amount': amount,
+    });
+    return PurchaseCheckResult.fromJson(res.data['data'] as Map<String, dynamic>);
+  }
 }
 
 final transactionMutatorProvider = Provider<TransactionMutator>((ref) {
   final dio = ref.watch(dioProvider);
   return TransactionMutator(dio, ref);
 });
+
+// -----------------------------------------------------------------------------
+// User Profile & Purchase Checker Models & Providers
+// -----------------------------------------------------------------------------
+@freezed
+class UserProfile with _$UserProfile {
+  const factory UserProfile({
+    required String id,
+    required String email,
+    String? displayName,
+    double? salaryAmount,
+    String? paydayFrequency,
+    String? paydaySchedule,
+    double? minimumBalanceThreshold,
+  }) = _UserProfile;
+
+  factory UserProfile.fromJson(Map<String, dynamic> json) {
+    double? parseOptNum(dynamic val) {
+      if (val == null) return null;
+      if (val is num) return val.toDouble();
+      return double.tryParse(val.toString());
+    }
+
+    return _UserProfile(
+      id: json['id'] as String,
+      email: json['email'] as String,
+      displayName: json['displayName']?.toString(),
+      salaryAmount: parseOptNum(json['salaryAmount']),
+      paydayFrequency: json['paydayFrequency']?.toString() ?? 'semi-monthly',
+      paydaySchedule: json['paydaySchedule']?.toString() ?? '15th & 30th',
+      minimumBalanceThreshold: parseOptNum(json['minimumBalanceThreshold']),
+    );
+  }
+}
+
+final userProfileProvider = FutureProvider<UserProfile>((ref) async {
+  final dio = ref.watch(dioProvider);
+  try {
+    final res = await dio.get('/auth/me');
+    return UserProfile.fromJson(res.data['data'] as Map<String, dynamic>);
+  } catch (_) {
+    return const UserProfile(id: 'me', email: 'user@kasyaba.com');
+  }
+});
+
+class PurchaseCheckResult {
+  final String itemTitle;
+  final double amount;
+  final String verdict;
+  final String statusTitle;
+  final String statusMessage;
+  final double currentBalance;
+  final double postPurchaseBalance;
+  final double projectedMonthEndBalance;
+  final double postPurchaseMonthEndBalance;
+  final double totalUpcomingBills;
+  final double cashAfterBills;
+  final String? earliestSafeBuyDate;
+  final int? daysUntilSafeBuy;
+  final List<String> reasons;
+
+  PurchaseCheckResult({
+    required this.itemTitle,
+    required this.amount,
+    required this.verdict,
+    required this.statusTitle,
+    required this.statusMessage,
+    required this.currentBalance,
+    required this.postPurchaseBalance,
+    required this.projectedMonthEndBalance,
+    required this.postPurchaseMonthEndBalance,
+    required this.totalUpcomingBills,
+    required this.cashAfterBills,
+    this.earliestSafeBuyDate,
+    this.daysUntilSafeBuy,
+    required this.reasons,
+  });
+
+  factory PurchaseCheckResult.fromJson(Map<String, dynamic> json) {
+    double parseNum(dynamic val) {
+      if (val == null) return 0.0;
+      if (val is num) return val.toDouble();
+      return double.tryParse(val.toString()) ?? 0.0;
+    }
+
+    return PurchaseCheckResult(
+      itemTitle: json['itemTitle']?.toString() ?? 'Intended Purchase',
+      amount: parseNum(json['amount']),
+      verdict: json['verdict']?.toString() ?? 'AFFORDABLE',
+      statusTitle: json['statusTitle']?.toString() ?? 'Evaluated Purchase',
+      statusMessage: json['statusMessage']?.toString() ?? '',
+      currentBalance: parseNum(json['currentBalance']),
+      postPurchaseBalance: parseNum(json['postPurchaseBalance']),
+      projectedMonthEndBalance: parseNum(json['projectedMonthEndBalance']),
+      postPurchaseMonthEndBalance: parseNum(json['postPurchaseMonthEndBalance']),
+      totalUpcomingBills: parseNum(json['totalUpcomingBills']),
+      cashAfterBills: parseNum(json['cashAfterBills']),
+      earliestSafeBuyDate: json['earliestSafeBuyDate']?.toString(),
+      daysUntilSafeBuy: json['daysUntilSafeBuy'] is int
+          ? json['daysUntilSafeBuy'] as int
+          : (json['daysUntilSafeBuy'] != null ? int.tryParse(json['daysUntilSafeBuy'].toString()) : null),
+      reasons: (json['reasons'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+    );
+  }
+}
 
 // -----------------------------------------------------------------------------
 // Financial Alerts Model & Provider
