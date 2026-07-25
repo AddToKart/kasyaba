@@ -264,13 +264,73 @@ class TransactionEntry with _$TransactionEntry {
   factory TransactionEntry.fromJson(Map<String, dynamic> json) => _$TransactionEntryFromJson(json);
 }
 
-final transactionsProvider = FutureProvider<List<TransactionEntry>>((ref) async {
+class TransactionQueryFilter {
+  final int page;
+  final int limit;
+  final DateTime? fromDate;
+  final DateTime? toDate;
+
+  const TransactionQueryFilter({
+    this.page = 1,
+    this.limit = 10,
+    this.fromDate,
+    this.toDate,
+  });
+
+  TransactionQueryFilter copyWith({
+    int? page,
+    int? limit,
+    DateTime? fromDate,
+    DateTime? toDate,
+    bool clearDates = false,
+  }) {
+    return TransactionQueryFilter(
+      page: page ?? this.page,
+      limit: limit ?? this.limit,
+      fromDate: clearDates ? null : (fromDate ?? this.fromDate),
+      toDate: clearDates ? null : (toDate ?? this.toDate),
+    );
+  }
+}
+
+class PaginatedTransactions {
+  final List<TransactionEntry> items;
+  final int page;
+  final int limit;
+  final int totalCount;
+
+  const PaginatedTransactions({
+    required this.items,
+    required this.page,
+    required this.limit,
+    required this.totalCount,
+  });
+
+  int get totalPages => (totalCount / limit).ceil().clamp(1, 9999);
+  bool get hasNextPage => page < totalPages;
+  bool get hasPrevPage => page > 1;
+}
+
+final transactionFilterProvider = StateProvider<TransactionQueryFilter>((ref) {
+  return const TransactionQueryFilter(page: 1, limit: 10);
+});
+
+final paginatedTransactionsProvider = FutureProvider<PaginatedTransactions>((ref) async {
   final dio = ref.watch(dioProvider);
+  final filter = ref.watch(transactionFilterProvider);
   final List<TransactionEntry> items = [];
+
+  final Map<String, dynamic> params = {};
+  if (filter.fromDate != null) {
+    params['from'] = filter.fromDate!.toIso8601String().split('T')[0];
+  }
+  if (filter.toDate != null) {
+    params['to'] = filter.toDate!.toIso8601String().split('T')[0];
+  }
 
   try {
     // Fetch Expenses
-    final expRes = await dio.get('/expenses');
+    final expRes = await dio.get('/expenses', queryParameters: params);
     final expData = expRes.data['data'] as List<dynamic>;
     for (final item in expData) {
       items.add(TransactionEntry(
@@ -284,7 +344,7 @@ final transactionsProvider = FutureProvider<List<TransactionEntry>>((ref) async 
     }
 
     // Fetch Income
-    final incRes = await dio.get('/income');
+    final incRes = await dio.get('/income', queryParameters: params);
     final incData = incRes.data['data'] as List<dynamic>;
     for (final item in incData) {
       items.add(TransactionEntry(
@@ -300,7 +360,21 @@ final transactionsProvider = FutureProvider<List<TransactionEntry>>((ref) async 
     items.sort((a, b) => b.date.compareTo(a.date));
   } catch (_) {}
 
-  return items;
+  final totalCount = items.length;
+  final startIndex = (filter.page - 1) * filter.limit;
+  final paginatedItems = items.skip(startIndex).take(filter.limit).toList();
+
+  return PaginatedTransactions(
+    items: paginatedItems,
+    page: filter.page,
+    limit: filter.limit,
+    totalCount: totalCount,
+  );
+});
+
+final transactionsProvider = FutureProvider<List<TransactionEntry>>((ref) async {
+  final paginated = await ref.watch(paginatedTransactionsProvider.future);
+  return paginated.items;
 });
 
 // -----------------------------------------------------------------------------
@@ -316,6 +390,10 @@ class SavingsGoal with _$SavingsGoal {
     required double targetAmount,
     required double currentAmount,
     String? targetDate,
+    bool? canAffordByTargetDate,
+    String? earliestAffordableDate,
+    double? monthlySavingsRequired,
+    int? daysRemaining,
   }) = _SavingsGoal;
 
   double get progress => targetAmount > 0 ? (currentAmount / targetAmount).clamp(0.0, 1.0) : 0.0;
@@ -333,6 +411,14 @@ class SavingsGoal with _$SavingsGoal {
       targetAmount: parseNum(json['targetAmount']),
       currentAmount: parseNum(json['currentAmount'] ?? json['savedAmount']),
       targetDate: json['targetDate']?.toString(),
+      canAffordByTargetDate: json['canAffordByTargetDate'] as bool?,
+      earliestAffordableDate: json['earliestAffordableDate']?.toString(),
+      monthlySavingsRequired: json['monthlySavingsRequired'] != null
+          ? parseNum(json['monthlySavingsRequired'])
+          : null,
+      daysRemaining: json['daysRemaining'] is int
+          ? json['daysRemaining'] as int
+          : (json['daysRemaining'] != null ? int.tryParse(json['daysRemaining'].toString()) : null),
     );
   }
 }
@@ -503,6 +589,31 @@ class TransactionMutator {
     } catch (_) {
       // API failed — transaction remains queued for later sync
     }
+
+    _ref.invalidate(goalsProvider);
+    _ref.invalidate(dashboardProvider);
+  }
+
+  Future<void> addGoalContribution({
+    required String goalId,
+    required double amount,
+    String? notes,
+  }) async {
+    final cacheService = _ref.read(cacheServiceProvider);
+
+    final data = {
+      'amount': amount,
+      'contributedAt': DateTime.now().toIso8601String(),
+      if (notes != null && notes.isNotEmpty) 'notes': notes,
+    };
+
+    // Queue offline before API call
+    final txnId = await cacheService.queueTransaction('goal_contribution', data);
+
+    try {
+      await _dio.post('/goals/$goalId/contributions', data: data);
+      await cacheService.markSynced(txnId);
+    } catch (_) {}
 
     _ref.invalidate(goalsProvider);
     _ref.invalidate(dashboardProvider);

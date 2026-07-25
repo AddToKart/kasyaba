@@ -1355,6 +1355,10 @@ mixin _$SavingsGoal {
   double get targetAmount => throw _privateConstructorUsedError;
   double get currentAmount => throw _privateConstructorUsedError;
   String? get targetDate => throw _privateConstructorUsedError;
+  bool? get canAffordByTargetDate => throw _privateConstructorUsedError;
+  String? get earliestAffordableDate => throw _privateConstructorUsedError;
+  double? get monthlySavingsRequired => throw _privateConstructorUsedError;
+  int? get daysRemaining => throw _privateConstructorUsedError;
 
   /// Create a copy of SavingsGoal
   /// with the given fields replaced by the non-null parameter values.
@@ -1376,6 +1380,10 @@ abstract class $SavingsGoalCopyWith<$Res> {
     double targetAmount,
     double currentAmount,
     String? targetDate,
+    bool? canAffordByTargetDate,
+    String? earliestAffordableDate,
+    double? monthlySavingsRequired,
+    int? daysRemaining,
   });
 }
 
@@ -1399,6 +1407,10 @@ class _$SavingsGoalCopyWithImpl<$Res, $Val extends SavingsGoal>
     Object? targetAmount = null,
     Object? currentAmount = null,
     Object? targetDate = freezed,
+    Object? canAffordByTargetDate = freezed,
+    Object? earliestAffordableDate = freezed,
+    Object? monthlySavingsRequired = freezed,
+    Object? daysRemaining = freezed,
   }) {
     return _then(
       _value.copyWith(
@@ -1422,6 +1434,22 @@ class _$SavingsGoalCopyWithImpl<$Res, $Val extends SavingsGoal>
                 ? _value.targetDate
                 : targetDate // ignore: cast_nullable_to_non_nullable
                       as String?,
+            canAffordByTargetDate: freezed == canAffordByTargetDate
+                ? _value.canAffordByTargetDate
+                : canAffordByTargetDate // ignore: cast_nullable_to_non_nullable
+                      as bool?,
+            earliestAffordableDate: freezed == earliestAffordableDate
+                ? _value.earliestAffordableDate
+                : earliestAffordableDate // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            monthlySavingsRequired: freezed == monthlySavingsRequired
+                ? _value.monthlySavingsRequired
+                : monthlySavingsRequired // ignore: cast_nullable_to_non_nullable
+                      as double?,
+            daysRemaining: freezed == daysRemaining
+                ? _value.daysRemaining
+                : daysRemaining // ignore: cast_nullable_to_non_nullable
+                      as int?,
           )
           as $Val,
     );
@@ -1443,6 +1471,10 @@ abstract class _$$SavingsGoalImplCopyWith<$Res>
     double targetAmount,
     double currentAmount,
     String? targetDate,
+    bool? canAffordByTargetDate,
+    String? earliestAffordableDate,
+    double? monthlySavingsRequired,
+    int? daysRemaining,
   });
 }
 
@@ -1465,6 +1497,10 @@ class __$$SavingsGoalImplCopyWithImpl<$Res>
     Object? targetAmount = null,
     Object? currentAmount = null,
     Object? targetDate = freezed,
+    Object? canAffordByTargetDate = freezed,
+    Object? earliestAffordableDate = freezed,
+    Object? monthlySavingsRequired = freezed,
+    Object? daysRemaining = freezed,
   }) {
     return _then(
       _$SavingsGoalImpl(
@@ -1488,6 +1524,22 @@ class __$$SavingsGoalImplCopyWithImpl<$Res>
             ? _value.targetDate
             : targetDate // ignore: cast_nullable_to_non_nullable
                   as String?,
+        canAffordByTargetDate: freezed == canAffordByTargetDate
+            ? _value.canAffordByTargetDate
+            : canAffordByTargetDate // ignore: cast_nullable_to_non_nullable
+                  as bool?,
+        earliestAffordableDate: freezed == earliestAffordableDate
+            ? _value.earliestAffordableDate
+            : earliestAffordableDate // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        monthlySavingsRequired: freezed == monthlySavingsRequired
+            ? _value.monthlySavingsRequired
+            : monthlySavingsRequired // ignore: cast_nullable_to_non_nullable
+                  as double?,
+        daysRemaining: freezed == daysRemaining
+            ? _value.daysRemaining
+            : daysRemaining // ignore: cast_nullable_to_non_nullable
+                  as int?,
       ),
     );
   }
@@ -1502,6 +1554,10 @@ class _$SavingsGoalImpl extends _SavingsGoal {
     required this.targetAmount,
     required this.currentAmount,
     this.targetDate,
+    this.canAffordByTargetDate,
+    this.earliestAffordableDate,
+    this.monthlySavingsRequired,
+    this.daysRemaining,
   }) : super._();
 
   @override
@@ -1514,10 +1570,18 @@ class _$SavingsGoalImpl extends _SavingsGoal {
   final double currentAmount;
   @override
   final String? targetDate;
+  @override
+  final bool? canAffordByTargetDate;
+  @override
+  final String? earliestAffordableDate;
+  @override
+  final double? monthlySavingsRequired;
+  @override
+  final int? daysRemaining;
 
   @override
   String toString() {
-    return 'SavingsGoal(id: $id, name: $name, targetAmount: $targetAmount, currentAmount: $currentAmount, targetDate: $targetDate)';
+    return 'SavingsGoal(id: $id, name: $name, targetAmount: $targetAmount, currentAmount: $currentAmount, targetDate: $targetDate, canAffordByTargetDate: $canAffordByTargetDate, earliestAffordableDate: $earliestAffordableDate, monthlySavingsRequired: $monthlySavingsRequired, daysRemaining: $daysRemaining)';
   }
 
   @override
@@ -1532,7 +1596,15 @@ class _$SavingsGoalImpl extends _SavingsGoal {
             (identical(other.currentAmount, currentAmount) ||
                 other.currentAmount == currentAmount) &&
             (identical(other.targetDate, targetDate) ||
-                other.targetDate == targetDate));
+                other.targetDate == targetDate) &&
+            (identical(other.canAffordByTargetDate, canAffordByTargetDate) ||
+                other.canAffordByTargetDate == canAffordByTargetDate) &&
+            (identical(other.earliestAffordableDate, earliestAffordableDate) ||
+                other.earliestAffordableDate == earliestAffordableDate) &&
+            (identical(other.monthlySavingsRequired, monthlySavingsRequired) ||
+                other.monthlySavingsRequired == monthlySavingsRequired) &&
+            (identical(other.daysRemaining, daysRemaining) ||
+                other.daysRemaining == daysRemaining));
   }
 
   @override
@@ -1543,6 +1615,10 @@ class _$SavingsGoalImpl extends _SavingsGoal {
     targetAmount,
     currentAmount,
     targetDate,
+    canAffordByTargetDate,
+    earliestAffordableDate,
+    monthlySavingsRequired,
+    daysRemaining,
   );
 
   /// Create a copy of SavingsGoal
@@ -1561,6 +1637,10 @@ abstract class _SavingsGoal extends SavingsGoal {
     required final double targetAmount,
     required final double currentAmount,
     final String? targetDate,
+    final bool? canAffordByTargetDate,
+    final String? earliestAffordableDate,
+    final double? monthlySavingsRequired,
+    final int? daysRemaining,
   }) = _$SavingsGoalImpl;
   const _SavingsGoal._() : super._();
 
@@ -1574,6 +1654,14 @@ abstract class _SavingsGoal extends SavingsGoal {
   double get currentAmount;
   @override
   String? get targetDate;
+  @override
+  bool? get canAffordByTargetDate;
+  @override
+  String? get earliestAffordableDate;
+  @override
+  double? get monthlySavingsRequired;
+  @override
+  int? get daysRemaining;
 
   /// Create a copy of SavingsGoal
   /// with the given fields replaced by the non-null parameter values.
