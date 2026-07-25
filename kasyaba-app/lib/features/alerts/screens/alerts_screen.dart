@@ -215,7 +215,7 @@ class AlertsScreen extends ConsumerWidget {
                                     const SizedBox(height: 2),
                                     Text(
                                       '₱${analysis.recommendedDailySpendLimit.toStringAsFixed(0)} / day',
-                                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.extrabold, color: Color(0xFF0284C7)),
+                                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF0284C7)),
                                     ),
                                   ],
                                 ),
