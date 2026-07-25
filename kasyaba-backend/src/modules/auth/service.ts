@@ -2,9 +2,8 @@ import crypto from 'crypto';
 import * as argon2 from 'argon2';
 import { OAuth2Client } from 'google-auth-library';
 import { prisma } from '../../config/database';
-import { signAccessToken, TokenPayload } from '../../middleware/auth';
+import { signAccessToken } from '../../middleware/auth';
 import { AppError, ConflictError, NotFoundError, UnauthorizedError } from '../../lib/errors';
-import { generateId } from '../../lib/id';
 import { env } from '../../config/env';
 import type { RegisterInput, LoginInput } from './validation';
 
@@ -135,11 +134,12 @@ export async function refreshSession(refreshToken: string) {
   return createSession(session.user.id, session.user.email);
 }
 
-export async function logoutUser(refreshToken: string) {
+export async function logoutUser(userId: string, refreshToken: string) {
   const tokenHash = hashToken(refreshToken);
   await prisma.authSession.updateMany({
     where: {
       refreshTokenHash: tokenHash,
+      userId,
       revokedAt: null,
     },
     data: { revokedAt: new Date() },

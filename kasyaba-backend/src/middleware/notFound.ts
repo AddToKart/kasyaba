@@ -1,5 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
-import { env } from '../config/env';
+import { Request, Response } from 'express';
 
 export function notFoundHandler(req: Request, res: Response) {
   res.status(404).json({

@@ -1,6 +1,6 @@
 import { prisma } from '../../config/database';
 import { NotFoundError } from '../../lib/errors';
-import { addMonths } from '../../lib/dates';
+import { addMonths, safeDate } from '../../lib/dates';
 import type { CreateBillTemplateInput, UpdateBillTemplateInput } from './validation';
 
 export async function listBillTemplates(userId: string) {
@@ -66,25 +66,26 @@ export async function listBills(userId: string, query: Record<string, any>) {
   });
 }
 
-export async function markBillPaid(userId: string, billId: string, createExpense = false) {
+export async function markBillPaid(userId: string, billId: string, accountId: string) {
   const bill = await prisma.billInstance.findFirst({ where: { id: billId, userId } });
   if (!bill) throw new NotFoundError('Bill not found');
+  if (bill.status === 'paid') throw new NotFoundError('Bill is already paid');
 
-  const updateData: any = {
-    status: 'paid',
-    paidAt: new Date(),
-  };
+  const account = await prisma.financialAccount.findFirst({
+    where: { id: accountId, userId, isArchived: false },
+  });
+  if (!account) throw new NotFoundError('Account not found');
 
-  if (createExpense && bill.templateId) {
-    const template = await prisma.billTemplate.findUnique({ where: { id: bill.templateId } });
-    if (template && template.categoryId) {
-      // Find a default account to create the expense against
-      const account = await prisma.financialAccount.findFirst({
-        where: { userId, isArchived: false },
-      });
+  return prisma.$transaction(async (tx) => {
+    const updateData: any = {
+      status: 'paid',
+      paidAt: new Date(),
+    };
 
-      if (account) {
-        const expense = await prisma.expenseEntry.create({
+    if (bill.templateId) {
+      const template = await tx.billTemplate.findUnique({ where: { id: bill.templateId } });
+      if (template && template.categoryId) {
+        const expense = await tx.expenseEntry.create({
           data: {
             userId,
             accountId: account.id,
@@ -97,11 +98,11 @@ export async function markBillPaid(userId: string, billId: string, createExpense
         updateData.expenseEntryId = expense.id;
       }
     }
-  }
 
-  return prisma.billInstance.update({
-    where: { id: billId },
-    data: updateData,
+    return tx.billInstance.update({
+      where: { id: billId },
+      data: updateData,
+    });
   });
 }
 
@@ -150,7 +151,7 @@ export async function generateBillInstances(userId: string, monthsAhead = 2) {
     if (currentDate < now) {
       // Move to next occurrence
       if (template.recurrence === 'monthly' && template.dayOfMonth) {
-        currentDate = new Date(now.getFullYear(), now.getMonth(), template.dayOfMonth);
+        currentDate = safeDate(now.getFullYear(), now.getMonth(), template.dayOfMonth);
         if (currentDate < now) {
           currentDate = addMonths(currentDate, 1);
         }

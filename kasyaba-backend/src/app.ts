@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import { requestIdMiddleware } from './middleware/requestId';
 import { errorHandler } from './middleware/errorHandler';
 import { notFoundHandler } from './middleware/notFound';
+import { env } from './config/env';
 import routes from './routes';
 
 export function createApp() {
@@ -11,7 +12,11 @@ export function createApp() {
 
   // Security
   app.use(helmet());
-  app.use(cors());
+
+  const allowedOrigins = env.NODE_ENV === 'production'
+    ? env.CORS_ALLOWED_ORIGINS.split(',').map(s => s.trim()).filter(Boolean)
+    : '*';
+  app.use(cors({ origin: allowedOrigins }));
 
   // Body parsing
   app.use(express.json({ limit: '1mb' }));

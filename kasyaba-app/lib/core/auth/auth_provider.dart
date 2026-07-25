@@ -46,18 +46,35 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   AuthNotifier(this._dio, this._storage) : super(const AuthState());
 
+  String _extractDisplayName(Map<String, dynamic>? userJson, String fallbackEmail) {
+    if (userJson != null) {
+      final name = userJson['displayName'] as String?;
+      if (name != null && name.trim().isNotEmpty) return name.trim();
+    }
+    if (fallbackEmail.isNotEmpty && fallbackEmail.contains('@')) {
+      final prefix = fallbackEmail.split('@')[0];
+      if (prefix.isNotEmpty) {
+        return prefix[0].toUpperCase() + prefix.substring(1);
+      }
+    }
+    return 'User';
+  }
+
   Future<void> checkAuth() async {
     final token = await _storage.getAccessToken();
     if (token != null) {
       try {
         final response = await _dio.get('/auth/me');
-        final user = response.data['data'];
-        state = AuthState(
-          isAuthenticated: true,
-          userId: user['id'],
-          email: user['email'],
-          displayName: user['displayName'],
-        );
+        final user = response.data['data'] as Map<String, dynamic>?;
+        if (user != null) {
+          final email = (user['email'] as String?) ?? '';
+          state = AuthState(
+            isAuthenticated: true,
+            userId: user['id'] as String?,
+            email: email,
+            displayName: _extractDisplayName(user, email),
+          );
+        }
       } catch (_) {
         await _storage.clearTokens();
       }
@@ -70,14 +87,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final response = await _dio.post('/auth/register', data: {
         'email': email,
         'password': password,
-        if (displayName != null) 'displayName': displayName,
+        'displayName': displayName,
       });
       final data = response.data['data'];
       await _storage.saveTokens(data['accessToken'], data['refreshToken']);
+      final user = data['user'] as Map<String, dynamic>?;
       state = AuthState(
         isAuthenticated: true,
+        userId: user?['id'] as String?,
         email: email,
-        displayName: displayName ?? email.split('@')[0],
+        displayName: _extractDisplayName(user, email),
       );
     } on DioException catch (e) {
       final error = e.response?.data?['error']?['message'] ?? 'Registration failed';
@@ -95,9 +114,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
       });
       final data = response.data['data'];
       await _storage.saveTokens(data['accessToken'], data['refreshToken']);
+      final user = data['user'] as Map<String, dynamic>?;
       state = AuthState(
         isAuthenticated: true,
+        userId: user?['id'] as String?,
         email: email,
+        displayName: _extractDisplayName(user, email),
       );
     } on DioException catch (e) {
       final error = e.response?.data?['error']?['message'] ?? 'Login failed';
@@ -114,7 +136,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
       });
       final data = response.data['data'];
       await _storage.saveTokens(data['accessToken'], data['refreshToken']);
-      state = AuthState(isAuthenticated: true);
+      final user = data['user'] as Map<String, dynamic>?;
+      final email = (user?['email'] as String?) ?? '';
+      state = AuthState(
+        isAuthenticated: true,
+        userId: user?['id'] as String?,
+        email: email,
+        displayName: _extractDisplayName(user, email),
+      );
     } on DioException catch (e) {
       final error = e.response?.data?['error']?['message'] ?? 'Google login failed';
       state = state.copyWith(isLoading: false, error: error);

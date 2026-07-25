@@ -103,10 +103,11 @@ export function registerRoutes(app: import('express').Router) {
   // POST /api/v1/auth/logout
   app.post(
     '/api/v1/auth/logout',
+    authenticate,
     validate(refreshSchema),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        await authService.logoutUser(req.body.refreshToken);
+        await authService.logoutUser(req.userId!, req.body.refreshToken);
         sendNoContent(res);
       } catch (err) {
         next(err);

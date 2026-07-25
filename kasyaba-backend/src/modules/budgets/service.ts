@@ -1,6 +1,5 @@
 import { prisma } from '../../config/database';
 import { NotFoundError } from '../../lib/errors';
-import { startOfMonth, endOfMonth } from '../../lib/dates';
 import type { CreateBudgetInput, UpdateBudgetInput } from './validation';
 
 export async function listBudgets(userId: string) {

@@ -2,13 +2,13 @@ import { prisma } from '../../config/database';
 import { startOfMonth, endOfMonth } from '../../lib/dates';
 import * as forecastingService from '../forecasting/service';
 
-export async function getDashboard(userId: string, period = 'month') {
+export async function getDashboard(userId: string, _period = 'month') {
   const now = new Date();
   const monthStart = startOfMonth(now);
   const monthEnd = endOfMonth(now);
 
   // Try to get today's snapshot, or compute one
-  let snapshot = await prisma.financialSnapshot.findFirst({
+  const snapshot = await prisma.financialSnapshot.findFirst({
     where: {
       userId,
       snapshotDate: { gte: monthStart },

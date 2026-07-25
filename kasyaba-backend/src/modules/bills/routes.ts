@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { authenticate } from '../../middleware/auth';
 import { validate } from '../../middleware/validate';
-import { createBillTemplateSchema, updateBillTemplateSchema, billQuerySchema } from './validation';
+import { createBillTemplateSchema, updateBillTemplateSchema, billQuerySchema, markPaidSchema } from './validation';
 import * as billService from './service';
 import { sendSuccess, sendCreated } from '../../lib/response';
 
@@ -45,10 +45,9 @@ export function registerRoutes(app: import('express').Router) {
     } catch (err) { next(err); }
   });
 
-  router.post('/api/v1/bills/:id/mark-paid', authenticate, async (req: Request, res: Response, next: NextFunction) => {
+  router.post('/api/v1/bills/:id/mark-paid', authenticate, validate(markPaidSchema), async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const createExpense = req.query.createExpense === 'true';
-      const bill = await billService.markBillPaid(req.userId!, req.params.id, createExpense);
+      const bill = await billService.markBillPaid(req.userId!, req.params.id, req.body.accountId);
       sendSuccess(res, bill);
     } catch (err) { next(err); }
   });

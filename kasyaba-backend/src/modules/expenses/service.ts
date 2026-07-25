@@ -15,6 +15,7 @@ function expenseSelect() {
     clientMutationId: true,
     createdAt: true,
     updatedAt: true,
+    category: { select: { name: true, iconKey: true } },
   };
 }
 

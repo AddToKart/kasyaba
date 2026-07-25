@@ -29,8 +29,21 @@ export function addDays(date: Date, days: number): Date {
 
 export function addMonths(date: Date, months: number): Date {
   const result = new Date(date);
-  result.setMonth(result.getMonth() + months);
+  const targetMonth = result.getMonth() + months;
+  result.setMonth(targetMonth);
+  // If the day overflowed (e.g. Jan 31 + 1 month), clamp to last valid day
+  if (result.getMonth() !== ((targetMonth % 12) + 12) % 12) {
+    result.setDate(0);
+  }
   return result;
+}
+
+export function safeDate(year: number, month: number, day: number): Date {
+  const d = new Date(year, month, day);
+  if (d.getDate() !== day) {
+    d.setDate(0);
+  }
+  return d;
 }
 
 export function isSameDay(a: Date, b: Date): boolean {

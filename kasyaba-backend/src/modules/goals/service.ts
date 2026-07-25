@@ -1,6 +1,6 @@
 import { prisma } from '../../config/database';
 import { NotFoundError } from '../../lib/errors';
-import { startOfMonth, endOfMonth, daysBetween } from '../../lib/dates';
+import { daysBetween } from '../../lib/dates';
 import type { CreateGoalInput, UpdateGoalInput, CreateContributionInput } from './validation';
 
 export async function listGoals(userId: string) {

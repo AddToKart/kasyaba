@@ -32,5 +32,9 @@ export const billQuerySchema = z.object({
   to: z.string().regex(/^\d{4}-\d{2}-\d{2}/).optional(),
 });
 
+export const markPaidSchema = z.object({
+  accountId: z.string().uuid('Account ID is required and must be a valid UUID'),
+});
+
 export type CreateBillTemplateInput = z.infer<typeof createBillTemplateSchema>;
 export type UpdateBillTemplateInput = z.infer<typeof updateBillTemplateSchema>;

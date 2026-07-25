@@ -26,8 +26,6 @@ export async function computeSnapshot(userId: string): Promise<ForecastResult> {
   const monthEnd = endOfMonth(now);
   const elapsedDays = daysBetween(monthStart, now);
   const totalDays = daysInMonth(now);
-  const remainingDays = totalDays - elapsedDays;
-
   // --- 1. Actual data this month ---
   const incomeAgg = await prisma.incomeEntry.aggregate({
     where: { userId, receivedAt: { gte: monthStart, lte: monthEnd } },
@@ -41,28 +39,42 @@ export async function computeSnapshot(userId: string): Promise<ForecastResult> {
   const incomeMTD = new Decimal(Number(incomeAgg._sum.amount) || 0);
   const expensesMTD = new Decimal(Number(expenseAgg._sum.amount) || 0);
 
-  // --- 2. Actual balance ---
+  // --- 2. Actual balance (grouped to avoid N+1) ---
   const accounts = await prisma.financialAccount.findMany({
     where: { userId, isArchived: false },
+    select: { id: true, openingBalance: true },
   });
 
-  const accountBalances = await Promise.all(
-    accounts.map(async (acc) => {
-      const incAgg = await prisma.incomeEntry.aggregate({
-        where: { accountId: acc.id },
-        _sum: { amount: true },
-      });
-      const expAgg = await prisma.expenseEntry.aggregate({
-        where: { accountId: acc.id },
-        _sum: { amount: true },
-      });
-      return new Decimal(Number(acc.openingBalance))
-        .plus(new Decimal(Number(incAgg._sum.amount) || 0))
-        .minus(new Decimal(Number(expAgg._sum.amount) || 0));
-    })
-  );
+  const accountIds = accounts.map(a => a.id);
 
-  const actualBalance = accountBalances.reduce((s, b) => s.plus(b), new Decimal(0));
+  const [incByAccount, expByAccount] = await Promise.all([
+    prisma.incomeEntry.groupBy({
+      by: ['accountId'],
+      where: { accountId: { in: accountIds } },
+      _sum: { amount: true },
+    }),
+    prisma.expenseEntry.groupBy({
+      by: ['accountId'],
+      where: { accountId: { in: accountIds } },
+      _sum: { amount: true },
+    }),
+  ]);
+
+  const incMap = new Map(incByAccount.map(r => [r.accountId, Number(r._sum.amount) || 0]));
+  const expMap = new Map(expByAccount.map(r => [r.accountId, Number(r._sum.amount) || 0]));
+
+  const actualBalance = accounts.reduce((s, acc) => {
+    return s.plus(new Decimal(Number(acc.openingBalance)))
+      .plus(new Decimal(incMap.get(acc.id) || 0))
+      .minus(new Decimal(expMap.get(acc.id) || 0));
+  }, new Decimal(0));
+
+  // Collect bill-linked expense IDs to avoid double-counting in projection
+  const billExpenses = await prisma.billInstance.findMany({
+    where: { userId, expenseEntryId: { not: null } },
+    select: { expenseEntryId: true },
+  });
+  const billExpenseIds = billExpenses.map(b => b.expenseEntryId!).filter(Boolean);
 
   // --- 3. Income projection ---
   const incomeHistory = await prisma.incomeEntry.findMany({
@@ -95,12 +107,17 @@ export async function computeSnapshot(userId: string): Promise<ForecastResult> {
     projectedIncome = incomeMTD;
   }
 
-  // --- 4. Expense projection ---
+  // --- 4. Expense projection (exclude bill-linked expenses to avoid double-count) ---
+  const expenseHistoryWhere: any = {
+    userId,
+    spentAt: { gte: new Date(now.getFullYear(), now.getMonth() - 3, 1), lt: monthStart },
+  };
+  if (billExpenseIds.length > 0) {
+    expenseHistoryWhere.id = { notIn: billExpenseIds };
+  }
+
   const expenseHistory = await prisma.expenseEntry.findMany({
-    where: {
-      userId,
-      spentAt: { gte: new Date(now.getFullYear(), now.getMonth() - 3, 1), lt: monthStart },
-    },
+    where: expenseHistoryWhere,
     orderBy: { spentAt: 'desc' },
   });
 
@@ -264,11 +281,8 @@ export async function generateAlertsFromSnapshot(userId: string): Promise<void> 
     const projectedSpend = Number(snapshot.projectedMonthEndExpenses);
     const percentUsed = budgetAmount > 0 ? (projectedSpend / budgetAmount) * 100 : 0;
 
-    let severity: 'info' | 'warning' | 'critical' = 'info';
-    if (percentUsed > 115) severity = 'critical';
-    else if (percentUsed > 100) severity = 'warning';
-    else if (percentUsed > 90) severity = 'info';
-    else continue; // No alert needed
+    if (percentUsed <= 90) continue; // No alert needed
+    const severity = percentUsed > 115 ? 'critical' : (percentUsed > 100 ? 'warning' : 'info');
 
     const dedupKey = `${userId}:budget_overrun:${now.getFullYear()}-${now.getMonth()}:${budget.id}`;
 
@@ -445,45 +459,42 @@ interface HealthOutput {
 }
 
 function computeHealthScore(input: HealthInput): HealthOutput {
-  const { incomeMTD, expensesMTD, savingsMTD } = input;
+  const { incomeMTD, savingsMTD } = input;
 
   // --- Savings score (30%) ---
-  let savingsScore = 0;
   const savingsRate = incomeMTD.gt(0) ? Number(savingsMTD.div(incomeMTD)) : 0;
-  if (savingsRate >= 0.20) savingsScore = 100;
-  else if (savingsRate >= 0.10) savingsScore = 70 + (savingsRate - 0.10) / 0.10 * 29;
-  else if (savingsRate > 0) savingsScore = 30 + (savingsRate / 0.10) * 39;
-  else savingsScore = 0;
+  const savingsScore = (() => {
+    if (savingsRate >= 0.20) return 100;
+    if (savingsRate >= 0.10) return 70 + (savingsRate - 0.10) / 0.10 * 29;
+    if (savingsRate > 0) return 30 + (savingsRate / 0.10) * 39;
+    return 0;
+  })();
 
   // --- Budget score (30%) ---
-  let budgetScore = 0;
   const budgetTotal = Number(input.projectedMonthEndExpenses);
   const incomeTotal = Number(incomeMTD);
   const budgetRatio = incomeTotal > 0 ? budgetTotal / incomeTotal : 1;
 
-  if (budgetRatio <= 0.90) budgetScore = 100;
-  else if (budgetRatio <= 1.00) budgetScore = 70 + (1 - budgetRatio) / 0.10 * 29;
-  else if (budgetRatio <= 1.15) budgetScore = 30 + (1.15 - budgetRatio) / 0.15 * 39;
-  else budgetScore = Math.max(0, 30 - (budgetRatio - 1.15) / 0.15 * 30);
+  const budgetScore = (() => {
+    if (budgetRatio <= 0.90) return 100;
+    if (budgetRatio <= 1.00) return 70 + (1 - budgetRatio) / 0.10 * 29;
+    if (budgetRatio <= 1.15) return 30 + (1.15 - budgetRatio) / 0.15 * 39;
+    return Math.max(0, 30 - (budgetRatio - 1.15) / 0.15 * 30);
+  })();
 
   // --- Bill reliability score (20%) ---
-  let billScore = 50; // Default mid score
-  // For MVP, simplified - check overdue bills
-  // In production, track payment history over 3 months
-  const billScoreVal = 70;
+  // For MVP, simplified constant. In production, track payment history over 3 months
+  const billScore = 70;
 
   // --- Balance resilience score (20%) ---
-  let resilienceScore = 50;
   const projectedBalance = Number(input.predictedMonthEndBalance);
-  if (projectedBalance > 0) {
-    resilienceScore = Math.min(100, 50 + (projectedBalance / (incomeTotal || 1)) * 100);
-  } else {
-    resilienceScore = Math.max(0, 50 + (projectedBalance / (incomeTotal || 1)) * 50);
-  }
+  const resilienceScore = projectedBalance > 0
+    ? Math.min(100, 50 + (projectedBalance / (incomeTotal || 1)) * 100)
+    : Math.max(0, 50 + (projectedBalance / (incomeTotal || 1)) * 50);
 
   // --- Composite ---
   const totalScore = Math.round(
-    savingsScore * 0.30 + budgetScore * 0.30 + billScoreVal * 0.20 + resilienceScore * 0.20
+    savingsScore * 0.30 + budgetScore * 0.30 + billScore * 0.20 + resilienceScore * 0.20
   );
 
   let grade: HealthGrade;

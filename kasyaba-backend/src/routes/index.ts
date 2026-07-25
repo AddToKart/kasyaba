@@ -9,6 +9,7 @@ import { registerRoutes as registerGoalRoutes } from '../modules/goals/routes';
 import { registerRoutes as registerBillRoutes } from '../modules/bills/routes';
 import { registerRoutes as registerAlertRoutes } from '../modules/alerts/routes';
 import { registerRoutes as registerDashboardRoutes } from '../modules/dashboard/routes';
+import { prisma } from '../config/database';
 import { Request, Response } from 'express';
 
 const router = Router();
@@ -20,10 +21,9 @@ router.get('/health/live', (_req: Request, res: Response) => {
 
 router.get('/health/ready', async (_req: Request, res: Response) => {
   try {
-    const { prisma } = require('../config/database');
     await prisma.$queryRaw`SELECT 1`;
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
-  } catch (err) {
+  } catch {
     res.status(503).json({ status: 'error', message: 'Database not ready' });
   }
 });

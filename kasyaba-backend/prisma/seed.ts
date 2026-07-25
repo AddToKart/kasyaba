@@ -19,11 +19,14 @@ async function main() {
   ];
 
   for (const cat of defaultCategories) {
-    await prisma.expenseCategory.upsert({
-      where: { userId_name: { userId: null as any, name: cat.name } },
-      update: {},
-      create: { name: cat.name, iconKey: cat.iconKey },
+    const existing = await prisma.expenseCategory.findFirst({
+      where: { userId: null, name: cat.name },
     });
+    if (!existing) {
+      await prisma.expenseCategory.create({
+        data: { name: cat.name, iconKey: cat.iconKey },
+      });
+    }
   }
 
   console.log('Default categories seeded');

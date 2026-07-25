@@ -1,5 +1,5 @@
 import { prisma } from '../../config/database';
-import { NotFoundError, ForbiddenError } from '../../lib/errors';
+import { NotFoundError } from '../../lib/errors';
 import type { CreateIncomeInput, UpdateIncomeInput } from './validation';
 
 function incomeSelect() {

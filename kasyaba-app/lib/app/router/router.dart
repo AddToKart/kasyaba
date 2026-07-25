@@ -11,6 +11,7 @@ import '../../features/bills/screens/bills_screen.dart';
 import '../../features/alerts/screens/alerts_screen.dart';
 import '../../features/settings/screens/settings_screen.dart';
 import '../../core/auth/auth_provider.dart';
+import 'app_shell.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
@@ -35,14 +36,38 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/register',
         builder: (context, state) => const RegisterScreen(),
       ),
-      GoRoute(
-        path: '/dashboard',
-        builder: (context, state) => const DashboardScreen(),
+      // Persistent App Shell containing bottom navigation bar
+      ShellRoute(
+        builder: (context, state, child) {
+          return AppShell(
+            location: state.matchedLocation,
+            child: child,
+          );
+        },
+        routes: [
+          GoRoute(
+            path: '/dashboard',
+            builder: (context, state) => const DashboardScreen(),
+          ),
+          GoRoute(
+            path: '/transactions',
+            builder: (context, state) => const TransactionsScreen(),
+          ),
+          GoRoute(
+            path: '/goals',
+            builder: (context, state) => const GoalsScreen(),
+          ),
+          GoRoute(
+            path: '/bills',
+            builder: (context, state) => const BillsScreen(),
+          ),
+          GoRoute(
+            path: '/settings',
+            builder: (context, state) => const SettingsScreen(),
+          ),
+        ],
       ),
-      GoRoute(
-        path: '/transactions',
-        builder: (context, state) => const TransactionsScreen(),
-      ),
+      // Sub-routes without bottom navigation bar
       GoRoute(
         path: '/transactions/add',
         builder: (context, state) => const AddTransactionScreen(),
@@ -52,20 +77,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const BudgetsScreen(),
       ),
       GoRoute(
-        path: '/goals',
-        builder: (context, state) => const GoalsScreen(),
-      ),
-      GoRoute(
-        path: '/bills',
-        builder: (context, state) => const BillsScreen(),
-      ),
-      GoRoute(
         path: '/alerts',
         builder: (context, state) => const AlertsScreen(),
-      ),
-      GoRoute(
-        path: '/settings',
-        builder: (context, state) => const SettingsScreen(),
       ),
     ],
   );
