@@ -1,6 +1,5 @@
 import { prisma } from '../../config/database';
 import { NotFoundError } from '../../lib/errors';
-import { daysBetween } from '../../lib/dates';
 import type { CreateGoalInput, UpdateGoalInput, CreateContributionInput } from './validation';
 
 async function getUserDailySurplus(userId: string): Promise<number> {
@@ -113,15 +112,29 @@ export async function updateGoal(userId: string, id: string, input: UpdateGoalIn
 
 export async function addContribution(userId: string, goalId: string, input: CreateContributionInput) {
   await getGoal(userId, goalId);
-  return prisma.savingsContribution.create({
-    data: {
-      goalId,
-      userId,
-      accountId: input.accountId || null,
-      amount: input.amount,
-      contributedAt: new Date(input.contributedAt),
-      notes: input.notes,
-    },
+
+  return prisma.$transaction(async (tx) => {
+    const contrib = await tx.savingsContribution.create({
+      data: {
+        goalId,
+        userId,
+        accountId: input.accountId || null,
+        amount: input.amount,
+        contributedAt: input.contributedAt ? new Date(input.contributedAt) : new Date(),
+        notes: input.notes,
+      },
+    });
+
+    if (input.accountId) {
+      await tx.financialAccount.update({
+        where: { id: input.accountId, userId },
+        data: {
+          balance: { decrement: input.amount },
+        },
+      });
+    }
+
+    return contrib;
   });
 }
 

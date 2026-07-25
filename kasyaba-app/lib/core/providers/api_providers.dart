@@ -597,12 +597,14 @@ class TransactionMutator {
   Future<void> addGoalContribution({
     required String goalId,
     required double amount,
+    String? accountId,
     String? notes,
   }) async {
     final cacheService = _ref.read(cacheServiceProvider);
 
     final data = {
       'amount': amount,
+      if (accountId != null && accountId.isNotEmpty) 'accountId': accountId,
       'contributedAt': DateTime.now().toIso8601String(),
       if (notes != null && notes.isNotEmpty) 'notes': notes,
     };
@@ -617,6 +619,9 @@ class TransactionMutator {
 
     _ref.invalidate(goalsProvider);
     _ref.invalidate(dashboardProvider);
+    _ref.invalidate(accountsProvider);
+    _ref.invalidate(paginatedTransactionsProvider);
+    _ref.invalidate(transactionsProvider);
   }
 
   Future<void> addBill({

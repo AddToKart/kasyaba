@@ -183,84 +183,152 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
   void _showAddDepositBottomSheet(BuildContext context, SavingsGoal goal) {
     final amountController = TextEditingController(text: '1000');
     final formKey = GlobalKey<FormState>();
-
     final presetAmounts = [500, 1000, 2500, 5000];
+
+    String? selectedAccountId;
 
     ModernBottomSheet.show(
       context: context,
       title: 'Add Savings Deposit',
       subtitle: 'Contribute funds towards "${goal.name}".',
-      child: Form(
-        key: formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Quick Deposit Amounts',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: presetAmounts.map((amt) {
-                return ActionChip(
-                  avatar: const Icon(Icons.add_rounded, size: 16, color: Color(0xFF10B981)),
-                  label: Text('₱${amt.toString()}'),
-                  onPressed: () {
-                    amountController.text = amt.toString();
-                  },
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 16),
+      child: Consumer(
+        builder: (context, ref, child) {
+          final accountsAsync = ref.watch(accountsProvider);
 
-            ModernTextField(
-              controller: amountController,
-              label: 'Deposit Amount (₱)',
-              hint: '1000.00',
-              prefixIcon: Icons.account_balance_wallet_outlined,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              validator: (v) {
-                if (v == null || v.trim().isEmpty) return 'Enter deposit amount';
-                if (double.tryParse(v) == null || (double.tryParse(v)! <= 0)) return 'Enter a valid amount';
-                return null;
-              },
-            ),
-            const SizedBox(height: 24),
+          return StatefulBuilder(
+            builder: (context, setModalState) {
+              return Form(
+                key: formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Account Selector
+                    accountsAsync.when(
+                      loading: () => const SizedBox.shrink(),
+                      error: (err, _) => const SizedBox.shrink(),
+                      data: (accounts) {
+                        if (accounts.isEmpty) return const SizedBox.shrink();
+                        selectedAccountId ??= accounts.first.id;
 
-            FilledButton.icon(
-              onPressed: () async {
-                if (!formKey.currentState!.validate()) return;
-                final amount = double.tryParse(amountController.text.trim()) ?? 0.0;
-                final mutator = ref.read(transactionMutatorProvider);
-                await mutator.addGoalContribution(
-                  goalId: goal.id,
-                  amount: amount,
-                  notes: 'Savings deposit',
-                );
-                if (context.mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Added ₱${amount.toStringAsFixed(2)} to ${goal.name}! 🎉'),
-                      backgroundColor: const Color(0xFF10B981),
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Deduct From Account',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                            ),
+                            const SizedBox(height: 8),
+                            DropdownButtonFormField<String>(
+                              initialValue: selectedAccountId,
+                              decoration: InputDecoration(
+                                prefixIcon: const Icon(
+                                  Icons.account_balance_wallet_outlined,
+                                  color: Color(0xFF10B981),
+                                ),
+                                filled: true,
+                                fillColor: Theme.of(context).brightness == Brightness.dark
+                                    ? const Color(0xFF1E293B)
+                                    : const Color(0xFFF1F5F9),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                  borderSide: BorderSide.none,
+                                ),
+                              ),
+                              items: accounts.map((acc) {
+                                return DropdownMenuItem<String>(
+                                  value: acc.id,
+                                  child: Text(
+                                    acc.name,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setModalState(() => selectedAccountId = val);
+                                }
+                              },
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+                        );
+                      },
                     ),
-                  );
-                }
-              },
-              icon: const Icon(Icons.add_circle_outline, size: 20),
-              label: const Text('Add Savings Deposit', style: TextStyle(fontWeight: FontWeight.bold)),
-              style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFF10B981),
-                minimumSize: const Size.fromHeight(50),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              ),
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
+
+                    const Text(
+                      'Quick Deposit Amounts',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: presetAmounts.map((amt) {
+                        return ActionChip(
+                          avatar: const Icon(Icons.add_rounded, size: 16, color: Color(0xFF10B981)),
+                          label: Text('₱${amt.toString()}'),
+                          onPressed: () {
+                            amountController.text = amt.toString();
+                          },
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 16),
+
+                    ModernTextField(
+                      controller: amountController,
+                      label: 'Deposit Amount (₱)',
+                      hint: '1000.00',
+                      prefixIcon: Icons.account_balance_wallet_outlined,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) return 'Enter deposit amount';
+                        if (double.tryParse(v) == null || (double.tryParse(v)! <= 0)) return 'Enter a valid amount';
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 24),
+
+                    FilledButton.icon(
+                      onPressed: () async {
+                        if (!formKey.currentState!.validate()) return;
+                        final amount = double.tryParse(amountController.text.trim()) ?? 0.0;
+                        final mutator = ref.read(transactionMutatorProvider);
+                        await mutator.addGoalContribution(
+                          goalId: goal.id,
+                          amount: amount,
+                          accountId: selectedAccountId,
+                          notes: 'Savings deposit',
+                        );
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Added ₱${amount.toStringAsFixed(2)} to ${goal.name}! 🎉'),
+                              backgroundColor: const Color(0xFF10B981),
+                            ),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.add_circle_outline, size: 20),
+                      label: const Text('Add Savings Deposit', style: TextStyle(fontWeight: FontWeight.bold)),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFF10B981),
+                        minimumSize: const Size.fromHeight(50),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }
@@ -356,6 +424,38 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                                 ),
                                 Row(
                                   children: [
+                                    // Sleek compact deposit button chip
+                                    InkWell(
+                                      onTap: () => _showAddDepositBottomSheet(context, goal),
+                                      borderRadius: BorderRadius.circular(20),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF10B981).withValues(alpha: isDark ? 0.20 : 0.12),
+                                          borderRadius: BorderRadius.circular(20),
+                                          border: Border.all(
+                                            color: const Color(0xFF10B981).withValues(alpha: 0.35),
+                                            width: 1,
+                                          ),
+                                        ),
+                                        child: const Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(Icons.add_rounded, size: 14, color: Color(0xFF10B981)),
+                                            SizedBox(width: 3),
+                                            Text(
+                                              'Deposit',
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                color: Color(0xFF059669),
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                       decoration: BoxDecoration(
@@ -394,29 +494,6 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                                 minHeight: 10,
                                 backgroundColor: const Color(0xFF10B981).withValues(alpha: 0.15),
                                 valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF10B981)),
-                              ),
-                            ),
-
-                            // ── Deposit Button ──────────────────────
-                            const SizedBox(height: 14),
-                            Align(
-                              alignment: Alignment.centerRight,
-                              child: OutlinedButton.icon(
-                                onPressed: () => _showAddDepositBottomSheet(context, goal),
-                                icon: const Icon(Icons.add_rounded, size: 16, color: Color(0xFF10B981)),
-                                label: const Text(
-                                  'Deposit Savings',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF10B981),
-                                  ),
-                                ),
-                                style: OutlinedButton.styleFrom(
-                                  side: BorderSide(color: const Color(0xFF10B981).withValues(alpha: 0.5)),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                ),
                               ),
                             ),
 
