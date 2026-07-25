@@ -440,74 +440,87 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
       appBar: AppBar(
         titleSpacing: 20,
         title: Text(
-          'Savings Goals & Forecast',
-          style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          'Savings Goals',
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w800,
+            fontSize: 22,
+            letterSpacing: -0.5,
+          ),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.add_circle_outline),
-            tooltip: 'Create Goal',
-            onPressed: () => _showAddGoalBottomSheet(context),
+          // Sleek "Can I Buy This?" Icon Action Button right beside "+"
+          Tooltip(
+            message: 'Can I Buy This? (Purchase Check)',
+            child: Material(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
+              child: InkWell(
+                onTap: () => _showPurchaseCheckBottomSheet(context),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    color: const Color(0xFF0284C7).withValues(alpha: isDark ? 0.2 : 0.1),
+                    border: Border.all(
+                      color: const Color(0xFF0284C7).withValues(alpha: 0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.shopping_bag_outlined,
+                    size: 19,
+                    color: Color(0xFF0284C7),
+                  ),
+                ),
+              ),
+            ),
           ),
           const SizedBox(width: 8),
+          Tooltip(
+            message: 'Create Savings Goal',
+            child: Material(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
+              child: InkWell(
+                onTap: () => _showAddGoalBottomSheet(context),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    color: const Color(0xFF10B981).withValues(alpha: isDark ? 0.2 : 0.1),
+                    border: Border.all(
+                      color: const Color(0xFF10B981).withValues(alpha: 0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.add_rounded,
+                    size: 20,
+                    color: Color(0xFF10B981),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
         ],
       ),
       body: RefreshIndicator(
+        color: const Color(0xFF10B981),
         onRefresh: () async => ref.invalidate(goalsProvider),
         child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           children: [
-            // ── "Can I Buy This?" Prominent Purchase Checker Card ──────────────────
-            ModernCard(
-              onTap: () => _showPurchaseCheckBottomSheet(context),
-              padding: const EdgeInsets.all(16),
-              gradient: LinearGradient(
-                colors: isDark
-                    ? const [Color(0xFF0F172A), Color(0xFF1E293B)]
-                    : const [Color(0xFFF0F9FF), Color(0xFFE0F2FE)],
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF0284C7).withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: const Icon(Icons.shopping_bag_outlined, color: Color(0xFF0284C7), size: 24),
-                  ),
-                  const SizedBox(width: 14),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Can I Buy This? 🛍️📱',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF0284C7),
-                          ),
-                        ),
-                        SizedBox(height: 2),
-                        Text(
-                          'Calculate if you can afford a gadget, trip, or item right now.',
-                          style: TextStyle(fontSize: 11, color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Icon(Icons.chevron_right_rounded, color: Color(0xFF0284C7)),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-
             goalsAsync.when(
               loading: () => const SizedBox(
                 height: 200,
-                child: Center(child: CircularProgressIndicator()),
+                child: Center(
+                  child: CircularProgressIndicator(color: Color(0xFF10B981)),
+                ),
               ),
               error: (err, _) => ModernCard(
                 padding: const EdgeInsets.all(20),
@@ -530,122 +543,10 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                 return Column(
                   children: [
                     for (final goal in goals) ...[
-                      ModernCard(
-                        padding: const EdgeInsets.all(20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(10),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF10B981).withValues(alpha: 0.12),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: const Icon(Icons.savings_outlined, color: Color(0xFF10B981), size: 24),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          goal.name,
-                                          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                                        ),
-                                        Text(
-                                          'Target: ₱${goal.targetAmount.toStringAsFixed(2)}',
-                                          style: theme.textTheme.bodySmall?.copyWith(
-                                            color: theme.colorScheme.onSurfaceVariant,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                                Row(
-                                  children: [
-                                    // Sleek compact deposit button chip
-                                    InkWell(
-                                      onTap: () => _showAddDepositBottomSheet(context, goal),
-                                      borderRadius: BorderRadius.circular(20),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFF10B981).withValues(alpha: isDark ? 0.20 : 0.12),
-                                          borderRadius: BorderRadius.circular(20),
-                                          border: Border.all(
-                                            color: const Color(0xFF10B981).withValues(alpha: 0.35),
-                                            width: 1,
-                                          ),
-                                        ),
-                                        child: const Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(Icons.add_rounded, size: 14, color: Color(0xFF10B981)),
-                                            SizedBox(width: 3),
-                                            Text(
-                                              'Deposit',
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                color: Color(0xFF059669),
-                                                fontSize: 12,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF10B981).withValues(alpha: 0.15),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Text(
-                                        '${(goal.progress * 100).toStringAsFixed(0)}%',
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xFF059669),
-                                          fontSize: 13,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text('Saved: ₱${goal.currentAmount.toStringAsFixed(2)}', style: theme.textTheme.bodySmall),
-                                Text(
-                                  'Remaining: ₱${(goal.targetAmount - goal.currentAmount).clamp(0.0, double.infinity).toStringAsFixed(2)}',
-                                  style: theme.textTheme.bodySmall,
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: LinearProgressIndicator(
-                                value: goal.progress,
-                                minHeight: 10,
-                                backgroundColor: const Color(0xFF10B981).withValues(alpha: 0.15),
-                                valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF10B981)),
-                              ),
-                            ),
-
-                            // ── Goal Affordability Forecast Banner ─────────────────
-                            const SizedBox(height: 12),
-                            _GoalForecastBanner(goal: goal, isDark: isDark),
-                          ],
-                        ),
+                      _ModernGoalCard(
+                        goal: goal,
+                        isDark: isDark,
+                        onDeposit: () => _showAddDepositBottomSheet(context, goal),
                       ),
                       const SizedBox(height: 16),
                     ],
@@ -656,10 +557,275 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddGoalBottomSheet(context),
-        icon: const Icon(Icons.add),
-        label: const Text('New Goal'),
+      floatingActionButton: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF059669), Color(0xFF10B981)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF10B981).withValues(alpha: 0.45),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: FloatingActionButton.extended(
+          onPressed: () => _showAddGoalBottomSheet(context),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          icon: const Icon(Icons.add_rounded, size: 22),
+          label: const Text(
+            'New Goal',
+            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+          ),
+          tooltip: 'Create Goal',
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Modern Redesigned Savings Goal Card ───────────────────────
+
+class _ModernGoalCard extends StatelessWidget {
+  final SavingsGoal goal;
+  final bool isDark;
+  final VoidCallback onDeposit;
+
+  const _ModernGoalCard({
+    required this.goal,
+    required this.isDark,
+    required this.onDeposit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final progressPct = (goal.progress * 100).clamp(0.0, 100.0).toStringAsFixed(0);
+    final remaining = (goal.targetAmount - goal.currentAmount).clamp(0.0, double.infinity);
+
+    return ModernCard(
+      padding: const EdgeInsets.all(20),
+      gradient: LinearGradient(
+        colors: isDark
+            ? const [Color(0xFF0F172A), Color(0xFF1E293B)]
+            : const [Color(0xFFFFFFFF), Color(0xFFF8FAFC)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Header Row (Icon Avatar + Title + Deposit Chip) ─────────
+          Row(
+            children: [
+              // Avatar Squircle
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF059669), Color(0xFF10B981)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF10B981).withValues(alpha: 0.35),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: const Icon(Icons.savings_rounded, color: Colors.white, size: 22),
+              ),
+              const SizedBox(width: 14),
+
+              // Title & Target Amount
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      goal.name,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.3,
+                        color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Target: ₱${goal.targetAmount.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Deposit Chip & Percentage Tag
+              Row(
+                children: [
+                  InkWell(
+                    onTap: onDeposit,
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981).withValues(alpha: isDark ? 0.20 : 0.12),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: const Color(0xFF10B981).withValues(alpha: 0.35),
+                          width: 1,
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.add_rounded, size: 14, color: Color(0xFF10B981)),
+                          SizedBox(width: 3),
+                          Text(
+                            'Deposit',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF059669),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '$progressPct%',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF059669),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 18),
+
+          // ── Metrics Row (Saved vs Remaining) ───────────────────────
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Saved',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '₱${goal.currentAmount.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF10B981),
+                    ),
+                  ),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    'Remaining',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '₱${remaining.toStringAsFixed(2)}',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: isDark ? Colors.white70 : const Color(0xFF334155),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 10),
+
+          // ── Custom Gradient Progress Bar ───────────────────────────
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final barWidth = constraints.maxWidth;
+              final filledWidth = barWidth * goal.progress.clamp(0.0, 1.0);
+
+              return Container(
+                height: 10,
+                width: barWidth,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withValues(alpha: isDark ? 0.15 : 0.10),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 500),
+                    curve: Curves.easeOutCubic,
+                    height: 10,
+                    width: filledWidth,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF059669), Color(0xFF10B981)],
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF10B981).withValues(alpha: 0.4),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+
+          // ── Goal Affordability Forecast Banner ─────────────────────
+          const SizedBox(height: 16),
+          _GoalForecastBanner(goal: goal, isDark: isDark),
+        ],
       ),
     );
   }
