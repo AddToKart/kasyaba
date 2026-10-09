@@ -1,12 +1,14 @@
-import { PrismaClient } from '@prisma/client';
-import { seedDefaultCategories } from '../src/modules/categories/service';
+import { PrismaClient } from "@prisma/client";
+import { seedDefaultCategories } from "../src/modules/categories/service";
+import { seedDemoUser } from "../src/modules/auth/service";
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('Seeding database...');
+  console.log("Seeding database...");
   await seedDefaultCategories();
-  console.log('Default categories seeded');
+  await seedDemoUser();
+  console.log("Default categories and demo user seeded");
 }
 
 main()

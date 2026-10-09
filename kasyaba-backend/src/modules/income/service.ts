@@ -1,5 +1,8 @@
 import { prisma } from '../../config/database';
-import { NotFoundError } from '../../lib/errors';
+import { ConflictError, NotFoundError } from '../../lib/errors';
+import { Prisma } from '@prisma/client';
+import { parseDateOnlyEnd, parseDateOnlyStart, parseTransactionDate } from '../../lib/transaction-dates';
+import { inferTransactionStatus } from '../../lib/transaction-status';
 import type { CreateIncomeInput, UpdateIncomeInput } from './validation';
 
 function incomeSelect() {
@@ -10,6 +13,7 @@ function incomeSelect() {
     amount: true,
     source: true,
     receivedAt: true,
+    status: true,
     notes: true,
     clientMutationId: true,
     createdAt: true,
@@ -17,13 +21,21 @@ function incomeSelect() {
   };
 }
 
+async function assertAccountOwned(userId: string, accountId: string, activeOnly = false) {
+  const account = await prisma.financialAccount.findFirst({
+    where: { id: accountId, userId, ...(activeOnly ? { isArchived: false } : {}) },
+    select: { id: true },
+  });
+  if (!account) throw new NotFoundError('Account not found');
+}
+
 export async function listIncome(userId: string, query: Record<string, any>) {
   const where: any = { userId };
 
   if (query.from || query.to) {
     where.receivedAt = {};
-    if (query.from) where.receivedAt.gte = new Date(query.from);
-    if (query.to) where.receivedAt.lte = new Date(query.to + 'T23:59:59.999Z');
+    if (query.from) where.receivedAt.gte = parseDateOnlyStart(query.from);
+    if (query.to) where.receivedAt.lte = parseDateOnlyEnd(query.to);
   }
   if (query.source) where.source = { contains: query.source, mode: 'insensitive' };
   if (query.accountId) where.accountId = query.accountId;
@@ -56,24 +68,59 @@ export async function getIncome(userId: string, id: string) {
 }
 
 export async function createIncome(userId: string, input: CreateIncomeInput) {
-  return prisma.incomeEntry.create({
-    data: {
-      userId,
-      accountId: input.accountId,
-      amount: input.amount,
-      source: input.source,
-      receivedAt: new Date(input.receivedAt),
-      notes: input.notes,
-      clientMutationId: input.clientMutationId,
-    },
-    select: incomeSelect(),
-  });
+  if (input.clientMutationId) {
+    const existing = await prisma.incomeEntry.findUnique({
+      where: { clientMutationId: input.clientMutationId },
+      select: incomeSelect(),
+    });
+    if (existing) {
+      if (existing.userId !== userId) throw new ConflictError('Client mutation ID already used');
+      return existing;
+    }
+  }
+
+  await assertAccountOwned(userId, input.accountId, true);
+  const receivedAt = parseTransactionDate(input.receivedAt);
+
+  try {
+    return await prisma.incomeEntry.create({
+      data: {
+        userId,
+        accountId: input.accountId,
+        amount: input.amount,
+        source: input.source,
+        receivedAt,
+        status: inferTransactionStatus(receivedAt, input.status),
+        notes: input.notes,
+        clientMutationId: input.clientMutationId,
+      },
+      select: incomeSelect(),
+    });
+  } catch (error) {
+    if (
+      input.clientMutationId &&
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2002'
+    ) {
+      const existing = await prisma.incomeEntry.findUnique({
+        where: { clientMutationId: input.clientMutationId },
+        select: incomeSelect(),
+      });
+      if (existing?.userId === userId) return existing;
+      throw new ConflictError('Client mutation ID already used');
+    }
+    throw error;
+  }
 }
 
 export async function updateIncome(userId: string, id: string, input: UpdateIncomeInput) {
   await getIncome(userId, id);
+  if (input.accountId) await assertAccountOwned(userId, input.accountId, true);
   const data: any = { ...input };
-  if (input.receivedAt) data.receivedAt = new Date(input.receivedAt);
+  if (input.receivedAt) {
+    data.receivedAt = parseTransactionDate(input.receivedAt);
+    if (!input.status) data.status = inferTransactionStatus(data.receivedAt, undefined);
+  }
   return prisma.incomeEntry.update({
     where: { id },
     data,

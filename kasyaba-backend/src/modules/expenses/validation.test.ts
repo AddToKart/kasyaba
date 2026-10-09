@@ -24,6 +24,28 @@ describe('Expense validation schemas', () => {
       });
       expect(result.success).toBe(false);
     });
+
+    it('accepts a future scheduled expense date', () => {
+      const result = createExpenseSchema.safeParse({
+        accountId: '00000000-0000-0000-0000-000000000001',
+        categoryId: '00000000-0000-0000-0000-000000000002',
+        amount: '250.75',
+        description: 'Planned trip',
+        spentAt: '2099-12-31',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('rejects an impossible date', () => {
+      const result = createExpenseSchema.safeParse({
+        accountId: '00000000-0000-0000-0000-000000000001',
+        categoryId: '00000000-0000-0000-0000-000000000002',
+        amount: '250.75',
+        description: 'Invalid date',
+        spentAt: '2024-02-30',
+      });
+      expect(result.success).toBe(false);
+    });
   });
 
   describe('expenseQuerySchema', () => {
@@ -38,6 +60,14 @@ describe('Expense validation schemas', () => {
 
     it('enforces max limit', () => {
       const result = expenseQuerySchema.safeParse({ limit: '200' });
+      expect(result.success).toBe(false);
+    });
+
+    it('rejects a reversed date range', () => {
+      const result = expenseQuerySchema.safeParse({
+        from: '2026-08-29',
+        to: '2026-08-28',
+      });
       expect(result.success).toBe(false);
     });
   });

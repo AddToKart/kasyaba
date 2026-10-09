@@ -1,5 +1,6 @@
 import Decimal from 'decimal.js';
 import { prisma } from '../../config/database';
+import { toDecimalOrZero } from '../../lib/decimal';
 import { computeSnapshot } from './service';
 
 export interface PurchaseCheckInput {
@@ -49,24 +50,24 @@ export async function evaluatePurchaseAffordability(
     prisma.billInstance.findMany({
       where: {
         userId,
-        status: 'upcoming',
-        dueDate: { gte: now, lte: new Date(now.getTime() + 30 * 86400000) },
+        status: { in: ['upcoming', 'overdue'] },
+        dueDate: { lte: new Date(now.getTime() + 30 * 86400000) },
       },
       select: { amount: true },
     }),
     prisma.savingsGoal.findMany({
       where: { userId, status: 'active' },
-      include: { contributions: { select: { amount: true } } },
+      include: { contributions: { where: { userId }, select: { amount: true } } },
     }),
   ]);
 
   const currentBalance = new Decimal(snapshot.actualBalance);
   const projectedMonthEnd = new Decimal(snapshot.predictedMonthEndBalance);
-  const minThreshold = new Decimal(user?.minimumBalanceThreshold ? Number(user.minimumBalanceThreshold) : 0);
+  const minThreshold = toDecimalOrZero(user?.minimumBalanceThreshold);
 
   // 2. Upcoming bills total
   const totalUpcomingBills = activeBills.reduce(
-    (sum, b) => sum.plus(new Decimal(Number(b.amount))),
+    (sum, b) => sum.plus(toDecimalOrZero(b.amount)),
     new Decimal(0)
   );
 
@@ -76,11 +77,17 @@ export async function evaluatePurchaseAffordability(
   const cashAfterBills = postPurchaseBalance.minus(totalUpcomingBills);
 
   // 4. Daily net surplus calculation
-  const userSalary = user?.salaryAmount ? new Decimal(Number(user.salaryAmount)) : new Decimal(0);
+  const userSalary = toDecimalOrZero(user?.salaryAmount);
   const mtdExpenses = new Decimal(snapshot.expensesMonthToDate);
-  const monthlyCashflow = userSalary.gt(0) ? userSalary.minus(mtdExpenses) : currentBalance;
-  const rawSurplus = monthlyCashflow.gt(0) ? monthlyCashflow.div(30) : new Decimal(150);
-  const dailySurplus = Decimal.max(new Decimal(50), rawSurplus);
+  const observedCashflow = new Decimal(snapshot.incomeMonthToDate).minus(mtdExpenses);
+  const monthlyCashflow = userSalary.gt(0)
+    ? userSalary.minus(mtdExpenses)
+    : observedCashflow;
+  // Never invent a savings rate. Without a positive observed/configured
+  // surplus, the safe-buy date is unknown rather than arbitrarily optimistic.
+  const dailySurplus = monthlyCashflow.gt(0)
+    ? monthlyCashflow.div(30)
+    : new Decimal(0);
 
   // 5. Verdict Matrix Logic
   let verdict: 'AFFORDABLE' | 'RISKY' | 'NOT_RECOMMENDED';
@@ -132,18 +139,22 @@ export async function evaluatePurchaseAffordability(
   if (verdict !== 'AFFORDABLE') {
     const targetRequiredCash = purchaseAmount.plus(totalUpcomingBills).plus(minThreshold);
     const deficit = targetRequiredCash.minus(currentBalance);
-    if (deficit.gt(0)) {
+    if (deficit.gt(0) && dailySurplus.gt(0)) {
       daysUntilSafeBuy = Math.ceil(deficit.div(dailySurplus).toNumber());
       const safeDate = new Date(now.getTime() + daysUntilSafeBuy * 86400000);
       earliestSafeBuyDate = safeDate.toISOString().split('T')[0];
       reasons.push(
         `At your net daily saving rate of ₱${dailySurplus.toFixed(2)}/day, you can safely buy this on ${earliestSafeBuyDate} (${daysUntilSafeBuy} days).`
       );
+    } else if (deficit.gt(0)) {
+      reasons.push('A safe purchase date cannot be estimated until you have a positive savings rate.');
     }
   }
 
   // 7. Goal Delay Impact ($\Delta T_{goal}$)
-  const delayDays = Math.ceil(purchaseAmount.div(dailySurplus).toNumber());
+  const delayDays = dailySurplus.gt(0)
+    ? Math.ceil(purchaseAmount.div(dailySurplus).toNumber())
+    : 0;
   const goalImpacts = activeGoals.map((g) => {
     const origDate = g.targetDate ? g.targetDate.toISOString().split('T')[0] : null;
     let delayedTargetDate: string | null = null;

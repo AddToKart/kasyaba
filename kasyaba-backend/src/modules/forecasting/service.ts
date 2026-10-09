@@ -1,6 +1,8 @@
 import Decimal from 'decimal.js';
 import { prisma } from '../../config/database';
-import { startOfMonth, endOfMonth, daysInMonth, daysBetween } from '../../lib/dates';
+import { toDecimalOrZero } from '../../lib/decimal';
+import { daysInMonth, daysBetween } from '../../lib/dates';
+import { endOfZonedMonth, startOfZonedDay, startOfZonedMonth } from '../../lib/zoned-dates';
 import * as alertService from '../alerts/service';
 
 type Confidence = 'high' | 'medium' | 'low';
@@ -14,59 +16,100 @@ interface ForecastResult {
   projectedMonthEndIncome: string;
   projectedMonthEndExpenses: string;
   predictedMonthEndBalance: string;
-  healthScore: number | null;
-  healthGrade: string | null;
+  healthScore: number;
+  healthGrade: HealthGrade;
   confidence: Confidence;
   calculationDetails: Record<string, any>;
 }
 
 export async function computeSnapshot(userId: string): Promise<ForecastResult> {
   const now = new Date();
-  const monthStart = startOfMonth(now);
-  const monthEnd = endOfMonth(now);
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { timezone: true },
+  });
+  const timeZone = user?.timezone ?? 'UTC';
+  const monthStart = startOfZonedMonth(now, timeZone);
+  const monthEnd = endOfZonedMonth(now, timeZone);
   const elapsedDays = daysBetween(monthStart, now);
   const totalDays = daysInMonth(now);
   // --- 1. Actual data this month ---
-  const incomeAgg = await prisma.incomeEntry.aggregate({
-    where: { userId, receivedAt: { gte: monthStart, lte: monthEnd } },
-    _sum: { amount: true },
-  });
-  const expenseAgg = await prisma.expenseEntry.aggregate({
-    where: { userId, spentAt: { gte: monthStart, lte: monthEnd } },
-    _sum: { amount: true },
-  });
+  const [incomeAgg, expenseAgg, scheduledIncomeAgg, scheduledExpenseAgg] =
+    await Promise.all([
+      prisma.incomeEntry.aggregate({
+        where: { userId, status: { in: ['posted', 'planned'] }, receivedAt: { gte: monthStart, lte: now } },
+        _sum: { amount: true },
+      }),
+      prisma.expenseEntry.aggregate({
+        where: { userId, status: { in: ['posted', 'planned'] }, spentAt: { gte: monthStart, lte: now } },
+        _sum: { amount: true },
+      }),
+      prisma.incomeEntry.aggregate({
+        where: { userId, status: 'planned', receivedAt: { gt: now, lte: monthEnd } },
+        _sum: { amount: true },
+      }),
+      prisma.expenseEntry.aggregate({
+        where: { userId, status: 'planned', spentAt: { gt: now, lte: monthEnd } },
+        _sum: { amount: true },
+      }),
+    ]);
 
-  const incomeMTD = new Decimal(Number(incomeAgg._sum.amount) || 0);
-  const expensesMTD = new Decimal(Number(expenseAgg._sum.amount) || 0);
+  const incomeMTD = toDecimalOrZero(incomeAgg._sum.amount);
+  const expensesMTD = toDecimalOrZero(expenseAgg._sum.amount);
+  const scheduledIncome = toDecimalOrZero(scheduledIncomeAgg._sum.amount);
+  const scheduledExpenses = toDecimalOrZero(scheduledExpenseAgg._sum.amount);
 
   // --- 2. Actual balance (grouped to avoid N+1) ---
   const accounts = await prisma.financialAccount.findMany({
-    where: { userId, isArchived: false },
+    // Archiving hides an account from new entries, but must not erase its
+    // existing money from the user's net worth.
+    where: { userId },
     select: { id: true, openingBalance: true },
   });
 
   const accountIds = accounts.map(a => a.id);
 
-  const [incByAccount, expByAccount] = await Promise.all([
+  const [incByAccount, expByAccount, savingsByAccount, outgoingByAccount, incomingByAccount] = await Promise.all([
     prisma.incomeEntry.groupBy({
       by: ['accountId'],
-      where: { accountId: { in: accountIds } },
+      where: { userId, accountId: { in: accountIds }, status: { in: ['posted', 'planned'] }, receivedAt: { lte: now } },
       _sum: { amount: true },
     }),
     prisma.expenseEntry.groupBy({
       by: ['accountId'],
-      where: { accountId: { in: accountIds } },
+      where: { userId, accountId: { in: accountIds }, status: { in: ['posted', 'planned'] }, spentAt: { lte: now } },
+      _sum: { amount: true },
+    }),
+    prisma.savingsContribution.groupBy({
+      by: ['accountId'],
+      where: { userId, accountId: { in: accountIds }, contributedAt: { lte: now } },
+      _sum: { amount: true },
+    }),
+    prisma.accountTransfer.groupBy({
+      by: ['fromAccountId'],
+      where: { userId, fromAccountId: { in: accountIds }, status: { in: ['posted', 'planned'] }, transferredAt: { lte: now } },
+      _sum: { amount: true },
+    }),
+    prisma.accountTransfer.groupBy({
+      by: ['toAccountId'],
+      where: { userId, toAccountId: { in: accountIds }, status: { in: ['posted', 'planned'] }, transferredAt: { lte: now } },
       _sum: { amount: true },
     }),
   ]);
 
-  const incMap = new Map(incByAccount.map(r => [r.accountId, Number(r._sum.amount) || 0]));
-  const expMap = new Map(expByAccount.map(r => [r.accountId, Number(r._sum.amount) || 0]));
+  const incMap = new Map(incByAccount.map(r => [r.accountId, toDecimalOrZero(r._sum.amount)]));
+  const expMap = new Map(expByAccount.map(r => [r.accountId, toDecimalOrZero(r._sum.amount)]));
+  const savingsMap = new Map(savingsByAccount.map(r => [r.accountId, toDecimalOrZero(r._sum.amount)]));
+  const outgoingMap = new Map(outgoingByAccount.map(r => [r.fromAccountId, toDecimalOrZero(r._sum.amount)]));
+  const incomingMap = new Map(incomingByAccount.map(r => [r.toAccountId, toDecimalOrZero(r._sum.amount)]));
 
   const actualBalance = accounts.reduce((s, acc) => {
-    return s.plus(new Decimal(Number(acc.openingBalance)))
-      .plus(new Decimal(incMap.get(acc.id) || 0))
-      .minus(new Decimal(expMap.get(acc.id) || 0));
+    return s.plus(toDecimalOrZero(acc.openingBalance))
+      .plus(incMap.get(acc.id) ?? 0)
+      .minus(expMap.get(acc.id) ?? 0)
+      .minus(savingsMap.get(acc.id) ?? 0)
+      .minus(outgoingMap.get(acc.id) ?? 0)
+      .plus(incomingMap.get(acc.id) ?? 0);
   }, new Decimal(0));
 
   // Collect bill-linked expense IDs to avoid double-counting in projection
@@ -80,6 +123,7 @@ export async function computeSnapshot(userId: string): Promise<ForecastResult> {
   const incomeHistory = await prisma.incomeEntry.findMany({
     where: {
       userId,
+      status: { in: ['posted', 'planned'] },
       receivedAt: { gte: new Date(now.getFullYear(), now.getMonth() - 3, 1), lt: monthStart },
     },
     orderBy: { receivedAt: 'desc' },
@@ -89,7 +133,7 @@ export async function computeSnapshot(userId: string): Promise<ForecastResult> {
   const monthlyIncome: { [key: string]: Decimal } = {};
   for (const entry of incomeHistory) {
     const key = `${entry.receivedAt.getFullYear()}-${entry.receivedAt.getMonth()}`;
-    monthlyIncome[key] = (monthlyIncome[key] || new Decimal(0)).plus(new Decimal(Number(entry.amount)));
+    monthlyIncome[key] = (monthlyIncome[key] || new Decimal(0)).plus(toDecimalOrZero(entry.amount));
   }
 
   const monthlyValues = Object.values(monthlyIncome);
@@ -109,8 +153,9 @@ export async function computeSnapshot(userId: string): Promise<ForecastResult> {
 
   // --- 4. Expense projection (exclude bill-linked expenses to avoid double-count) ---
   const expenseHistoryWhere: any = {
-    userId,
-    spentAt: { gte: new Date(now.getFullYear(), now.getMonth() - 3, 1), lt: monthStart },
+      userId,
+      status: { in: ['posted', 'planned'] },
+      spentAt: { gte: new Date(now.getFullYear(), now.getMonth() - 3, 1), lt: monthStart },
   };
   if (billExpenseIds.length > 0) {
     expenseHistoryWhere.id = { notIn: billExpenseIds };
@@ -124,7 +169,7 @@ export async function computeSnapshot(userId: string): Promise<ForecastResult> {
   const monthlyExpenses: { [key: string]: Decimal } = {};
   for (const entry of expenseHistory) {
     const key = `${entry.spentAt.getFullYear()}-${entry.spentAt.getMonth()}`;
-    monthlyExpenses[key] = (monthlyExpenses[key] || new Decimal(0)).plus(new Decimal(Number(entry.amount)));
+    monthlyExpenses[key] = (monthlyExpenses[key] || new Decimal(0)).plus(toDecimalOrZero(entry.amount));
   }
 
   const expMonthlyValues = Object.values(monthlyExpenses);
@@ -150,22 +195,29 @@ export async function computeSnapshot(userId: string): Promise<ForecastResult> {
     where: {
       userId,
       status: { in: ['upcoming', 'overdue'] },
-      dueDate: { gte: now, lte: monthEnd },
+      dueDate: { lte: monthEnd },
     },
   });
   const billsTotal = unpaidBills.reduce(
-    (s, b) => s.plus(new Decimal(Number(b.amount))),
+    (s, b) => s.plus(toDecimalOrZero(b.amount)),
     new Decimal(0)
   );
 
   // --- 6. Projected month end ---
-  const projectedMonthEndIncomeVal = incomeMTD.gt(0)
-    ? incomeMTD.plus(projectedIncome.minus(incomeMTD))
-    : projectedIncome;
+  // Known future-dated entries are part of the month-end plan, but not today's
+  // actual balance or month-to-date totals. Use the larger of the statistical
+  // projection and the explicitly scheduled amount to avoid double-counting a
+  // scheduled entry that the projection already covers.
+  const knownMonthEndIncome = incomeMTD.plus(scheduledIncome);
+  const projectedMonthEndIncomeVal = projectedIncome.gt(knownMonthEndIncome)
+    ? projectedIncome
+    : knownMonthEndIncome;
 
-  const projectedMonthEndExpensesVal = expensesMTD.plus(
-    projectedVariableExpenses.minus(expensesMTD)
-  ).plus(billsTotal);
+  const knownMonthEndExpenses = expensesMTD.plus(scheduledExpenses);
+  const projectedVariableExpensesVal = projectedVariableExpenses.gt(knownMonthEndExpenses)
+    ? projectedVariableExpenses
+    : knownMonthEndExpenses;
+  const projectedMonthEndExpensesVal = projectedVariableExpensesVal.plus(billsTotal);
 
   const predictedMonthEndBalance = actualBalance
     .plus(projectedMonthEndIncomeVal.minus(incomeMTD))
@@ -173,10 +225,10 @@ export async function computeSnapshot(userId: string): Promise<ForecastResult> {
 
   // --- 7. Savings ---
   const savingsContribAgg = await prisma.savingsContribution.aggregate({
-    where: { userId, contributedAt: { gte: monthStart, lte: monthEnd } },
+    where: { userId, contributedAt: { gte: monthStart, lte: now } },
     _sum: { amount: true },
   });
-  const savingsMTD = new Decimal(Number(savingsContribAgg._sum.amount) || 0);
+  const savingsMTD = toDecimalOrZero(savingsContribAgg._sum.amount);
 
   // --- 8. Bill payment rate (last 3 months) ---
   const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
@@ -230,6 +282,8 @@ export async function computeSnapshot(userId: string): Promise<ForecastResult> {
       totalDays,
       monthlyIncomeHistory: monthlyValues.map((v) => v.toFixed(2)),
       monthlyExpenseHistory: expMonthlyValues.map((v) => v.toFixed(2)),
+      scheduledIncomeThisMonth: scheduledIncome.toFixed(2),
+      scheduledExpensesThisMonth: scheduledExpenses.toFixed(2),
       unpaidBillsCount: unpaidBills.length,
       unpaidBillsTotal: billsTotal.toFixed(2),
       savingsRate: incomeMTD.gt(0) ? savingsMTD.div(incomeMTD).times(100).toFixed(2) : '0.00',
@@ -239,10 +293,17 @@ export async function computeSnapshot(userId: string): Promise<ForecastResult> {
   return result;
 }
 
-export async function createDailySnapshot(userId: string): Promise<void> {
-  const result = await computeSnapshot(userId);
+export async function createDailySnapshot(
+  userId: string,
+  existingResult?: ForecastResult,
+): Promise<void> {
+  const result = existingResult ?? await computeSnapshot(userId);
   const now = new Date();
-  const snapshotDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { timezone: true },
+  });
+  const snapshotDate = startOfZonedDay(now, user?.timezone ?? 'UTC');
 
   await prisma.financialSnapshot.upsert({
     where: {
@@ -281,26 +342,56 @@ export async function createDailySnapshot(userId: string): Promise<void> {
 
 export async function generateAlertsFromSnapshot(userId: string): Promise<void> {
   const now = new Date();
-  const monthStart = startOfMonth(now);
-  const monthEnd = endOfMonth(now);
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) return;
+  const timeZone = user.timezone ?? 'UTC';
+  const monthStart = startOfZonedMonth(now, timeZone);
+  const monthEnd = endOfZonedMonth(now, timeZone);
   const snapshot = await prisma.financialSnapshot.findFirst({
     where: { userId, snapshotDate: { gte: monthStart } },
     orderBy: { snapshotDate: 'desc' },
   });
-  if (!snapshot) return;
+  if (!snapshot) {
+    await createDailySnapshot(userId);
+  }
 
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user) return;
+  const currentSnapshot = snapshot ?? await prisma.financialSnapshot.findFirst({
+    where: { userId, snapshotDate: { gte: monthStart } },
+    orderBy: { snapshotDate: 'desc' },
+  });
+  if (!currentSnapshot) return;
 
   // --- Budget Overrun Alert ---
   const budgets = await prisma.budget.findMany({
-    where: { userId, isActive: true, startsOn: { lte: monthEnd } },
+    where: {
+      userId,
+      isActive: true,
+      startsOn: { lte: monthEnd },
+      OR: [{ endsOn: null }, { endsOn: { gte: monthStart } }],
+    },
   });
+  const categoryExpenses = await prisma.expenseEntry.groupBy({
+    by: ['categoryId'],
+    where: {
+      userId,
+      status: { in: ['posted', 'planned'] },
+      spentAt: { gte: monthStart, lte: now },
+    },
+    _sum: { amount: true },
+  });
+  const categoryExpenseTotals = new Map(
+    categoryExpenses.map((entry) => [entry.categoryId, toDecimalOrZero(entry._sum.amount)]),
+  );
+  await alertService.resolveAlertsByKey(userId, `${userId}:budget_overrun:`);
 
   for (const budget of budgets) {
-    const budgetAmount = Number(budget.amount);
-    const projectedSpend = Number(snapshot.projectedMonthEndExpenses);
-    const percentUsed = budgetAmount > 0 ? (projectedSpend / budgetAmount) * 100 : 0;
+    const budgetAmount = toDecimalOrZero(budget.amount);
+    const projectedSpend = budget.categoryId
+      ? (categoryExpenseTotals.get(budget.categoryId) ?? new Decimal(0))
+      : toDecimalOrZero(currentSnapshot.projectedMonthEndExpenses);
+    const percentUsed = budgetAmount.gt(0)
+      ? projectedSpend.div(budgetAmount).times(100).toNumber()
+      : 0;
 
     if (percentUsed <= 90) continue; // No alert needed
     const severity = percentUsed > 115 ? 'critical' : (percentUsed > 100 ? 'warning' : 'info');
@@ -309,27 +400,31 @@ export async function generateAlertsFromSnapshot(userId: string): Promise<void> 
 
     await alertService.createAlert({
       userId,
-      snapshotId: snapshot.id,
+      snapshotId: currentSnapshot.id,
       type: 'budget_overrun',
       severity,
       title: severity === 'critical' ? 'Budget significantly overrun' : 'Budget nearly exceeded',
       message: `Your projected month-end spending (₱${projectedSpend.toFixed(2)}) is at ${percentUsed.toFixed(1)}% of your budget (₱${budgetAmount.toFixed(2)}).`,
-      reasonData: { budgetAmount, projectedSpend, percentUsed: Math.round(percentUsed * 10) / 10 },
+      reasonData: {
+        budgetAmount: budgetAmount.toNumber(),
+        projectedSpend: projectedSpend.toNumber(),
+        percentUsed: Math.round(percentUsed * 10) / 10,
+      },
       effectiveDate: now,
       deduplicationKey: dedupKey,
     });
   }
 
   // --- Low Balance Alert ---
-  const minThreshold = Number(user.minimumBalanceThreshold);
-  const projectedBalance = Number(snapshot.predictedMonthEndBalance);
+  const minThreshold = toDecimalOrZero(user.minimumBalanceThreshold);
+  const projectedBalance = toDecimalOrZero(currentSnapshot.predictedMonthEndBalance);
 
-  if (projectedBalance < minThreshold) {
+  if (projectedBalance.lt(minThreshold)) {
     const unpaidBills = await prisma.billInstance.findMany({
       where: {
         userId,
         status: { in: ['upcoming', 'overdue'] },
-        dueDate: { gte: now },
+        dueDate: { lte: new Date(now.getTime() + 30 * 86400000) },
       },
       orderBy: { dueDate: 'asc' },
       take: 5,
@@ -337,19 +432,23 @@ export async function generateAlertsFromSnapshot(userId: string): Promise<void> 
 
     const billsInfo = unpaidBills.map((b) => ({
       name: b.name,
-      amount: Number(b.amount).toFixed(2),
+      amount: toDecimalOrZero(b.amount).toFixed(2),
       dueDate: b.dueDate.toISOString().split('T')[0],
     }));
 
     const key = `${userId}:low_balance:${now.getFullYear()}-${now.getMonth()}`;
     await alertService.createAlert({
       userId,
-      snapshotId: snapshot.id,
+      snapshotId: currentSnapshot.id,
       type: 'low_balance',
-      severity: projectedBalance < 0 ? 'critical' : 'warning',
-      title: projectedBalance < 0 ? 'Possible negative balance' : 'Low balance warning',
+      severity: projectedBalance.lt(0) ? 'critical' : 'warning',
+      title: projectedBalance.lt(0) ? 'Possible negative balance' : 'Low balance warning',
       message: `Your projected month-end balance is ₱${projectedBalance.toFixed(2)}. This is below your ₱${minThreshold.toFixed(2)} threshold.`,
-      reasonData: { projectedBalance, minThreshold, upcomingBills: billsInfo },
+      reasonData: {
+        projectedBalance: projectedBalance.toNumber(),
+        minThreshold: minThreshold.toNumber(),
+        upcomingBills: billsInfo,
+      },
       effectiveDate: now,
       deduplicationKey: key,
     });
@@ -359,67 +458,89 @@ export async function generateAlertsFromSnapshot(userId: string): Promise<void> 
   }
 
   // --- Month-end forecast alert ---
-  if (projectedBalance < 0) {
+  if (projectedBalance.lt(0)) {
     const key = `${userId}:month_end:${now.getFullYear()}-${now.getMonth()}`;
     await alertService.createAlert({
       userId,
-      snapshotId: snapshot.id,
+      snapshotId: currentSnapshot.id,
       type: 'month_end',
       severity: 'warning',
       title: 'Month-end deficit predicted',
       message: `Your predicted month-end balance is ₱${projectedBalance.toFixed(2)}. Review your spending to avoid a deficit.`,
-      reasonData: { predictedMonthEndBalance: projectedBalance },
+      reasonData: { predictedMonthEndBalance: projectedBalance.toNumber() },
       effectiveDate: now,
       deduplicationKey: key,
     });
+  } else {
+    await alertService.resolveAlertsByKey(userId, `${userId}:month_end:`);
   }
 
-  // --- Savings Goal Alert ---
+  // --- Savings Goal Alerts ---
+  // One grouped aggregation for all goals instead of two queries per goal.
   const goals = await prisma.savingsGoal.findMany({
-    where: { userId, status: 'active' },
+    where: { userId, status: 'active', targetDate: { not: null } },
   });
+  await alertService.resolveAlertsByKey(userId, `${userId}:savings_goal:`);
 
-  for (const goal of goals) {
-    if (!goal.targetDate) continue;
-
-    const agg = await prisma.savingsContribution.aggregate({
-      where: { goalId: goal.id },
-      _sum: { amount: true },
-    });
-    const totalContributed = Number(agg._sum.amount) || 0;
-    const targetAmount = Number(goal.targetAmount);
-    const remaining = targetAmount - totalContributed;
-
-    if (remaining <= 0) continue;
-
-    const monthsUntilTarget = daysBetween(now, goal.targetDate) / 30;
-    if (monthsUntilTarget <= 0) continue;
-
-    // Check 3-month average contribution pace
-    const threeMonthsAgo = new Date();
+  if (goals.length > 0) {
+    const goalIds = goals.map((goal) => goal.id);
+    const threeMonthsAgo = new Date(now);
     threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-    const recentAgg = await prisma.savingsContribution.aggregate({
-      where: { goalId: goal.id, contributedAt: { gte: threeMonthsAgo } },
-      _sum: { amount: true },
-    });
-    const averageMonthly = (Number(recentAgg._sum.amount) || 0) / 3;
 
-    if (averageMonthly > 0) {
-      const neededMonthly = remaining / monthsUntilTarget;
-      if (averageMonthly < neededMonthly) {
+    const [totalsByGoal, recentByGoal] = await Promise.all([
+      prisma.savingsContribution.groupBy({
+        by: ['goalId'],
+        where: { userId, goalId: { in: goalIds } },
+        _sum: { amount: true },
+      }),
+      prisma.savingsContribution.groupBy({
+        by: ['goalId'],
+        where: {
+          userId,
+          goalId: { in: goalIds },
+          contributedAt: { gte: threeMonthsAgo, lte: now },
+        },
+        _sum: { amount: true },
+      }),
+    ]);
+    const totalsMap = new Map(
+      totalsByGoal.map((row) => [row.goalId, toDecimalOrZero(row._sum.amount)]),
+    );
+    const recentMap = new Map(
+      recentByGoal.map((row) => [row.goalId, toDecimalOrZero(row._sum.amount)]),
+    );
+
+    for (const goal of goals) {
+      if (!goal.targetDate) continue;
+
+      const totalContributed = totalsMap.get(goal.id) ?? new Decimal(0);
+      const targetAmount = toDecimalOrZero(goal.targetAmount);
+      const remaining = targetAmount.minus(totalContributed);
+
+      if (remaining.lte(0)) continue;
+
+      const monthsUntilTarget = daysBetween(now, goal.targetDate) / 30;
+      if (monthsUntilTarget <= 0) continue;
+
+      const averageMonthly = (recentMap.get(goal.id) ?? new Decimal(0)).div(3);
+      const neededMonthly = remaining.div(monthsUntilTarget);
+      if (averageMonthly.lt(neededMonthly)) {
         const key = `${userId}:savings_goal:${goal.id}`;
+        const severity = averageMonthly.lte(0) || neededMonthly.div(averageMonthly).gt(2)
+          ? 'critical'
+          : 'warning';
         await alertService.createAlert({
           userId,
-          snapshotId: snapshot.id,
+          snapshotId: currentSnapshot.id,
           type: 'savings_goal',
-          severity: (neededMonthly / averageMonthly) > 2 ? 'critical' : 'warning',
+          severity,
           title: 'Savings goal may be delayed',
           message: `Your goal "${goal.name}" needs ₱${neededMonthly.toFixed(2)}/month to stay on track, but you're contributing ₱${averageMonthly.toFixed(2)}/month on average.`,
           reasonData: {
             goalName: goal.name,
-            targetAmount,
-            totalContributed,
-            remaining,
+            targetAmount: targetAmount.toNumber(),
+            totalContributed: totalContributed.toNumber(),
+            remaining: remaining.toNumber(),
             neededMonthly: neededMonthly.toFixed(2),
             averageMonthly: averageMonthly.toFixed(2),
             monthsUntilTarget,
@@ -439,21 +560,23 @@ export async function generateAlertsFromSnapshot(userId: string): Promise<void> 
       dueDate: { gte: now, lte: new Date(now.getTime() + 7 * 86400000) },
     },
   });
+  await alertService.resolveAlertsByKey(userId, `${userId}:bill_due:`);
 
   for (const bill of upcomingBills) {
     const daysUntilDue = daysBetween(now, bill.dueDate);
     const key = `${userId}:bill_due:${bill.id}`;
+    const billAmount = toDecimalOrZero(bill.amount).toFixed(2);
 
     await alertService.createAlert({
       userId,
-      snapshotId: snapshot.id,
+      snapshotId: currentSnapshot.id,
       type: 'bill_due',
       severity: daysUntilDue <= 1 ? 'warning' : 'info',
       title: `Bill due ${daysUntilDue === 0 ? 'today' : `in ${daysUntilDue} days`}`,
-      message: `"${bill.name}" of ₱${Number(bill.amount).toFixed(2)} is due on ${bill.dueDate.toISOString().split('T')[0]}.`,
+      message: `"${bill.name}" of ₱${billAmount} is due on ${bill.dueDate.toISOString().split('T')[0]}.`,
       reasonData: {
         billName: bill.name,
-        amount: Number(bill.amount).toFixed(2),
+        amount: billAmount,
         dueDate: bill.dueDate.toISOString().split('T')[0],
         daysUntilDue,
       },
@@ -463,40 +586,44 @@ export async function generateAlertsFromSnapshot(userId: string): Promise<void> 
   }
 
   // --- High Expense Spike / Deficit Alert ---
-  const expensesMTD = Number(snapshot.expensesMonthToDate);
-  const incomeMTD = Number(snapshot.incomeMonthToDate);
+  const expensesMTD = toDecimalOrZero(currentSnapshot.expensesMonthToDate);
+  const incomeMTD = toDecimalOrZero(currentSnapshot.incomeMonthToDate);
 
-  if (expensesMTD > 0 && (incomeMTD === 0 || expensesMTD > incomeMTD * 0.8)) {
+  if (expensesMTD.gt(0) && (incomeMTD.lte(0) || expensesMTD.gt(incomeMTD.times(0.8)))) {
     const key = `${userId}:expense_spike:${now.getFullYear()}-${now.getMonth()}`;
-    const severity = expensesMTD > incomeMTD ? 'critical' : 'warning';
+    const severity = expensesMTD.gt(incomeMTD) ? 'critical' : 'warning';
     await alertService.createAlert({
       userId,
-      snapshotId: snapshot.id,
+      snapshotId: currentSnapshot.id,
       type: 'budget_overrun',
       severity,
       title: severity === 'critical' ? 'High expense spike warning' : 'Elevated spending rate',
-      message: `Your month-to-date expenses (₱${expensesMTD.toFixed(2)}) reach ${incomeMTD > 0 ? ((expensesMTD / incomeMTD) * 100).toFixed(0) : '100'}% of your recorded income (₱${incomeMTD.toFixed(2)}).`,
-      reasonData: { expensesMTD, incomeMTD },
+      message: `Your month-to-date expenses (₱${expensesMTD.toFixed(2)}) reach ${incomeMTD.gt(0) ? expensesMTD.div(incomeMTD).times(100).toFixed(0) : '100'}% of your recorded income (₱${incomeMTD.toFixed(2)}).`,
+      reasonData: { expensesMTD: expensesMTD.toNumber(), incomeMTD: incomeMTD.toNumber() },
       effectiveDate: now,
       deduplicationKey: key,
     });
+  } else {
+    await alertService.resolveAlertsByKey(userId, `${userId}:expense_spike:`);
   }
 
   // --- Health Score Alert ---
-  const healthGrade = snapshot.healthGrade;
+  const healthGrade = currentSnapshot.healthGrade;
   if (healthGrade === 'Needs Attention' || healthGrade === 'Fair') {
     const key = `${userId}:health_score:${now.getFullYear()}-${now.getMonth()}`;
     await alertService.createAlert({
       userId,
-      snapshotId: snapshot.id,
+      snapshotId: currentSnapshot.id,
       type: 'month_end',
       severity: healthGrade === 'Needs Attention' ? 'critical' : 'warning',
       title: `Financial Health: ${healthGrade}`,
       message: `Your health score needs attention due to high spending relative to income or balance threshold. Check recovery steps below.`,
-      reasonData: { healthGrade, healthScore: snapshot.healthScore },
+      reasonData: { healthGrade, healthScore: currentSnapshot.healthScore },
       effectiveDate: now,
       deduplicationKey: key,
     });
+  } else {
+    await alertService.resolveAlertsByKey(userId, `${userId}:health_score:`);
   }
 }
 
@@ -532,34 +659,39 @@ export async function evaluateFinancialRecoveryAnalysis(userId: string): Promise
   const activeBills = await prisma.billInstance.findMany({
     where: {
       userId,
-      status: 'upcoming',
-      dueDate: { gte: now, lte: new Date(now.getTime() + 30 * 86400000) },
+      status: { in: ['upcoming', 'overdue'] },
+      dueDate: { lte: new Date(now.getTime() + 30 * 86400000) },
     },
   });
 
-  const totalBills = activeBills.reduce((sum, b) => sum + Number(b.amount), 0);
-  const minThreshold = user?.minimumBalanceThreshold ? Number(user.minimumBalanceThreshold) : 0;
-  const actualBalance = Number(snapshot.actualBalance);
-  const expensesMTD = Number(snapshot.expensesMonthToDate);
-  const incomeMTD = Number(snapshot.incomeMonthToDate);
-  const projectedMonthEnd = Number(snapshot.predictedMonthEndBalance);
+  const totalBills = activeBills.reduce(
+    (sum, b) => sum.plus(toDecimalOrZero(b.amount)),
+    new Decimal(0),
+  );
+  const minThreshold = toDecimalOrZero(user?.minimumBalanceThreshold);
+  const actualBalance = toDecimalOrZero(snapshot.actualBalance);
+  const expensesMTD = toDecimalOrZero(snapshot.expensesMonthToDate);
+  const incomeMTD = toDecimalOrZero(snapshot.incomeMonthToDate);
+  const projectedMonthEnd = toDecimalOrZero(snapshot.predictedMonthEndBalance);
 
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   const daysRemaining = Math.max(1, daysInMonth - now.getDate());
 
-  const safeLiquidCash = actualBalance - totalBills - minThreshold;
-  const rawDailyLimit = safeLiquidCash > 0 ? safeLiquidCash / daysRemaining : 0;
-  const recommendedDailySpendLimit = Math.max(0, Math.floor(rawDailyLimit));
+  const safeLiquidCash = actualBalance.minus(totalBills).minus(minThreshold);
+  const rawDailyLimit = safeLiquidCash.gt(0)
+    ? safeLiquidCash.div(daysRemaining)
+    : new Decimal(0);
+  const recommendedDailySpendLimit = Decimal.max(0, rawDailyLimit.floor()).toNumber();
 
   const rootCauses: { title: string; description: string; severity: 'critical' | 'warning' | 'info' }[] = [];
 
-  if (expensesMTD > incomeMTD && incomeMTD > 0) {
+  if (expensesMTD.gt(incomeMTD) && incomeMTD.gt(0)) {
     rootCauses.push({
       title: 'Expense Spike Exceeds Income',
       description: `Your MTD expenses (₱${expensesMTD.toFixed(2)}) have exceeded your MTD income (₱${incomeMTD.toFixed(2)}).`,
       severity: 'critical',
     });
-  } else if (expensesMTD > 0 && incomeMTD === 0) {
+  } else if (expensesMTD.gt(0) && incomeMTD.lte(0)) {
     rootCauses.push({
       title: 'Expenses Recorded Without Salary/Income',
       description: `Recorded ₱${expensesMTD.toFixed(2)} in expenses without a salary or income baseline configured.`,
@@ -567,15 +699,15 @@ export async function evaluateFinancialRecoveryAnalysis(userId: string): Promise
     });
   }
 
-  if (projectedMonthEnd < minThreshold) {
+  if (projectedMonthEnd.lt(minThreshold)) {
     rootCauses.push({
       title: 'Projected Month-End Below Safety Buffer',
       description: `Projected month-end balance (₱${projectedMonthEnd.toFixed(2)}) falls below your ₱${minThreshold.toFixed(2)} safety buffer.`,
-      severity: projectedMonthEnd < 0 ? 'critical' : 'warning',
+      severity: projectedMonthEnd.lt(0) ? 'critical' : 'warning',
     });
   }
 
-  if (totalBills > 0 && actualBalance < totalBills) {
+  if (totalBills.gt(0) && actualBalance.lt(totalBills)) {
     rootCauses.push({
       title: 'Upcoming Bills Exceed Current Liquid Balance',
       description: `Upcoming 30-day bills total ₱${totalBills.toFixed(2)}, which exceeds liquid balance (₱${actualBalance.toFixed(2)}).`,
@@ -592,13 +724,16 @@ export async function evaluateFinancialRecoveryAnalysis(userId: string): Promise
   }
 
   let estimatedRecoveryDate: string | null = null;
-  const dailySurplus = Number(snapshot.incomeMonthToDate) > 0
-    ? (Number(snapshot.incomeMonthToDate) - Number(snapshot.expensesMonthToDate)) / 30
-    : 150;
+  const observedMonthlyCashflow = toDecimalOrZero(snapshot.incomeMonthToDate).minus(
+    toDecimalOrZero(snapshot.expensesMonthToDate),
+  );
+  const dailySurplus = observedMonthlyCashflow.gt(0)
+    ? observedMonthlyCashflow.div(30)
+    : new Decimal(0);
 
-  if (safeLiquidCash < 0 && dailySurplus > 0) {
-    const deficit = Math.abs(safeLiquidCash);
-    const daysNeeded = Math.ceil(deficit / dailySurplus);
+  if (safeLiquidCash.lt(0) && dailySurplus.gt(0)) {
+    const deficit = safeLiquidCash.abs();
+    const daysNeeded = Math.ceil(deficit.div(dailySurplus).toNumber());
     const recoverDate = new Date(now.getTime() + daysNeeded * 86400000);
     estimatedRecoveryDate = recoverDate.toISOString().split('T')[0];
   }
@@ -638,7 +773,7 @@ export async function evaluateFinancialRecoveryAnalysis(userId: string): Promise
     rootCauses,
     recommendedDailySpendLimit,
     daysRemainingInMonth: daysRemaining,
-    safeLiquidCash,
+    safeLiquidCash: safeLiquidCash.toNumber(),
     estimatedRecoveryDate,
     actionSteps,
   };
@@ -674,8 +809,8 @@ export function computeHealthScore(input: HealthInput): HealthOutput {
   })();
 
   // --- Budget score (30%) ---
-  const budgetTotal = Number(input.projectedMonthEndExpenses);
-  const incomeTotal = Number(incomeMTD);
+  const budgetTotal = input.projectedMonthEndExpenses.toNumber();
+  const incomeTotal = incomeMTD.toNumber();
   const budgetRatio = incomeTotal > 0 ? budgetTotal / incomeTotal : 1;
 
   const budgetScore = (() => {
@@ -699,7 +834,7 @@ export function computeHealthScore(input: HealthInput): HealthOutput {
     billScore = Math.max(0, rate / 0.50 * 30);
   }
   // --- Balance resilience score (20%) ---
-  const projectedBalance = Number(input.predictedMonthEndBalance);
+  const projectedBalance = input.predictedMonthEndBalance.toNumber();
   const resilienceScore = projectedBalance > 0
     ? Math.min(100, 50 + (projectedBalance / (incomeTotal || 1)) * 100)
     : Math.max(0, 50 + (projectedBalance / (incomeTotal || 1)) * 50);

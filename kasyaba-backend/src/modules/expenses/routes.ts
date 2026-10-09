@@ -21,6 +21,16 @@ export function registerRoutes(app: import('express').Router) {
     } catch (err) { next(err); }
   });
 
+  // Keep this static path before /:id, otherwise Express treats "summary"
+  // as an expense id and the summary endpoint is unreachable.
+  app.get('/api/v1/expenses/summary/by-category', authenticate, validate(categorySummarySchema, 'query'), async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { from, to } = req.query as any;
+      const summary = await expenseService.getCategorySummary(req.userId!, from, to);
+      sendSuccess(res, summary);
+    } catch (err) { next(err); }
+  });
+
   app.get('/api/v1/expenses/:id', authenticate, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const entry = await expenseService.getExpense(req.userId!, req.params.id);
@@ -42,11 +52,4 @@ export function registerRoutes(app: import('express').Router) {
     } catch (err) { next(err); }
   });
 
-  app.get('/api/v1/expenses/summary/by-category', authenticate, validate(categorySummarySchema, 'query'), async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { from, to } = req.query as any;
-      const summary = await expenseService.getCategorySummary(req.userId!, from, to);
-      sendSuccess(res, summary);
-    } catch (err) { next(err); }
-  });
 }

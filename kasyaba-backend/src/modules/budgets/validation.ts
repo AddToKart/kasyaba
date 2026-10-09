@@ -1,24 +1,46 @@
 import { z } from 'zod';
+import { dateOnlySchema, isOrderedRange } from '../../lib/date-schemas';
 
-export const createBudgetSchema = z.object({
-  categoryId: z.string().uuid().nullable().optional(),
-  period: z.enum(['monthly']).default('monthly'),
-  amount: z.string().regex(/^\d+(\.\d{1,2})?$/, 'Invalid amount format'),
-  startsOn: z.string().regex(/^\d{4}-\d{2}-\d{2}/),
-  endsOn: z.string().regex(/^\d{4}-\d{2}-\d{2}/).nullable().optional(),
-  isActive: z.boolean().default(true),
-});
+const amountSchema = z
+  .string()
+  .regex(/^\d{1,12}(\.\d{1,2})?$/, 'Invalid amount format')
+  .refine((value) => Number(value) > 0, 'Amount must be greater than zero');
 
-export const updateBudgetSchema = z.object({
-  categoryId: z.string().uuid().nullable().optional(),
-  amount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
-  startsOn: z.string().regex(/^\d{4}-\d{2}-\d{2}/).optional(),
-  endsOn: z.string().regex(/^\d{4}-\d{2}-\d{2}/).nullable().optional(),
-  isActive: z.boolean().optional(),
-});
+export const createBudgetSchema = z
+  .object({
+    categoryId: z.string().uuid().nullable().optional(),
+    period: z.enum(['monthly']).default('monthly'),
+    amount: amountSchema,
+    startsOn: dateOnlySchema,
+    endsOn: dateOnlySchema.nullable().optional(),
+    isActive: z.boolean().default(true),
+  })
+  .refine((value) => isOrderedRange(value.startsOn, value.endsOn), {
+    path: ['endsOn'],
+    message: 'The end date must be on or after the start date',
+  });
+
+export const updateBudgetSchema = z
+  .object({
+    categoryId: z.string().uuid().nullable().optional(),
+    amount: amountSchema.optional(),
+    startsOn: dateOnlySchema.optional(),
+    endsOn: dateOnlySchema.nullable().optional(),
+    isActive: z.boolean().optional(),
+  })
+  .refine(
+    (value) =>
+      value.startsOn === undefined ||
+      value.endsOn === undefined ||
+      isOrderedRange(value.startsOn, value.endsOn),
+    {
+      path: ['endsOn'],
+      message: 'The end date must be on or after the start date',
+    },
+  );
 
 export const budgetStatusSchema = z.object({
-  month: z.string().regex(/^\d{4}-\d{2}$/, 'Use YYYY-MM format'),
+  month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Use YYYY-MM format'),
 });
 
 export type CreateBudgetInput = z.infer<typeof createBudgetSchema>;

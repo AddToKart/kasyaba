@@ -1,8 +1,7 @@
-# syntax=docker/dockerfile:1
 FROM node:20-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json* ./
-RUN npm ci --only=production
+RUN npm ci --omit=dev
 
 FROM node:20-alpine AS build
 WORKDIR /app
@@ -14,6 +13,11 @@ RUN npm ci
 RUN npm run build
 RUN npx prisma generate
 
+# One-shot migration runner. Reuses the build stage so the Prisma CLI and the
+# schema are pinned to the image instead of being downloaded at deploy time.
+FROM build AS migrate
+CMD ["npx", "prisma", "migrate", "deploy"]
+
 FROM node:20-alpine AS runtime
 WORKDIR /app
 RUN addgroup --system --gid 1001 nodejs
@@ -23,6 +27,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
 COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=build /app/node_modules/@prisma ./node_modules/@prisma
 COPY package.json ./
 
 USER appuser
