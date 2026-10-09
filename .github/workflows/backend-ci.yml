@@ -2,14 +2,22 @@ name: Backend CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: ['**']
     paths:
       - 'kasyaba-backend/**'
       - 'docker-compose.yml'
+      - '.github/workflows/backend-ci.yml'
   pull_request:
     branches: [main]
     paths:
       - 'kasyaba-backend/**'
+      - 'docker-compose.yml'
+      - '.github/workflows/backend-ci.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: backend-ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-and-test:

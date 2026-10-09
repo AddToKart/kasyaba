@@ -94,9 +94,18 @@ docker compose exec api npx prisma generate
 
 ```bash
 # Required environment variables (export them or create a root .env file):
-#   DATABASE_URL, DIRECT_URL, JWT_ACCESS_SECRET, CORS_ALLOWED_ORIGINS
-# Optional: TRUST_PROXY (default 1), SUPPORT_EMAIL, GOOGLE_WEB_CLIENT_ID,
-#           ACCESS_TOKEN_TTL_MINUTES, REFRESH_TOKEN_TTL_DAYS, LOG_LEVEL.
+#   DATABASE_URL, DIRECT_URL, JWT_ACCESS_SECRET, CORS_ALLOWED_ORIGINS.
+#   TRUST_PROXY is also required in production: 1 behind a reverse proxy,
+#   false only when the API is directly exposed.
+# Optional: SUPPORT_EMAIL, GOOGLE_WEB_CLIENT_ID, ACCESS_TOKEN_TTL_MINUTES,
+#           REFRESH_TOKEN_TTL_DAYS, LOG_LEVEL.
+#
+# Apply migrations before the API starts (the one-shot `migrate` service does
+# this automatically). On a PaaS run `npx prisma migrate deploy` in the
+# release/pre-deploy phase.
+#
+# Run the worker as exactly one replica: it owns cron scheduling and job-run
+# reconciliation, and a second instance can corrupt job state.
 #
 # The api and worker services wait for the one-shot `migrate` service to apply
 # Prisma migrations before starting.

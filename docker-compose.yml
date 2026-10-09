@@ -45,6 +45,10 @@ services:
 
   worker:
     image: kasyaba-backend:latest
+    # Exactly one replica. The worker assumes single-instance ownership of cron
+    # jobs and job-run reconciliation; scaling it up can corrupt job state.
+    deploy:
+      replicas: 1
     environment:
       NODE_ENV: production
       DATABASE_URL: ${DATABASE_URL:-}
@@ -57,4 +61,7 @@ services:
       migrate:
         condition: service_completed_successfully
     restart: unless-stopped
+    # The worker serves no HTTP, so the image's API healthcheck does not apply.
+    healthcheck:
+      disable: true
     command: node dist/worker.js

@@ -18,8 +18,9 @@ const envSchema = z.object({
   GOOGLE_WEB_CLIENT_ID: z.string().optional(),
   CORS_ALLOWED_ORIGINS: z.string().default('*'),
   // Number of trusted reverse-proxy hops ("1" behind a single proxy, "false"
-  // when the API is exposed directly, or an IP/subnet list).
-  TRUST_PROXY: z.string().default('false'),
+  // when the API is exposed directly, or an IP/subnet list). Left unset by
+  // default so the API can require an explicit value in production.
+  TRUST_PROXY: z.string().optional(),
   SUPPORT_EMAIL: z.string().email().default('support@kasyaba.app'),
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
   WORKER_TIMEZONE: z.string().default('Asia/Manila'),

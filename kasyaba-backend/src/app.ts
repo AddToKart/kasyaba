@@ -15,17 +15,20 @@ export { logger };
 
 export function createApp() {
   const app = express();
-  const trustProxy = parseTrustProxy(env.TRUST_PROXY);
 
   // Required for correct client IPs behind reverse proxies (Coolify/Dokploy,
   // nginx, PaaS ingress). Without it, express-rate-limit buckets every user
-  // under the proxy address.
-  app.set('trust proxy', trustProxy);
-  if (env.NODE_ENV === 'production' && trustProxy === false) {
-    logger.warn(
-      'TRUST_PROXY is disabled. If the API runs behind a reverse proxy, set TRUST_PROXY to the number of trusted hops (usually 1).',
+  // under the proxy address, so in production the value must be explicit:
+  // "1" behind a single proxy, "false" only when the API is directly exposed.
+  const trustProxyValue = env.TRUST_PROXY?.trim();
+  if (env.NODE_ENV === 'production' && !trustProxyValue) {
+    throw new Error(
+      'TRUST_PROXY must be set explicitly in production ("1" behind a reverse proxy, "false" when directly exposed).',
     );
   }
+  const trustProxy = parseTrustProxy(trustProxyValue);
+
+  app.set('trust proxy', trustProxy);
 
   // Security
   app.use(helmet());
@@ -117,7 +120,8 @@ export function createApp() {
   return app;
 }
 
-function parseTrustProxy(value: string): boolean | number | string {
+function parseTrustProxy(value: string | undefined): boolean | number | string {
+  if (value === undefined) return false;
   const normalized = value.trim().toLowerCase();
   if (normalized === '' || normalized === 'false' || normalized === '0') {
     return false;
