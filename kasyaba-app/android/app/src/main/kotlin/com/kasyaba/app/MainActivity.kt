@@ -1,4 +1,4 @@
-package com.example.kasyaba
+package com.kasyaba.app
 
 import io.flutter.embedding.android.FlutterActivity
 

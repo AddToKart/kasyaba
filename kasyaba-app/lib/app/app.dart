@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'router/router.dart';
 import '../core/connectivity/connectivity_service.dart';
+import '../core/database/offline_sync_service.dart';
+import '../core/notifications/bill_reminder_sync.dart';
+import '../core/providers/api_providers.dart';
 import 'theme/app_theme.dart';
 
 class KasyabaApp extends ConsumerWidget {
@@ -11,13 +14,18 @@ class KasyabaApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
     final isOnline = ref.watch(isOnlineProvider);
+    ref.watch(offlineSyncProvider);
+    ref.watch(billReminderSyncProvider);
+    ref.watch(accountBootstrapProvider);
 
     return MaterialApp.router(
       title: 'Kasyaba',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme().light,
+      // The product is designed as an obsidian dark experience; pin the theme
+      // so light-mode devices do not render a half-configured light variant.
+      theme: AppTheme().dark,
       darkTheme: AppTheme().dark,
-      themeMode: ThemeMode.system,
+      themeMode: ThemeMode.dark,
       routerConfig: router,
       builder: (context, child) {
         return Stack(
@@ -33,7 +41,7 @@ class KasyabaApp extends ConsumerWidget {
                   color: Colors.transparent,
                   child: Container(
                     padding: EdgeInsets.only(
-                      top: MediaQuery.of(context).padding.top + 4,
+                      top: MediaQuery.paddingOf(context).top + 4,
                       bottom: 8,
                       left: 16,
                       right: 16,
@@ -45,7 +53,11 @@ class KasyabaApp extends ConsumerWidget {
                     ),
                     child: const Row(
                       children: [
-                        Icon(Icons.wifi_off_rounded, color: Colors.white, size: 18),
+                        Icon(
+                          Icons.wifi_off_rounded,
+                          color: Colors.white,
+                          size: 18,
+                        ),
                         SizedBox(width: 8),
                         Expanded(
                           child: Text(

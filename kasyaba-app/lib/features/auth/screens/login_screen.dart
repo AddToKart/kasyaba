@@ -16,13 +16,10 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen>
     with TickerProviderStateMixin {
   final formGroup = FormGroup({
-    'email': FormControl<String>(validators: [
-      Validators.required,
-      Validators.email,
-    ]),
-    'password': FormControl<String>(validators: [
-      Validators.required,
-    ]),
+    'email': FormControl<String>(
+      validators: [Validators.required, Validators.email],
+    ),
+    'password': FormControl<String>(validators: [Validators.required]),
   });
   bool _obscurePassword = true;
 
@@ -39,20 +36,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       vsync: this,
       duration: const Duration(seconds: 16),
     )..repeat();
-    _bgRotate =
-        Tween<double>(begin: 0, end: 6.28).animate(_bgController);
+    _bgRotate = Tween<double>(begin: 0, end: 6.28).animate(_bgController);
     _entryController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 900),
     );
-    _fadeIn =
-        CurvedAnimation(parent: _entryController, curve: Curves.easeOut);
-    _slideUp = Tween<Offset>(
-      begin: const Offset(0, 0.06),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(parent: _entryController, curve: Curves.easeOutCubic),
-    );
+    _fadeIn = CurvedAnimation(parent: _entryController, curve: Curves.easeOut);
+    _slideUp = Tween<Offset>(begin: const Offset(0, 0.06), end: Offset.zero)
+        .animate(
+          CurvedAnimation(parent: _entryController, curve: Curves.easeOutCubic),
+        );
     _entryController.forward();
   }
 
@@ -65,10 +58,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   }
 
   Future<void> _handleLogin() async {
+    if (ref.read(authProvider).isLoading) return;
     formGroup.markAllAsTouched();
     if (!formGroup.valid) return;
     try {
-      await ref.read(authProvider.notifier).login(
+      await ref
+          .read(authProvider.notifier)
+          .login(
             formGroup.control('email').value as String,
             formGroup.control('password').value as String,
           );
@@ -99,7 +95,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
               child: SingleChildScrollView(
                 physics: const ClampingScrollPhysics(),
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 28, vertical: 24),
+                  horizontal: 28,
+                  vertical: 24,
+                ),
                 child: FadeTransition(
                   opacity: _fadeIn,
                   child: SlideTransition(
@@ -120,12 +118,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                   textAlign: TextAlign.center,
                                   style: theme.textTheme.headlineMedium
                                       ?.copyWith(
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: -0.8,
-                                    color: isDark
-                                        ? Colors.white
-                                        : AppColors.textLight,
-                                  ),
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: -0.8,
+                                        color: isDark
+                                            ? Colors.white
+                                            : AppColors.textLight,
+                                      ),
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
@@ -162,7 +160,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                   keyboardType: TextInputType.emailAddress,
                                   textInputAction: TextInputAction.next,
                                   style: TextStyle(
-                                    color: isDark ? AppColors.textDark : AppColors.textLight,
+                                    color: isDark
+                                        ? AppColors.textDark
+                                        : AppColors.textLight,
                                     fontWeight: FontWeight.w500,
                                     fontSize: 15,
                                   ),
@@ -171,12 +171,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                     hintText: 'name@example.com',
                                     prefixIcon: Padding(
                                       padding: const EdgeInsets.only(left: 4),
-                                      child: Icon(Icons.alternate_email_rounded, size: 20),
+                                      child: Icon(
+                                        Icons.alternate_email_rounded,
+                                        size: 20,
+                                      ),
                                     ),
                                   ),
                                   validationMessages: {
-                                    ValidationMessage.required: (_) => 'Email is required',
-                                    ValidationMessage.email: (_) => 'Enter a valid email',
+                                    ValidationMessage.required: (_) =>
+                                        'Email is required',
+                                    ValidationMessage.email: (_) =>
+                                        'Enter a valid email',
                                   },
                                 ),
                                 const SizedBox(height: 16),
@@ -187,7 +192,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                   textInputAction: TextInputAction.done,
                                   onSubmitted: (_) => _handleLogin(),
                                   style: TextStyle(
-                                    color: isDark ? AppColors.textDark : AppColors.textLight,
+                                    color: isDark
+                                        ? AppColors.textDark
+                                        : AppColors.textLight,
                                     fontWeight: FontWeight.w500,
                                     fontSize: 15,
                                   ),
@@ -196,9 +203,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                     hintText: '••••••••',
                                     prefixIcon: Padding(
                                       padding: const EdgeInsets.only(left: 4),
-                                      child: Icon(Icons.lock_outline_rounded, size: 20),
+                                      child: Icon(
+                                        Icons.lock_outline_rounded,
+                                        size: 20,
+                                      ),
                                     ),
                                     suffixIcon: IconButton(
+                                      tooltip: _obscurePassword
+                                          ? 'Show password'
+                                          : 'Hide password',
                                       icon: Icon(
                                         _obscurePassword
                                             ? Icons.visibility_off_outlined
@@ -208,12 +221,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                       color: isDark
                                           ? AppColors.textMuted
                                           : AppColors.textMutedL,
-                                      onPressed: () => setState(() =>
-                                          _obscurePassword = !_obscurePassword),
+                                      onPressed: () => setState(
+                                        () => _obscurePassword =
+                                            !_obscurePassword,
+                                      ),
                                     ),
                                   ),
                                   validationMessages: {
-                                    ValidationMessage.required: (_) => 'Password is required',
+                                    ValidationMessage.required: (_) =>
+                                        'Password is required',
                                   },
                                 ),
                                 const SizedBox(height: 28),
@@ -234,7 +250,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                               onPressed: () => context.go('/register'),
                               style: TextButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 16, vertical: 10),
+                                  horizontal: 16,
+                                  vertical: 10,
+                                ),
                               ),
                               child: RichText(
                                 text: TextSpan(

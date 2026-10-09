@@ -16,20 +16,20 @@ ConnectivityResult? _resolveConnectivity(List<ConnectivityResult> results) {
 /// Performs an initial connectivity check on first subscription so the app
 /// doesn't flash an "offline" indicator on startup, then listens to ongoing
 /// connectivity changes via [Connectivity.onConnectivityChanged].
-final connectivityStatusProvider = StreamProvider<ConnectivityResult?>(
-  (ref) async* {
-    final connectivity = Connectivity();
+final connectivityStatusProvider = StreamProvider<ConnectivityResult?>((
+  ref,
+) async* {
+  final connectivity = Connectivity();
 
-    // Emit initial status immediately.
-    final initialResults = await connectivity.checkConnectivity();
-    yield _resolveConnectivity(initialResults);
+  // Emit initial status immediately.
+  final initialResults = await connectivity.checkConnectivity();
+  yield _resolveConnectivity(initialResults);
 
-    // Follow ongoing connectivity changes.
-    await for (final results in connectivity.onConnectivityChanged) {
-      yield _resolveConnectivity(results);
-    }
-  },
-);
+  // Follow ongoing connectivity changes.
+  await for (final results in connectivity.onConnectivityChanged) {
+    yield _resolveConnectivity(results);
+  }
+});
 
 /// A [Provider] that indicates whether the device is online.
 ///
@@ -37,7 +37,14 @@ final connectivityStatusProvider = StreamProvider<ConnectivityResult?>(
 /// (the device has some form of network access).
 final isOnlineProvider = Provider<bool>((ref) {
   final status = ref.watch(connectivityStatusProvider);
-  return status.valueOrNull != null;
+  // Connectivity is unknown while the first platform check is running. Treat
+  // that state as online so startup requests (including auth restoration) are
+  // not rejected before the check can complete.
+  return status.when(
+    data: (value) => value != null,
+    loading: () => true,
+    error: (_, _) => true,
+  );
 });
 
 /// Performs a one-shot connectivity check.

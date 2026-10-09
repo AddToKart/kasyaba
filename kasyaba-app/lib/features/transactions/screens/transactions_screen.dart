@@ -2,10 +2,119 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../shared/widgets/modern_card.dart';
 import '../../../shared/widgets/empty_state_view.dart';
 import '../../../app/theme/app_theme.dart';
+
+Future<void> _showTransactionActions(
+  BuildContext context,
+  WidgetRef ref,
+  TransactionEntry transaction,
+) async {
+  final action = await showModalBottomSheet<String>(
+    context: context,
+    backgroundColor: Theme.of(context).colorScheme.surface,
+    showDragHandle: true,
+    builder: (sheetContext) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (!transaction.isTransfer)
+            ListTile(
+              leading: const Icon(Icons.edit_rounded),
+              title: const Text('Edit transaction'),
+              onTap: () => Navigator.of(sheetContext).pop('edit'),
+            ),
+          ListTile(
+            leading: const Icon(Icons.delete_outline_rounded),
+            title: Text(
+              transaction.isTransfer ? 'Delete transfer' : 'Delete transaction',
+            ),
+            textColor: AppColors.expense,
+            iconColor: AppColors.expense,
+            onTap: () => Navigator.of(sheetContext).pop('delete'),
+          ),
+        ],
+      ),
+    ),
+  );
+
+  if (!context.mounted || action == null) return;
+  if (action == 'edit') {
+    context.push('/transactions/edit', extra: transaction);
+    return;
+  }
+
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: Text(
+        transaction.isTransfer ? 'Delete transfer?' : 'Delete transaction?',
+      ),
+      content: Text(
+        transaction.isTransfer
+            ? 'This will restore the money to the source account and remove it from the destination account.'
+            : 'This will remove it from your balances and reports.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(false),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(dialogContext).pop(true),
+          style: FilledButton.styleFrom(backgroundColor: AppColors.expense),
+          child: const Text('Delete'),
+        ),
+      ],
+    ),
+  );
+  if (!context.mounted || confirmed != true) return;
+
+  try {
+    await ref.read(transactionMutatorProvider).deleteTransaction(transaction);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Transaction deleted.')));
+  } catch (_) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Could not delete the transaction.')),
+    );
+  }
+}
+
+Future<void> _showNewEntryMenu(BuildContext context) async {
+  final action = await showModalBottomSheet<String>(
+    context: context,
+    backgroundColor: Theme.of(context).colorScheme.surface,
+    showDragHandle: true,
+    builder: (sheetContext) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.receipt_long_rounded),
+            title: const Text('Income or expense'),
+            subtitle: const Text('Record money in or money out'),
+            onTap: () => Navigator.of(sheetContext).pop('transaction'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.swap_horiz_rounded),
+            title: const Text('Transfer between accounts'),
+            subtitle: const Text('Move money without changing net worth'),
+            onTap: () => Navigator.of(sheetContext).pop('transfer'),
+          ),
+        ],
+      ),
+    ),
+  );
+  if (!context.mounted || action == null) return;
+  context.push(action == 'transfer' ? '/transfers/add' : '/transactions/add');
+}
 
 class TransactionsScreen extends ConsumerWidget {
   const TransactionsScreen({super.key});
@@ -16,6 +125,13 @@ class TransactionsScreen extends ConsumerWidget {
     final isDark = theme.brightness == Brightness.dark;
     final filter = ref.watch(transactionFilterProvider);
     final paginatedAsync = ref.watch(paginatedTransactionsProvider);
+
+    void clearDateFilter() {
+      ref.read(transactionFilterProvider.notifier).state = filter.copyWith(
+        clearDates: true,
+        page: 1,
+      );
+    }
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.obsidian : AppColors.lightBg,
@@ -28,10 +144,14 @@ class TransactionsScreen extends ConsumerWidget {
             onPickDateRange: () async {
               final picked = await showDateRangePicker(
                 context: context,
-                firstDate: DateTime(2020),
-                lastDate: DateTime(2030),
-                initialDateRange: filter.fromDate != null && filter.toDate != null
-                    ? DateTimeRange(start: filter.fromDate!, end: filter.toDate!)
+                firstDate: DateTime(2000),
+                lastDate: DateTime(2100, 12, 31),
+                initialDateRange:
+                    filter.fromDate != null && filter.toDate != null
+                    ? DateTimeRange(
+                        start: filter.fromDate!,
+                        end: filter.toDate!,
+                      )
                     : null,
                 builder: (context, child) {
                   return Theme(
@@ -54,11 +174,12 @@ class TransactionsScreen extends ConsumerWidget {
               );
 
               if (picked != null) {
-                ref.read(transactionFilterProvider.notifier).state = filter.copyWith(
-                  fromDate: picked.start,
-                  toDate: picked.end,
-                  page: 1,
-                );
+                ref.read(transactionFilterProvider.notifier).state = filter
+                    .copyWith(
+                      fromDate: picked.start,
+                      toDate: picked.end,
+                      page: 1,
+                    );
               }
             },
           ),
@@ -76,7 +197,10 @@ class TransactionsScreen extends ConsumerWidget {
                   child: Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.emerald500.withValues(alpha: 0.18),
                           borderRadius: BorderRadius.zero,
@@ -102,16 +226,29 @@ class TransactionsScreen extends ConsumerWidget {
                                 color: AppColors.emerald500,
                               ),
                             ),
-                            const SizedBox(width: 6),
-                            GestureDetector(
-                              onTap: () {
-                                ref.read(transactionFilterProvider.notifier).state =
-                                    filter.copyWith(clearDates: true, page: 1);
-                              },
-                              child: const Icon(
-                                Icons.cancel_rounded,
-                                size: 16,
-                                color: AppColors.emerald500,
+                            const SizedBox(width: 2),
+                            Tooltip(
+                              message: 'Clear date filter',
+                              child: Semantics(
+                                button: true,
+                                label: 'Clear date filter',
+                                onTap: clearDateFilter,
+                                excludeSemantics: true,
+                                child: InkWell(
+                                  onTap: clearDateFilter,
+                                  customBorder: const CircleBorder(),
+                                  child: const SizedBox(
+                                    width: 48,
+                                    height: 48,
+                                    child: Center(
+                                      child: Icon(
+                                        Icons.cancel_rounded,
+                                        size: 16,
+                                        color: AppColors.emerald500,
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
                           ],
@@ -125,13 +262,16 @@ class TransactionsScreen extends ConsumerWidget {
               Expanded(
                 child: paginatedAsync.when(
                   loading: () => const Center(
-                    child: CircularProgressIndicator(color: AppColors.emerald500),
+                    child: CircularProgressIndicator(
+                      color: AppColors.emerald500,
+                    ),
                   ),
                   error: (err, _) => Center(
                     child: Padding(
                       padding: const EdgeInsets.all(24),
                       child: ModernCard(
                         padding: const EdgeInsets.all(20),
+                        borderColor: AppColors.expense.withValues(alpha: 0.4),
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -149,12 +289,21 @@ class TransactionsScreen extends ConsumerWidget {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '$err',
+                              friendlyErrorMessage(err),
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 12,
-                                color: isDark ? AppColors.textMuted : AppColors.textMutedL,
+                                color: isDark
+                                    ? AppColors.textMuted
+                                    : AppColors.textMutedL,
                               ),
+                            ),
+                            const SizedBox(height: 16),
+                            FilledButton.tonalIcon(
+                              onPressed: () =>
+                                  ref.invalidate(paginatedTransactionsProvider),
+                              icon: const Icon(Icons.refresh_rounded, size: 18),
+                              label: const Text('Retry'),
                             ),
                           ],
                         ),
@@ -191,12 +340,20 @@ class TransactionsScreen extends ConsumerWidget {
                             itemBuilder: (context, index) {
                               final item = paginated.items[index];
                               final isExpense = item.isExpense;
-                              final color = isExpense ? AppColors.expense : AppColors.income;
+                              final color = item.isTransfer
+                                  ? AppColors.gold500
+                                  : isExpense
+                                  ? AppColors.expense
+                                  : AppColors.income;
 
                               return Padding(
                                 padding: const EdgeInsets.only(bottom: 10),
                                 child: ModernCard(
-                                  onTap: () {},
+                                  onTap: () => _showTransactionActions(
+                                    context,
+                                    ref,
+                                    item,
+                                  ),
                                   child: Padding(
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 16,
@@ -210,16 +367,20 @@ class TransactionsScreen extends ConsumerWidget {
                                           height: 44,
                                           decoration: BoxDecoration(
                                             color: color.withValues(
-                                                alpha: 0.15),
+                                              alpha: 0.15,
+                                            ),
                                             borderRadius: BorderRadius.zero,
                                             border: Border.all(
                                               color: color.withValues(
-                                                  alpha: 0.30),
+                                                alpha: 0.30,
+                                              ),
                                               width: 1,
                                             ),
                                           ),
                                           child: Icon(
-                                            isExpense
+                                            item.isTransfer
+                                                ? Icons.swap_horiz_rounded
+                                                : isExpense
                                                 ? Icons.arrow_upward_rounded
                                                 : Icons.arrow_downward_rounded,
                                             color: color,
@@ -231,7 +392,8 @@ class TransactionsScreen extends ConsumerWidget {
                                         // Details
                                         Expanded(
                                           child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
                                               Text(
                                                 item.title,
@@ -245,7 +407,11 @@ class TransactionsScreen extends ConsumerWidget {
                                               ),
                                               const SizedBox(height: 3),
                                               Text(
-                                                '${item.categoryName} • ${DateFormat('MMM d, yyyy').format(item.date)}',
+                                                '${item.isCancelled
+                                                    ? 'Cancelled • '
+                                                    : item.isScheduled
+                                                    ? 'Planned • '
+                                                    : ''}${item.categoryName} • ${DateFormat('MMM d, yyyy').format(item.date)}',
                                                 style: TextStyle(
                                                   fontSize: 12,
                                                   color: isDark
@@ -259,7 +425,11 @@ class TransactionsScreen extends ConsumerWidget {
 
                                         // Amount
                                         Text(
-                                          '${isExpense ? '–' : '+'}₱${item.amount.toStringAsFixed(2)}',
+                                          '${item.isTransfer
+                                              ? '↔'
+                                              : isExpense
+                                              ? '–'
+                                              : '+'}₱${item.amount.toStringAsFixed(2)}',
                                           style: TextStyle(
                                             fontWeight: FontWeight.w800,
                                             fontSize: 15,
@@ -278,12 +448,17 @@ class TransactionsScreen extends ConsumerWidget {
 
                         // ── Pagination Bar Controls ──────────────────────
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 12,
+                          ),
                           decoration: BoxDecoration(
                             color: isDark ? AppColors.surface800 : Colors.white,
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
+                                color: Colors.black.withValues(
+                                  alpha: isDark ? 0.3 : 0.05,
+                                ),
                                 blurRadius: 10,
                                 offset: const Offset(0, -2),
                               ),
@@ -299,17 +474,27 @@ class TransactionsScreen extends ConsumerWidget {
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w500,
-                                    color: isDark ? AppColors.textMuted : AppColors.textMutedL,
+                                    color: isDark
+                                        ? AppColors.textMuted
+                                        : AppColors.textMutedL,
                                   ),
                                 ),
                                 Row(
                                   children: [
                                     IconButton(
-                                      icon: const Icon(Icons.chevron_left_rounded),
+                                      icon: const Icon(
+                                        Icons.chevron_left_rounded,
+                                      ),
                                       onPressed: paginated.hasPrevPage
                                           ? () {
-                                              ref.read(transactionFilterProvider.notifier).state =
-                                                  filter.copyWith(page: paginated.page - 1);
+                                              ref
+                                                  .read(
+                                                    transactionFilterProvider
+                                                        .notifier,
+                                                  )
+                                                  .state = filter.copyWith(
+                                                page: paginated.page - 1,
+                                              );
                                             }
                                           : null,
                                       tooltip: 'Previous Page',
@@ -319,15 +504,25 @@ class TransactionsScreen extends ConsumerWidget {
                                       style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w700,
-                                        color: isDark ? Colors.white : AppColors.textLight,
+                                        color: isDark
+                                            ? Colors.white
+                                            : AppColors.textLight,
                                       ),
                                     ),
                                     IconButton(
-                                      icon: const Icon(Icons.chevron_right_rounded),
+                                      icon: const Icon(
+                                        Icons.chevron_right_rounded,
+                                      ),
                                       onPressed: paginated.hasNextPage
                                           ? () {
-                                              ref.read(transactionFilterProvider.notifier).state =
-                                                  filter.copyWith(page: paginated.page + 1);
+                                              ref
+                                                  .read(
+                                                    transactionFilterProvider
+                                                        .notifier,
+                                                  )
+                                                  .state = filter.copyWith(
+                                                page: paginated.page + 1,
+                                              );
                                             }
                                           : null,
                                       tooltip: 'Next Page',
@@ -351,7 +546,10 @@ class TransactionsScreen extends ConsumerWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.zero,
           color: AppColors.emerald500,
-          border: Border.all(color: AppColors.gold500.withValues(alpha: 0.5), width: 1),
+          border: Border.all(
+            color: AppColors.gold500.withValues(alpha: 0.5),
+            width: 1,
+          ),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.6),
@@ -361,14 +559,19 @@ class TransactionsScreen extends ConsumerWidget {
           ],
         ),
         child: FloatingActionButton.extended(
-          onPressed: () => context.go('/transactions/add'),
+          onPressed: () => _showNewEntryMenu(context),
           backgroundColor: Colors.transparent,
           elevation: 0,
           shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
           icon: const Icon(Icons.add_rounded, size: 22, color: Colors.black),
           label: const Text(
             'New',
-            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Colors.black, letterSpacing: 0.5),
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: 14,
+              color: Colors.black,
+              letterSpacing: 0.5,
+            ),
           ),
           tooltip: 'Add Transaction',
         ),
@@ -457,29 +660,44 @@ class _AppBarIconBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          child: Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.zero,
-              color: isActive
-                  ? AppColors.emerald500.withValues(alpha: 0.2)
-                  : AppColors.surface700,
-              border: Border.all(
-                color: isActive ? AppColors.emerald500 : const Color(0xFF1F293D),
-                width: 1,
+    return Semantics(
+      button: true,
+      label: tooltip,
+      onTap: onTap,
+      excludeSemantics: true,
+      child: Tooltip(
+        message: tooltip,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+              child: Center(
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.zero,
+                    color: isActive
+                        ? AppColors.emerald500.withValues(alpha: 0.2)
+                        : AppColors.surface700,
+                    border: Border.all(
+                      color: isActive
+                          ? AppColors.emerald500
+                          : const Color(0xFF1F293D),
+                      width: 1,
+                    ),
+                  ),
+                  child: Icon(
+                    icon,
+                    size: 18,
+                    color: isActive
+                        ? AppColors.emerald500
+                        : AppColors.textMuted,
+                  ),
+                ),
               ),
-            ),
-            child: Icon(
-              icon,
-              size: 18,
-              color: isActive ? AppColors.emerald500 : AppColors.textMuted,
             ),
           ),
         ),

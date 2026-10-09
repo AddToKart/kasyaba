@@ -45,11 +45,7 @@ class EmptyStateView extends StatelessWidget {
                   width: 1,
                 ),
               ),
-              child: Icon(
-                icon,
-                size: 28,
-                color: accent,
-              ),
+              child: Icon(icon, size: 28, color: accent),
             ),
 
             const SizedBox(height: 20),
@@ -86,7 +82,7 @@ class EmptyStateView extends StatelessWidget {
                 style: FilledButton.styleFrom(
                   backgroundColor: accent,
                   foregroundColor: Colors.black,
-                  minimumSize: const Size(140, 46),
+                  minimumSize: const Size(140, 48),
                   shape: const RoundedRectangleBorder(
                     borderRadius: BorderRadius.zero,
                   ),

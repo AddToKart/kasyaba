@@ -4,12 +4,7 @@ import '../../app/theme/app_theme.dart';
 /// ─────────────────────────────────────────────────────────────
 ///  ModernCard — Ultra Luxury Glass & Metallic Card Widget
 /// ─────────────────────────────────────────────────────────────
-enum CardStyle {
-  glass,
-  gradient,
-  elevated,
-  flat,
-}
+enum CardStyle { glass, gradient, elevated, flat }
 
 class ModernCard extends StatelessWidget {
   final Widget child;
@@ -43,8 +38,9 @@ class ModernCard extends StatelessWidget {
 
     final radius = BorderRadius.circular(borderRadius);
 
-    Widget innerChild =
-        padding != null ? Padding(padding: padding!, child: child) : child;
+    Widget innerChild = padding != null
+        ? Padding(padding: padding!, child: child)
+        : child;
 
     final decoration = BoxDecoration(
       borderRadius: radius,

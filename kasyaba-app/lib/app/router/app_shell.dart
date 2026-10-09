@@ -9,11 +9,7 @@ class AppShell extends StatelessWidget {
   final Widget child;
   final String location;
 
-  const AppShell({
-    super.key,
-    required this.child,
-    required this.location,
-  });
+  const AppShell({super.key, required this.child, required this.location});
 
   int _getSelectedIndex() {
     if (location.startsWith('/transactions')) return 1;
@@ -98,17 +94,19 @@ class _LuxuryFloatingDock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final bottomPadding = MediaQuery.paddingOf(context).bottom;
 
     return Container(
-      margin: EdgeInsets.fromLTRB(16, 0, 16, bottomPadding > 0 ? bottomPadding : 12),
+      margin: EdgeInsets.fromLTRB(
+        16,
+        0,
+        16,
+        bottomPadding > 0 ? bottomPadding : 12,
+      ),
       decoration: BoxDecoration(
         color: const Color(0xF70D121D),
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(
-          color: const Color(0x40334155),
-          width: 1,
-        ),
+        border: Border.all(color: const Color(0x40334155), width: 1),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.6),
@@ -193,7 +191,10 @@ class _NavItem extends StatelessWidget {
                     : Colors.transparent,
                 borderRadius: BorderRadius.circular(16),
                 border: isSelected
-                    ? Border.all(color: activeColor.withValues(alpha: 0.3), width: 1)
+                    ? Border.all(
+                        color: activeColor.withValues(alpha: 0.3),
+                        width: 1,
+                      )
                     : null,
               ),
               child: Icon(

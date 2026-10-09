@@ -58,7 +58,8 @@ class AuthBackground extends StatelessWidget {
                       gradient: RadialGradient(
                         colors: [
                           AppColors.emerald500.withValues(
-                              alpha: isDark ? 0.18 : 0.10),
+                            alpha: isDark ? 0.18 : 0.10,
+                          ),
                           Colors.transparent,
                         ],
                       ),
@@ -80,7 +81,8 @@ class AuthBackground extends StatelessWidget {
                       gradient: RadialGradient(
                         colors: [
                           AppColors.gold400.withValues(
-                              alpha: isDark ? 0.10 : 0.07),
+                            alpha: isDark ? 0.10 : 0.07,
+                          ),
                           Colors.transparent,
                         ],
                       ),
@@ -218,8 +220,11 @@ class AuthFormCard extends StatelessWidget {
 class AuthErrorBanner extends StatelessWidget {
   final String message;
   final bool isDark;
-  const AuthErrorBanner(
-      {super.key, required this.message, required this.isDark});
+  const AuthErrorBanner({
+    super.key,
+    required this.message,
+    required this.isDark,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -235,8 +240,11 @@ class AuthErrorBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.error_outline_rounded,
-              color: AppColors.expense, size: 20),
+          const Icon(
+            Icons.error_outline_rounded,
+            color: AppColors.expense,
+            size: 20,
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -249,64 +257,6 @@ class AuthErrorBanner extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class AuthTextField extends StatelessWidget {
-  final TextEditingController controller;
-  final String label;
-  final String hint;
-  final IconData icon;
-  final bool obscureText;
-  final TextInputType keyboardType;
-  final TextInputAction textInputAction;
-  final ValueChanged<String>? onSubmitted;
-  final String? Function(String?)? validator;
-  final Widget? suffixIcon;
-  final bool isDark;
-  final bool autofocus;
-
-  const AuthTextField({
-    super.key,
-    required this.controller,
-    required this.label,
-    required this.hint,
-    required this.icon,
-    required this.isDark,
-    this.obscureText = false,
-    this.keyboardType = TextInputType.text,
-    this.textInputAction = TextInputAction.next,
-    this.onSubmitted,
-    this.validator,
-    this.suffixIcon,
-    this.autofocus = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return TextFormField(
-      controller: controller,
-      obscureText: obscureText,
-      keyboardType: keyboardType,
-      textInputAction: textInputAction,
-      onFieldSubmitted: onSubmitted,
-      validator: validator,
-      autofocus: autofocus,
-      style: TextStyle(
-        color: isDark ? AppColors.textDark : AppColors.textLight,
-        fontWeight: FontWeight.w500,
-        fontSize: 15,
-      ),
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: hint,
-        prefixIcon: Padding(
-          padding: const EdgeInsets.only(left: 4),
-          child: Icon(icon, size: 20),
-        ),
-        suffixIcon: suffixIcon,
       ),
     );
   }
@@ -349,8 +299,9 @@ class AuthGradientButton extends StatelessWidget {
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor:
-              isLoading ? AppColors.surface600 : Colors.transparent,
+          backgroundColor: isLoading
+              ? AppColors.surface600
+              : Colors.transparent,
           foregroundColor: Colors.white,
           shadowColor: Colors.transparent,
           minimumSize: const Size.fromHeight(54),

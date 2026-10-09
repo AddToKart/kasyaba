@@ -1,0 +1,6 @@
+# Copy this file to key.properties (same directory) and fill in your values.
+# key.properties is git-ignored; never commit real signing credentials.
+storePassword=your-store-password
+keyPassword=your-key-password
+keyAlias=your-key-alias
+storeFile=path/to/your/upload-keystore.jks

@@ -48,7 +48,7 @@ class ModernBottomSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 0),
@@ -122,19 +122,13 @@ class ModernBottomSheet extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  if (action != null) ...[
-                    action!,
-                    const SizedBox(width: 8),
-                  ],
+                  if (action != null) ...[action!, const SizedBox(width: 8)],
                   const _CloseButton(),
                 ],
               ),
               const SizedBox(height: 20),
 
-              const Divider(
-                height: 1,
-                color: Color(0x33334155),
-              ),
+              const Divider(height: 1, color: Color(0x33334155)),
               const SizedBox(height: 20),
 
               Flexible(
@@ -157,26 +151,34 @@ class _CloseButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 36,
-      height: 36,
-      decoration: BoxDecoration(
-        color: AppColors.surface700,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: const Color(0x40334155),
-          width: 1,
+    return Tooltip(
+      message: 'Close',
+      child: SizedBox(
+        width: 48,
+        height: 48,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(10),
+            onTap: () => Navigator.pop(context),
+            child: Center(
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: AppColors.surface700,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0x40334155), width: 1),
+                ),
+                child: const Icon(
+                  Icons.close_rounded,
+                  color: AppColors.textMuted,
+                  size: 18,
+                ),
+              ),
+            ),
+          ),
         ),
-      ),
-      child: IconButton(
-        padding: EdgeInsets.zero,
-        iconSize: 18,
-        icon: const Icon(
-          Icons.close_rounded,
-          color: AppColors.textMuted,
-        ),
-        onPressed: () => Navigator.pop(context),
-        tooltip: 'Close',
       ),
     );
   }

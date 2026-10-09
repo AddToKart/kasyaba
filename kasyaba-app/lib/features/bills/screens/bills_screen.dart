@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../../../app/theme/app_theme.dart';
+import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
-import '../../../core/notifications/notification_service.dart';
 import '../../../shared/widgets/modern_card.dart';
 import '../../../shared/widgets/empty_state_view.dart';
 import '../../../shared/widgets/modern_bottom_sheet.dart';
@@ -17,15 +17,26 @@ class BillsScreen extends ConsumerStatefulWidget {
 }
 
 class _BillsScreenState extends ConsumerState<BillsScreen> {
+  final _billNameController = TextEditingController();
+  final _billAmountController = TextEditingController();
+
   String _selectedFilter = 'upcoming';
   CalendarFormat _calendarFormat = CalendarFormat.month;
   DateTime _selectedDay = DateTime.now();
   DateTime _focusedDay = DateTime.now();
 
+  @override
+  void dispose() {
+    _billNameController.dispose();
+    _billAmountController.dispose();
+    super.dispose();
+  }
+
   void _showAddBillBottomSheet(BuildContext context) {
-    final nameController = TextEditingController();
-    final amountController = TextEditingController();
+    _billNameController.clear();
+    _billAmountController.clear();
     final formKey = GlobalKey<FormState>();
+    var isSubmitting = false;
 
     final presets = [
       {'name': 'Internet Bill', 'icon': '🌐'},
@@ -58,7 +69,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                   avatar: Text(preset['icon']!),
                   label: Text(preset['name']!),
                   onPressed: () {
-                    nameController.text = preset['name']!;
+                    _billNameController.text = preset['name']!;
                   },
                 );
               }).toList(),
@@ -66,58 +77,101 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
             const SizedBox(height: 16),
 
             ModernTextField(
-              controller: nameController,
+              controller: _billNameController,
               label: 'Bill Name',
               hint: 'e.g. Internet Bill, Electric Bill',
               prefixIcon: Icons.receipt_long_outlined,
-              validator: (v) => (v?.trim().length ?? 0) > 0 ? null : 'Bill name is required',
+              validator: (v) =>
+                  (v?.trim().length ?? 0) > 0 ? null : 'Bill name is required',
             ),
             const SizedBox(height: 16),
 
             ModernTextField(
-              controller: amountController,
+              controller: _billAmountController,
               label: 'Amount (₱)',
               hint: '1500.00',
               prefixIcon: Icons.account_balance_wallet_outlined,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               validator: (v) {
                 if (v == null || v.trim().isEmpty) return 'Enter bill amount';
-                if (double.tryParse(v) == null) return 'Enter a valid number';
+                final amount = double.tryParse(v);
+                if (amount == null || !amount.isFinite || amount <= 0) {
+                  return 'Enter an amount greater than zero';
+                }
                 return null;
               },
             ),
             const SizedBox(height: 24),
 
-            FilledButton.icon(
-              onPressed: () async {
-                if (!formKey.currentState!.validate()) return;
-                final name = nameController.text.trim();
-                final amount = double.tryParse(amountController.text.trim()) ?? 0.0;
-                final mutator = ref.read(transactionMutatorProvider);
-                final startsOn = DateTime.now().add(const Duration(days: 7));
-                await mutator.addBill(
-                  name: name,
-                  amount: amount,
-                  startsOn: startsOn,
+            StatefulBuilder(
+              builder: (context, setModalState) {
+                return FilledButton.icon(
+                  onPressed: isSubmitting
+                      ? null
+                      : () async {
+                          if (!formKey.currentState!.validate()) return;
+                          setModalState(() => isSubmitting = true);
+                          final name = _billNameController.text.trim();
+                          final amount =
+                              double.tryParse(
+                                _billAmountController.text.trim(),
+                              ) ??
+                              0.0;
+                          final mutator = ref.read(transactionMutatorProvider);
+                          final startsOn = DateTime.now().add(
+                            const Duration(days: 7),
+                          );
+                          try {
+                            await mutator.addBill(
+                              name: name,
+                              amount: amount,
+                              startsOn: startsOn,
+                            );
+                            if (context.mounted) Navigator.pop(context);
+                          } catch (error) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    friendlyErrorMessage(
+                                      error,
+                                      fallback:
+                                          'Unable to save this bill. Please try again.',
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }
+                          } finally {
+                            if (context.mounted) {
+                              setModalState(() => isSubmitting = false);
+                            }
+                          }
+                        },
+                  icon: isSubmitting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.check, size: 20),
+                  label: Text(
+                    isSubmitting ? 'Saving Bill...' : 'Save Bill Reminder',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
                 );
-                // Schedule a reminder 1 day before the bill's due date
-                final reminderDate = startsOn.subtract(const Duration(days: 1));
-                if (reminderDate.isAfter(DateTime.now())) {
-                  await NotificationService.instance.scheduleBillReminder(
-                    id: 'bill_${name}_${startsOn.millisecondsSinceEpoch}',
-                    title: name,
-                    body: 'Due tomorrow',
-                    scheduledDate: reminderDate,
-                  );
-                }
-                if (context.mounted) Navigator.pop(context);
               },
-              icon: const Icon(Icons.check, size: 20),
-              label: const Text('Save Bill Reminder', style: TextStyle(fontWeight: FontWeight.bold)),
-              style: FilledButton.styleFrom(
-                minimumSize: const Size.fromHeight(50),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              ),
             ),
             const SizedBox(height: 8),
           ],
@@ -130,11 +184,14 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
     final bills = billsAsync.valueOrNull;
     if (bills == null || bills.isEmpty) return [];
 
-    final dueBills = bills.where((b) =>
-      b.dueDate.year == _selectedDay.year &&
-      b.dueDate.month == _selectedDay.month &&
-      b.dueDate.day == _selectedDay.day,
-    ).toList();
+    final dueBills = bills
+        .where(
+          (b) =>
+              b.dueDate.year == _selectedDay.year &&
+              b.dueDate.month == _selectedDay.month &&
+              b.dueDate.day == _selectedDay.day,
+        )
+        .toList();
 
     if (dueBills.isEmpty) return [];
 
@@ -159,43 +216,53 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
           ],
         ),
       ),
-      ...dueBills.map((bill) => Padding(
-        padding: const EdgeInsets.only(bottom: 4),
-        child: ModernCard(
-          padding: EdgeInsets.zero,
-          child: ListTile(
-            dense: true,
-            visualDensity: VisualDensity.compact,
-            leading: Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: AppColors.expense.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(8),
+      ...dueBills.map(
+        (bill) => Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: ModernCard(
+            padding: EdgeInsets.zero,
+            child: ListTile(
+              dense: true,
+              visualDensity: VisualDensity.compact,
+              leading: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: AppColors.expense.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.receipt_long_outlined,
+                  color: AppColors.expense,
+                  size: 16,
+                ),
               ),
-              child: const Icon(Icons.receipt_long_outlined, color: AppColors.expense, size: 16),
-            ),
-            title: Text(
-              bill.name,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: isDark ? AppColors.textDark : AppColors.textLight,
+              title: Text(
+                bill.name,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? AppColors.textDark : AppColors.textLight,
+                ),
               ),
-            ),
-            subtitle: Text(
-              bill.status,
-              style: TextStyle(
-                fontSize: 12,
-                color: isDark ? AppColors.textMuted : AppColors.textMutedL,
+              subtitle: Text(
+                bill.status,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isDark ? AppColors.textMuted : AppColors.textMutedL,
+                ),
               ),
-            ),
-            trailing: Text(
-              '₱${bill.amount.toStringAsFixed(2)}',
-              style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.expense, fontSize: 14),
+              trailing: Text(
+                '₱${bill.amount.toStringAsFixed(2)}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.expense,
+                  fontSize: 14,
+                ),
+              ),
             ),
           ),
         ),
-      )),
+      ),
     ];
   }
 
@@ -209,7 +276,9 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
         titleSpacing: 20,
         title: Text(
           'Bills & Reminders',
-          style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
         ),
         actions: [
           IconButton(
@@ -246,11 +315,14 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
               },
               eventLoader: (day) {
                 final bills = billsAsync.valueOrNull ?? [];
-                return bills.where((b) =>
-                  b.dueDate.year == day.year &&
-                  b.dueDate.month == day.month &&
-                  b.dueDate.day == day.day,
-                ).toList();
+                return bills
+                    .where(
+                      (b) =>
+                          b.dueDate.year == day.year &&
+                          b.dueDate.month == day.month &&
+                          b.dueDate.day == day.day,
+                    )
+                    .toList();
               },
               calendarBuilders: CalendarBuilders(
                 markerBuilder: (context, day, events) {
@@ -314,7 +386,9 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                   fontSize: 14,
                 ),
                 formatButtonDecoration: BoxDecoration(
-                  border: Border.all(color: AppColors.emerald500.withValues(alpha: 0.4)),
+                  border: Border.all(
+                    color: AppColors.emerald500.withValues(alpha: 0.4),
+                  ),
                   borderRadius: BorderRadius.all(Radius.circular(12.0)),
                 ),
                 leftChevronIcon: Icon(
@@ -339,7 +413,8 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                 ButtonSegment(value: 'overdue', label: Text('Overdue')),
               ],
               selected: {_selectedFilter},
-              onSelectionChanged: (v) => setState(() => _selectedFilter = v.first),
+              onSelectionChanged: (v) =>
+                  setState(() => _selectedFilter = v.first),
             ),
             const SizedBox(height: 20),
 
@@ -350,7 +425,33 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
               ),
               error: (err, _) => ModernCard(
                 padding: const EdgeInsets.all(20),
-                child: Text('Error loading bills: $err'),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.error_outline_rounded,
+                      color: AppColors.expense,
+                      size: 30,
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      friendlyErrorMessage(
+                        err,
+                        fallback: 'Could not load your bills.',
+                      ),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: AppColors.textMuted,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    FilledButton.tonal(
+                      onPressed: () => ref.invalidate(billsProvider),
+                      child: const Text('Try again'),
+                    ),
+                  ],
+                ),
               ),
               data: (bills) {
                 if (bills.isEmpty) {
@@ -358,10 +459,32 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                     padding: EdgeInsets.zero,
                     child: EmptyStateView(
                       title: 'No Bills Scheduled',
-                      message: 'Never miss a due date. Track your Internet, Electricity, or Water bill reminders.',
+                      message:
+                          'Never miss a due date. Track your Internet, Electricity, or Water bill reminders.',
                       icon: Icons.receipt_long_outlined,
                       actionLabel: 'Add Bill Reminder',
                       onAction: () => _showAddBillBottomSheet(context),
+                    ),
+                  );
+                }
+
+                final filteredBills = bills
+                    .where(
+                      (bill) =>
+                          bill.status.toLowerCase() == _selectedFilter,
+                    )
+                    .toList();
+
+                if (filteredBills.isEmpty) {
+                  return ModernCard(
+                    padding: const EdgeInsets.all(20),
+                    child: Text(
+                      'No $_selectedFilter bills right now.',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: AppColors.textMuted,
+                        fontSize: 13,
+                      ),
                     ),
                   );
                 }
@@ -370,22 +493,41 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                   padding: EdgeInsets.zero,
                   child: Column(
                     children: [
-                      for (int i = 0; i < bills.length; i++) ...[
+                      for (int i = 0; i < filteredBills.length; i++) ...[
                         if (i > 0) const Divider(height: 1, indent: 56),
                         ListTile(
                           leading: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
+                              color: const Color(
+                                0xFFF59E0B,
+                              ).withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            child: const Icon(Icons.receipt_long_outlined, color: Color(0xFFF59E0B), size: 20),
+                            child: const Icon(
+                              Icons.receipt_long_outlined,
+                              color: Color(0xFFF59E0B),
+                              size: 20,
+                            ),
                           ),
-                          title: Text(bills[i].name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: Text('Due: ${bills[i].dueDate.toIso8601String().split("T")[0]}'),
+                          title: Text(
+                            filteredBills[i].name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Text(
+                            'Due: ${filteredBills[i].dueDate.toIso8601String().split("T")[0]}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                           trailing: Text(
-                            '₱${bills[i].amount.toStringAsFixed(2)}',
-                            style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFEF4444), fontSize: 15),
+                            '₱${filteredBills[i].amount.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFFEF4444),
+                              fontSize: 15,
+                            ),
                           ),
                         ),
                       ],
