@@ -1,10 +1,10 @@
 # KASYABA
 
-Personal financial tracker for Android and iOS with income and expense tracking, savings goals, bill reminders, explainable financial forecasting, predictive alerts, and a financial health score.
+Personal financial tracker for Android with income and expense tracking, savings goals, bill reminders, explainable financial forecasting, predictive alerts, and a financial health score.
 
 ## Tech Stack
 
-- **Mobile**: Flutter (Android & iOS)
+- **Mobile**: Flutter (Android)
 - **API**: Express.js with TypeScript
 - **Database**: PostgreSQL (via Supabase)
 - **ORM**: Prisma
@@ -14,7 +14,7 @@ Personal financial tracker for Android and iOS with income and expense tracking,
 
 ### Prerequisites
 
-- Flutter SDK ^3.12.2
+- Flutter SDK 3.44.x (Dart SDK 3.12.x)
 - Node.js LTS
 - Docker & Docker Compose (for local PostgreSQL)
 
@@ -55,11 +55,56 @@ flutter pub get
 flutter run
 ```
 
-### Docker Deployment
+### Android Release Build
+
+Release builds must point at the production API over HTTPS:
 
 ```bash
-# Start all services (PostgreSQL, API, Worker)
-docker-compose up -d
+flutter build appbundle --release \
+  --dart-define=API_BASE_URL=https://<your-api-domain> \
+  --obfuscate --split-debug-info=build/symbols
+```
+
+Debug builds default to `http://10.0.2.2:3000`, and cleartext HTTP is allowed in
+debug builds only (`android/app/src/debug/res/xml/network_security_config.xml`).
+A release build compiled without `API_BASE_URL` shows a configuration error
+instead of silently targeting localhost.
+
+### Docker Development
+
+```bash
+# Start PostgreSQL, API, and Worker in development mode
+# The automatically loaded docker-compose.override.yml mounts the backend source.
+docker compose up --build
+
+# After the first build, source changes hot-reload without rebuilding.
+docker compose up
+
+# Follow backend logs
+docker compose logs -f api worker
+
+# Apply a migration added while the containers are already running
+docker compose exec api npx prisma migrate deploy
+
+# Regenerate Prisma Client after changing prisma/schema.prisma
+docker compose exec api npx prisma generate
+```
+
+### Docker Production
+
+```bash
+# Required environment variables (export them or create a root .env file):
+#   DATABASE_URL, DIRECT_URL, JWT_ACCESS_SECRET, CORS_ALLOWED_ORIGINS
+# Optional: TRUST_PROXY (default 1), SUPPORT_EMAIL, GOOGLE_WEB_CLIENT_ID,
+#           ACCESS_TOKEN_TTL_MINUTES, REFRESH_TOKEN_TTL_DAYS, LOG_LEVEL.
+#
+# The api and worker services wait for the one-shot `migrate` service to apply
+# Prisma migrations before starting.
+docker compose -f docker-compose.yml up -d --build
+
+# Public legal pages served by the API:
+#   /privacy            - privacy policy (required by Google Play)
+#   /account-deletion   - account deletion instructions (required by Google Play)
 ```
 
 ## Project Structure
@@ -97,6 +142,7 @@ All routes are versioned under `/api/v1`.
 - `POST /api/v1/auth/logout` - Sign out
 - `POST /api/v1/auth/logout-all` - Sign out all sessions
 - `GET /api/v1/auth/me` - Get current user
+- `PATCH /api/v1/auth/me` - Update profile and payday settings
 
 ### Accounts
 - `GET /api/v1/accounts` - List accounts
@@ -154,12 +200,14 @@ All routes are versioned under `/api/v1`.
 
 ### Alerts
 - `GET /api/v1/alerts` - List alerts
+- `GET /api/v1/alerts/analysis` - Get recovery analysis
 - `POST /api/v1/alerts/:id/read` - Mark alert read
 - `POST /api/v1/alerts/:id/dismiss` - Dismiss alert
 - `POST /api/v1/alerts/read-all` - Mark all read
 
 ### Dashboard
 - `GET /api/v1/dashboard` - Dashboard with forecasts
+- `POST /api/v1/forecasting/purchase-check` - Evaluate purchase affordability
 
 ### Health
 - `GET /health/live` - Liveness check
