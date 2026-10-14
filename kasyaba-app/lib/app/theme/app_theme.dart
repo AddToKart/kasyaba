@@ -52,6 +52,9 @@ class AppColors {
   static const textLight = Color(0xFFF8FAFC);
   static const textMutedL = Color(0xFF64748B);
 
+  // ── Border Colors ──────────────────────────────────────────
+  static const subtleBorder = Color(0x14FFFFFF); // rgba(255, 255, 255, 0.08)
+
   // ── Luxury Gradients ───────────────────────────────────────
   static const gradientHeroCard = LinearGradient(
     colors: [Color(0xFF121927), Color(0xFF1A2438), Color(0xFF0D121D)],
@@ -80,8 +83,10 @@ class AppColors {
 
 class AppTheme {
   static const double cardRadius = 20.0;
-  static const double buttonRadius = 16.0;
-  static const double inputRadius = 14.0;
+  static const double buttonRadius = 12.0;
+  static const double inputRadius = 12.0;
+  static const double tagRadius = 9999.0;
+  static const double alertRadius = 12.0;
   static const double navbarHeight = 76.0;
 
   ThemeData get dark {
@@ -154,7 +159,7 @@ class AppTheme {
         color: AppColors.surfaceCard,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(cardRadius),
-          side: const BorderSide(color: Color(0x33334155), width: 1),
+          side: const BorderSide(color: AppColors.subtleBorder, width: 1),
         ),
         margin: EdgeInsets.zero,
         shadowColor: Colors.black.withValues(alpha: 0.4),
@@ -169,11 +174,11 @@ class AppTheme {
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(inputRadius),
-          borderSide: const BorderSide(color: Color(0x40334155)),
+          borderSide: const BorderSide(color: AppColors.subtleBorder),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(inputRadius),
-          borderSide: const BorderSide(color: Color(0x40334155), width: 1),
+          borderSide: const BorderSide(color: AppColors.subtleBorder, width: 1),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(inputRadius),
@@ -222,7 +227,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(buttonRadius),
           ),
-          side: const BorderSide(color: Color(0x40334155), width: 1),
+          side: const BorderSide(color: AppColors.subtleBorder, width: 1),
           foregroundColor: AppColors.textDark,
           textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
         ),
@@ -233,15 +238,15 @@ class AppTheme {
           foregroundColor: AppColors.gold500,
           textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(buttonRadius),
           ),
         ),
       ),
 
       chipTheme: ChipThemeData(
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: const BorderSide(color: Color(0x33334155)),
+          borderRadius: BorderRadius.circular(tagRadius),
+          side: const BorderSide(color: AppColors.subtleBorder),
         ),
         backgroundColor: AppColors.surface700,
         labelStyle: const TextStyle(

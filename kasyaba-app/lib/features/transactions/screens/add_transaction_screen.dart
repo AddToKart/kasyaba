@@ -6,6 +6,7 @@ import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../shared/widgets/modern_card.dart';
 import '../../../app/theme/app_theme.dart';
+import '../../../core/utils/category_icon_helper.dart';
 
 DateTime _dateOnly(DateTime date) => DateTime(date.year, date.month, date.day);
 
@@ -50,13 +51,13 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen>
   late final Animation<double> _typeFade;
 
   final List<Map<String, String>> _categoryItems = [
-    {'id': 'cat_food', 'name': 'Food & Dining', 'icon': '🍔'},
-    {'id': 'cat_transport', 'name': 'Transportation', 'icon': '🚗'},
-    {'id': 'cat_utilities', 'name': 'Utilities & Bills', 'icon': '⚡'},
-    {'id': 'cat_rent', 'name': 'Rent & Housing', 'icon': '🏠'},
-    {'id': 'cat_education', 'name': 'Education', 'icon': '🎓'},
-    {'id': 'cat_shopping', 'name': 'Shopping', 'icon': '🛍️'},
-    {'id': 'cat_other', 'name': 'Other', 'icon': '📦'},
+    {'id': 'cat_food', 'name': 'Food & Dining'},
+    {'id': 'cat_transport', 'name': 'Transportation'},
+    {'id': 'cat_utilities', 'name': 'Utilities & Bills'},
+    {'id': 'cat_rent', 'name': 'Rent & Housing'},
+    {'id': 'cat_education', 'name': 'Education'},
+    {'id': 'cat_shopping', 'name': 'Shopping'},
+    {'id': 'cat_other', 'name': 'Other'},
   ];
 
   @override
@@ -312,7 +313,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen>
     final availableCategories = categoriesAsync.maybeWhen(
       data: (cats) => cats.isNotEmpty
           ? cats
-                .map((c) => {'id': c.id, 'name': c.name, 'icon': '🏷️'})
+                .map((c) => {'id': c.id, 'name': c.name})
                 .toList()
           : _categoryItems,
       orElse: () => _categoryItems,
@@ -469,7 +470,6 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen>
                         ),
                         error: (_, _) => _AccountChip(
                           label: 'Retry wallet loading',
-                          icon: '↻',
                           isSelected: false,
                           isDark: isDark,
                           onTap: () => ref.invalidate(accountsProvider),
@@ -496,7 +496,6 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen>
                                   _selectedAccount == null;
                               return _AccountChip(
                                 label: acc.name,
-                                icon: '💵',
                                 isSelected: isSelected,
                                 isDark: isDark,
                                 onTap: () =>
@@ -917,7 +916,13 @@ class _CategoryGrid extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(cat['icon']!, style: const TextStyle(fontSize: 15)),
+                  Icon(
+                    CategoryIconHelper.iconFor(cat['name']!),
+                    size: 15,
+                    color: isSelected
+                        ? AppColors.expense
+                        : CategoryIconHelper.colorFor(cat['name']!),
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     cat['name']!,
@@ -945,13 +950,11 @@ class _CategoryGrid extends StatelessWidget {
 
 class _AccountChip extends StatelessWidget {
   final String label;
-  final String icon;
   final bool isSelected;
   final bool isDark;
   final VoidCallback onTap;
   const _AccountChip({
     required this.label,
-    required this.icon,
     required this.isSelected,
     required this.isDark,
     required this.onTap,
@@ -987,7 +990,13 @@ class _AccountChip extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(icon, style: const TextStyle(fontSize: 14)),
+              Icon(
+                Icons.account_balance_wallet_outlined,
+                size: 14,
+                color: isSelected
+                    ? AppColors.income
+                    : (isDark ? AppColors.textMuted : AppColors.textMutedL),
+              ),
               const SizedBox(width: 7),
               Text(
                 label,

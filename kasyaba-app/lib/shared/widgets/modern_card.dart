@@ -33,7 +33,7 @@ class ModernCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final effectiveBg = backgroundColor ?? AppColors.surfaceCard;
-    final effectiveBorder = borderColor ?? const Color(0x33334155);
+    final effectiveBorder = borderColor ?? AppColors.subtleBorder;
     final shadow = customShadow ?? _buildShadow();
 
     final radius = BorderRadius.circular(borderRadius);

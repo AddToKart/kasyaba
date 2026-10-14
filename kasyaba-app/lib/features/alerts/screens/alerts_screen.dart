@@ -163,7 +163,7 @@ class AlertsScreen extends ConsumerWidget {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'Financial Analysis & Recovery Plan 💡',
+                          'Financial Analysis & Recovery Plan',
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,

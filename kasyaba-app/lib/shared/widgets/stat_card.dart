@@ -34,15 +34,14 @@ class StatCard extends StatelessWidget {
       onTap: onTap,
       borderRadius: 18.0,
       backgroundColor: AppColors.surfaceCard,
-      borderColor: const Color(0x33334155),
+      borderColor: AppColors.subtleBorder,
       padding: EdgeInsets.symmetric(
         horizontal: compact ? 12 : 14,
         vertical: compact ? 14 : 16,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           // Icon Container
           Container(
@@ -55,32 +54,36 @@ class StatCard extends StatelessWidget {
             child: Icon(icon, color: color, size: 20),
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
 
-          // Value
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.4,
-              color: AppColors.textDark,
-            ),
-          ),
-
-          const SizedBox(height: 3),
-
-          // Label
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: AppColors.textMuted,
-              fontWeight: FontWeight.w500,
-              letterSpacing: 0.3,
-            ),
+          // Value and Label
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.4,
+                  color: AppColors.textDark,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: AppColors.textMuted,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ],
           ),
 
           if (subtitle != null) ...[

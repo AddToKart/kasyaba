@@ -331,7 +331,7 @@ class _CreateBudgetSheetState extends ConsumerState<_CreateBudgetSheet> {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Monthly budget created! 🎯'),
+          content: Text('Monthly budget created!'),
           backgroundColor: AppColors.emerald500,
         ),
       );

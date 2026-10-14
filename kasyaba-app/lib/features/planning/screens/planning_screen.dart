@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
+import '../../../core/utils/currency_formatter.dart';
 import '../../../shared/widgets/modern_card.dart';
 
 class PlanningScreen extends ConsumerStatefulWidget {
@@ -38,7 +39,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      showDragHandle: true,
+      showDragHandle: false,
       backgroundColor: AppColors.surface800,
       builder: (sheetContext) => StatefulBuilder(
         builder: (context, setState) {
@@ -451,4 +452,4 @@ String _statusLabel(String status) {
   };
 }
 
-String _money(double value) => value.toStringAsFixed(2);
+String _money(double value) => CurrencyFormatter.formatNumber(value);

@@ -5,6 +5,8 @@ import 'package:fl_chart/fl_chart.dart';
 import '../../../core/auth/auth_provider.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
+import '../../../core/utils/currency_formatter.dart';
+import '../../../core/utils/category_icon_helper.dart';
 import '../../../shared/widgets/modern_card.dart';
 import '../../../shared/widgets/stat_card.dart';
 import '../../../shared/widgets/empty_state_view.dart';
@@ -329,30 +331,16 @@ class _DashboardAppBar extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Text.rich(
-                    TextSpan(
-                      children: [
-                        TextSpan(
-                          text: firstName,
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.4,
-                            color: AppColors.textDark,
-                          ),
-                        ),
-                        const TextSpan(text: ' '),
-                        const TextSpan(
-                          text: '✦',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: AppColors.gold400,
-                          ),
-                        ),
-                      ],
-                    ),
+                  Text(
+                    firstName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.4,
+                      color: AppColors.textDark,
+                    ),
                   ),
                 ],
               ),
@@ -532,7 +520,7 @@ class _HeroBalanceCard extends StatelessWidget {
                     duration: const Duration(milliseconds: 300),
                     child: Text(
                       isVisible
-                          ? '₱${_formatFullCurrency(data.totalBalance)}'
+                          ? CurrencyFormatter.format(data.totalBalance)
                           : '₱ •••••••',
                       key: ValueKey(isVisible),
                       style: const TextStyle(
@@ -541,6 +529,7 @@ class _HeroBalanceCard extends StatelessWidget {
                         color: AppColors.textDark,
                         letterSpacing: -0.5,
                         height: 1.1,
+                        fontFeatures: [FontFeature.tabularFigures()],
                       ),
                     ),
                   ),
@@ -553,7 +542,7 @@ class _HeroBalanceCard extends StatelessWidget {
                       color: AppColors.surface800.withValues(alpha: 0.9),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: const Color(0x33334155),
+                        color: AppColors.subtleBorder,
                         width: 1,
                       ),
                     ),
@@ -563,7 +552,7 @@ class _HeroBalanceCard extends StatelessWidget {
                           child: _FinancePill(
                             label: 'Income',
                             amount: isVisible
-                                ? '₱${_formatAmount(data.income)}'
+                                ? CurrencyFormatter.format(data.income)
                                 : '••••',
                             icon: Icons.arrow_downward_rounded,
                             iconColor: AppColors.emerald500,
@@ -573,13 +562,13 @@ class _HeroBalanceCard extends StatelessWidget {
                         Container(
                           width: 1,
                           height: 32,
-                          color: const Color(0x33334155),
+                          color: AppColors.subtleBorder,
                         ),
                         Expanded(
                           child: _FinancePill(
                             label: 'Expenses',
                             amount: isVisible
-                                ? '₱${_formatAmount(data.expenses)}'
+                                ? CurrencyFormatter.format(data.expenses)
                                 : '••••',
                             icon: Icons.arrow_upward_rounded,
                             iconColor: Colors.white,
@@ -600,7 +589,7 @@ class _HeroBalanceCard extends StatelessWidget {
                           label: 'Add Expense',
                           icon: Icons.remove_rounded,
                           onTap: onExpense,
-                          isPrimary: true,
+                          isIncome: false,
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -609,7 +598,7 @@ class _HeroBalanceCard extends StatelessWidget {
                           label: 'Add Income',
                           icon: Icons.add_rounded,
                           onTap: onIncome,
-                          isPrimary: false,
+                          isIncome: true,
                         ),
                       ),
                     ],
@@ -621,24 +610,6 @@ class _HeroBalanceCard extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _formatFullCurrency(double amount) {
-    return amount
-        .toStringAsFixed(2)
-        .replaceAllMapped(
-          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-          (Match m) => '${m[1]},',
-        );
-  }
-
-  String _formatAmount(double amount) {
-    if (amount >= 1000000) {
-      return '${(amount / 1000000).toStringAsFixed(2)}M';
-    } else if (amount >= 1000) {
-      return '${(amount / 1000).toStringAsFixed(1)}K';
-    }
-    return amount.toStringAsFixed(2);
   }
 }
 
@@ -774,32 +745,32 @@ class _QuickActionBtn extends StatelessWidget {
   final String label;
   final IconData icon;
   final VoidCallback onTap;
-  final bool isPrimary;
+  final bool isIncome;
 
   const _QuickActionBtn({
     required this.label,
     required this.icon,
     required this.onTap,
-    required this.isPrimary,
+    required this.isIncome,
   });
 
   @override
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         child: Container(
           height: 46,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            color: isPrimary ? AppColors.emerald500 : AppColors.surface700,
-            border: isPrimary
+            borderRadius: BorderRadius.circular(12),
+            color: isIncome ? AppColors.emerald500 : AppColors.surface700,
+            border: isIncome
                 ? null
-                : Border.all(color: const Color(0x40334155), width: 1),
-            boxShadow: isPrimary
+                : Border.all(color: AppColors.subtleBorder, width: 1),
+            boxShadow: isIncome
                 ? [
                     BoxShadow(
                       color: AppColors.emerald500.withValues(alpha: 0.35),
@@ -815,7 +786,7 @@ class _QuickActionBtn extends StatelessWidget {
               Icon(
                 icon,
                 size: 18,
-                color: isPrimary ? Colors.black : AppColors.textDark,
+                color: isIncome ? Colors.black : AppColors.gold400,
               ),
               const SizedBox(width: 6),
               Text(
@@ -823,7 +794,7 @@ class _QuickActionBtn extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
-                  color: isPrimary ? Colors.black : AppColors.textDark,
+                  color: isIncome ? Colors.black : AppColors.textDark,
                   letterSpacing: 0.3,
                 ),
               ),
@@ -856,51 +827,66 @@ class _StatGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: StatCard(
-            icon: Icons.savings_outlined,
-            label: 'Savings',
-            value: '₱${_fmt(data.savings)}',
-            color: AppColors.info,
-            onTap: onSavingsTap,
+    final runwayDays = _calculateRunway(data.totalBalance, data.expenses);
+    final runwayColor = runwayDays >= 30
+        ? AppColors.emerald500
+        : (runwayDays >= 14 ? AppColors.warning : AppColors.expense);
+
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: StatCard(
+              icon: Icons.savings_outlined,
+              label: 'Savings',
+              value: CurrencyFormatter.formatCompact(data.savings),
+              subtitle: 'Secured',
+              color: AppColors.info,
+              onTap: onSavingsTap,
+            ),
           ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: StatCard(
-            icon: Icons.donut_small_outlined,
-            label: 'Budget',
-            value: '${data.budgetUsedPercent.toStringAsFixed(0)}%',
-            subtitle: _budgetStatusLabel(data.budgetUsedPercent),
-            color: AppColors.gold500,
-            onTap: onBudgetTap,
+          const SizedBox(width: 10),
+          Expanded(
+            child: StatCard(
+              icon: Icons.donut_small_outlined,
+              label: 'Budget',
+              value: '${data.budgetUsedPercent.toStringAsFixed(0)}%',
+              subtitle: _budgetStatusLabel(data.budgetUsedPercent),
+              color: AppColors.gold500,
+              onTap: onBudgetTap,
+            ),
           ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: StatCard(
-            icon: Icons.favorite_outline_rounded,
-            label: 'Health',
-            value: data.healthScore,
-            color: healthColor,
-            onTap: onHealthTap,
+          const SizedBox(width: 10),
+          Expanded(
+            child: StatCard(
+              icon: Icons.shield_outlined,
+              label: 'Runway',
+              value: '${runwayDays}d',
+              subtitle: runwayDays >= 30 ? 'Safe' : 'Watch',
+              color: runwayColor,
+              onTap: onHealthTap,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
+  }
+
+  static int _calculateRunway(double balance, double expenses) {
+    if (balance <= 0) return 0;
+    final now = DateTime.now();
+    final dayOfMonth = now.day.clamp(1, 31);
+    final dailyBurn = expenses > 0 ? (expenses / dayOfMonth) : 0.0;
+    if (dailyBurn <= 0) return 90;
+    final days = (balance / dailyBurn).floor();
+    return days.clamp(0, 999);
   }
 
   String _budgetStatusLabel(double percentUsed) {
     if (percentUsed >= 100) return 'Over Budget';
     if (percentUsed >= 90) return 'Near Limit';
     return 'On Track';
-  }
-
-  String _fmt(double v) {
-    if (v >= 1000) return '${(v / 1000).toStringAsFixed(1)}K';
-    return v.toStringAsFixed(0);
   }
 }
 
@@ -920,7 +906,7 @@ class _ForecastCard extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       borderRadius: 20,
       backgroundColor: AppColors.surfaceCard,
-      borderColor: const Color(0x33334155),
+      borderColor: AppColors.subtleBorder,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -958,17 +944,18 @@ class _ForecastCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      '₱${(data.predictedMonthEnd as double).toStringAsFixed(2)}',
+                      CurrencyFormatter.format(data.predictedMonthEnd),
                       style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
                         letterSpacing: -0.5,
                         color: AppColors.textDark,
+                        fontFeatures: [FontFeature.tabularFigures()],
                       ),
                     ),
                     const SizedBox(height: 3),
                     const Text(
-                      'Includes scheduled transactions and known bills',
+                      'Deterministic forecast from scheduled cash flows',
                       style: TextStyle(
                         fontSize: 11,
                         color: AppColors.textMuted,
@@ -981,12 +968,62 @@ class _ForecastCard extends StatelessWidget {
           ),
           const SizedBox(height: 14),
 
+          // Deterministic Mini Math Breakdown
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.surface800,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppColors.subtleBorder,
+                width: 1,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(
+                      Icons.calculate_outlined,
+                      size: 14,
+                      color: AppColors.gold400,
+                    ),
+                    SizedBox(width: 6),
+                    Text(
+                      'DETERMINISTIC CASH FLOW BREAKDOWN',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.8,
+                        color: AppColors.gold400,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '${CurrencyFormatter.format(data.totalBalance)} (Liquid) + ${CurrencyFormatter.format(data.income)} (Inflow) - ${CurrencyFormatter.format(data.expenses)} (Outflow) = ${CurrencyFormatter.format(data.predictedMonthEnd)} (Forecast)',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textDark,
+                    fontFeatures: [FontFeature.tabularFigures()],
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+
           // Alert Warning Capsule
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
               color: accentColor.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: accentColor.withValues(alpha: 0.3),
                 width: 1,
@@ -1020,22 +1057,55 @@ class _ForecastCard extends StatelessWidget {
           ),
 
           // ── Daily Balance Trend Line Chart ─────────────
-          if (data.dailyBalance.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'BALANCE TREND',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.2,
-                      color: AppColors.textMuted,
-                    ),
+          Padding(
+            padding: const EdgeInsets.only(top: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'BALANCE TREND',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.2,
+                    color: AppColors.textMuted,
                   ),
-                  const SizedBox(height: 12),
+                ),
+                const SizedBox(height: 12),
+                if (data.dailyBalance.length < 2)
+                  Container(
+                    height: 110,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: AppColors.surface800.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppColors.subtleBorder,
+                        width: 1,
+                      ),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.show_chart_rounded,
+                          size: 18,
+                          color: AppColors.textMuted,
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          'Insufficient data to plot trend line (requires ≥ 2 points)',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textMuted,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else
                   SizedBox(
                     height: 140,
                     child: Builder(
@@ -1054,8 +1124,8 @@ class _ForecastCard extends StatelessWidget {
                                   ? interval
                                   : 1000.0,
                               getDrawingHorizontalLine: (value) {
-                                return FlLine(
-                                  color: const Color(0x1F334155),
+                                return const FlLine(
+                                  color: Color(0x1F334155),
                                   strokeWidth: 1,
                                 );
                               },
@@ -1140,6 +1210,7 @@ class _ForecastCard extends StatelessWidget {
                       },
                     ),
                   ),
+                if (data.dailyBalance.length >= 2) ...[
                   const SizedBox(height: 8),
                   Row(
                     children: [
@@ -1152,8 +1223,9 @@ class _ForecastCard extends StatelessWidget {
                     ],
                   ),
                 ],
-              ),
+              ],
             ),
+          ),
         ],
       ),
     );
@@ -1361,11 +1433,12 @@ class _SpendingSection extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            '₱${total > 1000 ? '${(total / 1000).toStringAsFixed(1)}K' : total.toStringAsFixed(0)}',
+                            CurrencyFormatter.format(total),
                             style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w800,
                               color: AppColors.textDark,
+                              fontFeatures: [FontFeature.tabularFigures()],
                             ),
                           ),
                         ],
@@ -1400,11 +1473,12 @@ class _SpendingSection extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          '₱${cats[i].total.toStringAsFixed(2)}',
+                          CurrencyFormatter.format(cats[i].total),
                           style: const TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
                             color: AppColors.textDark,
+                            fontFeatures: [FontFeature.tabularFigures()],
                           ),
                         ),
                       ],
@@ -1439,12 +1513,13 @@ class _TransactionList extends StatelessWidget {
   Widget build(BuildContext context) {
     return ModernCard(
       padding: const EdgeInsets.symmetric(vertical: 8),
+      borderColor: AppColors.subtleBorder,
       child: Column(
         children: [
           for (int i = 0; i < items.length; i++) ...[
             _TransactionTile(item: items[i], isDark: isDark, theme: theme),
             if (i < items.length - 1)
-              const Divider(height: 1, indent: 64, color: Color(0x33334155)),
+              const Divider(height: 1, indent: 68, color: AppColors.subtleBorder),
           ],
         ],
       ),
@@ -1467,26 +1542,35 @@ class _TransactionTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final isExpense = item.isExpense;
     final amountColor = isExpense ? AppColors.expense : AppColors.income;
-    final prefix = isExpense ? '-' : '+';
+    final categoryColor = CategoryIconHelper.getColor(
+      item.categoryName,
+      isExpense: isExpense,
+    );
+    final categoryIcon = CategoryIconHelper.getIcon(item.categoryName);
     final dateStr =
         '${item.date.year}-${item.date.month.toString().padLeft(2, '0')}-${item.date.day.toString().padLeft(2, '0')}';
+    final primaryTitle = item.title.isNotEmpty ? item.title : item.categoryName;
+    final subtitleText = '${item.categoryName} • $dateStr';
 
     return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       leading: Container(
-        width: 40,
-        height: 40,
+        width: 44,
+        height: 44,
         decoration: BoxDecoration(
-          color: amountColor.withValues(alpha: 0.15),
+          color: categoryColor.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: categoryColor.withValues(alpha: 0.3),
+            width: 1,
+          ),
         ),
-        child: Icon(
-          isExpense ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
-          color: amountColor,
-          size: 20,
-        ),
+        child: Icon(categoryIcon, color: categoryColor, size: 20),
       ),
       title: Text(
-        item.categoryName,
+        primaryTitle,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: const TextStyle(
           fontWeight: FontWeight.w700,
           fontSize: 14,
@@ -1494,17 +1578,22 @@ class _TransactionTile extends StatelessWidget {
         ),
       ),
       subtitle: Text(
-        item.title.isNotEmpty ? item.title : dateStr,
+        subtitleText,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          color: AppColors.textMuted,
+        ),
       ),
       trailing: Text(
-        '$prefix₱${item.amount.toStringAsFixed(2)}',
+        CurrencyFormatter.formatSigned(item.amount, isExpense: isExpense),
         style: TextStyle(
           fontWeight: FontWeight.w800,
           fontSize: 15,
           color: amountColor,
+          fontFeatures: const [FontFeature.tabularFigures()],
         ),
       ),
     );
@@ -1528,6 +1617,7 @@ class _GoalsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return ModernCard(
       padding: const EdgeInsets.all(16),
+      borderColor: AppColors.subtleBorder,
       child: Column(
         children: [
           for (int i = 0; i < goals.length; i++) ...[
@@ -1570,7 +1660,7 @@ class _GoalRow extends StatelessWidget {
             const SizedBox(width: 8),
             Flexible(
               child: Text(
-                '₱${goal.currentAmount.toStringAsFixed(0)} / ₱${goal.targetAmount.toStringAsFixed(0)} ($pct%)',
+                '${CurrencyFormatter.format(goal.currentAmount)} / ${CurrencyFormatter.format(goal.targetAmount)} ($pct%)',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.end,
@@ -1578,6 +1668,7 @@ class _GoalRow extends StatelessWidget {
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                   color: AppColors.emerald500,
+                  fontFeatures: [FontFeature.tabularFigures()],
                 ),
               ),
             ),
@@ -1615,16 +1706,21 @@ class _BillsList extends StatelessWidget {
   Widget build(BuildContext context) {
     return ModernCard(
       padding: const EdgeInsets.symmetric(vertical: 8),
+      borderColor: AppColors.subtleBorder,
       child: Column(
         children: [
           for (int i = 0; i < bills.length; i++) ...[
             ListTile(
               leading: Container(
-                width: 40,
-                height: 40,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
                   color: AppColors.gold500.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppColors.gold500.withValues(alpha: 0.3),
+                    width: 1,
+                  ),
                 ),
                 child: const Icon(
                   Icons.receipt_rounded,
@@ -1648,16 +1744,17 @@ class _BillsList extends StatelessWidget {
                 ),
               ),
               trailing: Text(
-                '₱${bills[i].amount.toStringAsFixed(2)}',
+                CurrencyFormatter.format(bills[i].amount),
                 style: const TextStyle(
                   fontWeight: FontWeight.w800,
                   fontSize: 15,
                   color: AppColors.textDark,
+                  fontFeatures: [FontFeature.tabularFigures()],
                 ),
               ),
             ),
             if (i < bills.length - 1)
-              const Divider(height: 1, indent: 64, color: Color(0x33334155)),
+              const Divider(height: 1, indent: 68, color: AppColors.subtleBorder),
           ],
         ],
       ),

@@ -523,7 +523,7 @@ class PaginatedTransactions {
 }
 
 final transactionFilterProvider = StateProvider<TransactionQueryFilter>((ref) {
-  return const TransactionQueryFilter(page: 1, limit: 10);
+  return const TransactionQueryFilter(page: 1, limit: 50);
 });
 
 final paginatedTransactionsProvider = FutureProvider<PaginatedTransactions>((

@@ -102,26 +102,26 @@ export async function evaluatePurchaseAffordability(
 
   if (isNegative) {
     verdict = 'NOT_RECOMMENDED';
-    statusTitle = '❌ Insufficient Funds';
+    statusTitle = 'Insufficient Funds';
     statusMessage = 'This purchase would turn your balance negative immediately.';
     reasons.push(`Immediate balance deficit of ₱${postPurchaseBalance.abs().toFixed(2)}.`);
   } else if (cannotCoverBills) {
     verdict = 'NOT_RECOMMENDED';
-    statusTitle = '❌ Unable to Cover Upcoming Bills';
+    statusTitle = 'Unable to Cover Upcoming Bills';
     statusMessage = 'Buying this will leave you short for your upcoming bills over the next 30 days.';
     reasons.push(
       `Required for upcoming bills: ₱${totalUpcomingBills.toFixed(2)}. Remaining liquid cash would be only ₱${postPurchaseBalance.toFixed(2)}.`
     );
   } else if (belowThreshold) {
     verdict = 'RISKY';
-    statusTitle = '⚠️ High Risk Purchase';
+    statusTitle = 'High Risk Purchase';
     statusMessage = 'You can technically buy this, but it will drop your balance below your safety threshold.';
     reasons.push(
       `Your balance drops to ₱${postPurchaseBalance.toFixed(2)}, below your ₱${minThreshold.toFixed(2)} safety threshold.`
     );
   } else {
     verdict = 'AFFORDABLE';
-    statusTitle = '✅ Safely Affordable';
+    statusTitle = 'Safely Affordable';
     statusMessage = 'You can safely afford this purchase without compromising your bills or safety buffer!';
     reasons.push(
       `You will retain ₱${cashAfterBills.toFixed(2)} in free cash flow after all upcoming bills are covered.`

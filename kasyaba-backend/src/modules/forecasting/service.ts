@@ -27,14 +27,14 @@ export async function computeSnapshot(
   providedTimeZone?: string,
 ): Promise<ForecastResult> {
   const now = new Date();
-  const timeZone =
+  const timeZone: string =
     providedTimeZone ??
-    (await prisma.user
+    ((await prisma.user
       .findUnique({
         where: { id: userId },
         select: { timezone: true },
       })
-      .then((u) => u?.timezone ?? 'UTC'));
+      .then((u) => u?.timezone ?? 'UTC')) ?? 'UTC');
   const monthStart = startOfZonedMonth(now, timeZone);
   const monthEnd = endOfZonedMonth(now, timeZone);
   const elapsedDays = daysBetween(monthStart, now);
@@ -314,14 +314,14 @@ export async function createDailySnapshot(
 ): Promise<void> {
   const result = existingResult ?? await computeSnapshot(userId, providedTimeZone);
   const now = new Date();
-  const timeZone =
+  const timeZone: string =
     providedTimeZone ??
-    (await prisma.user
+    ((await prisma.user
       .findUnique({
         where: { id: userId },
         select: { timezone: true },
       })
-      .then((u) => u?.timezone ?? 'UTC'));
+      .then((u) => u?.timezone ?? 'UTC')) ?? 'UTC');
   const snapshotDate = startOfZonedDay(now, timeZone);
 
   await prisma.financialSnapshot.upsert({

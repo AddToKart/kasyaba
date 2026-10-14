@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../app/theme/app_theme.dart';
 import '../../../core/app_info.dart';
 import '../../../core/auth/auth_provider.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
+import '../../../core/utils/currency_formatter.dart';
 import '../../../shared/widgets/modern_card.dart';
 import '../../../shared/widgets/modern_bottom_sheet.dart';
 import '../../../shared/widgets/modern_text_field.dart';
@@ -44,7 +46,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     ModernBottomSheet.show(
       context: context,
-      title: 'Salary & Payday Settings 💼',
+      title: 'Salary & Payday Settings',
       subtitle:
           'Feed your exact income schedule into the deterministic forecasting engine.',
       child: StatefulBuilder(
@@ -213,7 +215,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text(
-                                    'Salary & Payday settings updated! 💼',
+                                    'Salary & Payday settings updated!',
                                   ),
                                   backgroundColor: Color(0xFF10B981),
                                 ),
@@ -283,10 +285,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     return Scaffold(
       appBar: AppBar(
         titleSpacing: 20,
+        elevation: 0,
+        scrolledUnderElevation: 0,
         title: Text(
           'Profile & Settings',
           style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w800,
+            fontSize: 22,
+            letterSpacing: 0.5,
           ),
         ),
       ),
@@ -296,16 +302,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           // User Profile Card
           ModernCard(
             padding: const EdgeInsets.all(20),
+            borderRadius: 20,
+            borderColor: AppColors.subtleBorder,
             gradient: LinearGradient(
               colors: isDark
                   ? const [Color(0xFF1E293B), Color(0xFF0F172A)]
                   : const [Color(0xFFECFDF5), Color(0xFFF8FAFC)],
             ),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Container(
-                  width: 60,
-                  height: 60,
+                  width: 58,
+                  height: 58,
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       colors: [Color(0xFF059669), Color(0xFF10B981)],
@@ -334,6 +343,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         displayName,
@@ -341,11 +351,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 3),
                       Text(
                         authState.email ?? 'No email set',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
+                          color: isDark ? AppColors.textMuted : AppColors.textMutedL,
                         ),
                       ),
                     ],
@@ -362,7 +372,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             error: (err, _) => const SizedBox.shrink(),
             data: (profile) {
               final salaryStr = profile.salaryAmount != null
-                  ? '₱${profile.salaryAmount!.toStringAsFixed(2)} / month'
+                  ? '${CurrencyFormatter.format(profile.salaryAmount!)} / month'
                   : 'Not configured';
               final schedStr =
                   '${profile.paydayFrequency ?? 'semi-monthly'} (${profile.paydaySchedule ?? '15th & 30th'})';
@@ -596,7 +606,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         showDialog(
                           context: context,
                           builder: (ctx) => AlertDialog(
-                            title: const Text('Data Export Ready 📦'),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            title: const Text('Data Export Ready'),
                             content: Text(
                               'Export completed successfully for ${data['user']?['email'] ?? 'your account'}.\n\n'
                               'Export Timestamp: ${data['exportedAt']}',
@@ -770,7 +783,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 120),
         ],
       ),
     );

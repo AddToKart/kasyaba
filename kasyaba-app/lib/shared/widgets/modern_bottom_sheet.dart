@@ -32,6 +32,7 @@ class ModernBottomSheet extends StatelessWidget {
     return showModalBottomSheet<T>(
       context: context,
       isScrollControlled: true,
+      showDragHandle: false,
       backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withValues(alpha: 0.75),
       useRootNavigator: useRootNavigator,

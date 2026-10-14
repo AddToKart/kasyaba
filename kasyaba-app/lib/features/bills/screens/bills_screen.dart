@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../../../app/router/app_shell.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
+import '../../../core/utils/currency_formatter.dart';
 import '../../../shared/widgets/modern_card.dart';
 import '../../../shared/widgets/empty_state_view.dart';
 import '../../../shared/widgets/modern_bottom_sheet.dart';
@@ -40,11 +42,11 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
     var isSubmitting = false;
 
     final presets = [
-      {'name': 'Internet Bill', 'icon': '🌐'},
-      {'name': 'Electric Bill', 'icon': '⚡'},
-      {'name': 'Water Bill', 'icon': '💧'},
-      {'name': 'Mobile Plan', 'icon': '📱'},
-      {'name': 'Housing Rent', 'icon': '🏠'},
+      {'name': 'Internet Bill', 'icon': Icons.wifi_rounded},
+      {'name': 'Electric Bill', 'icon': Icons.bolt_rounded},
+      {'name': 'Water Bill', 'icon': Icons.water_drop_outlined},
+      {'name': 'Mobile Plan', 'icon': Icons.smartphone_rounded},
+      {'name': 'Housing Rent', 'icon': Icons.home_outlined},
     ];
 
     ModernBottomSheet.show(
@@ -67,10 +69,18 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
               runSpacing: 8,
               children: presets.map((preset) {
                 return ActionChip(
-                  avatar: Text(preset['icon']!),
-                  label: Text(preset['name']!),
+                  avatar: Icon(
+                    preset['icon'] as IconData,
+                    size: 15,
+                    color: AppColors.emerald500,
+                  ),
+                  label: Text(preset['name'] as String),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppTheme.tagRadius),
+                    side: const BorderSide(color: AppColors.subtleBorder),
+                  ),
                   onPressed: () {
-                    _billNameController.text = preset['name']!;
+                    _billNameController.text = preset['name'] as String;
                   },
                 );
               }).toList(),
@@ -168,7 +178,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                   style: FilledButton.styleFrom(
                     minimumSize: const Size.fromHeight(50),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(AppTheme.buttonRadius),
                     ),
                   ),
                 );
@@ -179,6 +189,13 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
         ),
       ),
     );
+  }
+
+  bool _isBillOverdue(BillItem bill, DateTime today) {
+    if (bill.status.toLowerCase() == 'paid') return false;
+    if (bill.status.toLowerCase() == 'overdue') return true;
+    final billDay = DateTime(bill.dueDate.year, bill.dueDate.month, bill.dueDate.day);
+    return billDay.isBefore(today);
   }
 
   List<Widget> _buildSelectedDayBills(AsyncValue<List<BillItem>> billsAsync) {
@@ -198,16 +215,18 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
 
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
 
     return [
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
         child: Row(
           children: [
-            Icon(Icons.event, size: 14, color: AppColors.emerald500),
+            const Icon(Icons.event_outlined, size: 14, color: AppColors.emerald500),
             const SizedBox(width: 6),
             Text(
-              'Due on ${_selectedDay.day}/${_selectedDay.month}/${_selectedDay.year}',
+              'Due on ${DateFormat('MMM d, yyyy').format(_selectedDay)}',
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
@@ -218,51 +237,56 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
         ),
       ),
       ...dueBills.map(
-        (bill) => Padding(
-          padding: const EdgeInsets.only(bottom: 4),
-          child: ModernCard(
-            padding: EdgeInsets.zero,
-            child: ListTile(
-              dense: true,
-              visualDensity: VisualDensity.compact,
-              leading: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: AppColors.expense.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8),
+        (bill) {
+          final isOverdue = _isBillOverdue(bill, today);
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: ModernCard(
+              padding: EdgeInsets.zero,
+              borderRadius: 16,
+              child: ListTile(
+                dense: true,
+                visualDensity: VisualDensity.compact,
+                leading: Container(
+                  padding: const EdgeInsets.all(7),
+                  decoration: BoxDecoration(
+                    color: (isOverdue ? AppColors.expense : AppColors.gold500).withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    Icons.receipt_long_outlined,
+                    color: isOverdue ? AppColors.expense : AppColors.gold500,
+                    size: 16,
+                  ),
                 ),
-                child: const Icon(
-                  Icons.receipt_long_outlined,
-                  color: AppColors.expense,
-                  size: 16,
+                title: Text(
+                  bill.name,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? AppColors.textDark : AppColors.textLight,
+                  ),
                 ),
-              ),
-              title: Text(
-                bill.name,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? AppColors.textDark : AppColors.textLight,
+                subtitle: Text(
+                  bill.status,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDark ? AppColors.textMuted : AppColors.textMutedL,
+                  ),
                 ),
-              ),
-              subtitle: Text(
-                bill.status,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isDark ? AppColors.textMuted : AppColors.textMutedL,
-                ),
-              ),
-              trailing: Text(
-                '₱${bill.amount.toStringAsFixed(2)}',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.expense,
-                  fontSize: 14,
+                trailing: Text(
+                  CurrencyFormatter.format(bill.amount),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: isOverdue ? AppColors.expense : (isDark ? AppColors.textDark : AppColors.textLight),
+                    fontSize: 14,
+                    fontFeatures: CurrencyFormatter.tabularFigures,
+                  ),
                 ),
               ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     ];
   }
@@ -270,7 +294,10 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final billsAsync = ref.watch(billsProvider);
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
 
     return Scaffold(
       appBar: AppBar(
@@ -278,19 +305,14 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
         title: Text(
           'Bills & Reminders',
           style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w800,
+            fontSize: 22,
+            letterSpacing: 0.5,
           ),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add_circle_outline),
-            tooltip: 'Add Bill',
-            onPressed: () => _showAddBillBottomSheet(context),
-          ),
-          const SizedBox(width: 8),
-        ],
       ),
       body: RefreshIndicator(
+        color: AppColors.emerald500,
         onRefresh: () async => ref.invalidate(billsProvider),
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -347,7 +369,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                   color: AppColors.emerald500.withValues(alpha: 0.25),
                   shape: BoxShape.circle,
                 ),
-                todayTextStyle: TextStyle(
+                todayTextStyle: const TextStyle(
                   color: AppColors.emerald400,
                   fontWeight: FontWeight.bold,
                 ),
@@ -360,24 +382,20 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                   fontWeight: FontWeight.bold,
                 ),
                 defaultTextStyle: TextStyle(
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? AppColors.textDark
-                      : AppColors.textLight,
+                  color: isDark ? AppColors.textDark : AppColors.textLight,
                 ),
                 weekendTextStyle: TextStyle(
-                  color: AppColors.expense.withValues(alpha: 0.7),
+                  color: isDark ? AppColors.textDark : AppColors.textLight,
                 ),
                 outsideTextStyle: TextStyle(
-                  color: Theme.of(context).brightness == Brightness.dark
+                  color: isDark
                       ? AppColors.textMuted.withValues(alpha: 0.35)
                       : AppColors.textMutedL.withValues(alpha: 0.35),
                 ),
               ),
               headerStyle: HeaderStyle(
                 titleTextStyle: TextStyle(
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? AppColors.textDark
-                      : AppColors.textLight,
+                  color: isDark ? AppColors.textDark : AppColors.textLight,
                   fontSize: 17,
                   fontWeight: FontWeight.bold,
                 ),
@@ -390,13 +408,13 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                   border: Border.all(
                     color: AppColors.emerald500.withValues(alpha: 0.4),
                   ),
-                  borderRadius: BorderRadius.all(Radius.circular(12.0)),
+                  borderRadius: const BorderRadius.all(Radius.circular(12.0)),
                 ),
-                leftChevronIcon: Icon(
+                leftChevronIcon: const Icon(
                   Icons.chevron_left,
                   color: AppColors.emerald400,
                 ),
-                rightChevronIcon: Icon(
+                rightChevronIcon: const Icon(
                   Icons.chevron_right,
                   color: AppColors.emerald400,
                 ),
@@ -408,6 +426,13 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
             const SizedBox(height: 16),
             // Segmented Filter
             SegmentedButton<String>(
+              style: ButtonStyle(
+                shape: WidgetStateProperty.all(
+                  RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppTheme.buttonRadius),
+                  ),
+                ),
+              ),
               segments: const [
                 ButtonSegment(value: 'upcoming', label: Text('Upcoming')),
                 ButtonSegment(value: 'paid', label: Text('Paid')),
@@ -422,10 +447,11 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
             billsAsync.when(
               loading: () => const SizedBox(
                 height: 200,
-                child: Center(child: CircularProgressIndicator()),
+                child: Center(child: CircularProgressIndicator(color: AppColors.emerald500)),
               ),
               error: (err, _) => ModernCard(
                 padding: const EdgeInsets.all(20),
+                borderRadius: 20,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -449,6 +475,11 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                     const SizedBox(height: 14),
                     FilledButton.tonal(
                       onPressed: () => ref.invalidate(billsProvider),
+                      style: FilledButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppTheme.buttonRadius),
+                        ),
+                      ),
                       child: const Text('Try again'),
                     ),
                   ],
@@ -458,6 +489,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                 if (bills.isEmpty) {
                   return ModernCard(
                     padding: EdgeInsets.zero,
+                    borderRadius: 20,
                     child: EmptyStateView(
                       title: 'No Bills Scheduled',
                       message:
@@ -469,22 +501,27 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                   );
                 }
 
-                final filteredBills = bills
-                    .where(
-                      (bill) =>
-                          bill.status.toLowerCase() == _selectedFilter,
-                    )
-                    .toList();
+                final filteredBills = bills.where((bill) {
+                  if (_selectedFilter == 'paid') {
+                    return bill.status.toLowerCase() == 'paid';
+                  } else if (_selectedFilter == 'overdue') {
+                    return _isBillOverdue(bill, today);
+                  } else {
+                    return bill.status.toLowerCase() != 'paid' && !_isBillOverdue(bill, today);
+                  }
+                }).toList();
 
                 if (filteredBills.isEmpty) {
                   return ModernCard(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(24),
+                    borderRadius: 20,
                     child: Text(
                       'No $_selectedFilter bills right now.',
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         color: AppColors.textMuted,
                         fontSize: 13,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   );
@@ -492,60 +529,128 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
 
                 return ModernCard(
                   padding: EdgeInsets.zero,
+                  borderRadius: 20,
                   child: Column(
                     children: [
                       for (int i = 0; i < filteredBills.length; i++) ...[
                         if (i > 0) const Divider(height: 1, indent: 56),
-                        ListTile(
-                          leading: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: const Color(
-                                0xFFF59E0B,
-                              ).withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(10),
+                        () {
+                          final bill = filteredBills[i];
+                          final isOverdue = _isBillOverdue(bill, today);
+                          final daysOverdue = isOverdue
+                              ? today.difference(DateTime(bill.dueDate.year, bill.dueDate.month, bill.dueDate.day)).inDays
+                              : 0;
+
+                          return ListTile(
+                            leading: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: (isOverdue ? AppColors.expense : AppColors.gold500).withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Icon(
+                                Icons.receipt_long_outlined,
+                                color: isOverdue ? AppColors.expense : AppColors.gold500,
+                                size: 20,
+                              ),
                             ),
-                            child: const Icon(
-                              Icons.receipt_long_outlined,
-                              color: Color(0xFFF59E0B),
-                              size: 20,
+                            title: Text(
+                              bill.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontWeight: FontWeight.bold),
                             ),
-                          ),
-                          title: Text(
-                            filteredBills[i].name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          subtitle: Text(
-                            'Due: ${filteredBills[i].dueDate.toIso8601String().split("T")[0]}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          trailing: Text(
-                            '₱${filteredBills[i].amount.toStringAsFixed(2)}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFFEF4444),
-                              fontSize: 15,
+                            subtitle: Row(
+                              children: [
+                                Text(
+                                  'Due: ${DateFormat('MMM d, yyyy').format(bill.dueDate)}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                                if (isOverdue) ...[
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.expense.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(AppTheme.tagRadius),
+                                      border: Border.all(
+                                        color: AppColors.expense.withValues(alpha: 0.3),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      daysOverdue > 0 ? '$daysOverdue${daysOverdue == 1 ? "d" : "d"} overdue' : 'Overdue',
+                                      style: const TextStyle(
+                                        color: AppColors.expense,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
-                          ),
-                        ),
+                            trailing: Text(
+                              CurrencyFormatter.format(bill.amount),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: isOverdue
+                                    ? AppColors.expense
+                                    : (bill.status.toLowerCase() == 'paid'
+                                        ? AppColors.emerald500
+                                        : (isDark ? AppColors.textDark : AppColors.textLight)),
+                                fontSize: 15,
+                                fontFeatures: CurrencyFormatter.tabularFigures,
+                              ),
+                            ),
+                          );
+                        }(),
                       ],
                     ],
                   ),
                 );
               },
             ),
-            const SizedBox(height: 100),
+            const SizedBox(height: 110),
           ],
         ),
       ),
       floatingActionButtonLocation: const FloatingDockFabLocation(),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddBillBottomSheet(context),
-        icon: const Icon(Icons.add),
-        label: const Text('Add Bill'),
+      floatingActionButton: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          color: AppColors.emerald500,
+          border: Border.all(
+            color: AppColors.gold500.withValues(alpha: 0.5),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.6),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: FloatingActionButton.extended(
+          onPressed: () => _showAddBillBottomSheet(context),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          icon: const Icon(Icons.add_rounded, size: 22, color: Colors.black),
+          label: const Text(
+            'New Bill',
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: 14,
+              color: Colors.black,
+              letterSpacing: 0.5,
+            ),
+          ),
+          tooltip: 'Add Bill',
+        ),
       ),
     );
   }

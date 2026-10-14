@@ -5,6 +5,7 @@ import '../../../app/router/app_shell.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
+import '../../../core/utils/currency_formatter.dart';
 import '../../../shared/widgets/modern_card.dart';
 import '../../../shared/widgets/empty_state_view.dart';
 import '../../../shared/widgets/modern_bottom_sheet.dart';
@@ -42,11 +43,11 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
     var isSubmitting = false;
 
     final presets = [
-      {'name': 'Emergency Fund', 'icon': '🛡️'},
-      {'name': 'Tuition Fee', 'icon': '🎓'},
-      {'name': 'New Gadget', 'icon': '📱'},
-      {'name': 'Vacation Trip', 'icon': '✈️'},
-      {'name': 'Vehicle', 'icon': '🚗'},
+      {'name': 'Emergency Fund', 'icon': Icons.shield_outlined},
+      {'name': 'Tuition Fee', 'icon': Icons.school_outlined},
+      {'name': 'New Gadget', 'icon': Icons.devices_outlined},
+      {'name': 'Vacation Trip', 'icon': Icons.flight_outlined},
+      {'name': 'Vehicle', 'icon': Icons.directions_car_outlined},
     ];
 
     ModernBottomSheet.show(
@@ -76,10 +77,18 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                   runSpacing: 8,
                   children: presets.map((preset) {
                     return ActionChip(
-                      avatar: Text(preset['icon']!),
-                      label: Text(preset['name']!),
+                      avatar: Icon(
+                        preset['icon'] as IconData,
+                        size: 15,
+                        color: AppColors.emerald500,
+                      ),
+                      label: Text(preset['name'] as String),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppTheme.tagRadius),
+                        side: const BorderSide(color: AppColors.subtleBorder),
+                      ),
                       onPressed: () {
-                        _goalNameController.text = preset['name']!;
+                        _goalNameController.text = preset['name'] as String;
                       },
                     );
                   }).toList(),
@@ -140,11 +149,11 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                     ),
                     decoration: BoxDecoration(
                       color: AppColors.surface700,
-                      borderRadius: BorderRadius.zero,
+                      borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: targetDate != null
                             ? AppColors.emerald500
-                            : const Color(0xFF1F293D),
+                            : AppColors.subtleBorder,
                         width: 1,
                       ),
                     ),
@@ -255,8 +264,8 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                   ),
                   style: FilledButton.styleFrom(
                     minimumSize: const Size.fromHeight(50),
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.zero,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                 ),
@@ -334,9 +343,19 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                                 filled: true,
                                 fillColor: AppColors.surface700,
                                 border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.zero,
+                                  borderRadius: BorderRadius.all(
+                                    Radius.circular(12),
+                                  ),
                                   borderSide: BorderSide(
-                                    color: Color(0xFF1F293D),
+                                    color: AppColors.subtleBorder,
+                                  ),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.all(
+                                    Radius.circular(12),
+                                  ),
+                                  borderSide: BorderSide(
+                                    color: AppColors.subtleBorder,
                                   ),
                                 ),
                               ),
@@ -381,10 +400,18 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                         return ActionChip(
                           avatar: const Icon(
                             Icons.add_rounded,
-                            size: 16,
+                            size: 15,
                             color: AppColors.emerald500,
                           ),
-                          label: Text('₱${amt.toString()}'),
+                          label: Text(CurrencyFormatter.formatInteger(amt)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                              AppTheme.tagRadius,
+                            ),
+                            side: const BorderSide(
+                              color: AppColors.subtleBorder,
+                            ),
+                          ),
                           onPressed: () {
                             _depositAmountController.text = amt.toString();
                           },
@@ -439,7 +466,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text(
-                                        'Added ₱${amount.toStringAsFixed(2)} to ${goal.name}! 🎉',
+                                        'Added ${CurrencyFormatter.format(amount)} to ${goal.name}.',
                                       ),
                                       backgroundColor: AppColors.emerald500,
                                     ),
@@ -485,8 +512,8 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                       style: FilledButton.styleFrom(
                         backgroundColor: AppColors.emerald500,
                         minimumSize: const Size.fromHeight(50),
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.zero,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                     ),
@@ -512,9 +539,10 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
 
     ModernBottomSheet.show(
       context: context,
-      title: 'Can I Buy This? 🛍️📱',
+      title: 'Can I Buy This?',
       subtitle:
           'Deterministic financial impact calculation on cash flow, bills, and threshold.',
+      showDragHandle: false,
       child: StatefulBuilder(
         builder: (context, setModalState) {
           return Form(
@@ -617,8 +645,8 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                   style: FilledButton.styleFrom(
                     backgroundColor: const Color(0xFF0284C7),
                     minimumSize: const Size.fromHeight(50),
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.zero,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                 ),
@@ -673,6 +701,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
               color: Colors.transparent,
               child: InkWell(
                 onTap: () => _showPurchaseCheckBottomSheet(context),
+                borderRadius: BorderRadius.circular(12),
                 child: SizedBox(
                   width: 48,
                   height: 48,
@@ -681,7 +710,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.zero,
+                        borderRadius: BorderRadius.circular(12),
                         color: const Color(0xFF0284C7).withValues(alpha: 0.15),
                         border: Border.all(
                           color: const Color(0xFF0284C7).withValues(alpha: 0.4),
@@ -692,39 +721,6 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                         Icons.shopping_bag_outlined,
                         size: 19,
                         color: Color(0xFF0284C7),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Tooltip(
-            message: 'Create Savings Goal',
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () => _showAddGoalBottomSheet(context),
-                child: SizedBox(
-                  width: 48,
-                  height: 48,
-                  child: Center(
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.zero,
-                        color: AppColors.emerald500.withValues(alpha: 0.15),
-                        border: Border.all(
-                          color: AppColors.emerald500.withValues(alpha: 0.4),
-                          width: 1,
-                        ),
-                      ),
-                      child: const Icon(
-                        Icons.add_rounded,
-                        size: 20,
-                        color: AppColors.emerald500,
                       ),
                     ),
                   ),
@@ -808,14 +804,14 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                 );
               },
             ),
-            const SizedBox(height: 100),
+            const SizedBox(height: 110),
           ],
         ),
       ),
       floatingActionButtonLocation: const FloatingDockFabLocation(),
       floatingActionButton: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.zero,
+          borderRadius: BorderRadius.circular(16),
           color: AppColors.emerald500,
           border: Border.all(
             color: AppColors.gold500.withValues(alpha: 0.5),
@@ -833,7 +829,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
           onPressed: () => _showAddGoalBottomSheet(context),
           backgroundColor: Colors.transparent,
           elevation: 0,
-          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           icon: const Icon(Icons.add_rounded, size: 22, color: Colors.black),
           label: const Text(
             'New Goal',
@@ -876,9 +872,9 @@ class _ModernGoalCard extends StatelessWidget {
 
     return ModernCard(
       padding: const EdgeInsets.all(20),
-      borderRadius: 0.0,
+      borderRadius: 20.0,
       backgroundColor: AppColors.surfaceCard,
-      borderColor: const Color(0xFF1F293D),
+      borderColor: AppColors.subtleBorder,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -893,7 +889,7 @@ class _ModernGoalCard extends StatelessWidget {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  borderRadius: BorderRadius.zero,
+                  borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: AppColors.emerald400.withValues(alpha: 0.4),
                     width: 1,
@@ -922,11 +918,12 @@ class _ModernGoalCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Target: ₱${goal.targetAmount.toStringAsFixed(2)}',
+                      'Target: ${CurrencyFormatter.format(goal.targetAmount)}',
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
                         color: AppColors.textMuted,
+                        fontFeatures: [FontFeature.tabularFigures()],
                       ),
                     ),
                   ],
@@ -937,6 +934,7 @@ class _ModernGoalCard extends StatelessWidget {
                 children: [
                   InkWell(
                     onTap: onDeposit,
+                    borderRadius: BorderRadius.circular(12),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 10,
@@ -944,7 +942,7 @@ class _ModernGoalCard extends StatelessWidget {
                       ),
                       decoration: BoxDecoration(
                         color: AppColors.emerald500.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.zero,
+                        borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: AppColors.emerald500.withValues(alpha: 0.5),
                           width: 1,
@@ -980,7 +978,7 @@ class _ModernGoalCard extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       color: AppColors.gold500.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.zero,
+                      borderRadius: BorderRadius.circular(9999),
                       border: Border.all(
                         color: AppColors.gold500.withValues(alpha: 0.4),
                         width: 1,
@@ -1018,11 +1016,12 @@ class _ModernGoalCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '₱${goal.currentAmount.toStringAsFixed(2)}',
+                    CurrencyFormatter.format(goal.currentAmount),
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
                       color: AppColors.emerald500,
+                      fontFeatures: [FontFeature.tabularFigures()],
                     ),
                   ),
                 ],
@@ -1040,11 +1039,12 @@ class _ModernGoalCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '₱${remaining.toStringAsFixed(2)}',
+                    CurrencyFormatter.format(remaining),
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
                       color: AppColors.textDark,
+                      fontFeatures: [FontFeature.tabularFigures()],
                     ),
                   ),
                 ],
@@ -1062,9 +1062,9 @@ class _ModernGoalCard extends StatelessWidget {
               return Container(
                 height: 8,
                 width: barWidth,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF161E2E),
-                  borderRadius: BorderRadius.zero,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF161E2E),
+                  borderRadius: BorderRadius.circular(4),
                 ),
                 child: Align(
                   alignment: Alignment.centerLeft,
@@ -1073,13 +1073,13 @@ class _ModernGoalCard extends StatelessWidget {
                     curve: Curves.easeOutCubic,
                     height: 8,
                     width: filledWidth,
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
                         colors: [Color(0xFF047857), Color(0xFF10B981)],
                         begin: Alignment.centerLeft,
                         end: Alignment.centerRight,
                       ),
-                      borderRadius: BorderRadius.zero,
+                      borderRadius: BorderRadius.circular(4),
                     ),
                   ),
                 ),
@@ -1116,23 +1116,28 @@ class _PurchaseCheckCardResult extends StatelessWidget {
       icon = Icons.cancel_rounded;
     }
 
+    // Strip any leading emoji from statusTitle to ensure no duplicate icons
+    final cleanTitle = result.statusTitle
+        .replaceAll(RegExp(r'^[^\w\s]+\s*'), '')
+        .trim();
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: cardColor.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.zero,
-        border: Border.all(color: cardColor.withValues(alpha: 0.4), width: 1),
+        color: cardColor.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cardColor.withValues(alpha: 0.35), width: 1),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             children: [
-              Icon(icon, color: cardColor, size: 24),
+              Icon(icon, color: cardColor, size: 22),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  result.statusTitle,
+                  cleanTitle,
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -1149,29 +1154,209 @@ class _PurchaseCheckCardResult extends StatelessWidget {
               fontSize: 13,
               fontWeight: FontWeight.w500,
               color: AppColors.textDark,
+              height: 1.35,
             ),
           ),
-          const Divider(height: 24),
+          const SizedBox(height: 16),
 
-          for (final reason in result.reasons) ...[
-            Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '• ',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: cardColor,
+          // ── 2-Column Before vs. After Simulation Card ──────────────
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.surface800,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.subtleBorder),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(
+                      Icons.compare_arrows_rounded,
+                      size: 15,
+                      color: AppColors.gold400,
                     ),
+                    SizedBox(width: 6),
+                    Text(
+                      'BEFORE VS. AFTER SIMULATION',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.8,
+                        color: AppColors.gold400,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Column 1: Current (Before)
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface700.withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.subtleBorder),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'BEFORE',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.6,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Current Balance',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              CurrencyFormatter.format(result.currentBalance),
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textDark,
+                                fontFeatures: CurrencyFormatter.tabularFigures,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            const Text(
+                              'Month-End Forecast',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              CurrencyFormatter.format(
+                                result.projectedMonthEndBalance,
+                              ),
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textDark,
+                                fontFeatures: CurrencyFormatter.tabularFigures,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+
+                    // Column 2: Post-Purchase (After)
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: cardColor.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: cardColor.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'AFTER PURCHASE',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.6,
+                                color: cardColor,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Post-Purchase Balance',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              CurrencyFormatter.format(
+                                result.postPurchaseBalance,
+                              ),
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: result.postPurchaseBalance < 0
+                                    ? AppColors.expense
+                                    : AppColors.textDark,
+                                fontFeatures: CurrencyFormatter.tabularFigures,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            const Text(
+                              'Adjusted Forecast',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              CurrencyFormatter.format(
+                                result.postPurchaseMonthEndBalance,
+                              ),
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: cardColor,
+                                fontFeatures: CurrencyFormatter.tabularFigures,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          if (result.earliestSafeBuyDate != null &&
+              result.daysUntilSafeBuy != null) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.surface700,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.subtleBorder),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.calendar_today_outlined,
+                    size: 14,
+                    color: AppColors.gold400,
                   ),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      reason,
+                      'Safe to purchase on ${result.earliestSafeBuyDate} (${result.daysUntilSafeBuy} days remaining)',
                       style: const TextStyle(
-                        fontSize: 12,
-                        height: 1.3,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
                         color: AppColors.textDark,
                       ),
                     ),
@@ -1203,7 +1388,7 @@ class _GoalForecastBanner extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
           color: AppColors.emerald500.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.zero,
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: AppColors.emerald500.withValues(alpha: 0.3),
           ),
@@ -1214,7 +1399,7 @@ class _GoalForecastBanner extends StatelessWidget {
             SizedBox(width: 8),
             Expanded(
               child: Text(
-                'Goal Completed! 🎉 You can fully afford this goal.',
+                'Goal Completed! You can fully afford this goal.',
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -1245,14 +1430,14 @@ class _GoalForecastBanner extends StatelessWidget {
           ? 'On Track to afford by ${_formatDateStr(goal.targetDate)}'
           : 'Can afford by ${_formatDateStr(earliestDate)}';
       statusDetail = reqMonthly != null && reqMonthly > 0
-          ? 'Requires ~₱${reqMonthly.toStringAsFixed(0)}/month in net savings.'
+          ? 'Requires ~${CurrencyFormatter.format(reqMonthly, decimalDigits: 0)}/month in net savings.'
           : 'Your current daily cash flow covers this goal on schedule.';
     } else if (canAfford == false) {
       bannerColor = AppColors.gold500;
       icon = Icons.warning_amber_rounded;
       statusTitle = 'Target date unlikely at current savings rate';
       statusDetail = earliestDate != null
-          ? 'Estimated afford date: ${_formatDateStr(earliestDate)} (Needs ~₱${reqMonthly?.toStringAsFixed(0)}/mo to hit target date).'
+          ? 'Estimated afford date: ${_formatDateStr(earliestDate)} (Needs ~${CurrencyFormatter.format(reqMonthly ?? 0, decimalDigits: 0)}/mo to hit target date).'
           : 'Increase savings contributions to reach target date.';
     } else {
       bannerColor = const Color(0xFF0284C7);
@@ -1267,7 +1452,7 @@ class _GoalForecastBanner extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: bannerColor.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.zero,
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: bannerColor.withValues(alpha: 0.3), width: 1),
       ),
       child: Row(

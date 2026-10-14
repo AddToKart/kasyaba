@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
+import '../../../core/utils/currency_formatter.dart';
+import '../../../core/utils/category_icon_helper.dart';
 import '../../../shared/widgets/modern_card.dart';
 import '../../../shared/widgets/empty_state_view.dart';
 import '../../../app/theme/app_theme.dart';
@@ -199,12 +201,12 @@ class TransactionsScreen extends ConsumerWidget {
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
+                          horizontal: 14,
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
                           color: AppColors.emerald500.withValues(alpha: 0.18),
-                          borderRadius: BorderRadius.zero,
+                          borderRadius: BorderRadius.circular(AppTheme.tagRadius),
                           border: Border.all(
                             color: AppColors.emerald500.withValues(alpha: 0.4),
                             width: 1,
@@ -331,218 +333,133 @@ class TransactionsScreen extends ConsumerWidget {
                       );
                     }
 
-                    return Column(
-                      children: [
-                        // List items
-                        Expanded(
-                          child: ListView.builder(
-                            padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-                            itemCount: paginated.items.length,
-                            itemBuilder: (context, index) {
-                              final item = paginated.items[index];
-                              final isExpense = item.isExpense;
-                              final color = item.isTransfer
-                                  ? AppColors.gold500
-                                  : isExpense
-                                  ? AppColors.expense
-                                  : AppColors.income;
-
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 10),
-                                child: ModernCard(
-                                  onTap: () => _showTransactionActions(
-                                    context,
-                                    ref,
-                                    item,
-                                  ),
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 14,
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        // Icon
-                                        Container(
-                                          width: 44,
-                                          height: 44,
-                                          decoration: BoxDecoration(
-                                            color: color.withValues(
-                                              alpha: 0.15,
-                                            ),
-                                            borderRadius: BorderRadius.zero,
-                                            border: Border.all(
-                                              color: color.withValues(
-                                                alpha: 0.30,
-                                              ),
-                                              width: 1,
-                                            ),
-                                          ),
-                                          child: Icon(
-                                            item.isTransfer
-                                                ? Icons.swap_horiz_rounded
-                                                : isExpense
-                                                ? Icons.arrow_upward_rounded
-                                                : Icons.arrow_downward_rounded,
-                                            color: color,
-                                            size: 18,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 14),
-
-                                        // Details
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                item.title,
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.w600,
-                                                  fontSize: 14,
-                                                  color: isDark
-                                                      ? AppColors.textDark
-                                                      : AppColors.textLight,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 3),
-                                              Text(
-                                                '${item.isCancelled
-                                                    ? 'Cancelled • '
-                                                    : item.isScheduled
-                                                    ? 'Planned • '
-                                                    : ''}${item.categoryName} • ${DateFormat('MMM d, yyyy').format(item.date)}',
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  color: isDark
-                                                      ? AppColors.textMuted
-                                                      : AppColors.textMutedL,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-
-                                        // Amount
-                                        Text(
-                                          '${item.isTransfer
-                                              ? '↔'
-                                              : isExpense
-                                              ? '–'
-                                              : '+'}₱${item.amount.toStringAsFixed(2)}',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.w800,
-                                            fontSize: 15,
-                                            letterSpacing: -0.3,
-                                            color: color,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
+                    final dateGroups = _groupTransactionsByDate(paginated.items);
+                    return ListView.builder(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 110),
+                      itemCount: dateGroups.length,
+                      itemBuilder: (context, groupIndex) {
+                        final group = dateGroups[groupIndex];
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(top: 16, bottom: 8, left: 4),
+                              child: Text(
+                                group.header.toUpperCase(),
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 1.1,
+                                  color: AppColors.textMuted,
                                 ),
-                              );
-                            },
-                          ),
-                        ),
-
-                        // ── Pagination Bar Controls ──────────────────────
-                        Container(
-                          padding: EdgeInsets.fromLTRB(
-                            20,
-                            12,
-                            20,
-                            12 +
-                                (MediaQuery.paddingOf(context).bottom > 0
-                                    ? MediaQuery.paddingOf(context).bottom + 72
-                                    : 84),
-                          ),
-                          decoration: BoxDecoration(
-                            color: isDark ? AppColors.surface800 : Colors.white,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(
-                                  alpha: isDark ? 0.3 : 0.05,
-                                ),
-                                blurRadius: 10,
-                                offset: const Offset(0, -2),
                               ),
-                            ],
-                          ),
-                          child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  'Total: ${paginated.totalCount} entries',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                    color: isDark
-                                        ? AppColors.textMuted
-                                        : AppColors.textMutedL,
-                                  ),
-                                ),
-                                Row(
-                                  children: [
-                                    IconButton(
-                                      icon: const Icon(
-                                        Icons.chevron_left_rounded,
-                                      ),
-                                      onPressed: paginated.hasPrevPage
-                                          ? () {
-                                              ref
-                                                  .read(
-                                                    transactionFilterProvider
-                                                        .notifier,
-                                                  )
-                                                  .state = filter.copyWith(
-                                                page: paginated.page - 1,
-                                              );
-                                            }
-                                          : null,
-                                      tooltip: 'Previous Page',
-                                    ),
-                                    Text(
-                                      'Page ${paginated.page} of ${paginated.totalPages}',
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w700,
-                                        color: isDark
-                                            ? Colors.white
-                                            : AppColors.textLight,
-                                      ),
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(
-                                        Icons.chevron_right_rounded,
-                                      ),
-                                      onPressed: paginated.hasNextPage
-                                          ? () {
-                                              ref
-                                                  .read(
-                                                    transactionFilterProvider
-                                                        .notifier,
-                                                  )
-                                                  .state = filter.copyWith(
-                                                page: paginated.page + 1,
-                                              );
-                                            }
-                                          : null,
-                                      tooltip: 'Next Page',
-                                    ),
-                                  ],
-                                ),
-                              ],
                             ),
-                        ),
-                      ],
+                            ModernCard(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              borderColor: AppColors.subtleBorder,
+                              borderRadius: 18,
+                              child: Column(
+                                children: [
+                                  for (int i = 0; i < group.items.length; i++) ...[
+                                    _buildTransactionItem(
+                                      context,
+                                      ref,
+                                      group.items[i],
+                                      isDark,
+                                    ),
+                                    if (i < group.items.length - 1)
+                                      const Divider(
+                                        height: 1,
+                                        indent: 68,
+                                        color: AppColors.subtleBorder,
+                                      ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ],
+                        );
+                      },
                     );
                   },
                 ),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTransactionItem(
+    BuildContext context,
+    WidgetRef ref,
+    TransactionEntry item,
+    bool isDark,
+  ) {
+    final isExpense = item.isExpense;
+    final amountColor = item.isTransfer
+        ? AppColors.gold500
+        : (isExpense ? AppColors.expense : AppColors.income);
+    final categoryColor = item.isTransfer
+        ? AppColors.info
+        : CategoryIconHelper.getColor(item.categoryName, isExpense: isExpense);
+    final categoryIcon = item.isTransfer
+        ? Icons.swap_horiz_rounded
+        : CategoryIconHelper.getIcon(item.categoryName);
+    final primaryTitle = item.title.isNotEmpty ? item.title : item.categoryName;
+    final dateStr = DateFormat('MMM d, yyyy').format(item.date);
+    final statusPrefix = item.isCancelled
+        ? 'Cancelled • '
+        : (item.isScheduled ? 'Planned • ' : '');
+    final subtitleText = '$statusPrefix${item.categoryName} • $dateStr';
+
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      onTap: () => _showTransactionActions(context, ref, item),
+      leading: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: categoryColor.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: categoryColor.withValues(alpha: 0.3),
+            width: 1,
+          ),
+        ),
+        child: Icon(categoryIcon, color: categoryColor, size: 20),
+      ),
+      title: Text(
+        primaryTitle,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          fontWeight: FontWeight.w700,
+          fontSize: 14,
+          color: AppColors.textDark,
+        ),
+      ),
+      subtitle: Text(
+        subtitleText,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          color: AppColors.textMuted,
+        ),
+      ),
+      trailing: Text(
+        item.isTransfer
+            ? CurrencyFormatter.format(item.amount)
+            : CurrencyFormatter.formatSigned(item.amount, isExpense: isExpense),
+        style: TextStyle(
+          fontWeight: FontWeight.w800,
+          fontSize: 15,
+          color: amountColor,
+          fontFeatures: const [FontFeature.tabularFigures()],
         ),
       ),
     );
@@ -556,6 +473,36 @@ class TransactionsScreen extends ConsumerWidget {
     if (end != null) return 'Until ${DateFormat('MMM d, yyyy').format(end)}';
     return 'All Time';
   }
+}
+
+class _DateGroup {
+  final String header;
+  final List<TransactionEntry> items;
+  const _DateGroup({required this.header, required this.items});
+}
+
+List<_DateGroup> _groupTransactionsByDate(List<TransactionEntry> items) {
+  final Map<String, List<TransactionEntry>> map = {};
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final yesterday = today.subtract(const Duration(days: 1));
+
+  for (final item in items) {
+    final itemDay = DateTime(item.date.year, item.date.month, item.date.day);
+    String header;
+    if (itemDay == today) {
+      header = 'Today';
+    } else if (itemDay == yesterday) {
+      header = 'Yesterday';
+    } else {
+      header = DateFormat('MMMM d, yyyy').format(item.date);
+    }
+    map.putIfAbsent(header, () => []).add(item);
+  }
+
+  return map.entries
+      .map((e) => _DateGroup(header: e.key, items: e.value))
+      .toList();
 }
 
 class _TransactionsSliverAppBar extends StatelessWidget {
