@@ -1,5 +1,6 @@
 import Decimal from 'decimal.js';
 import { prisma } from '../../config/database';
+import { logger } from '../../lib/logger';
 import { toDecimalOrZero } from '../../lib/decimal';
 import { withUserResponseCache } from '../../lib/user-cache';
 import { endOfZonedMonth, startOfZonedMonth } from '../../lib/zoned-dates';
@@ -16,6 +17,8 @@ export function getDashboard(userId: string, period = 'month') {
 
 async function buildDashboard(userId: string, _period = 'month') {
   const now = new Date();
+
+  // Resolve user timezone once for all month-bounded queries
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { timezone: true },
@@ -24,51 +27,76 @@ async function buildDashboard(userId: string, _period = 'month') {
   const monthStart = startOfZonedMonth(now, timeZone);
   const monthEnd = endOfZonedMonth(now, timeZone);
 
-  // Recompute fresh forecast
-  const forecast = await forecastingService.computeSnapshot(userId);
-  // Keep the chart snapshot in step with the cards after every transaction.
-  await forecastingService.createDailySnapshot(userId, forecast);
+  // Fetch forecast and all dashboard sections concurrently
+  const [
+    forecast,
+    upcomingBills,
+    goals,
+    alerts,
+    dailySnapshots,
+    budgets,
+    categoryExpenses,
+  ] = await Promise.all([
+    forecastingService.computeSnapshot(userId, timeZone),
+    prisma.billInstance.findMany({
+      where: {
+        userId,
+        status: 'upcoming',
+        dueDate: { gte: now },
+      },
+      orderBy: { dueDate: 'asc' },
+      take: 5,
+    }),
+    prisma.savingsGoal.findMany({
+      where: { userId, status: 'active' },
+      take: 5,
+    }),
+    prisma.financialAlert.findMany({
+      where: { userId, readAt: null, dismissedAt: null, resolvedAt: null },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+    }),
+    prisma.financialSnapshot.findMany({
+      where: {
+        userId,
+        snapshotDate: { gte: new Date(now.getTime() - 30 * 86400000) },
+      },
+      orderBy: { snapshotDate: 'asc' },
+      select: {
+        snapshotDate: true,
+        actualBalance: true,
+        predictedMonthEndBalance: true,
+      },
+    }),
+    prisma.budget.findMany({
+      where: {
+        userId,
+        isActive: true,
+        startsOn: { lte: monthEnd },
+        OR: [{ endsOn: null }, { endsOn: { gte: monthStart } }],
+      },
+    }),
+    prisma.expenseEntry.groupBy({
+      by: ['categoryId'],
+      where: { userId, status: { in: ['posted', 'planned'] }, spentAt: { gte: monthStart, lte: now } },
+      _sum: { amount: true },
+    }),
+  ]);
 
-  // Get upcoming bills
-  const upcomingBills = await prisma.billInstance.findMany({
-    where: {
-      userId,
-      status: 'upcoming',
-      dueDate: { gte: now },
-    },
-    orderBy: { dueDate: 'asc' },
-    take: 5,
+  // Keep the chart snapshot in step with the cards asynchronously without blocking response
+  void forecastingService.createDailySnapshot(userId, forecast, timeZone).catch((err) => {
+    logger.warn({ err, userId }, 'Failed to record daily financial snapshot asynchronously');
   });
 
-  // Get active goals with progress
-  const goals = await prisma.savingsGoal.findMany({
-    where: { userId, status: 'active' },
-    take: 5,
-  });
-
-  // Get unread alerts
-  const alerts = await prisma.financialAlert.findMany({
-    where: { userId, readAt: null, dismissedAt: null, resolvedAt: null },
-    orderBy: { createdAt: 'desc' },
-    take: 5,
-  });
-
-  // Budget usage
-  const budgets = await prisma.budget.findMany({
-    where: {
-      userId,
-      isActive: true,
-      startsOn: { lte: monthEnd },
-      OR: [{ endsOn: null }, { endsOn: { gte: monthStart } }],
-    },
-  });
-
-  // Category breakdown for charts
-  const categoryExpenses = await prisma.expenseEntry.groupBy({
-    by: ['categoryId'],
-    where: { userId, status: { in: ['posted', 'planned'] }, spentAt: { gte: monthStart, lte: now } },
-    _sum: { amount: true },
-  });
+  const categoryIds = categoryExpenses.map((c) => c.categoryId);
+  const categories = categoryIds.length > 0
+    ? await prisma.expenseCategory.findMany({
+        where: {
+          id: { in: categoryIds },
+          OR: [{ userId }, { userId: null }],
+        },
+      })
+    : [];
 
   // Use one consistent budget mode: a global budget measures all spending;
   // category budgets measure only the categories that have a budget. This
@@ -96,13 +124,6 @@ async function buildDashboard(userId: string, _period = 'month') {
     ? budgetedSpend.div(totalBudgetAmount).times(1000).round().div(10).toNumber()
     : 0;
 
-  const categoryIds = categoryExpenses.map((c) => c.categoryId);
-  const categories = await prisma.expenseCategory.findMany({
-    where: {
-      id: { in: categoryIds },
-      OR: [{ userId }, { userId: null }],
-    },
-  });
   const catMap = new Map(categories.map((c) => [c.id, c]));
 
   const expensesByCategory = categoryExpenses.map((ce) => ({
@@ -113,24 +134,25 @@ async function buildDashboard(userId: string, _period = 'month') {
   }));
 
   // Daily balance chart data (last 30 days)
-  const dailySnapshots = await prisma.financialSnapshot.findMany({
-    where: {
-      userId,
-      snapshotDate: { gte: new Date(now.getTime() - 30 * 86400000) },
-    },
-    orderBy: { snapshotDate: 'asc' },
-    select: {
-      snapshotDate: true,
-      actualBalance: true,
-      predictedMonthEndBalance: true,
-    },
-  });
-
   const dailyBalance = dailySnapshots.map((s) => ({
     date: s.snapshotDate.toISOString().split('T')[0],
     balance: s.actualBalance.toString(),
     predictedEnd: s.predictedMonthEndBalance.toString(),
   }));
+
+  // Ensure current day is present and up to date on chart
+  const todayStr = now.toISOString().split('T')[0];
+  const lastEntry = dailyBalance[dailyBalance.length - 1];
+  if (lastEntry && lastEntry.date === todayStr) {
+    lastEntry.balance = forecast.actualBalance.toString();
+    lastEntry.predictedEnd = forecast.predictedMonthEndBalance.toString();
+  } else {
+    dailyBalance.push({
+      date: todayStr,
+      balance: forecast.actualBalance.toString(),
+      predictedEnd: forecast.predictedMonthEndBalance.toString(),
+    });
+  }
 
   return {
     asOf: now.toISOString(),

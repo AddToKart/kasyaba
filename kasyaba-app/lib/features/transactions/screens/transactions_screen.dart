@@ -141,6 +141,7 @@ class TransactionsScreen extends ConsumerWidget {
             isDark: isDark,
             filter: filter,
             onRefresh: () => ref.invalidate(paginatedTransactionsProvider),
+            onNewEntry: () => _showNewEntryMenu(context),
             onPickDateRange: () async {
               final picked = await showDateRangePicker(
                 context: context,
@@ -448,9 +449,14 @@ class TransactionsScreen extends ConsumerWidget {
 
                         // ── Pagination Bar Controls ──────────────────────
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 12,
+                          padding: EdgeInsets.fromLTRB(
+                            20,
+                            12,
+                            20,
+                            12 +
+                                (MediaQuery.paddingOf(context).bottom > 0
+                                    ? MediaQuery.paddingOf(context).bottom + 72
+                                    : 84),
                           ),
                           decoration: BoxDecoration(
                             color: isDark ? AppColors.surface800 : Colors.white,
@@ -464,9 +470,7 @@ class TransactionsScreen extends ConsumerWidget {
                               ),
                             ],
                           ),
-                          child: SafeArea(
-                            top: false,
-                            child: Row(
+                          child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
@@ -531,7 +535,6 @@ class TransactionsScreen extends ConsumerWidget {
                                 ),
                               ],
                             ),
-                          ),
                         ),
                       ],
                     );
@@ -540,40 +543,6 @@ class TransactionsScreen extends ConsumerWidget {
               ),
             ],
           ),
-        ),
-      ),
-      floatingActionButton: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.zero,
-          color: AppColors.emerald500,
-          border: Border.all(
-            color: AppColors.gold500.withValues(alpha: 0.5),
-            width: 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.6),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: FloatingActionButton.extended(
-          onPressed: () => _showNewEntryMenu(context),
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-          icon: const Icon(Icons.add_rounded, size: 22, color: Colors.black),
-          label: const Text(
-            'New',
-            style: TextStyle(
-              fontWeight: FontWeight.w800,
-              fontSize: 14,
-              color: Colors.black,
-              letterSpacing: 0.5,
-            ),
-          ),
-          tooltip: 'Add Transaction',
         ),
       ),
     );
@@ -594,12 +563,14 @@ class _TransactionsSliverAppBar extends StatelessWidget {
   final TransactionQueryFilter filter;
   final VoidCallback onRefresh;
   final VoidCallback onPickDateRange;
+  final VoidCallback onNewEntry;
 
   const _TransactionsSliverAppBar({
     required this.isDark,
     required this.filter,
     required this.onRefresh,
     required this.onPickDateRange,
+    required this.onNewEntry,
   });
 
   @override
@@ -623,6 +594,14 @@ class _TransactionsSliverAppBar extends StatelessWidget {
       ),
       titleSpacing: 20,
       actions: [
+        _AppBarIconBtn(
+          icon: Icons.add_rounded,
+          isDark: isDark,
+          isActive: true,
+          onTap: onNewEntry,
+          tooltip: 'Add Transaction or Transfer',
+        ),
+        const SizedBox(width: 8),
         _AppBarIconBtn(
           icon: Icons.calendar_month_rounded,
           isDark: isDark,

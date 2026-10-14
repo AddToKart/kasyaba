@@ -23,7 +23,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
 
   return GoRouter(
-    initialLocation: '/dashboard',
+    initialLocation: '/splash',
     redirect: (context, state) {
       final isInitializing = authState.isInitializing;
       final isLoggedIn = authState.isAuthenticated;

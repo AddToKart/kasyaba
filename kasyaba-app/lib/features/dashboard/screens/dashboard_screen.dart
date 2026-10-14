@@ -120,7 +120,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
                   // ── Stat Grid ────────────────────────
                   dashboardAsync.when(
-                    loading: () => const SizedBox.shrink(),
+                    loading: () => const _StatGridSkeleton(),
                     error: (_, _) => const SizedBox.shrink(),
                     data: (data) => _StatGrid(
                       data: data,
@@ -135,7 +135,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
                   // ── Forecast Card ────────────────────
                   dashboardAsync.when(
-                    loading: () => const SizedBox.shrink(),
+                    loading: () => const _ForecastCardSkeleton(),
                     error: (_, _) => const SizedBox.shrink(),
                     data: (data) => _ForecastCard(data: data, isDark: isDark),
                   ),
@@ -199,7 +199,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                   ),
                   const SizedBox(height: 12),
                   goalsAsync.when(
-                    loading: () => const SizedBox.shrink(),
+                    loading: () => _ListSkeleton(isDark: isDark),
                     error: (_, _) => const SizedBox.shrink(),
                     data: (goals) => goals.isEmpty
                         ? const ModernCard(
@@ -226,7 +226,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                   ),
                   const SizedBox(height: 12),
                   billsAsync.when(
-                    loading: () => const SizedBox.shrink(),
+                    loading: () => _ListSkeleton(isDark: isDark),
                     error: (_, _) => const SizedBox.shrink(),
                     data: (bills) => bills.isEmpty
                         ? const ModernCard(
@@ -1722,6 +1722,62 @@ class _SectionHeader extends StatelessWidget {
 
 // ─── Skeletons & Errors ───────────────────────────────────────
 
+class _SkeletonBone extends StatefulWidget {
+  final double? width;
+  final double height;
+  final double borderRadius;
+
+  const _SkeletonBone({
+    this.width,
+    required this.height,
+    this.borderRadius = 8,
+  });
+
+  @override
+  State<_SkeletonBone> createState() => _SkeletonBoneState();
+}
+
+class _SkeletonBoneState extends State<_SkeletonBone>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+    _animation = Tween<double>(begin: 0.3, end: 0.7).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return Container(
+          width: widget.width,
+          height: widget.height,
+          decoration: BoxDecoration(
+            color: AppColors.surface700.withValues(alpha: _animation.value),
+            borderRadius: BorderRadius.circular(widget.borderRadius),
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _BalanceCardSkeleton extends StatelessWidget {
   final bool isDark;
   const _BalanceCardSkeleton({required this.isDark});
@@ -1729,13 +1785,184 @@ class _BalanceCardSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 180,
       decoration: BoxDecoration(
-        color: AppColors.surface800,
+        color: AppColors.surfaceCard,
         borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: const Color(0x33334155),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.5),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
-      child: const Center(
-        child: CircularProgressIndicator(color: AppColors.emerald500),
+      padding: const EdgeInsets.all(22),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _SkeletonBone(width: 140, height: 14, borderRadius: 6),
+              _SkeletonBone(width: 50, height: 24, borderRadius: 12),
+            ],
+          ),
+          SizedBox(height: 16),
+          _SkeletonBone(width: 190, height: 36, borderRadius: 8),
+          SizedBox(height: 20),
+          _BalanceCapsuleSkeleton(),
+          SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(child: _SkeletonBone(height: 44, borderRadius: 14)),
+              SizedBox(width: 12),
+              Expanded(child: _SkeletonBone(height: 44, borderRadius: 14)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BalanceCapsuleSkeleton extends StatelessWidget {
+  const _BalanceCapsuleSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface800.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0x22334155),
+          width: 1,
+        ),
+      ),
+      child: const Row(
+        children: [
+          Expanded(
+            child: Row(
+              children: [
+                _SkeletonBone(width: 32, height: 32, borderRadius: 16),
+                SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _SkeletonBone(width: 45, height: 10, borderRadius: 4),
+                    SizedBox(height: 6),
+                    _SkeletonBone(width: 70, height: 14, borderRadius: 4),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: Row(
+              children: [
+                _SkeletonBone(width: 32, height: 32, borderRadius: 16),
+                SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _SkeletonBone(width: 55, height: 10, borderRadius: 4),
+                    SizedBox(height: 6),
+                    _SkeletonBone(width: 70, height: 14, borderRadius: 4),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatGridSkeleton extends StatelessWidget {
+  const _StatGridSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Row(
+      children: [
+        Expanded(child: _StatCardSkeleton()),
+        SizedBox(width: 10),
+        Expanded(child: _StatCardSkeleton()),
+        SizedBox(width: 10),
+        Expanded(child: _StatCardSkeleton()),
+      ],
+    );
+  }
+}
+
+class _StatCardSkeleton extends StatelessWidget {
+  const _StatCardSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceCard,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: const Color(0x33334155),
+          width: 1,
+        ),
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _SkeletonBone(width: 28, height: 28, borderRadius: 14),
+          SizedBox(height: 12),
+          _SkeletonBone(width: 44, height: 11, borderRadius: 4),
+          SizedBox(height: 6),
+          _SkeletonBone(width: 60, height: 18, borderRadius: 6),
+        ],
+      ),
+    );
+  }
+}
+
+class _ForecastCardSkeleton extends StatelessWidget {
+  const _ForecastCardSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return ModernCard(
+      padding: const EdgeInsets.all(20),
+      borderRadius: 20,
+      backgroundColor: AppColors.surfaceCard,
+      borderColor: const Color(0x33334155),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              _SkeletonBone(width: 42, height: 42, borderRadius: 12),
+              SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _SkeletonBone(width: 120, height: 14, borderRadius: 4),
+                    SizedBox(height: 6),
+                    _SkeletonBone(width: 160, height: 11, borderRadius: 4),
+                  ],
+                ),
+              ),
+              _SkeletonBone(width: 75, height: 24, borderRadius: 12),
+            ],
+          ),
+          SizedBox(height: 20),
+          _SkeletonBone(height: 90, borderRadius: 12),
+        ],
       ),
     );
   }
@@ -1748,13 +1975,53 @@ class _ListSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 140,
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface800,
+        color: AppColors.surfaceCard,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: const Color(0x33334155),
+          width: 1,
+        ),
       ),
-      child: const Center(
-        child: CircularProgressIndicator(color: AppColors.emerald500),
+      child: const Column(
+        children: [
+          Row(
+            children: [
+              _SkeletonBone(width: 40, height: 40, borderRadius: 20),
+              SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _SkeletonBone(width: 100, height: 13, borderRadius: 4),
+                    SizedBox(height: 6),
+                    _SkeletonBone(width: 60, height: 10, borderRadius: 4),
+                  ],
+                ),
+              ),
+              _SkeletonBone(width: 65, height: 16, borderRadius: 4),
+            ],
+          ),
+          SizedBox(height: 12),
+          Row(
+            children: [
+              _SkeletonBone(width: 40, height: 40, borderRadius: 20),
+              SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _SkeletonBone(width: 110, height: 13, borderRadius: 4),
+                    SizedBox(height: 6),
+                    _SkeletonBone(width: 70, height: 10, borderRadius: 4),
+                  ],
+                ),
+              ),
+              _SkeletonBone(width: 55, height: 16, borderRadius: 4),
+            ],
+          ),
+        ],
       ),
     );
   }

@@ -18,8 +18,8 @@ final dioProvider = Provider<Dio>((ref) {
   final dio = Dio(
     BaseOptions(
       baseUrl: '$kApiBaseUrl/api/v1',
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 10),
+      connectTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 30),
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -146,8 +146,10 @@ class ConnectivityInterceptor extends Interceptor {
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+    final host = options.uri.host;
+    final isLocalHost = host == '10.0.2.2' || host == 'localhost' || host == '127.0.0.1';
     final isOnline = _ref.read(isOnlineProvider);
-    if (!isOnline) {
+    if (!isOnline && !isLocalHost) {
       return handler.reject(
         DioException(
           requestOptions: options,

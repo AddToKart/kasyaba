@@ -5,10 +5,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Returns `null` when the device has no connectivity (empty list or
 /// [ConnectivityResult.none] present).
 ConnectivityResult? _resolveConnectivity(List<ConnectivityResult> results) {
-  if (results.isEmpty || results.contains(ConnectivityResult.none)) {
-    return null;
+  for (final result in results) {
+    if (result != ConnectivityResult.none) {
+      return result;
+    }
   }
-  return results.first;
+  return null;
 }
 
 /// A [StreamProvider] that emits the current connectivity status.

@@ -5,6 +5,28 @@ import '../../app/theme/app_theme.dart';
 /// ─────────────────────────────────────────────────────────────
 ///  AppShell — Ultra Luxury Floating Navigation Dock
 /// ─────────────────────────────────────────────────────────────
+
+/// A custom [FloatingActionButtonLocation] that positions the FAB safely above
+/// the floating luxury dock of [AppShell].
+class FloatingDockFabLocation extends FloatingActionButtonLocation {
+  const FloatingDockFabLocation();
+
+  @override
+  Offset getOffset(ScaffoldPrelayoutGeometry scaffoldGeometry) {
+    final double bottomPadding = scaffoldGeometry.minInsets.bottom;
+    final double dockTotalHeight =
+        64.0 + (bottomPadding > 0 ? bottomPadding : 12.0);
+    final double fabX = scaffoldGeometry.scaffoldSize.width -
+        scaffoldGeometry.floatingActionButtonSize.width -
+        16.0;
+    final double fabY = scaffoldGeometry.scaffoldSize.height -
+        dockTotalHeight -
+        scaffoldGeometry.floatingActionButtonSize.height -
+        16.0;
+    return Offset(fabX, fabY);
+  }
+}
+
 class AppShell extends StatelessWidget {
   final Widget child;
   final String location;

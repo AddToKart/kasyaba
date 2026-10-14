@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../../app/router/app_shell.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
@@ -807,9 +808,11 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                 );
               },
             ),
+            const SizedBox(height: 100),
           ],
         ),
       ),
+      floatingActionButtonLocation: const FloatingDockFabLocation(),
       floatingActionButton: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.zero,

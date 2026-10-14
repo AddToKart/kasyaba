@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:table_calendar/table_calendar.dart';
+import '../../../app/router/app_shell.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
@@ -536,9 +537,11 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                 );
               },
             ),
+            const SizedBox(height: 100),
           ],
         ),
       ),
+      floatingActionButtonLocation: const FloatingDockFabLocation(),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddBillBottomSheet(context),
         icon: const Icon(Icons.add),

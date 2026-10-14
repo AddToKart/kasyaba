@@ -22,20 +22,36 @@ interface ForecastResult {
   calculationDetails: Record<string, any>;
 }
 
-export async function computeSnapshot(userId: string): Promise<ForecastResult> {
+export async function computeSnapshot(
+  userId: string,
+  providedTimeZone?: string,
+): Promise<ForecastResult> {
   const now = new Date();
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { timezone: true },
-  });
-  const timeZone = user?.timezone ?? 'UTC';
+  const timeZone =
+    providedTimeZone ??
+    (await prisma.user
+      .findUnique({
+        where: { id: userId },
+        select: { timezone: true },
+      })
+      .then((u) => u?.timezone ?? 'UTC'));
   const monthStart = startOfZonedMonth(now, timeZone);
   const monthEnd = endOfZonedMonth(now, timeZone);
   const elapsedDays = daysBetween(monthStart, now);
   const totalDays = daysInMonth(now);
-  // --- 1. Actual data this month ---
-  const [incomeAgg, expenseAgg, scheduledIncomeAgg, scheduledExpenseAgg] =
-    await Promise.all([
+  const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+
+  // --- 1. Fetch all independent user data concurrently in Batch 1 ---
+  const [
+    [incomeAgg, expenseAgg, scheduledIncomeAgg, scheduledExpenseAgg],
+    accounts,
+    billExpenses,
+    incomeHistory,
+    unpaidBills,
+    savingsContribAgg,
+    [paidBills, totalBills],
+  ] = await Promise.all([
+    Promise.all([
       prisma.incomeEntry.aggregate({
         where: { userId, status: { in: ['posted', 'planned'] }, receivedAt: { gte: monthStart, lte: now } },
         _sum: { amount: true },
@@ -52,56 +68,113 @@ export async function computeSnapshot(userId: string): Promise<ForecastResult> {
         where: { userId, status: 'planned', spentAt: { gt: now, lte: monthEnd } },
         _sum: { amount: true },
       }),
-    ]);
+    ]),
+    prisma.financialAccount.findMany({
+      where: { userId },
+      select: { id: true, openingBalance: true },
+    }),
+    prisma.billInstance.findMany({
+      where: { userId, expenseEntryId: { not: null } },
+      select: { expenseEntryId: true },
+    }),
+    prisma.incomeEntry.findMany({
+      where: {
+        userId,
+        status: { in: ['posted', 'planned'] },
+        receivedAt: { gte: threeMonthsAgo, lt: monthStart },
+      },
+      orderBy: { receivedAt: 'desc' },
+    }),
+    prisma.billInstance.findMany({
+      where: {
+        userId,
+        status: { in: ['upcoming', 'overdue'] },
+        dueDate: { lte: monthEnd },
+      },
+    }),
+    prisma.savingsContribution.aggregate({
+      where: { userId, contributedAt: { gte: monthStart, lte: now } },
+      _sum: { amount: true },
+    }),
+    Promise.all([
+      prisma.billInstance.count({
+        where: {
+          userId,
+          status: 'paid',
+          dueDate: { gte: threeMonthsAgo, lte: now },
+        },
+      }),
+      prisma.billInstance.count({
+        where: {
+          userId,
+          status: { in: ['paid', 'overdue', 'cancelled'] },
+          dueDate: { gte: threeMonthsAgo, lte: now },
+        },
+      }),
+    ]),
+  ]);
 
   const incomeMTD = toDecimalOrZero(incomeAgg._sum.amount);
   const expensesMTD = toDecimalOrZero(expenseAgg._sum.amount);
   const scheduledIncome = toDecimalOrZero(scheduledIncomeAgg._sum.amount);
   const scheduledExpenses = toDecimalOrZero(scheduledExpenseAgg._sum.amount);
+  const accountIds = accounts.map((a) => a.id);
+  const billExpenseIds = billExpenses.map((b) => b.expenseEntryId!).filter(Boolean);
 
-  // --- 2. Actual balance (grouped to avoid N+1) ---
-  const accounts = await prisma.financialAccount.findMany({
-    // Archiving hides an account from new entries, but must not erase its
-    // existing money from the user's net worth.
-    where: { userId },
-    select: { id: true, openingBalance: true },
-  });
+  // --- 2. Batch 2: Account groupBys (skipped if no accounts) & expense history ---
+  const expenseHistoryWhere: any = {
+    userId,
+    status: { in: ['posted', 'planned'] },
+    spentAt: { gte: threeMonthsAgo, lt: monthStart },
+  };
+  if (billExpenseIds.length > 0) {
+    expenseHistoryWhere.id = { notIn: billExpenseIds };
+  }
 
-  const accountIds = accounts.map(a => a.id);
-
-  const [incByAccount, expByAccount, savingsByAccount, outgoingByAccount, incomingByAccount] = await Promise.all([
-    prisma.incomeEntry.groupBy({
-      by: ['accountId'],
-      where: { userId, accountId: { in: accountIds }, status: { in: ['posted', 'planned'] }, receivedAt: { lte: now } },
-      _sum: { amount: true },
-    }),
-    prisma.expenseEntry.groupBy({
-      by: ['accountId'],
-      where: { userId, accountId: { in: accountIds }, status: { in: ['posted', 'planned'] }, spentAt: { lte: now } },
-      _sum: { amount: true },
-    }),
-    prisma.savingsContribution.groupBy({
-      by: ['accountId'],
-      where: { userId, accountId: { in: accountIds }, contributedAt: { lte: now } },
-      _sum: { amount: true },
-    }),
-    prisma.accountTransfer.groupBy({
-      by: ['fromAccountId'],
-      where: { userId, fromAccountId: { in: accountIds }, status: { in: ['posted', 'planned'] }, transferredAt: { lte: now } },
-      _sum: { amount: true },
-    }),
-    prisma.accountTransfer.groupBy({
-      by: ['toAccountId'],
-      where: { userId, toAccountId: { in: accountIds }, status: { in: ['posted', 'planned'] }, transferredAt: { lte: now } },
-      _sum: { amount: true },
+  const [
+    [incByAccount, expByAccount, savingsByAccount, outgoingByAccount, incomingByAccount],
+    expenseHistory,
+  ] = await Promise.all([
+    accountIds.length === 0
+      ? Promise.resolve([[], [], [], [], []])
+      : Promise.all([
+          prisma.incomeEntry.groupBy({
+            by: ['accountId'],
+            where: { userId, accountId: { in: accountIds }, status: { in: ['posted', 'planned'] }, receivedAt: { lte: now } },
+            _sum: { amount: true },
+          }),
+          prisma.expenseEntry.groupBy({
+            by: ['accountId'],
+            where: { userId, accountId: { in: accountIds }, status: { in: ['posted', 'planned'] }, spentAt: { lte: now } },
+            _sum: { amount: true },
+          }),
+          prisma.savingsContribution.groupBy({
+            by: ['accountId'],
+            where: { userId, accountId: { in: accountIds }, contributedAt: { lte: now } },
+            _sum: { amount: true },
+          }),
+          prisma.accountTransfer.groupBy({
+            by: ['fromAccountId'],
+            where: { userId, fromAccountId: { in: accountIds }, status: { in: ['posted', 'planned'] }, transferredAt: { lte: now } },
+            _sum: { amount: true },
+          }),
+          prisma.accountTransfer.groupBy({
+            by: ['toAccountId'],
+            where: { userId, toAccountId: { in: accountIds }, status: { in: ['posted', 'planned'] }, transferredAt: { lte: now } },
+            _sum: { amount: true },
+          }),
+        ]),
+    prisma.expenseEntry.findMany({
+      where: expenseHistoryWhere,
+      orderBy: { spentAt: 'desc' },
     }),
   ]);
 
-  const incMap = new Map(incByAccount.map(r => [r.accountId, toDecimalOrZero(r._sum.amount)]));
-  const expMap = new Map(expByAccount.map(r => [r.accountId, toDecimalOrZero(r._sum.amount)]));
-  const savingsMap = new Map(savingsByAccount.map(r => [r.accountId, toDecimalOrZero(r._sum.amount)]));
-  const outgoingMap = new Map(outgoingByAccount.map(r => [r.fromAccountId, toDecimalOrZero(r._sum.amount)]));
-  const incomingMap = new Map(incomingByAccount.map(r => [r.toAccountId, toDecimalOrZero(r._sum.amount)]));
+  const incMap = new Map(incByAccount.map((r) => [r.accountId, toDecimalOrZero(r._sum.amount)]));
+  const expMap = new Map(expByAccount.map((r) => [r.accountId, toDecimalOrZero(r._sum.amount)]));
+  const savingsMap = new Map(savingsByAccount.map((r) => [r.accountId, toDecimalOrZero(r._sum.amount)]));
+  const outgoingMap = new Map(outgoingByAccount.map((r) => [r.fromAccountId, toDecimalOrZero(r._sum.amount)]));
+  const incomingMap = new Map(incomingByAccount.map((r) => [r.toAccountId, toDecimalOrZero(r._sum.amount)]));
 
   const actualBalance = accounts.reduce((s, acc) => {
     return s.plus(toDecimalOrZero(acc.openingBalance))
@@ -112,24 +185,7 @@ export async function computeSnapshot(userId: string): Promise<ForecastResult> {
       .plus(incomingMap.get(acc.id) ?? 0);
   }, new Decimal(0));
 
-  // Collect bill-linked expense IDs to avoid double-counting in projection
-  const billExpenses = await prisma.billInstance.findMany({
-    where: { userId, expenseEntryId: { not: null } },
-    select: { expenseEntryId: true },
-  });
-  const billExpenseIds = billExpenses.map(b => b.expenseEntryId!).filter(Boolean);
-
   // --- 3. Income projection ---
-  const incomeHistory = await prisma.incomeEntry.findMany({
-    where: {
-      userId,
-      status: { in: ['posted', 'planned'] },
-      receivedAt: { gte: new Date(now.getFullYear(), now.getMonth() - 3, 1), lt: monthStart },
-    },
-    orderBy: { receivedAt: 'desc' },
-  });
-
-  // Group income by month for the last 3 months
   const monthlyIncome: { [key: string]: Decimal } = {};
   for (const entry of incomeHistory) {
     const key = `${entry.receivedAt.getFullYear()}-${entry.receivedAt.getMonth()}`;
@@ -151,21 +207,7 @@ export async function computeSnapshot(userId: string): Promise<ForecastResult> {
     projectedIncome = incomeMTD;
   }
 
-  // --- 4. Expense projection (exclude bill-linked expenses to avoid double-count) ---
-  const expenseHistoryWhere: any = {
-      userId,
-      status: { in: ['posted', 'planned'] },
-      spentAt: { gte: new Date(now.getFullYear(), now.getMonth() - 3, 1), lt: monthStart },
-  };
-  if (billExpenseIds.length > 0) {
-    expenseHistoryWhere.id = { notIn: billExpenseIds };
-  }
-
-  const expenseHistory = await prisma.expenseEntry.findMany({
-    where: expenseHistoryWhere,
-    orderBy: { spentAt: 'desc' },
-  });
-
+  // --- 4. Expense projection ---
   const monthlyExpenses: { [key: string]: Decimal } = {};
   for (const entry of expenseHistory) {
     const key = `${entry.spentAt.getFullYear()}-${entry.spentAt.getMonth()}`;
@@ -191,13 +233,6 @@ export async function computeSnapshot(userId: string): Promise<ForecastResult> {
   }
 
   // --- 5. Known upcoming bills ---
-  const unpaidBills = await prisma.billInstance.findMany({
-    where: {
-      userId,
-      status: { in: ['upcoming', 'overdue'] },
-      dueDate: { lte: monthEnd },
-    },
-  });
   const billsTotal = unpaidBills.reduce(
     (s, b) => s.plus(toDecimalOrZero(b.amount)),
     new Decimal(0)
@@ -224,30 +259,9 @@ export async function computeSnapshot(userId: string): Promise<ForecastResult> {
     .minus(projectedMonthEndExpensesVal.minus(expensesMTD));
 
   // --- 7. Savings ---
-  const savingsContribAgg = await prisma.savingsContribution.aggregate({
-    where: { userId, contributedAt: { gte: monthStart, lte: now } },
-    _sum: { amount: true },
-  });
   const savingsMTD = toDecimalOrZero(savingsContribAgg._sum.amount);
 
   // --- 8. Bill payment rate (last 3 months) ---
-  const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
-  const [paidBills, totalBills] = await Promise.all([
-    prisma.billInstance.count({
-      where: {
-        userId,
-        status: 'paid',
-        dueDate: { gte: threeMonthsAgo, lte: now },
-      },
-    }),
-    prisma.billInstance.count({
-      where: {
-        userId,
-        status: { in: ['paid', 'overdue', 'cancelled'] },
-        dueDate: { gte: threeMonthsAgo, lte: now },
-      },
-    }),
-  ]);
   const billPaymentRate = totalBills > 0 ? paidBills / totalBills : -1;
 
   // --- 9. Health Score ---
@@ -296,14 +310,19 @@ export async function computeSnapshot(userId: string): Promise<ForecastResult> {
 export async function createDailySnapshot(
   userId: string,
   existingResult?: ForecastResult,
+  providedTimeZone?: string,
 ): Promise<void> {
-  const result = existingResult ?? await computeSnapshot(userId);
+  const result = existingResult ?? await computeSnapshot(userId, providedTimeZone);
   const now = new Date();
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { timezone: true },
-  });
-  const snapshotDate = startOfZonedDay(now, user?.timezone ?? 'UTC');
+  const timeZone =
+    providedTimeZone ??
+    (await prisma.user
+      .findUnique({
+        where: { id: userId },
+        select: { timezone: true },
+      })
+      .then((u) => u?.timezone ?? 'UTC'));
+  const snapshotDate = startOfZonedDay(now, timeZone);
 
   await prisma.financialSnapshot.upsert({
     where: {
