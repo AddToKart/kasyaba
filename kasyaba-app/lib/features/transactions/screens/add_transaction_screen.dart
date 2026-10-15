@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,6 +8,7 @@ import '../../../core/providers/api_providers.dart';
 import '../../../shared/widgets/modern_card.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/utils/category_icon_helper.dart';
+import '../../../core/utils/currency_formatter.dart';
 
 DateTime _dateOnly(DateTime date) => DateTime(date.year, date.month, date.day);
 
@@ -48,7 +50,6 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen>
   String? _selectedCategoryName;
 
   late final AnimationController _typeController;
-  late final Animation<double> _typeFade;
 
   final List<Map<String, String>> _categoryItems = [
     {'id': 'cat_food', 'name': 'Food & Dining'},
@@ -56,6 +57,8 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen>
     {'id': 'cat_utilities', 'name': 'Utilities & Bills'},
     {'id': 'cat_rent', 'name': 'Rent & Housing'},
     {'id': 'cat_education', 'name': 'Education'},
+    {'id': 'cat_healthcare', 'name': 'Healthcare'},
+    {'id': 'cat_entertainment', 'name': 'Entertainment'},
     {'id': 'cat_shopping', 'name': 'Shopping'},
     {'id': 'cat_other', 'name': 'Other'},
   ];
@@ -78,19 +81,27 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen>
       _descriptionController.text = transaction.title;
       _notesController.text = transaction.notes ?? '';
     }
+    _amountController.addListener(_onAmountChanged);
+    _descriptionController.addListener(_onDescriptionChanged);
     _typeController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 250),
     );
-    _typeFade = CurvedAnimation(
-      parent: _typeController,
-      curve: Curves.easeInOut,
-    );
     _typeController.forward();
+  }
+
+  void _onAmountChanged() {
+    if (mounted) setState(() {});
+  }
+
+  void _onDescriptionChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
+    _amountController.removeListener(_onAmountChanged);
+    _descriptionController.removeListener(_onDescriptionChanged);
     _typeController.dispose();
     _amountController.dispose();
     _descriptionController.dispose();
@@ -310,7 +321,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen>
     final accountsAsync = ref.watch(accountsProvider);
     final categoriesAsync = ref.watch(categoriesProvider);
 
-    final availableCategories = categoriesAsync.maybeWhen(
+    final rawCategories = categoriesAsync.maybeWhen(
       data: (cats) => cats.isNotEmpty
           ? cats
                 .map((c) => {'id': c.id, 'name': c.name})
@@ -319,7 +330,33 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen>
       orElse: () => _categoryItems,
     );
 
+    // Ensure 'Other' category is always sorted to the last position
+    final availableCategories = <Map<String, String>>[];
+    Map<String, String>? otherCategory;
+    for (final cat in rawCategories) {
+      if ((cat['name'] ?? '').toLowerCase().contains('other')) {
+        otherCategory = cat;
+      } else {
+        availableCategories.add(cat);
+      }
+    }
+    if (otherCategory != null) {
+      availableCategories.add(otherCategory);
+    }
+
     final selectedCategoryId = _selectedCategoryForDisplay(availableCategories);
+
+    // Compute live deterministic current balance & projected balance
+    final accountBalances =
+        ref.watch(accountBalancesProvider).valueOrNull ?? const {};
+    final defaultBalance =
+        ref.watch(dashboardProvider).valueOrNull?.totalBalance ?? 0.0;
+    final currentBalance =
+        accountBalances[_selectedAccount] ?? defaultBalance;
+    final parsedAmount = double.tryParse(_amountController.text.trim()) ?? 0.0;
+    final projectedBalance = _isExpense
+        ? (currentBalance - parsedAmount)
+        : (currentBalance + parsedAmount);
 
     // Determine accent color based on type
     final typeColor = _isExpense ? AppColors.expense : AppColors.income;
@@ -373,9 +410,10 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen>
       ),
 
       body: SafeArea(
+        bottom: false,
         child: SingleChildScrollView(
           physics: const ClampingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
           child: Form(
             key: _formKey,
             child: Column(
@@ -392,7 +430,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen>
                   )
                 else
                   _TransactionTypeBadge(isExpense: _isExpense, isDark: isDark),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
 
                 // ── Amount Card ──────────────────────────
                 _AmountCard(
@@ -400,7 +438,8 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen>
                   isExpense: _isExpense,
                   isDark: isDark,
                   typeColor: typeColor,
-                  fadeAnim: _typeFade,
+                  currentBalance: currentBalance,
+                  projectedBalance: projectedBalance,
                 ),
                 const SizedBox(height: 16),
 
@@ -410,11 +449,23 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Description
+                      // Description or Income Source
                       _FieldLabel(
                         label: _isExpense ? 'Description' : 'Income Source',
                         isDark: isDark,
                       ),
+                      if (!_isExpense) ...[
+                        const SizedBox(height: 8),
+                        _IncomeQuickPresets(
+                          selectedSource: _descriptionController.text.trim(),
+                          isDark: isDark,
+                          onSelect: (preset) {
+                            setState(() {
+                              _descriptionController.text = preset;
+                            });
+                          },
+                        ),
+                      ],
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _descriptionController,
@@ -461,18 +512,56 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen>
                         const SizedBox(height: 20),
                       ],
 
-                      // Account
+                      // Account / Wallet
                       _FieldLabel(label: 'Account / Wallet', isDark: isDark),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 8),
                       accountsAsync.when(
                         loading: () => const LinearProgressIndicator(
                           color: AppColors.emerald500,
                         ),
-                        error: (_, _) => _AccountChip(
-                          label: 'Retry wallet loading',
-                          isSelected: false,
-                          isDark: isDark,
+                        error: (_, _) => InkWell(
                           onTap: () => ref.invalidate(accountsProvider),
+                          borderRadius:
+                              BorderRadius.circular(AppTheme.inputRadius),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? AppColors.surface700.withValues(alpha: 0.5)
+                                  : AppColors.lightCard2,
+                              borderRadius:
+                                  BorderRadius.circular(AppTheme.inputRadius),
+                              border: Border.all(
+                                color: isDark
+                                    ? AppColors.surface600
+                                        .withValues(alpha: 0.7)
+                                    : AppColors.lightBorder,
+                                width: 1.2,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.refresh_rounded,
+                                  size: 18,
+                                  color: AppColors.warning,
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  'Retry loading wallets',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: isDark
+                                        ? AppColors.textDark
+                                        : AppColors.textLight,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                         data: (accounts) {
                           if (accounts.isEmpty) {
@@ -487,21 +576,14 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen>
                               }
                             });
                           }
-                          return Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: accounts.map((acc) {
-                              final isSelected =
-                                  _selectedAccount == acc.id ||
-                                  _selectedAccount == null;
-                              return _AccountChip(
-                                label: acc.name,
-                                isSelected: isSelected,
-                                isDark: isDark,
-                                onTap: () =>
-                                    setState(() => _selectedAccount = acc.id),
-                              );
-                            }).toList(),
+                          return _AccountDropdown(
+                            accounts: accounts,
+                            selectedAccountId: _selectedAccount,
+                            accountBalances: accountBalances,
+                            defaultBalance: defaultBalance,
+                            isDark: isDark,
+                            onChanged: (id) =>
+                                setState(() => _selectedAccount = id),
                           );
                         },
                       ),
@@ -525,12 +607,13 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen>
                       ],
                       const SizedBox(height: 20),
 
-                      // Notes
+                      // Notes (Optional)
                       _FieldLabel(label: 'Notes (Optional)', isDark: isDark),
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _notesController,
                         maxLines: 3,
+                        textAlignVertical: TextAlignVertical.top,
                         style: TextStyle(
                           color: isDark
                               ? AppColors.textDark
@@ -538,13 +621,29 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen>
                           fontWeight: FontWeight.w500,
                         ),
                         decoration: InputDecoration(
-                          hintText: 'Add details, receipts, or memos...',
-                          alignLabelWithHint: true,
-                          prefixIcon: const Padding(
-                            padding: EdgeInsets.only(left: 4, top: 12),
+                          hintText: 'Add optional note or reference...',
+                          hintStyle: TextStyle(
+                            color: isDark
+                                ? AppColors.textMuted
+                                : AppColors.textMutedL,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w400,
+                          ),
+                          prefixIconConstraints: const BoxConstraints(
+                            minWidth: 40,
+                            maxHeight: 60,
+                          ),
+                          prefixIcon: Padding(
+                            padding: const EdgeInsets.only(left: 12, top: 12),
                             child: Align(
-                              alignment: Alignment.topCenter,
-                              child: Icon(Icons.notes_outlined, size: 20),
+                              alignment: Alignment.topLeft,
+                              child: Icon(
+                                Icons.edit_note_rounded,
+                                size: 20,
+                                color: isDark
+                                    ? AppColors.textMuted
+                                    : AppColors.textMutedL,
+                              ),
                             ),
                           ),
                         ),
@@ -552,18 +651,41 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen>
                     ],
                   ),
                 ),
-                const SizedBox(height: 24),
-
-                // ── Save Button ──────────────────────────
-                _SaveButton(
-                  isExpense: _isExpense,
-                  isEditing: widget.transaction != null,
-                  isSubmitting: _isSubmitting,
-                  onPressed: _handleSave,
-                  typeColor: typeColor,
-                ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 16),
               ],
+            ),
+          ),
+        ),
+      ),
+
+      // ── Sticky Bottom Action Bar ──────────────────────────
+      bottomNavigationBar: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+          child: Container(
+            padding: EdgeInsets.fromLTRB(
+              20,
+              12,
+              20,
+              12 + MediaQuery.paddingOf(context).bottom,
+            ),
+            decoration: BoxDecoration(
+              color: (isDark ? AppColors.obsidian : AppColors.lightBg)
+                  .withValues(alpha: 0.85),
+              border: Border(
+                top: BorderSide(
+                  color:
+                      isDark ? AppColors.subtleBorder : AppColors.lightBorder,
+                  width: 1,
+                ),
+              ),
+            ),
+            child: _SaveButton(
+              isExpense: _isExpense,
+              isEditing: widget.transaction != null,
+              isSubmitting: _isSubmitting,
+              onPressed: _handleSave,
+              typeColor: typeColor,
             ),
           ),
         ),
@@ -747,22 +869,27 @@ class _AmountCard extends StatelessWidget {
   final bool isExpense;
   final bool isDark;
   final Color typeColor;
-  final Animation<double> fadeAnim;
+  final double currentBalance;
+  final double projectedBalance;
 
   const _AmountCard({
     required this.controller,
     required this.isExpense,
     required this.isDark,
     required this.typeColor,
-    required this.fadeAnim,
+    required this.currentBalance,
+    required this.projectedBalance,
   });
 
   @override
   Widget build(BuildContext context) {
+    final currencySymbolColor =
+        isExpense ? const Color(0xFFF87171) : const Color(0xFF10B981);
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(AppTheme.cardRadius),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -788,54 +915,35 @@ class _AmountCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 5,
-                ),
-                decoration: BoxDecoration(
-                  color: typeColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  isExpense ? '↑ EXPENSE' : '↓ INCOME',
-                  style: TextStyle(
-                    color: typeColor,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
           TextFormField(
             controller: controller,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             autofocus: true,
             style: TextStyle(
-              fontSize: 40,
+              fontSize: 38,
               fontWeight: FontWeight.w900,
-              color: typeColor,
-              letterSpacing: -1.5,
+              color: isDark ? Colors.white : AppColors.textLight,
+              letterSpacing: -1.0,
               height: 1.1,
+              fontFeatures: CurrencyFormatter.tabularFigures,
             ),
             decoration: InputDecoration(
               hintText: '0.00',
               hintStyle: TextStyle(
-                fontSize: 40,
+                fontSize: 38,
                 fontWeight: FontWeight.w900,
-                color: typeColor.withValues(alpha: 0.3),
-                letterSpacing: -1.5,
+                color: isDark
+                    ? const Color(0x73FFFFFF)
+                    : AppColors.textMutedL.withValues(alpha: 0.5),
+                letterSpacing: -1.0,
+                fontFeatures: CurrencyFormatter.tabularFigures,
               ),
               prefixText: '₱ ',
               prefixStyle: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.w800,
-                color: typeColor.withValues(alpha: 0.7),
+                color: currencySymbolColor,
+                fontFeatures: CurrencyFormatter.tabularFigures,
               ),
               border: InputBorder.none,
               focusedBorder: InputBorder.none,
@@ -858,7 +966,157 @@ class _AmountCard extends StatelessWidget {
               return null;
             },
           ),
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? AppColors.surface900.withValues(alpha: 0.6)
+                  : Colors.black.withValues(alpha: 0.04),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isDark ? AppColors.subtleBorder : AppColors.lightBorder,
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'New Balance: ',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: isDark ? AppColors.textMuted : AppColors.textMutedL,
+                  ),
+                ),
+                Flexible(
+                  child: Text(
+                    '${CurrencyFormatter.format(currentBalance)} → ${CurrencyFormatter.format(projectedBalance)}',
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      fontFeatures: CurrencyFormatter.tabularFigures,
+                      color: isDark ? Colors.white : AppColors.textLight,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
+      ),
+    );
+  }
+}
+
+// ─── Income Quick Presets ─────────────────────────────────────
+
+class _IncomeQuickPresets extends StatelessWidget {
+  final String selectedSource;
+  final bool isDark;
+  final ValueChanged<String> onSelect;
+
+  static const _presets = [
+    'Salary',
+    'Freelance',
+    'Allowance',
+    'Bonus',
+    'Other',
+  ];
+
+  const _IncomeQuickPresets({
+    required this.selectedSource,
+    required this.isDark,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      child: Row(
+        children: _presets.map((preset) {
+          final isSelected =
+              selectedSource.toLowerCase() == preset.toLowerCase();
+          final icon = CategoryIconHelper.iconFor(preset);
+
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: Semantics(
+              button: true,
+              selected: isSelected,
+              label: preset,
+              onTap: () => onSelect(preset),
+              excludeSemantics: true,
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => onSelect(preset),
+                  borderRadius: BorderRadius.circular(AppTheme.tagRadius),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 7,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? AppColors.income.withValues(
+                              alpha: isDark ? 0.20 : 0.12,
+                            )
+                          : (isDark
+                              ? AppColors.surface700
+                              : AppColors.lightCard2),
+                      borderRadius: BorderRadius.circular(AppTheme.tagRadius),
+                      border: Border.all(
+                        color: isSelected
+                            ? AppColors.income.withValues(
+                                alpha: isDark ? 0.50 : 0.40,
+                              )
+                            : (isDark
+                                ? AppColors.surface600
+                                : AppColors.lightBorder),
+                        width: isSelected ? 1.5 : 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          icon,
+                          size: 14,
+                          color: isSelected
+                              ? AppColors.income
+                              : (isDark
+                                  ? AppColors.textMuted
+                                  : AppColors.textMutedL),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          preset,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: isSelected
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                            color: isSelected
+                                ? AppColors.income
+                                : (isDark
+                                    ? AppColors.textDark
+                                    : AppColors.textLight),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
@@ -881,135 +1139,241 @@ class _CategoryGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: categories.map((cat) {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: categories.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        mainAxisSpacing: 8,
+        crossAxisSpacing: 8,
+        childAspectRatio: 2.2,
+      ),
+      itemBuilder: (context, index) {
+        final cat = categories[index];
         final isSelected = selectedId == cat['id'];
+        final catName = cat['name'] ?? '';
+        final catColor = CategoryIconHelper.colorFor(catName);
+        final catIcon = CategoryIconHelper.iconFor(catName);
+
         return Semantics(
           button: true,
           selected: isSelected,
-          label: cat['name'],
+          label: catName,
           onTap: () => onSelect(cat['id']!),
           excludeSemantics: true,
-          child: GestureDetector(
-            onTap: () => onSelect(cat['id']!),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
-              alignment: Alignment.center,
-              constraints: const BoxConstraints(minHeight: 48),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? AppColors.expense.withValues(alpha: isDark ? 0.18 : 0.10)
-                    : (isDark ? AppColors.surface700 : AppColors.lightCard2),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => onSelect(cat['id']!),
+              borderRadius: BorderRadius.circular(12),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                alignment: Alignment.center,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                decoration: BoxDecoration(
                   color: isSelected
                       ? AppColors.expense.withValues(
-                          alpha: isDark ? 0.40 : 0.30,
+                          alpha: isDark ? 0.18 : 0.10,
                         )
-                      : (isDark ? AppColors.surface600 : AppColors.lightBorder),
-                  width: isSelected ? 1.5 : 1,
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    CategoryIconHelper.iconFor(cat['name']!),
-                    size: 15,
+                      : (isDark ? AppColors.surface700 : AppColors.lightCard2),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
                     color: isSelected
-                        ? AppColors.expense
-                        : CategoryIconHelper.colorFor(cat['name']!),
+                        ? AppColors.expense.withValues(
+                            alpha: isDark ? 0.40 : 0.30,
+                          )
+                        : (isDark
+                            ? AppColors.surface600
+                            : AppColors.lightBorder),
+                    width: isSelected ? 1.5 : 1,
                   ),
-                  const SizedBox(width: 6),
-                  Text(
-                    cat['name']!,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: isSelected
-                          ? FontWeight.w700
-                          : FontWeight.w500,
-                      color: isSelected
-                          ? AppColors.expense
-                          : (isDark ? AppColors.textDark : AppColors.textLight),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      catIcon,
+                      size: 15,
+                      color: isSelected ? AppColors.expense : catColor,
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        catName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight:
+                              isSelected ? FontWeight.w700 : FontWeight.w500,
+                          color: isSelected
+                              ? AppColors.expense
+                              : (isDark
+                                  ? AppColors.textDark
+                                  : AppColors.textLight),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
         );
-      }).toList(),
+      },
     );
   }
 }
 
-// ─── Account Chip ─────────────────────────────────────────────
+// ─── Account Dropdown ─────────────────────────────────────────
 
-class _AccountChip extends StatelessWidget {
-  final String label;
-  final bool isSelected;
+class _AccountDropdown extends StatelessWidget {
+  final List<Account> accounts;
+  final String? selectedAccountId;
+  final Map<String, double> accountBalances;
+  final double defaultBalance;
   final bool isDark;
-  final VoidCallback onTap;
-  const _AccountChip({
-    required this.label,
-    required this.isSelected,
+  final ValueChanged<String> onChanged;
+
+  const _AccountDropdown({
+    required this.accounts,
+    required this.selectedAccountId,
+    required this.accountBalances,
+    required this.defaultBalance,
     required this.isDark,
-    required this.onTap,
+    required this.onChanged,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      selected: isSelected,
-      label: label,
-      onTap: onTap,
-      excludeSemantics: true,
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          alignment: Alignment.center,
-          constraints: const BoxConstraints(minHeight: 48),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? AppColors.income.withValues(alpha: isDark ? 0.15 : 0.10)
-                : (isDark ? AppColors.surface700 : AppColors.lightCard2),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isSelected
-                  ? AppColors.income.withValues(alpha: isDark ? 0.40 : 0.30)
-                  : (isDark ? AppColors.surface600 : AppColors.lightBorder),
-              width: isSelected ? 1.5 : 1,
-            ),
+    final effectiveSelectedId = (selectedAccountId != null &&
+            accounts.any((a) => a.id == selectedAccountId))
+        ? selectedAccountId!
+        : accounts.first.id;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
+      decoration: BoxDecoration(
+        color: isDark
+            ? AppColors.surface700.withValues(alpha: 0.5)
+            : AppColors.lightCard2,
+        borderRadius: BorderRadius.circular(AppTheme.inputRadius),
+        border: Border.all(
+          color: isDark
+              ? AppColors.surface600.withValues(alpha: 0.7)
+              : AppColors.lightBorder,
+          width: 1.2,
+        ),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: effectiveSelectedId,
+          isExpanded: true,
+          dropdownColor: isDark ? AppColors.surface800 : AppColors.lightCard,
+          borderRadius: BorderRadius.circular(16),
+          icon: Icon(
+            Icons.keyboard_arrow_down_rounded,
+            size: 22,
+            color: isDark ? AppColors.textMuted : AppColors.textMutedL,
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.account_balance_wallet_outlined,
-                size: 14,
-                color: isSelected
-                    ? AppColors.income
-                    : (isDark ? AppColors.textMuted : AppColors.textMutedL),
-              ),
-              const SizedBox(width: 7),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: isSelected
-                      ? AppColors.income
-                      : (isDark ? AppColors.textDark : AppColors.textLight),
+          selectedItemBuilder: (context) {
+            return accounts.map((acc) {
+              final accBalance = accountBalances[acc.id] ?? defaultBalance;
+              return Row(
+                children: [
+                  const Icon(
+                    Icons.account_balance_wallet_outlined,
+                    size: 18,
+                    color: AppColors.emerald500,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      acc.name,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 15,
+                        color:
+                            isDark ? AppColors.textDark : AppColors.textLight,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    CurrencyFormatter.format(accBalance),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      fontFeatures: CurrencyFormatter.tabularFigures,
+                      color:
+                          isDark ? AppColors.textDark : AppColors.textLight,
+                    ),
+                  ),
+                ],
+              );
+            }).toList();
+          },
+          items: accounts.map((acc) {
+            final isSelected = acc.id == effectiveSelectedId;
+            final accBalance = accountBalances[acc.id] ?? defaultBalance;
+            return DropdownMenuItem<String>(
+              value: acc.id,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.account_balance_wallet_outlined,
+                      size: 18,
+                      color: isSelected
+                          ? AppColors.emerald500
+                          : (isDark
+                              ? AppColors.textMuted
+                              : AppColors.textMutedL),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        acc.name,
+                        style: TextStyle(
+                          fontWeight:
+                              isSelected ? FontWeight.w700 : FontWeight.w500,
+                          fontSize: 14,
+                          color: isSelected
+                              ? AppColors.emerald500
+                              : (isDark
+                                  ? AppColors.textDark
+                                  : AppColors.textLight),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      CurrencyFormatter.format(accBalance),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                        fontFeatures: CurrencyFormatter.tabularFigures,
+                        color: isSelected
+                            ? AppColors.emerald500
+                            : (isDark
+                                ? AppColors.textMuted
+                                : AppColors.textMutedL),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
+            );
+          }).toList(),
+          onChanged: (val) {
+            if (val != null) {
+              onChanged(val);
+            }
+          },
         ),
       ),
     );
@@ -1092,14 +1456,14 @@ class _DatePicker extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(AppTheme.inputRadius),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
           color: isDark
               ? AppColors.surface700.withValues(alpha: 0.5)
               : AppColors.lightCard2,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(AppTheme.inputRadius),
           border: Border.all(
             color: isDark
                 ? AppColors.surface600.withValues(alpha: 0.7)
@@ -1109,7 +1473,7 @@ class _DatePicker extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(
+            const Icon(
               Icons.calendar_today_outlined,
               size: 18,
               color: AppColors.emerald500,
@@ -1155,7 +1519,7 @@ class _ScheduledDateNotice extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: color.withValues(alpha: isDark ? 0.12 : 0.08),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppTheme.alertRadius),
         border: Border.all(color: color.withValues(alpha: 0.24)),
       ),
       child: Row(
@@ -1221,7 +1585,7 @@ class _SaveButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(AppTheme.buttonRadius),
         gradient: isSubmitting
             ? null
             : LinearGradient(
@@ -1235,9 +1599,9 @@ class _SaveButton extends StatelessWidget {
             ? []
             : [
                 BoxShadow(
-                  color: typeColor.withValues(alpha: 0.40),
-                  blurRadius: 22,
-                  offset: const Offset(0, 8),
+                  color: typeColor.withValues(alpha: 0.35),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
                 ),
               ],
       ),
@@ -1249,9 +1613,9 @@ class _SaveButton extends StatelessWidget {
               : Colors.transparent,
           foregroundColor: Colors.white,
           shadowColor: Colors.transparent,
-          minimumSize: const Size.fromHeight(56),
+          minimumSize: const Size.fromHeight(52),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(AppTheme.buttonRadius),
           ),
           elevation: 0,
         ),

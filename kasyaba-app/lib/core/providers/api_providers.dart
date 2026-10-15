@@ -65,6 +65,25 @@ final accountsProvider = FutureProvider<List<Account>>((ref) async {
   return data.map((e) => Account.fromJson(e as Map<String, dynamic>)).toList();
 });
 
+final accountBalancesProvider =
+    FutureProvider<Map<String, double>>((ref) async {
+  final dio = ref.watch(dioProvider);
+  final accounts = await ref.watch(accountsProvider.future);
+  final map = <String, double>{};
+  await Future.wait(
+    accounts.map((acc) async {
+      try {
+        final res = await dio.get('/accounts/${acc.id}/balance');
+        final val = res.data['data']?['balance'];
+        if (val != null) {
+          map[acc.id] = double.tryParse(val.toString()) ?? 0.0;
+        }
+      } catch (_) {}
+    }),
+  );
+  return map;
+});
+
 /// Ensures the user has at least one account after signing in. Kept out of
 /// [accountsProvider] so a read can never mutate data: previously an offline
 /// list request failed just because the auto-create POST could not run.
@@ -124,6 +143,8 @@ final List<Category> defaultCategoriesList = [
   Category(id: 'cat_utilities', name: 'Utilities & Bills', iconKey: 'bolt'),
   Category(id: 'cat_rent', name: 'Rent & Housing', iconKey: 'home'),
   Category(id: 'cat_education', name: 'Education', iconKey: 'school'),
+  Category(id: 'cat_healthcare', name: 'Healthcare', iconKey: 'local_hospital'),
+  Category(id: 'cat_entertainment', name: 'Entertainment', iconKey: 'movie'),
   Category(id: 'cat_shopping', name: 'Shopping', iconKey: 'shopping_cart'),
   Category(id: 'cat_other', name: 'Other', iconKey: 'receipt'),
 ];
