@@ -89,12 +89,28 @@ final accountBalancesProvider =
   // If there are pending local offline transactions, apply their net effect
   if (userId != null) {
     try {
-      final pending = await cacheService.getPendingSyncTransactions(userId);
+      final pending = await cacheService.getAllOfflineTransactions(userId);
       for (final tx in pending) {
         try {
           final payload = jsonDecode(tx.json) as Map<String, dynamic>;
           final amount =
               double.tryParse(payload['amount']?.toString() ?? '0') ?? 0.0;
+
+          final dateStr = (payload['spentAt'] ??
+                  payload['receivedAt'] ??
+                  payload['transferredAt'])
+              ?.toString();
+          final txDate = dateStr != null
+              ? DateTime.tryParse(dateStr) ?? tx.createdAt
+              : tx.createdAt;
+          final txDay = DateTime(txDate.year, txDate.month, txDate.day);
+          final now = DateTime.now();
+          final today = DateTime(now.year, now.month, now.day);
+          final isPosted =
+              payload['status'] != 'planned' && !txDay.isAfter(today);
+
+          if (!isPosted) continue;
+
           if (tx.type == 'expense') {
             final accId = payload['accountId']?.toString();
             if (accId != null && map.containsKey(accId)) {
@@ -491,50 +507,74 @@ final planningProvider = FutureProvider<PlanningOverview>((ref) async {
   );
 });
 
+DashboardData applyPendingOfflineMutations(
+  DashboardData baseData,
+  List<OfflineTransaction> pending,
+) {
+  if (pending.isEmpty) return baseData;
+  var balanceDelta = 0.0;
+  var expenseDelta = 0.0;
+  var incomeDelta = 0.0;
+  var predictedExpenseDelta = 0.0;
+  var predictedIncomeDelta = 0.0;
+
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+
+  for (final tx in pending) {
+    try {
+      final payload = jsonDecode(tx.json) as Map<String, dynamic>;
+      final amount =
+          double.tryParse(payload['amount']?.toString() ?? '0') ?? 0.0;
+
+      final dateStr = (payload['spentAt'] ??
+              payload['receivedAt'] ??
+              payload['transferredAt'])
+          ?.toString();
+      final txDate = dateStr != null
+          ? DateTime.tryParse(dateStr) ?? tx.createdAt
+          : tx.createdAt;
+      final txDay = DateTime(txDate.year, txDate.month, txDate.day);
+      final isPosted =
+          payload['status'] != 'planned' && !txDay.isAfter(today);
+
+      if (tx.type == 'expense') {
+        predictedExpenseDelta += amount;
+        if (isPosted) {
+          balanceDelta -= amount;
+          expenseDelta += amount;
+        }
+      } else if (tx.type == 'income') {
+        predictedIncomeDelta += amount;
+        if (isPosted) {
+          balanceDelta += amount;
+          incomeDelta += amount;
+        }
+      }
+    } catch (_) {}
+  }
+
+  final newBalance = baseData.totalBalance + balanceDelta;
+  final newExpenses = baseData.expenses + expenseDelta;
+  final newIncome = baseData.income + incomeDelta;
+  final newPredicted =
+      baseData.predictedMonthEnd + predictedIncomeDelta - predictedExpenseDelta;
+
+  return baseData.copyWith(
+    totalBalance: newBalance,
+    expenses: newExpenses,
+    income: newIncome,
+    predictedMonthEnd: newPredicted,
+    isFromCache: true,
+  );
+}
+
 final dashboardProvider = FutureProvider<DashboardData>((ref) async {
   final dio = ref.watch(dioProvider);
   final cacheService = ref.watch(cacheServiceProvider);
   final userId = ref.watch(authProvider).userId;
   if (userId == null) {
     throw StateError('You must be signed in to load dashboard data.');
-  }
-
-  DashboardData applyPendingOfflineMutations(
-    DashboardData baseData,
-    List<OfflineTransaction> pending,
-  ) {
-    if (pending.isEmpty) return baseData;
-    var balanceDelta = 0.0;
-    var expenseDelta = 0.0;
-    var incomeDelta = 0.0;
-
-    for (final tx in pending) {
-      try {
-        final payload = jsonDecode(tx.json) as Map<String, dynamic>;
-        final amount =
-            double.tryParse(payload['amount']?.toString() ?? '0') ?? 0.0;
-        if (tx.type == 'expense') {
-          balanceDelta -= amount;
-          expenseDelta += amount;
-        } else if (tx.type == 'income') {
-          balanceDelta += amount;
-          incomeDelta += amount;
-        }
-      } catch (_) {}
-    }
-
-    final newBalance = baseData.totalBalance + balanceDelta;
-    final newExpenses = baseData.expenses + expenseDelta;
-    final newIncome = baseData.income + incomeDelta;
-    final newPredicted = baseData.predictedMonthEnd + balanceDelta;
-
-    return baseData.copyWith(
-      totalBalance: newBalance,
-      expenses: newExpenses,
-      income: newIncome,
-      predictedMonthEnd: newPredicted,
-      isFromCache: true,
-    );
   }
 
   try {
@@ -545,7 +585,7 @@ final dashboardProvider = FutureProvider<DashboardData>((ref) async {
     // Update cache with fresh data (fire-and-forget)
     unawaited(cacheService.cacheDashboard(data, userId).catchError((_) {}));
 
-    final pending = await cacheService.getPendingSyncTransactions(userId);
+    final pending = await cacheService.getAllOfflineTransactions(userId);
     if (pending.isNotEmpty) {
       return applyPendingOfflineMutations(data, pending);
     }
@@ -554,7 +594,7 @@ final dashboardProvider = FutureProvider<DashboardData>((ref) async {
     // Try cached data as fallback
     final cached = await cacheService.getCachedDashboard(userId);
     if (cached != null) {
-      final pending = await cacheService.getPendingSyncTransactions(userId);
+      final pending = await cacheService.getAllOfflineTransactions(userId);
       return applyPendingOfflineMutations(
         cached.copyWith(isFromCache: true),
         pending,
@@ -612,10 +652,13 @@ extension TransactionEntryStatus on TransactionEntry {
 
   bool get isPendingSync => status == 'pending_sync';
 
+  bool get isSyncFailed => status == 'sync_failed';
+
   bool get isTransfer => type == 'transfer';
 }
 
 TransactionEntry offlineTransactionToEntry(OfflineTransaction ot) {
+  final isFailed = ot.failedAt != null;
   try {
     final data = jsonDecode(ot.json) as Map<String, dynamic>;
     final type = ot.type;
@@ -629,36 +672,51 @@ TransactionEntry offlineTransactionToEntry(OfflineTransaction ot) {
         ? DateTime.tryParse(dateStr) ?? ot.createdAt
         : ot.createdAt;
     final title = isExpense
-        ? (data['merchant']?.toString() ??
-            (data['notes']?.toString() ?? 'Expense (Offline)'))
+        ? ((data['description'] != null &&
+                data['description'].toString().isNotEmpty)
+            ? data['description'].toString()
+            : (data['merchant']?.toString() ??
+                (data['notes']?.toString() ??
+                    (isFailed ? 'Failed Expense' : 'Expense'))))
         : (type == 'income'
-            ? (data['source']?.toString() ?? 'Income (Offline)')
-            : 'Transfer (Offline)');
+            ? ((data['source'] != null && data['source'].toString().isNotEmpty)
+                ? data['source'].toString()
+                : (data['notes']?.toString() ??
+                    (isFailed ? 'Failed Income' : 'Income')))
+            : (isFailed ? 'Failed Transfer' : 'Transfer'));
+    final categoryName = isExpense
+        ? (data['categoryName']?.toString() ??
+            (isFailed ? 'Sync Failed' : 'Pending Sync'))
+        : (type == 'income' ? 'Income' : 'Transfer');
     return TransactionEntry(
       id: ot.id,
-      title: title.isNotEmpty ? title : 'Pending Offline Entry',
+      title: title.isNotEmpty
+          ? title
+          : (isFailed ? 'Failed Entry' : 'Pending Offline Entry'),
       amount: amount,
       isExpense: isExpense,
       date: date,
-      categoryName:
-          isExpense ? 'Pending Sync' : (type == 'income' ? 'Income' : 'Transfer'),
+      categoryName: categoryName,
       type: type,
-      status: 'pending_sync',
+      status: isFailed ? 'sync_failed' : 'pending_sync',
       accountId:
           data['accountId']?.toString() ?? data['fromAccountId']?.toString(),
       categoryId: data['categoryId']?.toString(),
-      notes: data['notes']?.toString(),
+      notes: isFailed
+          ? (ot.lastError ?? 'Failed to sync')
+          : data['notes']?.toString(),
     );
   } catch (_) {
     return TransactionEntry(
       id: ot.id,
-      title: 'Pending Sync',
+      title: isFailed ? 'Sync Failed' : 'Pending Sync',
       amount: 0.0,
       isExpense: ot.type == 'expense',
       date: ot.createdAt,
-      categoryName: 'Offline',
+      categoryName: isFailed ? 'Sync Failed' : 'Offline',
       type: ot.type,
-      status: 'pending_sync',
+      status: isFailed ? 'sync_failed' : 'pending_sync',
+      notes: isFailed ? ot.lastError : null,
     );
   }
 }
@@ -722,7 +780,7 @@ final paginatedTransactionsProvider = FutureProvider<PaginatedTransactions>((
   final cacheService = ref.watch(cacheServiceProvider);
   final userId = ref.watch(authProvider).userId;
   final pending = userId != null
-      ? await cacheService.getPendingSyncTransactions(userId)
+      ? await cacheService.getAllOfflineTransactions(userId)
       : <OfflineTransaction>[];
   final pendingEntries = pending.map(offlineTransactionToEntry).toList();
 
@@ -958,6 +1016,8 @@ class TransactionMutator {
       'spentAt': dateIso,
       'status': _statusForDate(spentAt),
       'clientMutationId': _uuid.v4(),
+      if (categoryName != null && categoryName.isNotEmpty)
+        'categoryName': categoryName,
       if (notes != null && notes.isNotEmpty) 'notes': notes,
     };
 

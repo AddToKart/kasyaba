@@ -1,7 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import '../../../core/api/api_client.dart';
+import '../../../core/auth/auth_provider.dart';
+import '../../../core/database/cache_service.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
@@ -15,6 +19,104 @@ Future<void> _showTransactionActions(
   WidgetRef ref,
   TransactionEntry transaction,
 ) async {
+  if (transaction.isSyncFailed) {
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.expense.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.sync_problem_rounded,
+                      color: AppColors.expense,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'Sync Failed',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                transaction.notes ?? 'This offline transaction could not be synced.',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                ),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.refresh_rounded, color: AppColors.emerald500),
+                title: const Text('Retry Sync'),
+                subtitle: const Text('Re-queue this transaction for the next sync'),
+                onTap: () => Navigator.of(sheetContext).pop('retry'),
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.delete_outline_rounded, color: AppColors.expense),
+                title: const Text('Delete Queued Entry'),
+                subtitle: const Text('Discard this transaction from local storage'),
+                onTap: () => Navigator.of(sheetContext).pop('delete'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (action == 'retry') {
+      final cacheService = ref.read(cacheServiceProvider);
+      await cacheService.retryFailedTransaction(transaction.id);
+      final userId = ref.read(authProvider).userId;
+      if (userId != null) {
+        final dio = ref.read(dioProvider);
+        unawaited(cacheService.syncPendingTransactions(dio, userId).catchError((_) => 0));
+      }
+      ref.invalidate(paginatedTransactionsProvider);
+      ref.invalidate(dashboardProvider);
+      ref.invalidate(accountBalancesProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Transaction re-queued for sync.')),
+        );
+      }
+    } else if (action == 'delete') {
+      final cacheService = ref.read(cacheServiceProvider);
+      await cacheService.deleteOfflineTransaction(transaction.id);
+      ref.invalidate(paginatedTransactionsProvider);
+      ref.invalidate(dashboardProvider);
+      ref.invalidate(accountBalancesProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Offline transaction discarded.')),
+        );
+      }
+    }
+    return;
+  }
+
   if (transaction.isPendingSync) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -411,28 +513,37 @@ class TransactionsScreen extends ConsumerWidget {
   ) {
     final isExpense = item.isExpense;
     final isPending = item.isPendingSync;
-    final amountColor = isPending
-        ? AppColors.gold400
-        : (item.isTransfer
+    final isFailed = item.isSyncFailed;
+    final amountColor = isFailed
+        ? AppColors.expense
+        : (isPending
+            ? AppColors.gold400
+            : (item.isTransfer
+                ? AppColors.gold500
+                : (isExpense ? AppColors.expense : AppColors.income)));
+    final categoryColor = isFailed
+        ? AppColors.expense
+        : (isPending
             ? AppColors.gold500
-            : (isExpense ? AppColors.expense : AppColors.income));
-    final categoryColor = isPending
-        ? AppColors.gold500
-        : (item.isTransfer
-            ? AppColors.info
-            : CategoryIconHelper.getColor(item.categoryName, isExpense: isExpense));
-    final categoryIcon = isPending
-        ? Icons.sync_rounded
-        : (item.isTransfer
-            ? Icons.swap_horiz_rounded
-            : CategoryIconHelper.getIcon(item.categoryName));
+            : (item.isTransfer
+                ? AppColors.info
+                : CategoryIconHelper.getColor(item.categoryName, isExpense: isExpense)));
+    final categoryIcon = isFailed
+        ? Icons.sync_problem_rounded
+        : (isPending
+            ? Icons.sync_rounded
+            : (item.isTransfer
+                ? Icons.swap_horiz_rounded
+                : CategoryIconHelper.getIcon(item.categoryName)));
     final primaryTitle = item.title.isNotEmpty ? item.title : item.categoryName;
     final dateStr = DateFormat('MMM d, yyyy').format(item.date);
-    final statusPrefix = isPending
-        ? 'Pending Sync • '
-        : (item.isCancelled
-            ? 'Cancelled • '
-            : (item.isScheduled ? 'Planned • ' : ''));
+    final statusPrefix = isFailed
+        ? 'Sync Failed • '
+        : (isPending
+            ? 'Pending Sync • '
+            : (item.isCancelled
+                ? 'Cancelled • '
+                : (item.isScheduled ? 'Planned • ' : '')));
     final subtitleText = '$statusPrefix${item.categoryName} • $dateStr';
 
     return ListTile(

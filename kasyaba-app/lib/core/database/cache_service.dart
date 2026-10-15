@@ -86,6 +86,16 @@ class CacheService {
     )).get();
   }
 
+  /// Returns all offline transactions for [userId] (both pending and failed).
+  Future<List<OfflineTransaction>> getAllOfflineTransactions(
+    String userId,
+  ) async {
+    return (_db.select(_db.offlineTransactions)
+          ..where((t) => t.syncedAt.isNull() & t.userId.equals(userId))
+          ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]))
+        .get();
+  }
+
   /// Watches all transactions for [userId] that have not been synced yet.
   Stream<List<OfflineTransaction>> watchPendingSyncTransactions(
     String userId,
@@ -196,6 +206,24 @@ class CacheService {
             lastError: Value(message),
           ),
         );
+  }
+
+  /// Resets a failed offline transaction so it will be retried on next sync.
+  Future<void> retryFailedTransaction(String id) async {
+    await (_db.update(_db.offlineTransactions)..where((t) => t.id.equals(id)))
+        .write(
+          const OfflineTransactionsCompanion(
+            retryCount: Value(0),
+            lastError: Value(null),
+            failedAt: Value(null),
+          ),
+        );
+  }
+
+  /// Permanently deletes an offline transaction from the local queue.
+  Future<void> deleteOfflineTransaction(String id) async {
+    await (_db.delete(_db.offlineTransactions)..where((t) => t.id.equals(id)))
+        .go();
   }
 }
 

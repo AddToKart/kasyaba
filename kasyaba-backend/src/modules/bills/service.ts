@@ -1,7 +1,7 @@
 import { prisma } from '../../config/database';
 import { ConflictError, NotFoundError } from '../../lib/errors';
 import { addMonths, safeDate } from '../../lib/dates';
-import { endOfZonedDay } from '../../lib/zoned-dates';
+import { endOfZonedDay, getZonedParts } from '../../lib/zoned-dates';
 import type { CreateBillTemplateInput, UpdateBillTemplateInput } from './validation';
 
 export async function listBillTemplates(userId: string) {
@@ -209,6 +209,12 @@ export async function cancelBill(userId: string, billId: string) {
 }
 
 export async function generateBillInstances(userId: string, monthsAhead = 2) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { timezone: true },
+  });
+  const timeZone = user?.timezone ?? 'UTC';
+
   const templates = await prisma.billTemplate.findMany({
     where: { userId, isActive: true },
   });
@@ -217,12 +223,15 @@ export async function generateBillInstances(userId: string, monthsAhead = 2) {
   const endDate = addMonths(now, monthsAhead);
   const created: number[] = [];
 
+  const nowParts = getZonedParts(now, timeZone);
+  const localDayOfWeek = new Date(Date.UTC(nowParts.year, nowParts.month - 1, nowParts.day)).getUTCDay();
+
   for (const template of templates) {
     let currentDate = new Date(template.startsOn);
     if (currentDate < now) {
       // Move to next occurrence
       if (template.recurrence === 'monthly' && template.dayOfMonth) {
-        currentDate = safeDate(now.getFullYear(), now.getMonth(), template.dayOfMonth);
+        currentDate = safeDate(nowParts.year, nowParts.month - 1, template.dayOfMonth);
         currentDate.setHours(
           template.startsOn.getHours(),
           template.startsOn.getMinutes(),
@@ -233,9 +242,10 @@ export async function generateBillInstances(userId: string, monthsAhead = 2) {
           currentDate = addMonths(currentDate, 1);
         }
       } else if (template.recurrence === 'weekly' && template.dayOfWeek !== null) {
-        // Find next day of week
-        const dayDiff = (template.dayOfWeek - now.getDay() + 7) % 7;
-        currentDate = new Date(now.getTime() + dayDiff * 86400000);
+        // Find next day of week relative to the user's local day
+        const dayDiff = (template.dayOfWeek - localDayOfWeek + 7) % 7;
+        const localToday = safeDate(nowParts.year, nowParts.month - 1, nowParts.day);
+        currentDate = new Date(localToday.getTime() + dayDiff * 86400000);
         currentDate.setHours(
           template.startsOn.getHours(),
           template.startsOn.getMinutes(),

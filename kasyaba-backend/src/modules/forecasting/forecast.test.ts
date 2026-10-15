@@ -72,3 +72,4 @@ describe('Forecasting Onboarding Stability & Confidence (F7)', () => {
     });
   });
 });
+

@@ -147,6 +147,40 @@ function defaultDateRange(timeZone: string): { from: string; to: string } {
   return { from: formatZonedDate(start, timeZone), to: formatZonedDate(end, timeZone) };
 }
 
+export function buildPlanningEvents(
+  income: { receivedAt: Date; amount: Decimal | string | number }[],
+  expenses: { spentAt: Date; amount: Decimal | string | number }[],
+  bills: { dueDate: Date; amount: Decimal | string | number }[],
+  now: Date,
+  timeZone: string,
+  from: string,
+): PlanningEvent[] {
+  const todayKey = formatZonedDate(startOfZonedDay(now, timeZone), timeZone);
+  const targetTodayKey = from > todayKey ? from : todayKey;
+
+  return [
+    ...income.map((entry) => ({
+      date: formatZonedDate(entry.receivedAt, timeZone),
+      amount: entry.amount.toString(),
+      kind: 'income' as const,
+    })),
+    ...expenses.map((entry) => ({
+      date: formatZonedDate(entry.spentAt, timeZone),
+      amount: entry.amount.toString(),
+      kind: 'expense' as const,
+    })),
+    ...bills.map((bill) => {
+      const billKey = formatZonedDate(bill.dueDate, timeZone);
+      const isPastOrToday = bill.dueDate <= now || billKey < from;
+      return {
+        date: isPastOrToday ? targetTodayKey : billKey,
+        amount: bill.amount.toString(),
+        kind: 'bill' as const,
+      };
+    }),
+  ];
+}
+
 export async function getPlanningOverview(userId: string, query: PlanningQuery): Promise<PlanningOverview> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -191,16 +225,8 @@ export async function getPlanningOverview(userId: string, query: PlanningQuery):
     }),
   ]);
 
-  const today = startOfZonedDay(now, user?.timezone ?? 'UTC');
-  const events: PlanningEvent[] = [
-    ...income.map((entry) => ({ date: dateKey(entry.receivedAt), amount: entry.amount.toString(), kind: 'income' as const })),
-    ...expenses.map((entry) => ({ date: dateKey(entry.spentAt), amount: entry.amount.toString(), kind: 'expense' as const })),
-    ...bills.map((bill) => ({
-      date: dateKey(bill.dueDate > now ? bill.dueDate : today),
-      amount: bill.amount.toString(),
-      kind: 'bill' as const,
-    })),
-  ];
+  const timeZone = user?.timezone ?? 'UTC';
+  const events = buildPlanningEvents(income, expenses, bills, now, timeZone, from);
 
   return calculatePlanningOverview({
     from,

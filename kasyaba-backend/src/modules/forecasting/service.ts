@@ -2,7 +2,7 @@ import Decimal from 'decimal.js';
 import { prisma } from '../../config/database';
 import { toDecimalOrZero } from '../../lib/decimal';
 import { daysInMonth, daysBetween } from '../../lib/dates';
-import { endOfZonedMonth, getZonedParts, startOfZonedDay, startOfZonedMonth } from '../../lib/zoned-dates';
+import { endOfZonedMonth, formatZonedDate, getZonedParts, startOfZonedDay, startOfZonedMonth } from '../../lib/zoned-dates';
 import * as alertService from '../alerts/service';
 
 type Confidence = 'high' | 'medium' | 'low';
@@ -40,9 +40,10 @@ export async function computeSnapshot(
   const salaryAmount = toDecimalOrZero(user?.salaryAmount);
   const monthStart = startOfZonedMonth(now, timeZone);
   const monthEnd = endOfZonedMonth(now, timeZone);
-  const elapsedDays = daysBetween(monthStart, now);
-  const totalDays = daysInMonth(now);
-  const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+  const nowParts = getZonedParts(now, timeZone);
+  const elapsedDays = nowParts.day;
+  const totalDays = new Date(Date.UTC(nowParts.year, nowParts.month, 0)).getUTCDate();
+  const threeMonthsAgo = startOfZonedMonth(new Date(Date.UTC(nowParts.year, nowParts.month - 4, 1)), timeZone);
 
   // --- 1. Fetch all independent user data concurrently in Batch 1 ---
   const [
@@ -206,7 +207,8 @@ export async function computeSnapshot(
   // --- 3. Income projection (F7: Onboarding stability) ---
   const monthlyIncome: { [key: string]: Decimal } = {};
   for (const entry of incomeHistory) {
-    const key = `${entry.receivedAt.getFullYear()}-${entry.receivedAt.getMonth()}`;
+    const p = getZonedParts(entry.receivedAt, timeZone);
+    const key = `${p.year}-${p.month}`;
     monthlyIncome[key] = (monthlyIncome[key] || new Decimal(0)).plus(toDecimalOrZero(entry.amount));
   }
 
@@ -216,7 +218,8 @@ export async function computeSnapshot(
   // --- 4. Expense projection ---
   const monthlyExpenses: { [key: string]: Decimal } = {};
   for (const entry of expenseHistory) {
-    const key = `${entry.spentAt.getFullYear()}-${entry.spentAt.getMonth()}`;
+    const p = getZonedParts(entry.spentAt, timeZone);
+    const key = `${p.year}-${p.month}`;
     monthlyExpenses[key] = (monthlyExpenses[key] || new Decimal(0)).plus(toDecimalOrZero(entry.amount));
   }
 
@@ -380,6 +383,11 @@ export async function generateAlertsFromSnapshot(userId: string): Promise<void> 
   const timeZone = user.timezone ?? 'UTC';
   const monthStart = startOfZonedMonth(now, timeZone);
   const monthEnd = endOfZonedMonth(now, timeZone);
+  const nowParts = getZonedParts(now, timeZone);
+  const currentYearMonth = `${nowParts.year}-${nowParts.month}`;
+  const elapsedDays = nowParts.day;
+  const totalDays = new Date(Date.UTC(nowParts.year, nowParts.month, 0)).getUTCDate();
+
   const snapshot = await prisma.financialSnapshot.findFirst({
     where: { userId, snapshotDate: { gte: monthStart } },
     orderBy: { snapshotDate: 'desc' },
@@ -417,9 +425,6 @@ export async function generateAlertsFromSnapshot(userId: string): Promise<void> 
   );
   await alertService.resolveAlertsByKey(userId, `${userId}:budget_overrun:`);
 
-  const elapsedDays = daysBetween(monthStart, now);
-  const totalDays = daysInMonth(now);
-
   for (const budget of budgets) {
     const budgetAmount = toDecimalOrZero(budget.amount);
     let projectedSpend: Decimal;
@@ -439,7 +444,7 @@ export async function generateAlertsFromSnapshot(userId: string): Promise<void> 
     if (percentUsed <= 90) continue; // No alert needed
     const severity = percentUsed > 115 ? 'critical' : (percentUsed > 100 ? 'warning' : 'info');
 
-    const dedupKey = `${userId}:budget_overrun:${now.getFullYear()}-${now.getMonth()}:${budget.id}`;
+    const dedupKey = `${userId}:budget_overrun:${currentYearMonth}:${budget.id}`;
 
     await alertService.createAlert({
       userId,
@@ -476,10 +481,10 @@ export async function generateAlertsFromSnapshot(userId: string): Promise<void> 
     const billsInfo = unpaidBills.map((b) => ({
       name: b.name,
       amount: toDecimalOrZero(b.amount).toFixed(2),
-      dueDate: b.dueDate.toISOString().split('T')[0],
+      dueDate: formatZonedDate(b.dueDate, timeZone),
     }));
 
-    const key = `${userId}:low_balance:${now.getFullYear()}-${now.getMonth()}`;
+    const key = `${userId}:low_balance:${currentYearMonth}`;
     await alertService.createAlert({
       userId,
       snapshotId: currentSnapshot.id,
@@ -502,7 +507,7 @@ export async function generateAlertsFromSnapshot(userId: string): Promise<void> 
 
   // --- Month-end forecast alert ---
   if (projectedBalance.lt(0)) {
-    const key = `${userId}:month_end:${now.getFullYear()}-${now.getMonth()}`;
+    const key = `${userId}:month_end:${currentYearMonth}`;
     await alertService.createAlert({
       userId,
       snapshotId: currentSnapshot.id,
@@ -609,6 +614,7 @@ export async function generateAlertsFromSnapshot(userId: string): Promise<void> 
     const daysUntilDue = daysBetween(now, bill.dueDate);
     const key = `${userId}:bill_due:${bill.id}`;
     const billAmount = toDecimalOrZero(bill.amount).toFixed(2);
+    const dueDateStr = formatZonedDate(bill.dueDate, timeZone);
 
     await alertService.createAlert({
       userId,
@@ -616,11 +622,11 @@ export async function generateAlertsFromSnapshot(userId: string): Promise<void> 
       type: 'bill_due',
       severity: daysUntilDue <= 1 ? 'warning' : 'info',
       title: `Bill due ${daysUntilDue === 0 ? 'today' : `in ${daysUntilDue} days`}`,
-      message: `"${bill.name}" of ₱${billAmount} is due on ${bill.dueDate.toISOString().split('T')[0]}.`,
+      message: `"${bill.name}" of ₱${billAmount} is due on ${dueDateStr}.`,
       reasonData: {
         billName: bill.name,
         amount: billAmount,
-        dueDate: bill.dueDate.toISOString().split('T')[0],
+        dueDate: dueDateStr,
         daysUntilDue,
       },
       effectiveDate: now,
@@ -633,7 +639,7 @@ export async function generateAlertsFromSnapshot(userId: string): Promise<void> 
   const incomeMTD = toDecimalOrZero(currentSnapshot.incomeMonthToDate);
 
   if (expensesMTD.gt(0) && (incomeMTD.lte(0) || expensesMTD.gt(incomeMTD.times(0.8)))) {
-    const key = `${userId}:expense_spike:${now.getFullYear()}-${now.getMonth()}`;
+    const key = `${userId}:expense_spike:${currentYearMonth}`;
     const severity = expensesMTD.gt(incomeMTD) ? 'critical' : 'warning';
     await alertService.createAlert({
       userId,
@@ -653,7 +659,7 @@ export async function generateAlertsFromSnapshot(userId: string): Promise<void> 
   // --- Health Score Alert ---
   const healthGrade = currentSnapshot.healthGrade;
   if (healthGrade === 'Needs Attention' || healthGrade === 'Fair') {
-    const key = `${userId}:health_score:${now.getFullYear()}-${now.getMonth()}`;
+    const key = `${userId}:health_score:${currentYearMonth}`;
     await alertService.createAlert({
       userId,
       snapshotId: currentSnapshot.id,
