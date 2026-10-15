@@ -1,9 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:reactive_forms/reactive_forms.dart';
-import '../../../core/auth/auth_provider.dart';
 import '../../../app/theme/app_theme.dart';
+import '../../../core/auth/auth_provider.dart';
 import '../widgets/auth_widgets.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -28,8 +29,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
     },
     validators: [Validators.mustMatch('password', 'confirmPassword')],
   );
+
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
+  int _passwordStrength = 0;
+  bool _isPasswordMatching = false;
+  bool _hasConfirmText = false;
+
+  StreamSubscription<dynamic>? _passwordSub;
+  StreamSubscription<dynamic>? _confirmSub;
 
   late final AnimationController _bgController;
   late final AnimationController _entryController;
@@ -50,15 +58,56 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
       duration: const Duration(milliseconds: 900),
     );
     _fadeIn = CurvedAnimation(parent: _entryController, curve: Curves.easeOut);
-    _slideUp = Tween<Offset>(begin: const Offset(0, 0.06), end: Offset.zero)
+    _slideUp = Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero)
         .animate(
           CurvedAnimation(parent: _entryController, curve: Curves.easeOutCubic),
         );
     _entryController.forward();
+
+    // Listen to password strength & matching
+    _passwordSub = formGroup.control('password').valueChanges.listen((val) {
+      final pwd = val?.toString() ?? '';
+      final confirm = formGroup.control('confirmPassword').value?.toString() ?? '';
+      if (mounted) {
+        setState(() {
+          _passwordStrength = _computeStrength(pwd);
+          _hasConfirmText = confirm.isNotEmpty;
+          _isPasswordMatching = pwd.isNotEmpty && pwd == confirm;
+        });
+      }
+    });
+
+    _confirmSub = formGroup.control('confirmPassword').valueChanges.listen((val) {
+      final confirm = val?.toString() ?? '';
+      final pwd = formGroup.control('password').value?.toString() ?? '';
+      if (mounted) {
+        setState(() {
+          _hasConfirmText = confirm.isNotEmpty;
+          _isPasswordMatching = pwd.isNotEmpty && pwd == confirm;
+        });
+      }
+    });
+  }
+
+  int _computeStrength(String pwd) {
+    if (pwd.isEmpty) return 0;
+    int score = 0;
+    if (pwd.length >= 8) score++;
+    if (pwd.length >= 12) score++;
+    if (RegExp(r'[0-9]').hasMatch(pwd) && RegExp(r'[a-zA-Z]').hasMatch(pwd)) {
+      score++;
+    }
+    if (RegExp(r'[^a-zA-Z0-9]').hasMatch(pwd) ||
+        (RegExp(r'[A-Z]').hasMatch(pwd) && RegExp(r'[a-z]').hasMatch(pwd))) {
+      score++;
+    }
+    return score.clamp(1, 4);
   }
 
   @override
   void dispose() {
+    _passwordSub?.cancel();
+    _confirmSub?.cancel();
     _bgController.dispose();
     _entryController.dispose();
     formGroup.dispose();
@@ -70,9 +119,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
     formGroup.markAllAsTouched();
     if (!formGroup.valid) return;
     try {
-      await ref
-          .read(authProvider.notifier)
-          .register(
+      await ref.read(authProvider.notifier).register(
             formGroup.control('email').value as String,
             formGroup.control('password').value as String,
             displayName: formGroup.control('name').value as String,
@@ -84,36 +131,35 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final size = MediaQuery.sizeOf(context);
 
     return Scaffold(
+      backgroundColor: AppColors.obsidian,
       body: Stack(
         children: [
-          // ── Background ───────────────────────────────────
+          // ── Background with grid & emerald aura ───────────
           AuthBackground(
             rotateAnimation: _bgRotate,
-            isDark: isDark,
+            isDark: true,
             size: size,
           ),
 
-          // ── Content ──────────────────────────────────────
+          // ── Scrollable Content ────────────────────────────
           SafeArea(
             child: Stack(
               children: [
-                // Back button
+                // Top-left back button
                 Positioned(
                   top: 8,
                   left: 12,
-                  child: _AuthBackButton(isDark: isDark),
+                  child: _AuthBackButton(),
                 ),
 
                 Center(
                   child: SingleChildScrollView(
                     physics: const ClampingScrollPhysics(),
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 28,
+                      horizontal: 22,
                       vertical: 24,
                     ),
                     child: FadeTransition(
@@ -125,44 +171,42 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              const SizedBox(height: 44),
+                              const SizedBox(height: 38),
 
-                              // ── Branding ─────────────────
-                              Center(
+                              // ── Upgraded Brand Header Lockup ──
+                              const AuthBrandHeader(),
+                              const SizedBox(height: 24),
+
+                              // ── Screen Title ──────────────────
+                              const Center(
                                 child: Column(
                                   children: [
-                                    AuthLogoBadge(isDark: isDark),
-                                    const SizedBox(height: 28),
                                     Text(
                                       'Create Account',
-                                      style: theme.textTheme.headlineMedium
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.w800,
-                                            letterSpacing: -0.8,
-                                            color: isDark
-                                                ? Colors.white
-                                                : AppColors.textLight,
-                                          ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      'Join Kasyaba and master your finances',
+                                      textAlign: TextAlign.center,
                                       style: TextStyle(
-                                        fontSize: 14,
-                                        color: isDark
-                                            ? AppColors.textMuted
-                                            : AppColors.textMutedL,
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 26,
+                                        letterSpacing: -0.6,
+                                        color: AppColors.textDark,
+                                      ),
+                                    ),
+                                    SizedBox(height: 6),
+                                    Text(
+                                      'Start tracking your deterministic runway today',
+                                      style: TextStyle(
+                                        fontSize: 13.5,
+                                        color: AppColors.textMuted,
                                         height: 1.4,
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
-                              const SizedBox(height: 36),
+                              const SizedBox(height: 28),
 
-                              // ── Form Card ────────────────
+                              // ── Glassmorphic Form Card ────────
                               AuthFormCard(
-                                isDark: isDark,
                                 child: Column(
                                   crossAxisAlignment:
                                       CrossAxisAlignment.stretch,
@@ -170,34 +214,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                                     if (authState.error != null) ...[
                                       AuthErrorBanner(
                                         message: authState.error!,
-                                        isDark: isDark,
                                       ),
-                                      const SizedBox(height: 20),
+                                      const SizedBox(height: 18),
                                     ],
 
-                                    ReactiveTextField(
+                                    // Full Name Field
+                                    AuthReactiveField(
                                       formControlName: 'name',
+                                      label: 'Full Name',
+                                      hintText: 'John Doe',
+                                      prefixIcon: Icons.person_outline_rounded,
                                       textInputAction: TextInputAction.next,
-                                      style: TextStyle(
-                                        color: isDark
-                                            ? AppColors.textDark
-                                            : AppColors.textLight,
-                                        fontWeight: FontWeight.w500,
-                                        fontSize: 15,
-                                      ),
-                                      decoration: InputDecoration(
-                                        labelText: 'Full Name',
-                                        hintText: 'John Doe',
-                                        prefixIcon: Padding(
-                                          padding: const EdgeInsets.only(
-                                            left: 4,
-                                          ),
-                                          child: Icon(
-                                            Icons.person_outline_rounded,
-                                            size: 20,
-                                          ),
-                                        ),
-                                      ),
                                       validationMessages: {
                                         ValidationMessage.required: (_) =>
                                             'Please enter your name',
@@ -205,139 +232,84 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                                     ),
                                     const SizedBox(height: 16),
 
-                                    ReactiveTextField(
+                                    // Email Address Field with Envelope Icon
+                                    AuthReactiveField(
                                       formControlName: 'email',
+                                      label: 'Email Address',
+                                      hintText: 'name@example.com',
+                                      prefixIcon: Icons.mail_outline_rounded,
                                       keyboardType: TextInputType.emailAddress,
                                       textInputAction: TextInputAction.next,
-                                      style: TextStyle(
-                                        color: isDark
-                                            ? AppColors.textDark
-                                            : AppColors.textLight,
-                                        fontWeight: FontWeight.w500,
-                                        fontSize: 15,
-                                      ),
-                                      decoration: InputDecoration(
-                                        labelText: 'Email Address',
-                                        hintText: 'name@example.com',
-                                        prefixIcon: Padding(
-                                          padding: const EdgeInsets.only(
-                                            left: 4,
-                                          ),
-                                          child: Icon(
-                                            Icons.alternate_email_rounded,
-                                            size: 20,
-                                          ),
-                                        ),
-                                      ),
                                       validationMessages: {
                                         ValidationMessage.required: (_) =>
                                             'Email is required',
                                         ValidationMessage.email: (_) =>
-                                            'Enter a valid email',
+                                            'Enter a valid email address',
                                       },
                                     ),
                                     const SizedBox(height: 16),
 
-                                    ReactiveTextField(
+                                    // Password Field
+                                    AuthReactiveField(
                                       formControlName: 'password',
+                                      label: 'Password',
+                                      hintText: '••••••••',
+                                      prefixIcon: Icons.lock_outline_rounded,
                                       obscureText: _obscurePassword,
                                       textInputAction: TextInputAction.next,
-                                      style: TextStyle(
-                                        color: isDark
-                                            ? AppColors.textDark
-                                            : AppColors.textLight,
-                                        fontWeight: FontWeight.w500,
-                                        fontSize: 15,
-                                      ),
-                                      decoration: InputDecoration(
-                                        labelText: 'Password',
-                                        hintText: '••••••••',
-                                        prefixIcon: Padding(
-                                          padding: const EdgeInsets.only(
-                                            left: 4,
-                                          ),
-                                          child: Icon(
-                                            Icons.lock_outline_rounded,
-                                            size: 20,
-                                          ),
+                                      suffixIcon: IconButton(
+                                        tooltip: _obscurePassword
+                                            ? 'Show password'
+                                            : 'Hide password',
+                                        icon: Icon(
+                                          _obscurePassword
+                                              ? Icons.visibility_off_outlined
+                                              : Icons.visibility_outlined,
+                                          size: 19,
                                         ),
-                                        suffixIcon: IconButton(
-                                          tooltip: _obscurePassword
-                                              ? 'Show password'
-                                              : 'Hide password',
-                                          constraints: const BoxConstraints(
-                                            minWidth: 48,
-                                            minHeight: 48,
-                                          ),
-                                          icon: Icon(
-                                            _obscurePassword
-                                                ? Icons.visibility_off_outlined
-                                                : Icons.visibility_outlined,
-                                            size: 20,
-                                          ),
-                                          color: isDark
-                                              ? AppColors.textMuted
-                                              : AppColors.textMutedL,
-                                          onPressed: () => setState(
-                                            () => _obscurePassword =
-                                                !_obscurePassword,
-                                          ),
+                                        color: const Color(0xFF64748B),
+                                        onPressed: () => setState(
+                                          () => _obscurePassword =
+                                              !_obscurePassword,
                                         ),
                                       ),
                                       validationMessages: {
                                         ValidationMessage.required: (_) =>
-                                            'At least 8 characters',
+                                            'At least 8 characters required',
                                         ValidationMessage.minLength: (_) =>
-                                            'At least 8 characters',
+                                            'At least 8 characters required',
                                       },
+                                    ),
+
+                                    // Live 4-segment Password Strength Indicator
+                                    PasswordStrengthBar(
+                                      strength: _passwordStrength,
                                     ),
                                     const SizedBox(height: 16),
 
-                                    ReactiveTextField(
+                                    // Confirm Password Field
+                                    AuthReactiveField(
                                       formControlName: 'confirmPassword',
+                                      label: 'Confirm Password',
+                                      hintText: '••••••••',
+                                      prefixIcon: Icons.lock_outline_rounded,
                                       obscureText: _obscureConfirm,
                                       textInputAction: TextInputAction.done,
-                                      onSubmitted: (_) => _handleRegister(),
-                                      style: TextStyle(
-                                        color: isDark
-                                            ? AppColors.textDark
-                                            : AppColors.textLight,
-                                        fontWeight: FontWeight.w500,
-                                        fontSize: 15,
-                                      ),
-                                      decoration: InputDecoration(
-                                        labelText: 'Confirm Password',
-                                        hintText: '••••••••',
-                                        prefixIcon: Padding(
-                                          padding: const EdgeInsets.only(
-                                            left: 4,
-                                          ),
-                                          child: Icon(
-                                            Icons.lock_outline_rounded,
-                                            size: 20,
-                                          ),
+                                      onSubmitted: _handleRegister,
+                                      suffixIcon: IconButton(
+                                        tooltip: _obscureConfirm
+                                            ? 'Show password'
+                                            : 'Hide password',
+                                        icon: Icon(
+                                          _obscureConfirm
+                                              ? Icons.visibility_off_outlined
+                                              : Icons.visibility_outlined,
+                                          size: 19,
                                         ),
-                                        suffixIcon: IconButton(
-                                          tooltip: _obscureConfirm
-                                              ? 'Show password'
-                                              : 'Hide password',
-                                          constraints: const BoxConstraints(
-                                            minWidth: 48,
-                                            minHeight: 48,
-                                          ),
-                                          icon: Icon(
-                                            _obscureConfirm
-                                                ? Icons.visibility_off_outlined
-                                                : Icons.visibility_outlined,
-                                            size: 20,
-                                          ),
-                                          color: isDark
-                                              ? AppColors.textMuted
-                                              : AppColors.textMutedL,
-                                          onPressed: () => setState(
-                                            () => _obscureConfirm =
-                                                !_obscureConfirm,
-                                          ),
+                                        color: const Color(0xFF64748B),
+                                        onPressed: () => setState(
+                                          () => _obscureConfirm =
+                                              !_obscureConfirm,
                                         ),
                                       ),
                                       validationMessages: {
@@ -347,46 +319,63 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                                             'Passwords do not match',
                                       },
                                     ),
-                                    const SizedBox(height: 28),
 
+                                    // Live Match Indicator
+                                    PasswordMatchIndicator(
+                                      isMatching: _isPasswordMatching,
+                                      hasConfirmText: _hasConfirmText,
+                                    ),
+                                    const SizedBox(height: 24),
+
+                                    // Primary Create Account Button (12px radius)
                                     AuthGradientButton(
                                       isLoading: authState.isLoading,
                                       onPressed: _handleRegister,
                                       label: 'Create Account',
                                     ),
+                                    const SizedBox(height: 16),
+
+                                    // Muted Terms & Privacy Notice
+                                    const Text(
+                                      'By continuing, you agree to Kasyaba\'s Terms of Service and Privacy Policy. All financial records are calculated locally with zero AI telemetry.',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        color: Color(0xFF64748B),
+                                        fontSize: 11,
+                                        height: 1.45,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
-                              const SizedBox(height: 24),
+                              const SizedBox(height: 20),
 
-                              // ── Sign In Link ─────────────
+                              // ── Sign In Navigation Link ───────
                               Center(
                                 child: TextButton(
                                   onPressed: () => context.go('/login'),
                                   style: TextButton.styleFrom(
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 16,
-                                      vertical: 10,
+                                      vertical: 8,
                                     ),
                                   ),
                                   child: RichText(
-                                    text: TextSpan(
+                                    text: const TextSpan(
                                       children: [
                                         TextSpan(
                                           text: 'Already have an account?  ',
                                           style: TextStyle(
-                                            color: isDark
-                                                ? AppColors.textMuted
-                                                : AppColors.textMutedL,
-                                            fontSize: 14,
+                                            color: Color(0xFF94A3B8),
+                                            fontSize: 13.5,
                                           ),
                                         ),
-                                        const TextSpan(
+                                        TextSpan(
                                           text: 'Sign In',
                                           style: TextStyle(
-                                            color: AppColors.emerald500,
+                                            color: AppColors.emerald400,
                                             fontWeight: FontWeight.w700,
-                                            fontSize: 14,
+                                            fontSize: 13.5,
                                           ),
                                         ),
                                       ],
@@ -394,6 +383,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                                   ),
                                 ),
                               ),
+                              const SizedBox(height: 12),
+
+                              // ── Bottom Trust Footer ───────────
+                              const AuthTrustFooter(),
                             ],
                           ),
                         ),
@@ -411,9 +404,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
 }
 
 class _AuthBackButton extends StatelessWidget {
-  final bool isDark;
-  const _AuthBackButton({required this.isDark});
-
   @override
   Widget build(BuildContext context) {
     return Tooltip(
@@ -424,22 +414,20 @@ class _AuthBackButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           onTap: () => context.go('/login'),
           child: Container(
-            width: 48,
-            height: 48,
+            width: 42,
+            height: 42,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              color: isDark
-                  ? AppColors.surface700.withValues(alpha: 0.7)
-                  : Colors.white.withValues(alpha: 0.85),
+              color: const Color(0xBF0F172A),
               border: Border.all(
-                color: isDark ? AppColors.surface600 : AppColors.lightBorder,
+                color: const Color(0x14FFFFFF),
                 width: 1,
               ),
             ),
-            child: Icon(
+            child: const Icon(
               Icons.arrow_back_ios_new_rounded,
-              size: 18,
-              color: isDark ? AppColors.textDark : AppColors.textLight,
+              size: 16,
+              color: AppColors.textDark,
             ),
           ),
         ),
