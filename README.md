@@ -1,254 +1,264 @@
-# KASYABA
+# 🌿 KASYABA
 
-Personal financial tracker for Android with income and expense tracking, savings goals, bill reminders, explainable financial forecasting, predictive alerts, and a financial health score.
+> **Personal Financial Runway & Intelligent Cash-Flow Tracker for Android**  
+> Built with Flutter and an Express/TypeScript backend. Features include daily safe-to-spend allowances, savings goals with a "Can I Buy This?" simulator, bill timeline tracking, and predictive cash-flow forecasting.
 
-## Tech Stack
+---
 
-- **Mobile**: Flutter (Android)
-- **API**: Express.js with TypeScript
-- **Database**: PostgreSQL (via Supabase)
-- **ORM**: Prisma
-- **Auth**: JWT + refresh tokens, Google Sign-In
+## 🏗️ Architecture at a Glance
 
-## Getting Started
-
-### Prerequisites
-
-- Flutter SDK 3.44.x (Dart SDK 3.12.x)
-- Node.js LTS
-- Docker & Docker Compose (for local PostgreSQL)
-
-### Backend Setup
-
-```bash
-cd kasyaba-backend
-
-# Copy environment variables
-cp .env.example .env
-# Edit .env with your values
-
-# Install dependencies
-npm install
-
-# Generate Prisma client
-npx prisma generate
-
-# Run database migrations
-npx prisma migrate dev
-
-# Seed default categories
-npx tsx prisma/seed.ts
-
-# Start development server
-npm run dev
-```
-
-### Flutter Setup
-
-```bash
-cd kasyaba-app
-
-# Get dependencies
-flutter pub get
-
-# Run the app
-flutter run
-```
-
-### Android Release Build
-
-Release builds must point at the production API over HTTPS:
-
-```bash
-flutter build appbundle --release \
-  --dart-define=API_BASE_URL=https://<your-api-domain> \
-  --obfuscate --split-debug-info=build/symbols
-```
-
-Debug builds default to `http://10.0.2.2:3000`, and cleartext HTTP is allowed in
-debug builds only (`android/app/src/debug/res/xml/network_security_config.xml`).
-A release build compiled without `API_BASE_URL` shows a configuration error
-instead of silently targeting localhost.
-
-### Docker Development
-
-```bash
-# Start PostgreSQL, API, and Worker in development mode
-# The automatically loaded docker-compose.override.yml mounts the backend source.
-docker compose up --build
-
-# After the first build, source changes hot-reload without rebuilding.
-docker compose up
-
-# Follow backend logs
-docker compose logs -f api worker
-
-# Apply a migration added while the containers are already running
-docker compose exec api npx prisma migrate deploy
-
-# Regenerate Prisma Client after changing prisma/schema.prisma
-docker compose exec api npx prisma generate
-```
-
-### Docker Production
-
-```bash
-# Required environment variables (export them or create a root .env file):
-#   DATABASE_URL, DIRECT_URL, JWT_ACCESS_SECRET, CORS_ALLOWED_ORIGINS.
-#   TRUST_PROXY is also required in production: 1 behind a reverse proxy,
-#   false only when the API is directly exposed.
-# Optional: SUPPORT_EMAIL, GOOGLE_WEB_CLIENT_ID, ACCESS_TOKEN_TTL_MINUTES,
-#           REFRESH_TOKEN_TTL_DAYS, LOG_LEVEL.
-#
-# Apply migrations before the API starts (the one-shot `migrate` service does
-# this automatically). On a PaaS run `npx prisma migrate deploy` in the
-# release/pre-deploy phase.
-#
-# Run the worker as exactly one replica: it owns cron scheduling and job-run
-# reconciliation, and a second instance can corrupt job state.
-#
-# The api and worker services wait for the one-shot `migrate` service to apply
-# Prisma migrations before starting.
-docker compose -f docker-compose.yml up -d --build
-
-# Public legal pages served by the API:
-#   /privacy            - privacy policy (required by Google Play)
-#   /account-deletion   - account deletion instructions (required by Google Play)
-```
-
-## Project Structure
+Kasyaba consists of two main projects in this repository:
 
 ```
 kasyaba/
-├── kasyaba-app/              # Flutter application
-│   └── lib/
-│       ├── app/              # App config, router, theme
-│       ├── core/             # API client, auth, storage
-│       ├── features/         # Feature modules
-│       └── shared/           # Shared models & widgets
-├── kasyaba-backend/          # Express API & worker
-│   ├── prisma/               # Schema & migrations
-│   └── src/
-│       ├── config/           # Environment, database
-│       ├── lib/              # Utilities (decimal, dates)
-│       ├── middleware/       # Auth, validation, errors
-│       ├── modules/          # Feature modules
-│       ├── jobs/             # Scheduled jobs
-│       └── routes/           # Route registration
-├── docs/                     # Documentation
-└── docker-compose.yml        # Local orchestration
+├── 📱 kasyaba-app/        # Flutter Android client (Riverpod, Material 3, Dark Luxury UI)
+├── ⚙️ kasyaba-backend/    # Node.js / Express TypeScript API & Prisma ORM
+└── 🐳 docker-compose.yml # Optional full-stack local container orchestration
 ```
 
-## API Endpoints
+* **Frontend:** Flutter (Dart) targeting Android.
+* **Backend:** Express.js REST API with TypeScript, Prisma ORM, and Vitest test suite.
+* **Database:** PostgreSQL (run locally via Docker or in the cloud via Supabase).
+* **Auth:** JWT Access + Refresh Tokens, optional Google Sign-In.
 
-All routes are versioned under `/api/v1`.
+---
 
-### Authentication
-- `POST /api/v1/auth/register` - Create account
-- `POST /api/v1/auth/login` - Sign in
-- `POST /api/v1/auth/google` - Google Sign-In
-- `POST /api/v1/auth/refresh` - Refresh tokens
-- `POST /api/v1/auth/logout` - Sign out
-- `POST /api/v1/auth/logout-all` - Sign out all sessions
-- `GET /api/v1/auth/me` - Get current user
-- `PATCH /api/v1/auth/me` - Update profile and payday settings
+## 📋 Prerequisites Checklist
 
-### Accounts
-- `GET /api/v1/accounts` - List accounts
-- `POST /api/v1/accounts` - Create account
-- `PATCH /api/v1/accounts/:id` - Update account
-- `POST /api/v1/accounts/:id/archive` - Archive account
-- `GET /api/v1/accounts/:id/balance` - Get balance
+Before you begin, make sure your computer has the following tools installed:
 
-### Income
-- `GET /api/v1/income` - List income (paginated)
-- `POST /api/v1/income` - Add income
-- `GET /api/v1/income/:id` - Get income
-- `PATCH /api/v1/income/:id` - Update income
-- `DELETE /api/v1/income/:id` - Delete income
+1. **Git**: [Download Git](https://git-scm.com/downloads)
+2. **Node.js (LTS v20+)**: [Download Node.js](https://nodejs.org/)
+   * Check installation: `node -v` and `npm -v`
+3. **Flutter SDK (v3.44.x+)**: [Install Flutter](https://docs.flutter.dev/get-started/install)
+   * Check installation: `flutter doctor`
+4. **Android Studio**: [Download Android Studio](https://developer.android.com/studio)
+   * Required for Android SDK, JDK, and setting up an Android Virtual Device (Emulator).
+5. **Docker Desktop** *(Optional)*: [Download Docker](https://www.docker.com/)
+   * Recommended if you want to run PostgreSQL locally without installing it manually.
 
-### Expenses
-- `GET /api/v1/expenses` - List expenses (paginated)
-- `POST /api/v1/expenses` - Add expense
-- `GET /api/v1/expenses/:id` - Get expense
-- `PATCH /api/v1/expenses/:id` - Update expense
-- `DELETE /api/v1/expenses/:id` - Delete expense
-- `GET /api/v1/expenses/summary/by-category` - Category summary
+---
 
-### Categories
-- `GET /api/v1/expense-categories` - List categories
-- `POST /api/v1/expense-categories` - Create category
-- `PATCH /api/v1/expense-categories/:id` - Update category
-- `POST /api/v1/expense-categories/:id/archive` - Archive category
+## 🚀 Quick-Start Guide (Step-by-Step)
 
-### Budgets
-- `GET /api/v1/budgets` - List budgets
-- `POST /api/v1/budgets` - Create budget
-- `PATCH /api/v1/budgets/:id` - Update budget
-- `DELETE /api/v1/budgets/:id` - Delete budget
-- `GET /api/v1/budgets/status?month=YYYY-MM` - Budget status
+Follow these steps in order to get the entire project running on your machine.
 
-### Savings Goals
-- `GET /api/v1/goals` - List goals
-- `POST /api/v1/goals` - Create goal
-- `GET /api/v1/goals/:id` - Get goal
-- `PATCH /api/v1/goals/:id` - Update goal
-- `POST /api/v1/goals/:id/contributions` - Add contribution
-- `DELETE /api/v1/goals/:id/contributions/:contributionId` - Remove contribution
-- `GET /api/v1/goals/:id/progress` - Get progress
+---
 
-### Bills
-- `GET /api/v1/bill-templates` - List bill templates
-- `POST /api/v1/bill-templates` - Create bill template
-- `PATCH /api/v1/bill-templates/:id` - Update template
-- `POST /api/v1/bill-templates/:id/archive` - Archive template
-- `GET /api/v1/bills` - List bill instances
-- `POST /api/v1/bills/:id/mark-paid` - Mark bill paid
-- `POST /api/v1/bills/:id/mark-unpaid` - Mark bill unpaid
-- `POST /api/v1/bills/:id/cancel` - Cancel bill
+### Step 1: Database & Backend API Setup
 
-### Alerts
-- `GET /api/v1/alerts` - List alerts
-- `GET /api/v1/alerts/analysis` - Get recovery analysis
-- `POST /api/v1/alerts/:id/read` - Mark alert read
-- `POST /api/v1/alerts/:id/dismiss` - Dismiss alert
-- `POST /api/v1/alerts/read-all` - Mark all read
-
-### Dashboard
-- `GET /api/v1/dashboard` - Dashboard with forecasts
-- `POST /api/v1/forecasting/purchase-check` - Evaluate purchase affordability
-
-### Health
-- `GET /health/live` - Liveness check
-- `GET /health/ready` - Readiness check
-
-## Testing
-
-### Backend
+Open your terminal (PowerShell, Command Prompt, or Terminal) and enter the backend directory:
 
 ```bash
 cd kasyaba-backend
-npm test              # Run unit tests
-npm run test:watch    # Watch mode
-npm run test:coverage # With coverage
 ```
 
-### Flutter
+#### 1.1 Create your `.env` configuration file
+Copy the provided `.env.example` template:
+
+* **On Windows (PowerShell or Command Prompt):**
+  ```powershell
+  copy .env.example .env
+  ```
+* **On macOS / Linux:**
+  ```bash
+  cp .env.example .env
+  ```
+
+#### 1.2 Configure your Database Connection
+Open `.env` in your code editor. By default, it expects a local PostgreSQL database:
+```ini
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/kasyaba
+DIRECT_URL=postgresql://postgres:postgres@localhost:5432/kasyaba
+```
+
+> **💡 Beginner Tip (Choose Option A or Option B):**
+> * **Option A (Local with Docker - Easiest):**
+>   If you have Docker Desktop running, start a local Postgres database with one command:
+>   ```bash
+>   docker compose up -d postgres
+>   ```
+> * **Option B (Cloud with Supabase - Free):**
+>   Create a free project at [supabase.com](https://supabase.com). Copy the transaction pooler URL (port `6543`) into `DATABASE_URL` and the direct session URL (port `5432`) into `DIRECT_URL`.
+
+#### 1.3 Install dependencies
+```bash
+npm install
+```
+
+#### 1.4 Generate Prisma client & apply database migrations
+This creates all tables (accounts, transactions, bills, goals, alerts) in your database:
+```bash
+npx prisma generate
+npx prisma migrate dev
+```
+
+#### 1.5 Seed starter data (Default Categories)
+```bash
+npx tsx prisma/seed.ts
+```
+
+#### 1.6 Start the backend development server
+```bash
+npm run dev
+```
+
+🎉 **Success!** You should see:
+```text
+Server running on http://localhost:3000
+```
+You can verify it works by opening [http://localhost:3000/health/live](http://localhost:3000/health/live) in your browser. It should respond with `{"status":"ok"}`.
+
+> ⚠️ **Keep this terminal window running!** Leave it open and proceed to Step 2 in a new terminal window.
+
+---
+
+### Step 2: Flutter Mobile App Setup
+
+Open a **new** terminal window and navigate to `kasyaba-app`:
 
 ```bash
 cd kasyaba-app
-flutter test
 ```
 
-## Worker
+#### 2.1 Install Flutter dependencies
+```bash
+flutter pub get
+```
 
-The worker runs scheduled jobs for forecasting and bill generation:
+#### 2.2 Start an Android Device or Emulator
+* Open Android Studio ➔ **Virtual Device Manager** (Device Manager) ➔ click **Play** (▶) next to any Android device emulator (e.g. Pixel 8 with API 34/35).
+* *Or*, connect your physical Android phone with USB Debugging enabled.
+
+Check that Flutter detects your device:
+```bash
+flutter devices
+```
+
+#### 2.3 Run the mobile app!
+```bash
+flutter run
+```
+
+### 📱 How the App Connects to the Backend:
+* **Android Emulator (Default):** The emulator cannot reach your computer via `localhost`. Instead, Android emulators use `http://10.0.2.2:3000`. **The app already defaults to this automatically in debug mode!** You don't need to configure anything.
+* **Physical Android Phone (Over Wi-Fi):** If running on a physical phone connected via USB, point Flutter to your computer's local Wi-Fi IP address (e.g., `192.168.1.5`):
+  ```bash
+  flutter run --dart-define=API_BASE_URL=http://192.168.1.5:3000
+  ```
+
+---
+
+## 🐳 Alternative: 1-Command Docker Setup
+
+If you have Docker Desktop installed, you can launch the Postgres database, API, and background worker all together:
 
 ```bash
-cd kasyaba-backend
-npm run start:worker
+# From the root directory:
+docker compose up --build
 ```
 
-## License
+* Backend API will be live at: `http://localhost:3000`
+* PostgreSQL will be running on port: `5432`
+* Changes to backend code will hot-reload automatically inside the container.
 
-MIT
+---
+
+## 🧪 Running Tests
+
+Both frontend and backend include automated test suites to ensure everything works correctly.
+
+### Run Backend Tests (Vitest)
+```bash
+cd kasyaba-backend
+npm test              # Runs all 143 unit & e2e tests
+npm run test:watch    # Re-runs tests on save
+```
+
+### Run Mobile App Tests (Flutter)
+```bash
+cd kasyaba-app
+flutter test          # Runs all 21 unit & widget tests
+dart analyze          # Checks for code style and type warnings
+```
+
+---
+
+## 🛠️ Common Beginner Troubleshooting
+
+<details>
+<summary><b>1. App says "Connection timed out" or "Could not reach server" on Android</b></summary>
+
+* **Are you using an Android Emulator?** The app automatically calls `http://10.0.2.2:3000`. Make sure your backend terminal is running (`npm run dev` in `kasyaba-backend`).
+* **Are you using a Physical Phone?** A physical phone cannot reach `10.0.2.2` or `localhost`. Find your PC's IP address (`ipconfig` on Windows or `ifconfig` on Mac) and run:
+  ```bash
+  flutter run --dart-define=API_BASE_URL=http://YOUR_COMPUTER_IP:3000
+  ```
+* **Firewall:** Ensure Windows Defender Firewall allows incoming connections on port 3000.
+</details>
+
+<details>
+<summary><b>2. <code>npx prisma migrate dev</code> fails with database connection error</b></summary>
+
+* Make sure your database is running! If using Docker, run `docker compose up -d postgres`.
+* Check that the `DATABASE_URL` in `kasyaba-backend/.env` matches your database credentials and port (`5432`).
+* If using Supabase, make sure your password is correct and your project is not paused.
+</details>
+
+<details>
+<summary><b>3. <code>flutter run</code> fails with Android licenses or Gradle errors</b></summary>
+
+* Open terminal and accept Android SDK licenses:
+  ```bash
+  flutter doctor --android-licenses
+  ```
+  Type `y` to accept all prompts.
+* Run `flutter doctor` to ensure all checkmarks for Android Studio and SDK are green.
+</details>
+
+<details>
+<summary><b>4. Port 3000 is already in use</b></summary>
+
+* If another app is using port 3000, open `kasyaba-backend/.env` and change `PORT=3000` to `PORT=3001`.
+* In `kasyaba-app`, run with:
+  ```bash
+  flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3001
+  ```
+</details>
+
+---
+
+## 📁 Repository Overview
+
+```
+kasyaba/
+├── kasyaba-app/
+│   ├── android/              # Native Android configuration
+│   ├── lib/
+│   │   ├── app/              # Navigation router & Luxury Dark Theme (AppColors)
+│   │   ├── core/             # API clients, offline sync, auth tokens, currency formatters
+│   │   ├── features/
+│   │   │   ├── dashboard/    # Cash bridge, balance runway, month-end forecast
+│   │   │   ├── planning/     # Daily safe-to-spend allowance, runway milestones & what-if simulator
+│   │   │   ├── transactions/ # Incomes, expenses, transfers
+│   │   │   ├── goals/        # Savings goals & "Can I Buy This?" card
+│   │   │   ├── bills/        # Recurring bill reminders & payment markers
+│   │   │   └── budgets/      # Category spending limits
+│   │   └── shared/           # ModernCard, ModernBottomSheet, Luxury UI widgets
+│   └── test/                 # Unit & widget test suites
+│
+├── kasyaba-backend/
+│   ├── prisma/               # Database schema & migrations
+│   └── src/
+│       ├── config/           # Environment validation & DB pooler
+│       ├── modules/          # Auth, accounts, transactions, bills, goals, planning
+│       ├── jobs/             # Scheduled runway snapshots & daily worker
+│       └── routes/           # REST endpoints (/api/v1/...)
+└── README.md
+```
+
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).
