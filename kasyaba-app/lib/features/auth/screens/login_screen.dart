@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:reactive_forms/reactive_forms.dart';
-import '../../../core/auth/auth_provider.dart';
 import '../../../app/theme/app_theme.dart';
+import '../../../core/auth/auth_provider.dart';
 import '../widgets/auth_widgets.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -42,7 +42,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       duration: const Duration(milliseconds: 900),
     );
     _fadeIn = CurvedAnimation(parent: _entryController, curve: Curves.easeOut);
-    _slideUp = Tween<Offset>(begin: const Offset(0, 0.06), end: Offset.zero)
+    _slideUp = Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero)
         .animate(
           CurvedAnimation(parent: _entryController, curve: Curves.easeOutCubic),
         );
@@ -62,9 +62,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     formGroup.markAllAsTouched();
     if (!formGroup.valid) return;
     try {
-      await ref
-          .read(authProvider.notifier)
-          .login(
+      await ref.read(authProvider.notifier).login(
             formGroup.control('email').value as String,
             formGroup.control('password').value as String,
           );
@@ -72,30 +70,80 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     } catch (_) {}
   }
 
+  void _showForgotPasswordHelp(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface800,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+          side: const BorderSide(color: Color(0x14FFFFFF)),
+        ),
+        title: const Row(
+          children: [
+            Icon(
+              Icons.lock_reset_rounded,
+              color: AppColors.gold400,
+              size: 22,
+            ),
+            SizedBox(width: 10),
+            Text(
+              'Reset Password',
+              style: TextStyle(
+                color: AppColors.textDark,
+                fontWeight: FontWeight.w800,
+                fontSize: 17,
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          'For your privacy and security, password resets are processed via your verified email address or master recovery key. Contact support or your administrator to request a reset token.',
+          style: TextStyle(
+            color: AppColors.textMuted,
+            fontSize: 13,
+            height: 1.5,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text(
+              'Understood',
+              style: TextStyle(
+                color: AppColors.emerald400,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final size = MediaQuery.sizeOf(context);
 
     return Scaffold(
+      backgroundColor: AppColors.obsidian,
       body: Stack(
         children: [
-          // ── Background ───────────────────────────────────
+          // ── Background with grid & emerald aura ───────────
           AuthBackground(
             rotateAnimation: _bgRotate,
-            isDark: isDark,
+            isDark: true,
             size: size,
           ),
 
-          // ── Content ──────────────────────────────────────
+          // ── Scrollable Content ────────────────────────────
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
                 physics: const ClampingScrollPhysics(),
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 28,
+                  horizontal: 22,
                   vertical: 24,
                 ),
                 child: FadeTransition(
@@ -107,124 +155,90 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          // ── Branding ─────────────────────
-                          Center(
+                          // ── Upgraded Brand Header Lockup ──
+                          const AuthBrandHeader(),
+                          const SizedBox(height: 24),
+
+                          // ── Screen Title ──────────────────
+                          const Center(
                             child: Column(
                               children: [
-                                AuthLogoBadge(isDark: isDark),
-                                const SizedBox(height: 28),
                                 Text(
                                   'Welcome Back',
                                   textAlign: TextAlign.center,
-                                  style: theme.textTheme.headlineMedium
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.w800,
-                                        letterSpacing: -0.8,
-                                        color: isDark
-                                            ? Colors.white
-                                            : AppColors.textLight,
-                                      ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Sign in to your Kasyaba account',
                                   style: TextStyle(
-                                    fontSize: 14,
-                                    color: isDark
-                                        ? AppColors.textMuted
-                                        : AppColors.textMutedL,
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 26,
+                                    letterSpacing: -0.6,
+                                    color: AppColors.textDark,
+                                  ),
+                                ),
+                                SizedBox(height: 6),
+                                Text(
+                                  'Sign in to access your financial runway',
+                                  style: TextStyle(
+                                    fontSize: 13.5,
+                                    color: AppColors.textMuted,
                                     height: 1.4,
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                          const SizedBox(height: 40),
+                          const SizedBox(height: 28),
 
-                          // ── Form Card ────────────────────
+                          // ── Glassmorphic Form Card ────────
                           AuthFormCard(
-                            isDark: isDark,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 if (authState.error != null) ...[
                                   AuthErrorBanner(
                                     message: authState.error!,
-                                    isDark: isDark,
                                   ),
-                                  const SizedBox(height: 20),
+                                  const SizedBox(height: 18),
                                 ],
 
-                                ReactiveTextField(
+                                // Explicit label + envelope icon
+                                AuthReactiveField(
                                   formControlName: 'email',
+                                  label: 'Email Address',
+                                  hintText: 'name@example.com',
+                                  prefixIcon: Icons.mail_outline_rounded,
                                   keyboardType: TextInputType.emailAddress,
                                   textInputAction: TextInputAction.next,
-                                  style: TextStyle(
-                                    color: isDark
-                                        ? AppColors.textDark
-                                        : AppColors.textLight,
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 15,
-                                  ),
-                                  decoration: InputDecoration(
-                                    labelText: 'Email Address',
-                                    hintText: 'name@example.com',
-                                    prefixIcon: Padding(
-                                      padding: const EdgeInsets.only(left: 4),
-                                      child: Icon(
-                                        Icons.alternate_email_rounded,
-                                        size: 20,
-                                      ),
-                                    ),
-                                  ),
                                   validationMessages: {
                                     ValidationMessage.required: (_) =>
                                         'Email is required',
                                     ValidationMessage.email: (_) =>
-                                        'Enter a valid email',
+                                        'Enter a valid email address',
                                   },
                                 ),
                                 const SizedBox(height: 16),
 
-                                ReactiveTextField(
+                                // Explicit label + lock icon
+                                AuthReactiveField(
                                   formControlName: 'password',
+                                  label: 'Password',
+                                  hintText: '••••••••',
+                                  prefixIcon: Icons.lock_outline_rounded,
                                   obscureText: _obscurePassword,
                                   textInputAction: TextInputAction.done,
-                                  onSubmitted: (_) => _handleLogin(),
-                                  style: TextStyle(
-                                    color: isDark
-                                        ? AppColors.textDark
-                                        : AppColors.textLight,
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 15,
-                                  ),
-                                  decoration: InputDecoration(
-                                    labelText: 'Password',
-                                    hintText: '••••••••',
-                                    prefixIcon: Padding(
-                                      padding: const EdgeInsets.only(left: 4),
-                                      child: Icon(
-                                        Icons.lock_outline_rounded,
-                                        size: 20,
-                                      ),
+                                  onSubmitted: _handleLogin,
+                                  suffixIcon: IconButton(
+                                    tooltip: _obscurePassword
+                                        ? 'Show password'
+                                        : 'Hide password',
+                                    icon: Icon(
+                                      _obscurePassword
+                                          ? Icons.visibility_off_outlined
+                                          : Icons.visibility_outlined,
+                                      size: 19,
                                     ),
-                                    suffixIcon: IconButton(
-                                      tooltip: _obscurePassword
-                                          ? 'Show password'
-                                          : 'Hide password',
-                                      icon: Icon(
-                                        _obscurePassword
-                                            ? Icons.visibility_off_outlined
-                                            : Icons.visibility_outlined,
-                                        size: 20,
-                                      ),
-                                      color: isDark
-                                          ? AppColors.textMuted
-                                          : AppColors.textMutedL,
-                                      onPressed: () => setState(
-                                        () => _obscurePassword =
-                                            !_obscurePassword,
-                                      ),
+                                    color: const Color(0xFF64748B),
+                                    onPressed: () => setState(
+                                      () =>
+                                          _obscurePassword = !_obscurePassword,
                                     ),
                                   ),
                                   validationMessages: {
@@ -232,8 +246,36 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                         'Password is required',
                                   },
                                 ),
-                                const SizedBox(height: 28),
+                                const SizedBox(height: 10),
 
+                                // Right-aligned "Forgot Password?" link
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: TextButton(
+                                    onPressed: () =>
+                                        _showForgotPasswordHelp(context),
+                                    style: TextButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 4,
+                                        vertical: 2,
+                                      ),
+                                      minimumSize: Size.zero,
+                                      tapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                    ),
+                                    child: const Text(
+                                      'Forgot Password?',
+                                      style: TextStyle(
+                                        color: Color(0xFF94A3B8),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 18),
+
+                                // Primary Sign In button (12px radius)
                                 AuthGradientButton(
                                   isLoading: authState.isLoading,
                                   onPressed: _handleLogin,
@@ -242,36 +284,34 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                               ],
                             ),
                           ),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 20),
 
-                          // ── Register Link ─────────────────
+                          // ── Register Navigation Link ──────
                           Center(
                             child: TextButton(
                               onPressed: () => context.go('/register'),
                               style: TextButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 16,
-                                  vertical: 10,
+                                  vertical: 8,
                                 ),
                               ),
                               child: RichText(
-                                text: TextSpan(
+                                text: const TextSpan(
                                   children: [
                                     TextSpan(
                                       text: "Don't have an account?  ",
                                       style: TextStyle(
-                                        color: isDark
-                                            ? AppColors.textMuted
-                                            : AppColors.textMutedL,
-                                        fontSize: 14,
+                                        color: Color(0xFF94A3B8),
+                                        fontSize: 13.5,
                                       ),
                                     ),
                                     TextSpan(
                                       text: 'Create one',
-                                      style: const TextStyle(
-                                        color: AppColors.emerald500,
+                                      style: TextStyle(
+                                        color: AppColors.emerald400,
                                         fontWeight: FontWeight.w700,
-                                        fontSize: 14,
+                                        fontSize: 13.5,
                                       ),
                                     ),
                                   ],
@@ -279,6 +319,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                               ),
                             ),
                           ),
+                          const SizedBox(height: 12),
+
+                          // ── Bottom Trust Footer ───────────
+                          const AuthTrustFooter(),
                         ],
                       ),
                     ),
