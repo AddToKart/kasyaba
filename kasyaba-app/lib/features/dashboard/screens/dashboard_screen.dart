@@ -8,6 +8,7 @@ import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/category_icon_helper.dart';
+import '../../../core/utils/deterministic_math.dart';
 import '../../../shared/widgets/modern_card.dart';
 import '../../../shared/widgets/stat_card.dart';
 import '../../../shared/widgets/empty_state_view.dart';
@@ -243,12 +244,21 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     final goalsAsync = ref.watch(goalsProvider);
     final billsAsync = ref.watch(billsProvider);
     final budgetStatusAsync = ref.watch(budgetStatusProvider);
+    final userProfileAsync = ref.watch(userProfileProvider);
     final pendingSyncCount = ref.watch(pendingSyncCountProvider);
 
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final displayName = authState.displayName ?? 'User';
     final firstName = displayName.split(' ').first;
+
+    final safeSpendCalc = calculateDailySafeSpend(
+      totalLiquidBalance:
+          (dashboardAsync.valueOrNull?.totalBalance ?? 0.0).toDouble(),
+      bills: billsAsync.valueOrNull ?? const [],
+      goals: goalsAsync.valueOrNull ?? const [],
+      profile: userProfileAsync.valueOrNull,
+    );
 
     return Scaffold(
       backgroundColor: AppColors.obsidian,
@@ -262,6 +272,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             ref.refresh(goalsProvider.future),
             ref.refresh(billsProvider.future),
             ref.refresh(budgetStatusProvider.future),
+            ref.refresh(userProfileProvider.future),
           ]);
         },
         child: CustomScrollView(
@@ -301,6 +312,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                     ),
                     data: (data) => _HeroBalanceCard(
                       data: data,
+                      safeSpendCalc: safeSpendCalc,
                       isVisible: _isBalanceVisible,
                       isDark: isDark,
                       onToggleVisibility: () => setState(
@@ -678,6 +690,7 @@ class _OfflineSyncBanner extends StatelessWidget {
 
 class _HeroBalanceCard extends StatelessWidget {
   final dynamic data;
+  final DailySafeSpendCalculation? safeSpendCalc;
   final bool isVisible;
   final bool isDark;
   final VoidCallback onToggleVisibility;
@@ -686,6 +699,7 @@ class _HeroBalanceCard extends StatelessWidget {
 
   const _HeroBalanceCard({
     required this.data,
+    this.safeSpendCalc,
     required this.isVisible,
     required this.isDark,
     required this.onToggleVisibility,
@@ -811,7 +825,20 @@ class _HeroBalanceCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
+
+                  // ── "Kasya Ba Today?" Daily Safe-to-Spend Section ──
+                  if (safeSpendCalc != null) ...[
+                    _DailySafeSpendSection(
+                      calc: safeSpendCalc!,
+                      isVisible: isVisible,
+                      onTapBreakdown: () => _showSafeSpendBreakdownSheet(
+                        context,
+                        safeSpendCalc!,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
 
                   // Income / Expense Capsules Row
                   Container(
@@ -889,6 +916,578 @@ class _HeroBalanceCard extends StatelessWidget {
       ),
     );
   }
+}
+
+// ─── "Kasya Ba Today?" Daily Safe Spend Section Widget ─────────────
+
+class _DailySafeSpendSection extends StatelessWidget {
+  final DailySafeSpendCalculation calc;
+  final bool isVisible;
+  final VoidCallback onTapBreakdown;
+
+  const _DailySafeSpendSection({
+    required this.calc,
+    required this.isVisible,
+    required this.onTapBreakdown,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hasSafeSpend = calc.dailySafeSpend > 0;
+    final accentColor = hasSafeSpend ? AppColors.emerald500 : AppColors.gold500;
+    final formattedDate = DateFormat('MMM d').format(calc.nextPayday);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTapBreakdown,
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xE6090D16),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: accentColor.withValues(alpha: 0.35),
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: accentColor.withValues(alpha: 0.06),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header Row: Status Badge & Info Action
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: accentColor.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: accentColor.withValues(alpha: 0.4),
+                            width: 0.75,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: accentColor,
+                              ),
+                            ),
+                            const SizedBox(width: 5),
+                            const Text(
+                              'KASYA BA TODAY?',
+                              style: TextStyle(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.8,
+                                color: AppColors.textDark,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'DAILY SAFE SPEND',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.9,
+                          color: accentColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Tooltip(
+                    message: 'View deterministic math breakdown',
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.06),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Breakdown',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                          SizedBox(width: 4),
+                          Icon(
+                            Icons.info_outline_rounded,
+                            size: 13,
+                            color: AppColors.textMuted,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+
+              // Prominent Daily Safe Spend Metric
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Text(
+                    isVisible
+                        ? CurrencyFormatter.format(calc.dailySafeSpend)
+                        : '₱ ••••',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.5,
+                      color:
+                          hasSafeSpend ? AppColors.emerald400 : AppColors.gold400,
+                      fontFeatures: CurrencyFormatter.tabularFigures,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  const Text(
+                    '/ day',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+
+              // Days until payday caption
+              Text(
+                'for the next ${calc.daysUntilPayday} days until $formattedDate payday',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textMuted,
+                ),
+              ),
+              const SizedBox(height: 8),
+
+              // Exact formula summary snippet
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.04),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.calculate_outlined,
+                      size: 13,
+                      color: accentColor,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        '(${CurrencyFormatter.format(calc.numerator)} safe cash) ÷ ${calc.daysUntilPayday} days',
+                        style: const TextStyle(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textMuted,
+                          fontFeatures: [FontFeature.tabularFigures()],
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      size: 14,
+                      color: AppColors.textMuted,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Kasya Ba Today? Math Breakdown Sheet ──────────────────────────
+
+void _showSafeSpendBreakdownSheet(
+  BuildContext context,
+  DailySafeSpendCalculation calc,
+) {
+  final hasSafeSpend = calc.dailySafeSpend > 0;
+  final accentColor = hasSafeSpend ? AppColors.emerald500 : AppColors.gold500;
+  final formattedPayday = DateFormat('MMMM d, yyyy').format(calc.nextPayday);
+  final shortPayday = DateFormat('MMM d').format(calc.nextPayday);
+
+  ModernBottomSheet.show(
+    context: context,
+    title: 'Kasya Ba Today? Math Breakdown',
+    subtitle:
+        '100% deterministic calculation of your safe daily spending allowance.',
+    showDragHandle: true,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Formula Box
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppColors.surface700.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.subtleBorder),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Row(
+                children: [
+                  Icon(
+                    Icons.functions_rounded,
+                    size: 16,
+                    color: AppColors.emerald400,
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    'EXACT DETERMINISTIC FORMULA',
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.8,
+                      color: AppColors.emerald400,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0F172A),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                ),
+                child: const Text(
+                  'Daily Safe Spend = Math.max(0, (Total Liquid Balance - Unpaid Bills Due Before Next Payday - Scheduled Goal Contributions) / Days Until Next Payday)',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontFamily: 'monospace',
+                    color: Color(0xFFE2E8F0),
+                    height: 1.45,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+
+        // Numerator Details
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppColors.surface800,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.subtleBorder),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Row(
+                children: [
+                  Icon(
+                    Icons.account_balance_wallet_outlined,
+                    size: 15,
+                    color: AppColors.gold400,
+                  ),
+                  SizedBox(width: 6),
+                  Text(
+                    'NUMERATOR (SAFE CASH BUFFER)',
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.8,
+                      color: AppColors.gold400,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              _buildDeterministicRow(
+                label: 'Total Liquid Balance',
+                value: CurrencyFormatter.format(calc.totalLiquidBalance),
+                prefix: '+',
+                valueColor: AppColors.emerald400,
+              ),
+              const SizedBox(height: 8),
+              _buildDeterministicRow(
+                label: 'Unpaid Bills Due (before $shortPayday)',
+                sublabel:
+                    '${calc.unpaidBillsCount} unpaid bill${calc.unpaidBillsCount == 1 ? '' : 's'} due on or before payday',
+                value: CurrencyFormatter.format(calc.unpaidBillsDue),
+                prefix: '-',
+                valueColor: calc.unpaidBillsDue > 0
+                    ? const Color(0xFFF87171)
+                    : AppColors.textMuted,
+              ),
+              const SizedBox(height: 8),
+              _buildDeterministicRow(
+                label: 'Scheduled Goal Contributions',
+                sublabel:
+                    '${calc.activeGoalsCount} active goal${calc.activeGoalsCount == 1 ? '' : 's'} prorated to next payday',
+                value: CurrencyFormatter.format(calc.scheduledGoalContributions),
+                prefix: '-',
+                valueColor: calc.scheduledGoalContributions > 0
+                    ? AppColors.gold400
+                    : AppColors.textMuted,
+              ),
+              const Divider(color: AppColors.subtleBorder, height: 20),
+              _buildDeterministicRow(
+                label: 'Safe Available Cash',
+                value: CurrencyFormatter.format(calc.numerator),
+                prefix: '=',
+                isTotal: true,
+                valueColor: calc.numerator > 0
+                    ? AppColors.textDark
+                    : const Color(0xFFF87171),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Denominator Details
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppColors.surface800,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.subtleBorder),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Row(
+                children: [
+                  Icon(
+                    Icons.calendar_today_outlined,
+                    size: 15,
+                    color: AppColors.info,
+                  ),
+                  SizedBox(width: 6),
+                  Text(
+                    'DENOMINATOR (PAYDAY TIMELINE)',
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.8,
+                      color: AppColors.info,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              _buildDeterministicRow(
+                label: 'Next Configured Payday',
+                sublabel: 'Schedule: ${calc.paydaySchedule}',
+                value: formattedPayday,
+                valueColor: AppColors.textDark,
+              ),
+              const SizedBox(height: 8),
+              _buildDeterministicRow(
+                label: 'Days Until Next Payday',
+                value: '÷ ${calc.daysUntilPayday} days',
+                valueColor: AppColors.info,
+                isTotal: true,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+
+        // Result Card
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: accentColor.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: accentColor.withValues(alpha: 0.4)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: accentColor.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  hasSafeSpend
+                      ? Icons.verified_rounded
+                      : Icons.warning_amber_rounded,
+                  color: accentColor,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'DAILY SAFE SPEND ALLOWANCE',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.8,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        Text(
+                          CurrencyFormatter.format(calc.dailySafeSpend),
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            color: accentColor,
+                            fontFeatures: CurrencyFormatter.tabularFigures,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        const Text(
+                          '/ day',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 18),
+
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(),
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors.surface700,
+            foregroundColor: AppColors.textDark,
+            minimumSize: const Size.fromHeight(48),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: AppColors.subtleBorder),
+            ),
+          ),
+          child: const Text(
+            'Close Breakdown',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
+        const SizedBox(height: 8),
+      ],
+    ),
+  );
+}
+
+Widget _buildDeterministicRow({
+  required String label,
+  String? sublabel,
+  required String value,
+  String? prefix,
+  bool isTotal = false,
+  Color valueColor = AppColors.textDark,
+}) {
+  return Row(
+    crossAxisAlignment: CrossAxisAlignment.center,
+    children: [
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: isTotal ? 13 : 12,
+                fontWeight: isTotal ? FontWeight.w700 : FontWeight.w500,
+                color: isTotal ? AppColors.textDark : AppColors.textMuted,
+              ),
+            ),
+            if (sublabel != null) ...[
+              const SizedBox(height: 1),
+              Text(
+                sublabel,
+                style: const TextStyle(
+                  fontSize: 10.5,
+                  color: AppColors.textMuted,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+      if (prefix != null) ...[
+        Text(
+          '$prefix ',
+          style: TextStyle(
+            fontSize: isTotal ? 14 : 12,
+            fontWeight: FontWeight.w700,
+            color: valueColor,
+          ),
+        ),
+      ],
+      Text(
+        value,
+        style: TextStyle(
+          fontSize: isTotal ? 15 : 13,
+          fontWeight: isTotal ? FontWeight.w800 : FontWeight.w700,
+          color: valueColor,
+          fontFeatures: CurrencyFormatter.tabularFigures,
+        ),
+      ),
+    ],
+  );
 }
 
 class _VisibilityToggle extends StatelessWidget {
@@ -1548,12 +2147,15 @@ class _ForecastCard extends StatelessWidget {
                           color: AppColors.textMuted,
                         ),
                         SizedBox(width: 8),
-                        Text(
-                          'Insufficient data to plot trend line (requires ≥ 2 points)',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: AppColors.textMuted,
-                            fontWeight: FontWeight.w500,
+                        Flexible(
+                          child: Text(
+                            'Insufficient data to plot trend line (requires ≥ 2 points)',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textMuted,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ),
                       ],

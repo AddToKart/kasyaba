@@ -6,6 +6,7 @@ import '../../../app/theme/app_theme.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../../../core/utils/deterministic_math.dart';
 import '../../../shared/widgets/modern_card.dart';
 import '../../../shared/widgets/empty_state_view.dart';
 import '../../../shared/widgets/modern_bottom_sheet.dart';
@@ -532,145 +533,331 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
     _purchaseTitleController.clear();
     _purchaseAmountController.clear();
     final formKey = GlobalKey<FormState>();
+    final interestRateController = TextEditingController(text: '0.0');
 
+    bool isInstallment = false;
+    int tenureMonths = 3;
     PurchaseCheckResult? checkResult;
+    double evaluatedAmount = 0.0;
+    bool evaluatedIsInstallment = false;
+    int evaluatedTenure = 3;
+    double evaluatedInterestRate = 0.0;
     String? errorMessage;
     bool isLoading = false;
 
     ModernBottomSheet.show(
       context: context,
-      title: 'Can I Buy This?',
+      title: 'Can I Buy This? Scenario Lab',
       subtitle:
-          'Financial impact calculation on cash flow, bills, and threshold.',
+          'Deterministic calculation of life-energy work hours, cash flow, and installment impact.',
       showDragHandle: false,
-      child: StatefulBuilder(
-        builder: (context, setModalState) {
-          return Form(
-            key: formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ModernTextField(
-                  controller: _purchaseTitleController,
-                  label: 'Item / Purchase Name',
-                  hint: 'e.g. Smartphone, New Headphones, Concert Ticket',
-                  prefixIcon: Icons.shopping_bag_outlined,
-                  validator: (v) => (v?.trim().length ?? 0) > 0
-                      ? null
-                      : 'Item name is required',
-                ),
-                const SizedBox(height: 14),
+      child: Consumer(
+        builder: (context, ref, _) {
+          final userProfile = ref.watch(userProfileProvider).valueOrNull;
+          final dashboardData = ref.watch(dashboardProvider).valueOrNull;
+          final bills = ref.watch(billsProvider).valueOrNull ?? const [];
+          final goals = ref.watch(goalsProvider).valueOrNull ?? const [];
 
-                ModernTextField(
-                  controller: _purchaseAmountController,
-                  label: 'Item Price (₱)',
-                  hint: '5000.00',
-                  prefixIcon: Icons.account_balance_wallet_outlined,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  validator: (v) {
-                    if (v == null || v.trim().isEmpty) {
-                      return 'Enter item price';
-                    }
-                    final amount = double.tryParse(v);
-                    if (amount == null || !amount.isFinite || amount <= 0) {
-                      return 'Enter a valid amount';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 20),
+          final safeSpendCalc = calculateDailySafeSpend(
+            totalLiquidBalance:
+                (dashboardData?.totalBalance ?? 0.0).toDouble(),
+            bills: bills,
+            goals: goals,
+            profile: userProfile,
+          );
 
-                FilledButton.icon(
-                  onPressed: isLoading
-                      ? null
-                      : () async {
-                          if (!formKey.currentState!.validate()) return;
-                          setModalState(() {
-                            isLoading = true;
-                            errorMessage = null;
-                          });
-                          final title = _purchaseTitleController.text.trim();
-                          final amount =
-                              double.tryParse(
-                                _purchaseAmountController.text.trim(),
-                              ) ??
-                              0.0;
+          return StatefulBuilder(
+            builder: (context, setModalState) {
+              return Form(
+                key: formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ModernTextField(
+                      controller: _purchaseTitleController,
+                      label: 'Item / Purchase Name',
+                      hint: 'e.g. Smartphone, Laptop, Concert Ticket',
+                      prefixIcon: Icons.shopping_bag_outlined,
+                      validator: (v) => (v?.trim().length ?? 0) > 0
+                          ? null
+                          : 'Item name is required',
+                    ),
+                    const SizedBox(height: 14),
 
-                          try {
-                            final mutator = ref.read(
-                              transactionMutatorProvider,
-                            );
-                            final result = await mutator.evaluatePurchaseCheck(
-                              itemTitle: title,
-                              amount: amount,
-                            );
-                            if (context.mounted) {
-                              setModalState(() {
-                                checkResult = result;
-                                isLoading = false;
-                              });
-                            }
-                          } catch (error) {
-                            if (context.mounted) {
-                              setModalState(() {
-                                errorMessage = friendlyErrorMessage(
-                                  error,
-                                  fallback:
-                                      'Could not evaluate this purchase. Please try again.',
-                                );
-                                isLoading = false;
-                              });
-                            }
-                          }
-                        },
-                  icon: isLoading
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
+                    ModernTextField(
+                      controller: _purchaseAmountController,
+                      label: 'Item Price (₱)',
+                      hint: '5000.00',
+                      prefixIcon: Icons.account_balance_wallet_outlined,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) {
+                          return 'Enter item price';
+                        }
+                        final amount = double.tryParse(v);
+                        if (amount == null || !amount.isFinite || amount <= 0) {
+                          return 'Enter a valid amount';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 14),
+
+                    // ── Cash vs. Installment Mode Toggle ──────────────────
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.surface800,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.subtleBorder),
+                      ),
+                      padding: const EdgeInsets.all(4),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: _PaymentModeToggleBtn(
+                              label: 'Pay Full Cash',
+                              icon: Icons.payments_outlined,
+                              isSelected: !isInstallment,
+                              onTap: () =>
+                                  setModalState(() => isInstallment = false),
+                            ),
                           ),
-                        )
-                      : const Icon(Icons.analytics_outlined, size: 20),
-                  label: Text(
-                    isLoading
-                        ? 'Calculating Impact...'
-                        : 'Evaluate Affordability',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF0284C7),
-                    minimumSize: const Size.fromHeight(50),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: _PaymentModeToggleBtn(
+                              label: 'Installment / BNPL',
+                              icon: Icons.splitscreen_rounded,
+                              isSelected: isInstallment,
+                              onTap: () =>
+                                  setModalState(() => isInstallment = true),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
+
+                    // ── Installment Tenure & Monthly Interest % Input ─────
+                    if (isInstallment) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface800,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: AppColors.info.withValues(alpha: 0.35),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Installment Tenure Duration',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textDark,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [3, 6, 12].map((months) {
+                                final isSelected = tenureMonths == months;
+                                return Expanded(
+                                  child: Padding(
+                                    padding:
+                                        const EdgeInsets.symmetric(horizontal: 3),
+                                    child: InkWell(
+                                      onTap: () => setModalState(
+                                        () => tenureMonths = months,
+                                      ),
+                                      borderRadius: BorderRadius.circular(10),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 8,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: isSelected
+                                              ? AppColors.info
+                                                  .withValues(alpha: 0.2)
+                                              : AppColors.surface700,
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                          border: Border.all(
+                                            color: isSelected
+                                                ? AppColors.info
+                                                : AppColors.subtleBorder,
+                                            width: isSelected ? 1.5 : 1,
+                                          ),
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            '$months Months',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: isSelected
+                                                  ? FontWeight.w800
+                                                  : FontWeight.w600,
+                                              color: isSelected
+                                                  ? AppColors.info
+                                                  : AppColors.textMuted,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                            const SizedBox(height: 14),
+                            ModernTextField(
+                              controller: interestRateController,
+                              label: 'Monthly Interest Rate (%)',
+                              hint: '0.0 (0% for interest-free promos)',
+                              prefixIcon: Icons.percent_rounded,
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                decimal: true,
+                              ),
+                              validator: (v) {
+                                if (v == null || v.trim().isEmpty) return null;
+                                final rate = double.tryParse(v.trim());
+                                if (rate == null ||
+                                    !rate.isFinite ||
+                                    rate < 0) {
+                                  return 'Enter a valid rate (e.g. 0.0 or 2.5)';
+                                }
+                                return null;
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 20),
+
+                    FilledButton.icon(
+                      onPressed: isLoading
+                          ? null
+                          : () async {
+                              if (!formKey.currentState!.validate()) return;
+                              setModalState(() {
+                                isLoading = true;
+                                errorMessage = null;
+                              });
+                              final title =
+                                  _purchaseTitleController.text.trim();
+                              final amount = double.tryParse(
+                                    _purchaseAmountController.text.trim(),
+                                  ) ??
+                                  0.0;
+                              final interestRate = double.tryParse(
+                                    interestRateController.text.trim(),
+                                  ) ??
+                                  0.0;
+
+                              try {
+                                final mutator = ref.read(
+                                  transactionMutatorProvider,
+                                );
+                                final evalAmount = isInstallment
+                                    ? ((amount *
+                                            (1 +
+                                                (interestRate / 100.0) *
+                                                    tenureMonths)) /
+                                        tenureMonths)
+                                    : amount;
+                                final evalTitle = isInstallment
+                                    ? '$title (${tenureMonths}m Installment: ₱${evalAmount.toStringAsFixed(2)}/mo)'
+                                    : title;
+
+                                final result =
+                                    await mutator.evaluatePurchaseCheck(
+                                  itemTitle: evalTitle,
+                                  amount: evalAmount,
+                                );
+                                if (context.mounted) {
+                                  setModalState(() {
+                                    checkResult = result;
+                                    evaluatedAmount = amount;
+                                    evaluatedIsInstallment = isInstallment;
+                                    evaluatedTenure = tenureMonths;
+                                    evaluatedInterestRate = interestRate;
+                                    isLoading = false;
+                                  });
+                                }
+                              } catch (error) {
+                                if (context.mounted) {
+                                  setModalState(() {
+                                    errorMessage = friendlyErrorMessage(
+                                      error,
+                                      fallback:
+                                          'Could not evaluate this purchase. Please try again.',
+                                    );
+                                    isLoading = false;
+                                  });
+                                }
+                              }
+                            },
+                      icon: isLoading
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.analytics_outlined, size: 20),
+                      label: Text(
+                        isLoading
+                            ? 'Calculating Impact...'
+                            : 'Evaluate Affordability',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFF0284C7),
+                        minimumSize: const Size.fromHeight(50),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+
+                    if (errorMessage != null) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        errorMessage!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: AppColors.expense,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+
+                    if (checkResult != null) ...[
+                      const SizedBox(height: 20),
+                      _PurchaseCheckCardResult(
+                        result: checkResult!,
+                        purchaseAmount: evaluatedAmount,
+                        isInstallment: evaluatedIsInstallment,
+                        tenureMonths: evaluatedTenure,
+                        monthlyInterestRate: evaluatedInterestRate,
+                        userProfile: userProfile,
+                        daysUntilPayday: safeSpendCalc.daysUntilPayday,
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                  ],
                 ),
-
-                if (errorMessage != null) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    errorMessage!,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: AppColors.expense,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-
-                if (checkResult != null) ...[
-                  const SizedBox(height: 20),
-                  _PurchaseCheckCardResult(result: checkResult!),
-                ],
-                const SizedBox(height: 12),
-              ],
-            ),
+              );
+            },
           );
         },
       ),
@@ -1276,8 +1463,22 @@ class _ModernGoalCard extends StatelessWidget {
 
 class _PurchaseCheckCardResult extends StatelessWidget {
   final PurchaseCheckResult result;
+  final double purchaseAmount;
+  final bool isInstallment;
+  final int tenureMonths;
+  final double monthlyInterestRate;
+  final UserProfile? userProfile;
+  final int daysUntilPayday;
 
-  const _PurchaseCheckCardResult({required this.result});
+  const _PurchaseCheckCardResult({
+    required this.result,
+    required this.purchaseAmount,
+    required this.isInstallment,
+    required this.tenureMonths,
+    required this.monthlyInterestRate,
+    this.userProfile,
+    this.daysUntilPayday = 14,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1299,6 +1500,19 @@ class _PurchaseCheckCardResult extends StatelessWidget {
     final cleanTitle = result.statusTitle
         .replaceAll(RegExp(r'^[^\w\s]+\s*'), '')
         .trim();
+
+    final workHours = calculateWorkHoursEquivalent(
+      itemPrice: purchaseAmount,
+      monthlySalary: userProfile?.salaryAmount,
+    );
+
+    final comp = calculateInstallmentComparison(
+      purchaseAmount: purchaseAmount,
+      tenureMonths: tenureMonths,
+      monthlyInterestRatePercent: monthlyInterestRate,
+      currentBalance: result.currentBalance,
+      daysUntilPayday: daysUntilPayday,
+    );
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1336,7 +1550,491 @@ class _PurchaseCheckCardResult extends StatelessWidget {
               height: 1.35,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
+
+          // ── Work-Hours Equivalent Life-Energy Metric Badge ───────────
+          if (workHours.hasSalary)
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F172A),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: AppColors.info.withValues(alpha: 0.4),
+                  width: 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.info.withValues(alpha: 0.08),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: AppColors.info.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.hourglass_top_rounded,
+                      color: AppColors.info,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        RichText(
+                          text: TextSpan(
+                            style: const TextStyle(
+                              fontSize: 12.5,
+                              color: AppColors.textDark,
+                            ),
+                            children: [
+                              const TextSpan(
+                                text: 'Time Cost: ',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textMuted,
+                                ),
+                              ),
+                              TextSpan(
+                                text:
+                                    '${workHours.workHours.toStringAsFixed(1)} Work Hours (${workHours.workDays.toStringAsFixed(1)} Workdays)',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.info,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          'Based on ₱${CurrencyFormatter.format(workHours.salaryAmount!)}/mo salary (₱${workHours.hourlyWage.toStringAsFixed(2)}/hr across 176 monthly work hours)',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F172A),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: AppColors.gold500.withValues(alpha: 0.4),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: AppColors.gold500.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.schedule_outlined,
+                      color: AppColors.gold400,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Time Cost: Salary Not Configured',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.gold400,
+                          ),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Configure Monthly Salary in Settings to see work-hours equivalent.',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          const SizedBox(height: 14),
+
+          // ── Cash vs. Installment Comparator Card ───────────────────
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.surface800,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.subtleBorder),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(
+                          Icons.splitscreen_rounded,
+                          size: 15,
+                          color: AppColors.gold400,
+                        ),
+                        SizedBox(width: 6),
+                        Text(
+                          'CASH VS. INSTALLMENT COMPARATOR',
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.8,
+                            color: AppColors.gold400,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: (isInstallment
+                                ? AppColors.info
+                                : AppColors.emerald500)
+                            .withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        isInstallment
+                            ? 'Testing ${tenureMonths}m Installment'
+                            : 'Testing Full Cash',
+                        style: TextStyle(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w800,
+                          color: isInstallment
+                              ? AppColors.info
+                              : AppColors.emerald500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // 2-Column Comparator
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Column 1: Pay Full Cash
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: !isInstallment
+                              ? AppColors.emerald500.withValues(alpha: 0.08)
+                              : AppColors.surface700.withValues(alpha: 0.4),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: !isInstallment
+                                ? AppColors.emerald500.withValues(alpha: 0.35)
+                                : AppColors.subtleBorder,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'PAY FULL CASH',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.6,
+                                color: AppColors.emerald400,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Immediate Outlay',
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                            Text(
+                              '-${CurrencyFormatter.format(comp.purchaseAmount)}',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.textDark,
+                                fontFeatures: [FontFeature.tabularFigures()],
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Liquid Balance Today',
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                            Text(
+                              CurrencyFormatter.format(comp.postCashBalance),
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                                color: comp.postCashBalance < 0
+                                    ? AppColors.expense
+                                    : AppColors.textDark,
+                                fontFeatures: [FontFeature.tabularFigures()],
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Daily Safe Impact',
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                            Text(
+                              '-${CurrencyFormatter.format(comp.cashDailySafeSpendImpact)}/day',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFFF87171),
+                                fontFeatures: [FontFeature.tabularFigures()],
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Future Cash Flow',
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                            const Text(
+                              '₱0/mo (Debt-free)',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.emerald400,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Total Interest',
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                            const Text(
+                              '₱0.00 (0%)',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+
+                    // Column 2: Installment / BNPL
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: isInstallment
+                              ? AppColors.info.withValues(alpha: 0.08)
+                              : AppColors.surface700.withValues(alpha: 0.4),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isInstallment
+                                ? AppColors.info.withValues(alpha: 0.35)
+                                : AppColors.subtleBorder,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'INSTALLMENT (${comp.tenureMonths}M)',
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.6,
+                                color: AppColors.info,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              '1st Month Outlay',
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                            Text(
+                              '-${CurrencyFormatter.format(comp.monthlyInstallment)}',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.textDark,
+                                fontFeatures: [FontFeature.tabularFigures()],
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Cash Preserved Today',
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                            Text(
+                              '+${CurrencyFormatter.format(comp.cashPreservedToday)}',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.emerald400,
+                                fontFeatures: [FontFeature.tabularFigures()],
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Daily Safe Impact',
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                            Text(
+                              '-${CurrencyFormatter.format(comp.installmentDailySafeSpendImpact)}/day',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.info,
+                                fontFeatures: [FontFeature.tabularFigures()],
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Future Cash Flow',
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                            Text(
+                              '-${CurrencyFormatter.format(comp.monthlyInstallment)}/mo',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.gold400,
+                                fontFeatures: [FontFeature.tabularFigures()],
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Total Interest',
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                            Text(
+                              comp.totalInterest > 0
+                                  ? '+${CurrencyFormatter.format(comp.totalInterest)} (${comp.monthlyInterestRatePercent}%/mo)'
+                                  : '₱0.00 (0% Promo)',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: comp.totalInterest > 0
+                                    ? const Color(0xFFF87171)
+                                    : AppColors.emerald400,
+                                fontFeatures: const [
+                                  FontFeature.tabularFigures(),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+
+                // Comparator Insights
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.04),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        comp.totalInterest > 0
+                            ? Icons.warning_amber_rounded
+                            : Icons.check_circle_outline_rounded,
+                        size: 14,
+                        color: comp.totalInterest > 0
+                            ? AppColors.gold400
+                            : AppColors.emerald400,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          comp.totalInterest > 0
+                              ? 'Installment preserves ${CurrencyFormatter.format(comp.cashPreservedToday)} in your account today, but incurs an extra ${CurrencyFormatter.format(comp.totalInterest)} in total interest fees over ${comp.tenureMonths} months.'
+                              : '0% BNPL preserves ${CurrencyFormatter.format(comp.cashPreservedToday)} of immediate cash today with ₱0 interest fees, while deducting ${CurrencyFormatter.format(comp.monthlyInstallment)}/mo from your future cash flow for ${comp.tenureMonths} months.',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textMuted,
+                            height: 1.35,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
 
           // ── 2-Column Before vs. After Simulation Card ──────────────
           Container(
@@ -1675,6 +2373,57 @@ class _PurchaseCheckCardResult extends StatelessWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _PaymentModeToggleBtn extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _PaymentModeToggleBtn({
+    required this.label,
+    required this.icon,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 9),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.surface700 : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          border: isSelected
+              ? Border.all(color: AppColors.subtleBorder, width: 1)
+              : null,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 16,
+              color: isSelected ? AppColors.emerald400 : AppColors.textMuted,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                color: isSelected ? AppColors.textDark : AppColors.textMuted,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
