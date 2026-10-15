@@ -337,6 +337,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                     _QuickStartChecklistCard(
                       totalBalance: (dashboardData?.totalBalance ?? 0.0).toDouble(),
                       income: (dashboardData?.income ?? 0.0).toDouble(),
+                      salaryAmount: userProfileAsync.valueOrNull?.salaryAmount,
                       paydaySchedule: userProfileAsync.valueOrNull?.paydaySchedule,
                       activeGoalsCount: goalsAsync.valueOrNull?.length ?? 0,
                       activeBillsCount: billsAsync.valueOrNull?.length ?? 0,
@@ -3565,6 +3566,7 @@ class _ErrorCard extends StatelessWidget {
 class _QuickStartChecklistCard extends StatelessWidget {
   final double totalBalance;
   final double income;
+  final double? salaryAmount;
   final String? paydaySchedule;
   final int activeGoalsCount;
   final int activeBillsCount;
@@ -3576,6 +3578,7 @@ class _QuickStartChecklistCard extends StatelessWidget {
   const _QuickStartChecklistCard({
     required this.totalBalance,
     required this.income,
+    this.salaryAmount,
     this.paydaySchedule,
     required this.activeGoalsCount,
     required this.activeBillsCount,
@@ -3588,7 +3591,7 @@ class _QuickStartChecklistCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final step1Done = totalBalance > 0 || income > 0;
-    final step2Done = paydaySchedule != null && paydaySchedule!.isNotEmpty;
+    final step2Done = salaryAmount != null && salaryAmount! > 0;
     final step3Done = activeGoalsCount > 0 || activeBillsCount > 0;
     final completedCount =
         (step1Done ? 1 : 0) + (step2Done ? 1 : 0) + (step3Done ? 1 : 0);
@@ -3695,14 +3698,14 @@ class _QuickStartChecklistCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
 
-          // Step 2: Payday Schedule
+          // Step 2: Payday & Salary Settings
           _buildChecklistStep(
-            title: 'Confirm your payday schedule',
+            title: 'Configure salary & payday schedule',
             subtitle: step2Done
-                ? 'Set to $paydaySchedule (tap to change)'
-                : 'Defaults to 15th & 30th (tap to customize)',
+                ? '${CurrencyFormatter.format(salaryAmount!)}/mo • ${paydaySchedule ?? "15th & 30th"}'
+                : 'Monthly salary not set • Defaults to 15th & 30th',
             isCompleted: step2Done,
-            actionLabel: null,
+            actionLabel: step2Done ? null : '+ Set Up',
             onTap: onConfigurePayday,
           ),
           const SizedBox(height: 8),

@@ -129,9 +129,10 @@ void main() {
       // Verify Quick Start Checklist is visible for fresh user
       expect(find.text('QUICK SETUP GUIDE'), findsOneWidget);
       expect(find.text('Log your starting balance or salary'), findsOneWidget);
-      expect(find.text('Confirm your payday schedule'), findsOneWidget);
+      expect(find.text('Configure salary & payday schedule'), findsOneWidget);
       expect(find.text('Add your upcoming bills & goals'), findsOneWidget);
       expect(find.text('+ Add Starting Cash'), findsOneWidget);
+      expect(find.text('+ Set Up'), findsOneWidget);
 
       // Open breakdown
       await tester.tap(find.text('Breakdown'));
