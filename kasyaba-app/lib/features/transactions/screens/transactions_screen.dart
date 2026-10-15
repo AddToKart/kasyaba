@@ -15,6 +15,17 @@ Future<void> _showTransactionActions(
   WidgetRef ref,
   TransactionEntry transaction,
 ) async {
+  if (transaction.isPendingSync) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'This transaction is stored locally and will automatically sync once connected.',
+        ),
+      ),
+    );
+    return;
+  }
+
   final action = await showModalBottomSheet<String>(
     context: context,
     backgroundColor: Theme.of(context).colorScheme.surface,
@@ -399,20 +410,29 @@ class TransactionsScreen extends ConsumerWidget {
     bool isDark,
   ) {
     final isExpense = item.isExpense;
-    final amountColor = item.isTransfer
+    final isPending = item.isPendingSync;
+    final amountColor = isPending
+        ? AppColors.gold400
+        : (item.isTransfer
+            ? AppColors.gold500
+            : (isExpense ? AppColors.expense : AppColors.income));
+    final categoryColor = isPending
         ? AppColors.gold500
-        : (isExpense ? AppColors.expense : AppColors.income);
-    final categoryColor = item.isTransfer
-        ? AppColors.info
-        : CategoryIconHelper.getColor(item.categoryName, isExpense: isExpense);
-    final categoryIcon = item.isTransfer
-        ? Icons.swap_horiz_rounded
-        : CategoryIconHelper.getIcon(item.categoryName);
+        : (item.isTransfer
+            ? AppColors.info
+            : CategoryIconHelper.getColor(item.categoryName, isExpense: isExpense));
+    final categoryIcon = isPending
+        ? Icons.sync_rounded
+        : (item.isTransfer
+            ? Icons.swap_horiz_rounded
+            : CategoryIconHelper.getIcon(item.categoryName));
     final primaryTitle = item.title.isNotEmpty ? item.title : item.categoryName;
     final dateStr = DateFormat('MMM d, yyyy').format(item.date);
-    final statusPrefix = item.isCancelled
-        ? 'Cancelled • '
-        : (item.isScheduled ? 'Planned • ' : '');
+    final statusPrefix = isPending
+        ? 'Pending Sync • '
+        : (item.isCancelled
+            ? 'Cancelled • '
+            : (item.isScheduled ? 'Planned • ' : ''));
     final subtitleText = '$statusPrefix${item.categoryName} • $dateStr';
 
     return ListTile(

@@ -61,6 +61,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     final transactionsAsync = ref.watch(transactionsProvider);
     final goalsAsync = ref.watch(goalsProvider);
     final billsAsync = ref.watch(billsProvider);
+    final pendingSyncCount = ref.watch(pendingSyncCountProvider);
 
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -97,6 +98,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
+                  // ── Offline / Pending Sync Status Banner ──
+                  if ((dashboardAsync.valueOrNull?.isFromCache ?? false) ||
+                      pendingSyncCount > 0)
+                    _OfflineSyncBanner(
+                      isFromCache:
+                          dashboardAsync.valueOrNull?.isFromCache ?? false,
+                      pendingCount: pendingSyncCount,
+                      isDark: isDark,
+                    ),
+
                   // ── Hero Balance Card (Ultra Metal Luxury) ──
                   dashboardAsync.when(
                     loading: () => _BalanceCardSkeleton(isDark: isDark),
@@ -418,6 +429,65 @@ class _AppBarAction extends StatelessWidget {
   }
 }
 
+// ─── Offline Sync Banner ──────────────────────────────────────────
+
+class _OfflineSyncBanner extends StatelessWidget {
+  final bool isFromCache;
+  final int pendingCount;
+  final bool isDark;
+
+  const _OfflineSyncBanner({
+    required this.isFromCache,
+    required this.pendingCount,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hasPending = pendingCount > 0;
+    final message = hasPending
+        ? '$pendingCount transaction${pendingCount > 1 ? 's' : ''} saved offline • Will sync when connected'
+        : 'Offline mode • Showing cached balances';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: hasPending
+            ? AppColors.gold500.withValues(alpha: 0.12)
+            : Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: hasPending
+              ? AppColors.gold500.withValues(alpha: 0.3)
+              : Colors.white.withValues(alpha: 0.1),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            hasPending ? Icons.sync_rounded : Icons.cloud_off_rounded,
+            size: 16,
+            color: hasPending ? AppColors.gold400 : AppColors.textMuted,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: hasPending ? AppColors.gold300 : AppColors.textMuted,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 // ─── Hero Balance Card (Ultra Wealth Metal Card Redesign) ────────
 
 class _HeroBalanceCard extends StatelessWidget {
@@ -488,15 +558,15 @@ class _HeroBalanceCard extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Row(
+                      Row(
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.credit_card_rounded,
                             size: 16,
                             color: AppColors.gold400,
                           ),
-                          SizedBox(width: 8),
-                          Text(
+                          const SizedBox(width: 8),
+                          const Text(
                             'TOTAL LIQUID BALANCE',
                             style: TextStyle(
                               color: AppColors.gold400,
@@ -505,6 +575,28 @@ class _HeroBalanceCard extends StatelessWidget {
                               letterSpacing: 1.2,
                             ),
                           ),
+                          if (data.isFromCache == true) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Text(
+                                'CACHED',
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.textMuted,
+                                  letterSpacing: 0.8,
+                                ),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                       _VisibilityToggle(

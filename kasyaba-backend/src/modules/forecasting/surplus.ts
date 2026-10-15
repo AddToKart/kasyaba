@@ -35,11 +35,11 @@ export async function calculateDailySurplus(
 
   const [trailingIncomeAgg, trailingExpenseAgg] = await Promise.all([
     prisma.incomeEntry.aggregate({
-      where: { userId, status: { in: ['posted', 'planned'] }, receivedAt: { gte: thirtyDaysAgo, lte: now } },
+      where: { userId, status: 'posted', receivedAt: { gte: thirtyDaysAgo, lte: now } },
       _sum: { amount: true },
     }),
     prisma.expenseEntry.aggregate({
-      where: { userId, status: { in: ['posted', 'planned'] }, spentAt: { gte: thirtyDaysAgo, lte: now } },
+      where: { userId, status: 'posted', spentAt: { gte: thirtyDaysAgo, lte: now } },
       _sum: { amount: true },
     }),
   ]);

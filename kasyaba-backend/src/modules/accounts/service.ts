@@ -75,12 +75,12 @@ export async function getAccountBalance(userId: string, accountId: string) {
   const now = new Date();
 
   const incomeSum = await prisma.incomeEntry.aggregate({
-    where: { accountId, userId, status: { in: ['posted', 'planned'] }, receivedAt: { lte: now } },
+    where: { accountId, userId, status: 'posted', receivedAt: { lte: now } },
     _sum: { amount: true },
   });
 
   const expenseSum = await prisma.expenseEntry.aggregate({
-    where: { accountId, userId, status: { in: ['posted', 'planned'] }, spentAt: { lte: now } },
+    where: { accountId, userId, status: 'posted', spentAt: { lte: now } },
     _sum: { amount: true },
   });
 
@@ -91,11 +91,11 @@ export async function getAccountBalance(userId: string, accountId: string) {
 
   const [outgoingTransfers, incomingTransfers] = await Promise.all([
     prisma.accountTransfer.aggregate({
-      where: { fromAccountId: accountId, userId, status: { in: ['posted', 'planned'] }, transferredAt: { lte: now } },
+      where: { fromAccountId: accountId, userId, status: 'posted', transferredAt: { lte: now } },
       _sum: { amount: true },
     }),
     prisma.accountTransfer.aggregate({
-      where: { toAccountId: accountId, userId, status: { in: ['posted', 'planned'] }, transferredAt: { lte: now } },
+      where: { toAccountId: accountId, userId, status: 'posted', transferredAt: { lte: now } },
       _sum: { amount: true },
     }),
   ]);

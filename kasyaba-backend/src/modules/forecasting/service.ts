@@ -27,14 +27,17 @@ export async function computeSnapshot(
   providedTimeZone?: string,
 ): Promise<ForecastResult> {
   const now = new Date();
-  const timeZone: string =
-    providedTimeZone ??
-    ((await prisma.user
-      .findUnique({
-        where: { id: userId },
-        select: { timezone: true },
-      })
-      .then((u) => u?.timezone ?? 'UTC')) ?? 'UTC');
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      timezone: true,
+      salaryAmount: true,
+      paydayFrequency: true,
+      paydaySchedule: true,
+    },
+  });
+  const timeZone: string = providedTimeZone ?? user?.timezone ?? 'UTC';
+  const salaryAmount = toDecimalOrZero(user?.salaryAmount);
   const monthStart = startOfZonedMonth(now, timeZone);
   const monthEnd = endOfZonedMonth(now, timeZone);
   const elapsedDays = daysBetween(monthStart, now);
@@ -53,19 +56,19 @@ export async function computeSnapshot(
   ] = await Promise.all([
     Promise.all([
       prisma.incomeEntry.aggregate({
-        where: { userId, status: { in: ['posted', 'planned'] }, receivedAt: { gte: monthStart, lte: now } },
+        where: { userId, status: 'posted', receivedAt: { gte: monthStart, lte: now } },
         _sum: { amount: true },
       }),
       prisma.expenseEntry.aggregate({
-        where: { userId, status: { in: ['posted', 'planned'] }, spentAt: { gte: monthStart, lte: now } },
+        where: { userId, status: 'posted', spentAt: { gte: monthStart, lte: now } },
         _sum: { amount: true },
       }),
       prisma.incomeEntry.aggregate({
-        where: { userId, status: 'planned', receivedAt: { gt: now, lte: monthEnd } },
+        where: { userId, status: 'planned', receivedAt: { gte: monthStart, lte: monthEnd } },
         _sum: { amount: true },
       }),
       prisma.expenseEntry.aggregate({
-        where: { userId, status: 'planned', spentAt: { gt: now, lte: monthEnd } },
+        where: { userId, status: 'planned', spentAt: { gte: monthStart, lte: monthEnd } },
         _sum: { amount: true },
       }),
     ]),
@@ -80,7 +83,7 @@ export async function computeSnapshot(
     prisma.incomeEntry.findMany({
       where: {
         userId,
-        status: { in: ['posted', 'planned'] },
+        status: 'posted',
         receivedAt: { gte: threeMonthsAgo, lt: monthStart },
       },
       orderBy: { receivedAt: 'desc' },
@@ -124,7 +127,7 @@ export async function computeSnapshot(
   // --- 2. Batch 2: Account groupBys (skipped if no accounts) & expense history ---
   const expenseHistoryWhere: any = {
     userId,
-    status: { in: ['posted', 'planned'] },
+    status: 'posted',
     spentAt: { gte: threeMonthsAgo, lt: monthStart },
   };
   if (billExpenseIds.length > 0) {
@@ -141,12 +144,12 @@ export async function computeSnapshot(
       : Promise.all([
           prisma.incomeEntry.groupBy({
             by: ['accountId'],
-            where: { userId, accountId: { in: accountIds }, status: { in: ['posted', 'planned'] }, receivedAt: { lte: now } },
+            where: { userId, accountId: { in: accountIds }, status: 'posted', receivedAt: { lte: now } },
             _sum: { amount: true },
           }),
           prisma.expenseEntry.groupBy({
             by: ['accountId'],
-            where: { userId, accountId: { in: accountIds }, status: { in: ['posted', 'planned'] }, spentAt: { lte: now } },
+            where: { userId, accountId: { in: accountIds }, status: 'posted', spentAt: { lte: now } },
             _sum: { amount: true },
           }),
           prisma.savingsContribution.groupBy({
@@ -156,12 +159,12 @@ export async function computeSnapshot(
           }),
           prisma.accountTransfer.groupBy({
             by: ['fromAccountId'],
-            where: { userId, fromAccountId: { in: accountIds }, status: { in: ['posted', 'planned'] }, transferredAt: { lte: now } },
+            where: { userId, fromAccountId: { in: accountIds }, status: 'posted', transferredAt: { lte: now } },
             _sum: { amount: true },
           }),
           prisma.accountTransfer.groupBy({
             by: ['toAccountId'],
-            where: { userId, toAccountId: { in: accountIds }, status: { in: ['posted', 'planned'] }, transferredAt: { lte: now } },
+            where: { userId, toAccountId: { in: accountIds }, status: 'posted', transferredAt: { lte: now } },
             _sum: { amount: true },
           }),
         ]),
@@ -175,7 +178,7 @@ export async function computeSnapshot(
           where: {
             userId,
             id: { in: billExpenseIds },
-            status: { in: ['posted', 'planned'] },
+            status: 'posted',
             spentAt: { gte: monthStart, lte: now },
           },
           _sum: { amount: true },
@@ -200,7 +203,7 @@ export async function computeSnapshot(
       .plus(incomingMap.get(acc.id) ?? 0);
   }, new Decimal(0));
 
-  // --- 3. Income projection ---
+  // --- 3. Income projection (F7: Onboarding stability) ---
   const monthlyIncome: { [key: string]: Decimal } = {};
   for (const entry of incomeHistory) {
     const key = `${entry.receivedAt.getFullYear()}-${entry.receivedAt.getMonth()}`;
@@ -208,19 +211,7 @@ export async function computeSnapshot(
   }
 
   const monthlyValues = Object.values(monthlyIncome);
-  let projectedIncome: Decimal;
-  if (monthlyValues.length >= 3) {
-    // Weighted average of last 3 months
-    projectedIncome = monthlyValues[0]?.times(0.5)
-      .plus(monthlyValues[1]?.times(0.3) || new Decimal(0))
-      .plus(monthlyValues[2]?.times(0.2) || new Decimal(0));
-  } else if (monthlyValues.length > 0) {
-    projectedIncome = incomeMTD.gt(0)
-      ? incomeMTD.div(elapsedDays || 1).times(totalDays)
-      : monthlyValues.reduce((s, v) => s.plus(v), new Decimal(0)).div(monthlyValues.length);
-  } else {
-    projectedIncome = incomeMTD;
-  }
+  const projectedIncome = computeProjectedIncome(monthlyValues, incomeMTD, salaryAmount);
 
   // --- 4. Expense projection ---
   const monthlyExpenses: { [key: string]: Decimal } = {};
@@ -231,21 +222,24 @@ export async function computeSnapshot(
 
   const expMonthlyValues = Object.values(monthlyExpenses);
   let projectedVariableExpenses: Decimal;
-  let dataConfidence: Confidence;
 
   if (expMonthlyValues.length >= 3) {
     projectedVariableExpenses = expMonthlyValues[0]?.times(0.5)
       .plus(expMonthlyValues[1]?.times(0.3) || new Decimal(0))
       .plus(expMonthlyValues[2]?.times(0.2) || new Decimal(0));
-    dataConfidence = 'high';
   } else if (expMonthlyValues.length >= 1 || elapsedDays >= 30) {
     const dailyAvg = variableExpensesMTD.div(elapsedDays || 1);
     projectedVariableExpenses = dailyAvg.times(totalDays);
-    dataConfidence = 'medium';
   } else {
     projectedVariableExpenses = variableExpensesMTD.div(elapsedDays || 1).times(totalDays);
-    dataConfidence = 'low';
   }
+
+  const dataConfidence: Confidence = computeDataConfidence(
+    expMonthlyValues.length,
+    monthlyValues.length,
+    elapsedDays,
+    salaryAmount.gt(0),
+  );
 
   // --- 5. Known upcoming bills and total bills for month ---
   const billsTotal = unpaidBills.reduce(
@@ -413,7 +407,7 @@ export async function generateAlertsFromSnapshot(userId: string): Promise<void> 
     by: ['categoryId'],
     where: {
       userId,
-      status: { in: ['posted', 'planned'] },
+      status: 'posted',
       spentAt: { gte: monthStart, lte: now },
     },
     _sum: { amount: true },
@@ -908,4 +902,52 @@ export function computeHealthScore(input: HealthInput): HealthOutput {
   else grade = 'Needs Attention';
 
   return { score: totalScore, grade };
+}
+
+export function computeProjectedIncome(
+  monthlyValues: Decimal[],
+  incomeMTD: Decimal,
+  salaryAmount: Decimal,
+): Decimal {
+  if (monthlyValues.length >= 3) {
+    return monthlyValues[0]!
+      .times(0.5)
+      .plus(monthlyValues[1]?.times(0.3) || new Decimal(0))
+      .plus(monthlyValues[2]?.times(0.2) || new Decimal(0));
+  } else if (monthlyValues.length > 0) {
+    const avgHistoricalIncome = monthlyValues
+      .reduce((s, v) => s.plus(v), new Decimal(0))
+      .div(monthlyValues.length);
+    if (salaryAmount.gt(0)) {
+      return Decimal.max(salaryAmount, avgHistoricalIncome, incomeMTD);
+    }
+    return Decimal.max(avgHistoricalIncome, incomeMTD);
+  } else {
+    // Month 1 onboarding (no prior historical months)
+    if (salaryAmount.gt(0)) {
+      return Decimal.max(salaryAmount, incomeMTD);
+    }
+    return incomeMTD;
+  }
+}
+
+export function computeDataConfidence(
+  expenseMonthsCount: number,
+  incomeMonthsCount: number,
+  elapsedDays: number,
+  hasSalary: boolean,
+): Confidence {
+  const hasFullExpenseHistory = expenseMonthsCount >= 3;
+  const hasFullIncomeHistory = incomeMonthsCount >= 3;
+  const hasPartialHistory =
+    (expenseMonthsCount >= 1 || elapsedDays >= 30) &&
+    (incomeMonthsCount >= 1 || hasSalary);
+
+  if (hasFullExpenseHistory && hasFullIncomeHistory) {
+    return 'high';
+  } else if (hasPartialHistory || (hasFullExpenseHistory && hasSalary)) {
+    return 'medium';
+  } else {
+    return 'low';
+  }
 }

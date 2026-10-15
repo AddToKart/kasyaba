@@ -98,7 +98,7 @@ export async function getBudgetStatus(userId: string, month: string) {
   const expenseAgg = await prisma.expenseEntry.aggregate({
     where: {
       userId,
-      status: { in: ['posted', 'planned'] },
+      status: 'posted',
       spentAt: { gte: monthStart, lte: actualThrough },
     },
     _sum: { amount: true },
@@ -109,7 +109,7 @@ export async function getBudgetStatus(userId: string, month: string) {
     by: ['categoryId'],
     where: {
       userId,
-      status: { in: ['posted', 'planned'] },
+      status: 'posted',
       spentAt: { gte: monthStart, lte: actualThrough },
     },
     _sum: { amount: true },

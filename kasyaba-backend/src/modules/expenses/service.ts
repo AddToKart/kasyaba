@@ -158,7 +158,7 @@ export async function deleteExpense(userId: string, id: string) {
 }
 
 export async function getCategorySummary(userId: string, from?: string, to?: string) {
-  const where: any = { userId, status: { in: ['posted', 'planned'] } };
+  const where: any = { userId, status: 'posted' };
   if (from || to) {
     where.spentAt = {};
     if (from) where.spentAt.gte = parseDateOnlyStart(from);

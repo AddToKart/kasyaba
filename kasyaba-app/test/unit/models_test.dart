@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kasyaba/core/database/database.dart';
 import 'package:kasyaba/core/providers/api_providers.dart';
 
 void main() {
@@ -68,4 +69,45 @@ void main() {
       expect(alert.readAt, isNull);
     });
   });
+
+  group('offlineTransactionToEntry & isPendingSync (F9)', () {
+    test('maps queued offline expense correctly', () {
+      final ot = OfflineTransaction(
+        id: 'offline-exp-1',
+        userId: 'user-1',
+        type: 'expense',
+        json: '{"amount": "450.00", "merchant": "Jollibee", "spentAt": "2026-10-15T12:00:00.000Z"}',
+        createdAt: DateTime(2026, 10, 15, 12, 0),
+        retryCount: 0,
+      );
+
+      final entry = offlineTransactionToEntry(ot);
+      expect(entry.id, 'offline-exp-1');
+      expect(entry.title, 'Jollibee');
+      expect(entry.amount, 450.00);
+      expect(entry.isExpense, isTrue);
+      expect(entry.status, 'pending_sync');
+      expect(entry.isPendingSync, isTrue);
+    });
+
+    test('maps queued offline income correctly', () {
+      final ot = OfflineTransaction(
+        id: 'offline-inc-1',
+        userId: 'user-1',
+        type: 'income',
+        json: '{"amount": "30000.00", "source": "Salary Inflow", "receivedAt": "2026-10-15T10:00:00.000Z"}',
+        createdAt: DateTime(2026, 10, 15, 10, 0),
+        retryCount: 0,
+      );
+
+      final entry = offlineTransactionToEntry(ot);
+      expect(entry.id, 'offline-inc-1');
+      expect(entry.title, 'Salary Inflow');
+      expect(entry.amount, 30000.00);
+      expect(entry.isExpense, isFalse);
+      expect(entry.status, 'pending_sync');
+      expect(entry.isPendingSync, isTrue);
+    });
+  });
 }
+

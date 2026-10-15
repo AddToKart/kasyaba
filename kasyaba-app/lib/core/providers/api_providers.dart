@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
 import '../database/cache_service.dart';
+import '../database/database.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -69,6 +71,8 @@ final accountBalancesProvider =
     FutureProvider<Map<String, double>>((ref) async {
   final dio = ref.watch(dioProvider);
   final accounts = await ref.watch(accountsProvider.future);
+  final cacheService = ref.watch(cacheServiceProvider);
+  final userId = ref.watch(authProvider).userId;
   final map = <String, double>{};
   await Future.wait(
     accounts.map((acc) async {
@@ -81,6 +85,41 @@ final accountBalancesProvider =
       } catch (_) {}
     }),
   );
+
+  // If there are pending local offline transactions, apply their net effect
+  if (userId != null) {
+    try {
+      final pending = await cacheService.getPendingSyncTransactions(userId);
+      for (final tx in pending) {
+        try {
+          final payload = jsonDecode(tx.json) as Map<String, dynamic>;
+          final amount =
+              double.tryParse(payload['amount']?.toString() ?? '0') ?? 0.0;
+          if (tx.type == 'expense') {
+            final accId = payload['accountId']?.toString();
+            if (accId != null && map.containsKey(accId)) {
+              map[accId] = (map[accId] ?? 0.0) - amount;
+            }
+          } else if (tx.type == 'income') {
+            final accId = payload['accountId']?.toString();
+            if (accId != null && map.containsKey(accId)) {
+              map[accId] = (map[accId] ?? 0.0) + amount;
+            }
+          } else if (tx.type == 'transfer') {
+            final fromId = payload['fromAccountId']?.toString();
+            final toId = payload['toAccountId']?.toString();
+            if (fromId != null && map.containsKey(fromId)) {
+              map[fromId] = (map[fromId] ?? 0.0) - amount;
+            }
+            if (toId != null && map.containsKey(toId)) {
+              map[toId] = (map[toId] ?? 0.0) + amount;
+            }
+          }
+        } catch (_) {}
+      }
+    } catch (_) {}
+  }
+
   return map;
 });
 
@@ -459,6 +498,45 @@ final dashboardProvider = FutureProvider<DashboardData>((ref) async {
   if (userId == null) {
     throw StateError('You must be signed in to load dashboard data.');
   }
+
+  DashboardData applyPendingOfflineMutations(
+    DashboardData baseData,
+    List<OfflineTransaction> pending,
+  ) {
+    if (pending.isEmpty) return baseData;
+    var balanceDelta = 0.0;
+    var expenseDelta = 0.0;
+    var incomeDelta = 0.0;
+
+    for (final tx in pending) {
+      try {
+        final payload = jsonDecode(tx.json) as Map<String, dynamic>;
+        final amount =
+            double.tryParse(payload['amount']?.toString() ?? '0') ?? 0.0;
+        if (tx.type == 'expense') {
+          balanceDelta -= amount;
+          expenseDelta += amount;
+        } else if (tx.type == 'income') {
+          balanceDelta += amount;
+          incomeDelta += amount;
+        }
+      } catch (_) {}
+    }
+
+    final newBalance = baseData.totalBalance + balanceDelta;
+    final newExpenses = baseData.expenses + expenseDelta;
+    final newIncome = baseData.income + incomeDelta;
+    final newPredicted = baseData.predictedMonthEnd + balanceDelta;
+
+    return baseData.copyWith(
+      totalBalance: newBalance,
+      expenses: newExpenses,
+      income: newIncome,
+      predictedMonthEnd: newPredicted,
+      isFromCache: true,
+    );
+  }
+
   try {
     final response = await dio.get('/dashboard');
     final data = DashboardData.fromJson(
@@ -466,13 +544,37 @@ final dashboardProvider = FutureProvider<DashboardData>((ref) async {
     );
     // Update cache with fresh data (fire-and-forget)
     unawaited(cacheService.cacheDashboard(data, userId).catchError((_) {}));
+
+    final pending = await cacheService.getPendingSyncTransactions(userId);
+    if (pending.isNotEmpty) {
+      return applyPendingOfflineMutations(data, pending);
+    }
     return data;
   } catch (e) {
     // Try cached data as fallback
     final cached = await cacheService.getCachedDashboard(userId);
-    if (cached != null) return cached.copyWith(isFromCache: true);
+    if (cached != null) {
+      final pending = await cacheService.getPendingSyncTransactions(userId);
+      return applyPendingOfflineMutations(
+        cached.copyWith(isFromCache: true),
+        pending,
+      );
+    }
     throw StateError('Dashboard data is unavailable. Please try again.');
   }
+});
+
+final pendingSyncTransactionsProvider =
+    StreamProvider<List<OfflineTransaction>>((ref) {
+  final cacheService = ref.watch(cacheServiceProvider);
+  final userId = ref.watch(authProvider).userId;
+  if (userId == null) return const Stream.empty();
+  return cacheService.watchPendingSyncTransactions(userId);
+});
+
+final pendingSyncCountProvider = Provider<int>((ref) {
+  final pending = ref.watch(pendingSyncTransactionsProvider).valueOrNull ?? [];
+  return pending.length;
 });
 
 // -----------------------------------------------------------------------------
@@ -508,7 +610,57 @@ extension TransactionEntryStatus on TransactionEntry {
 
   bool get isCancelled => status == 'cancelled';
 
+  bool get isPendingSync => status == 'pending_sync';
+
   bool get isTransfer => type == 'transfer';
+}
+
+TransactionEntry offlineTransactionToEntry(OfflineTransaction ot) {
+  try {
+    final data = jsonDecode(ot.json) as Map<String, dynamic>;
+    final type = ot.type;
+    final isExpense = type == 'expense';
+    final amount = double.tryParse(data['amount']?.toString() ?? '0') ?? 0.0;
+    final dateStr = (data['spentAt'] ??
+            data['receivedAt'] ??
+            data['transferredAt'])
+        ?.toString();
+    final date = dateStr != null
+        ? DateTime.tryParse(dateStr) ?? ot.createdAt
+        : ot.createdAt;
+    final title = isExpense
+        ? (data['merchant']?.toString() ??
+            (data['notes']?.toString() ?? 'Expense (Offline)'))
+        : (type == 'income'
+            ? (data['source']?.toString() ?? 'Income (Offline)')
+            : 'Transfer (Offline)');
+    return TransactionEntry(
+      id: ot.id,
+      title: title.isNotEmpty ? title : 'Pending Offline Entry',
+      amount: amount,
+      isExpense: isExpense,
+      date: date,
+      categoryName:
+          isExpense ? 'Pending Sync' : (type == 'income' ? 'Income' : 'Transfer'),
+      type: type,
+      status: 'pending_sync',
+      accountId:
+          data['accountId']?.toString() ?? data['fromAccountId']?.toString(),
+      categoryId: data['categoryId']?.toString(),
+      notes: data['notes']?.toString(),
+    );
+  } catch (_) {
+    return TransactionEntry(
+      id: ot.id,
+      title: 'Pending Sync',
+      amount: 0.0,
+      isExpense: ot.type == 'expense',
+      date: ot.createdAt,
+      categoryName: 'Offline',
+      type: ot.type,
+      status: 'pending_sync',
+    );
+  }
 }
 
 class TransactionQueryFilter {
@@ -567,6 +719,13 @@ final paginatedTransactionsProvider = FutureProvider<PaginatedTransactions>((
 ) async {
   final dio = ref.watch(dioProvider);
   final filter = ref.watch(transactionFilterProvider);
+  final cacheService = ref.watch(cacheServiceProvider);
+  final userId = ref.watch(authProvider).userId;
+  final pending = userId != null
+      ? await cacheService.getPendingSyncTransactions(userId)
+      : <OfflineTransaction>[];
+  final pendingEntries = pending.map(offlineTransactionToEntry).toList();
+
   final Map<String, dynamic> params = {
     'page': filter.page,
     'limit': filter.limit,
@@ -603,13 +762,26 @@ final paginatedTransactionsProvider = FutureProvider<PaginatedTransactions>((
     final totalCount =
         (response.data['meta']?['total'] as num?)?.toInt() ?? items.length;
 
+    final combinedItems =
+        filter.page == 1 && filter.fromDate == null && filter.toDate == null
+            ? [...pendingEntries, ...items]
+            : items;
+
     return PaginatedTransactions(
-      items: items,
+      items: combinedItems,
       page: filter.page,
       limit: filter.limit,
-      totalCount: totalCount,
+      totalCount: totalCount + pendingEntries.length,
     );
   } catch (_) {
+    if (pendingEntries.isNotEmpty) {
+      return PaginatedTransactions(
+        items: pendingEntries,
+        page: 1,
+        limit: filter.limit,
+        totalCount: pendingEntries.length,
+      );
+    }
     rethrow;
   }
 });

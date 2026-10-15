@@ -78,7 +78,7 @@ async function buildDashboard(userId: string, _period = 'month') {
     }),
     prisma.expenseEntry.groupBy({
       by: ['categoryId'],
-      where: { userId, status: { in: ['posted', 'planned'] }, spentAt: { gte: monthStart, lte: now } },
+      where: { userId, status: 'posted', spentAt: { gte: monthStart, lte: now } },
       _sum: { amount: true },
     }),
   ]);

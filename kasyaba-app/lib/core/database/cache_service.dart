@@ -86,6 +86,18 @@ class CacheService {
     )).get();
   }
 
+  /// Watches all transactions for [userId] that have not been synced yet.
+  Stream<List<OfflineTransaction>> watchPendingSyncTransactions(
+    String userId,
+  ) {
+    return (_db.select(_db.offlineTransactions)..where(
+      (t) =>
+          t.syncedAt.isNull() &
+          t.failedAt.isNull() &
+          t.userId.equals(userId),
+    )).watch();
+  }
+
   /// Replays only transaction entries for the currently authenticated user.
   /// Network failures leave the row pending for the next connectivity event.
   Future<int> syncPendingTransactions(Dio dio, String userId) async {
