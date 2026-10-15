@@ -694,42 +694,6 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
             letterSpacing: 0.5,
           ),
         ),
-        actions: [
-          Tooltip(
-            message: 'Can I Buy This? (Purchase Check)',
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () => _showPurchaseCheckBottomSheet(context),
-                borderRadius: BorderRadius.circular(12),
-                child: SizedBox(
-                  width: 48,
-                  height: 48,
-                  child: Center(
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        color: const Color(0xFF0284C7).withValues(alpha: 0.15),
-                        border: Border.all(
-                          color: const Color(0xFF0284C7).withValues(alpha: 0.4),
-                          width: 1,
-                        ),
-                      ),
-                      child: const Icon(
-                        Icons.shopping_bag_outlined,
-                        size: 19,
-                        color: Color(0xFF0284C7),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 14),
-        ],
       ),
       body: RefreshIndicator(
         color: AppColors.emerald500,
@@ -737,6 +701,11 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           children: [
+            _CanIBuyThisHeroCard(
+              isDark: isDark,
+              onTap: () => _showPurchaseCheckBottomSheet(context),
+            ),
+            const SizedBox(height: 18),
             goalsAsync.when(
               loading: () => const SizedBox(
                 height: 200,
@@ -804,11 +773,14 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                 );
               },
             ),
-            const SizedBox(height: 110),
+            const SizedBox(height: 140),
           ],
         ),
       ),
-      floatingActionButtonLocation: const FloatingDockFabLocation(),
+      floatingActionButtonLocation: FloatingDockFabLocation(
+        bottomPadding: MediaQuery.viewPaddingOf(context).bottom,
+        gap: 20.0,
+      ),
       floatingActionButton: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
@@ -841,6 +813,213 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
             ),
           ),
           tooltip: 'Create Goal',
+        ),
+      ),
+    );
+  }
+}
+
+// ─── "Can I Buy This?" Affordability Simulator Feature Card ──────────────────
+
+class _CanIBuyThisHeroCard extends StatelessWidget {
+  final bool isDark;
+  final VoidCallback onTap;
+
+  const _CanIBuyThisHeroCard({
+    required this.isDark,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.surface800 : AppColors.lightCard,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: const Color(0xFF0284C7).withValues(alpha: isDark ? 0.35 : 0.25),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.05),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0284C7).withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFF38BDF8).withValues(alpha: 0.35),
+                          width: 1,
+                        ),
+                      ),
+                      child: const Center(
+                        child: Icon(
+                          Icons.shopping_bag_outlined,
+                          size: 20,
+                          color: Color(0xFF38BDF8),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                'Can I Buy This?',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.2,
+                                  color: isDark
+                                      ? AppColors.textDark
+                                      : AppColors.textLight,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 7,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF0284C7)
+                                      .withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(
+                                    AppTheme.tagRadius,
+                                  ),
+                                  border: Border.all(
+                                    color: const Color(0xFF38BDF8)
+                                        .withValues(alpha: 0.45),
+                                    width: 0.8,
+                                  ),
+                                ),
+                                child: const Text(
+                                  'SIMULATOR',
+                                  style: TextStyle(
+                                    color: Color(0xFF38BDF8),
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Simulate any purchase before you spend. Evaluates bill conflicts, cash buffer, and savings goal delays.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isDark
+                                  ? AppColors.textMuted
+                                  : AppColors.textMutedL,
+                              height: 1.35,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: (isDark
+                            ? const Color(0xFF0B132B)
+                            : const Color(0xFFF0F9FF))
+                        .withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: const Color(0xFF0284C7).withValues(alpha: 0.2),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.bolt_rounded,
+                        size: 14,
+                        color: Color(0xFF38BDF8),
+                      ),
+                      const SizedBox(width: 6),
+                      const Expanded(
+                        child: Text(
+                          'Test purchase impact on goals',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF38BDF8),
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0284C7)
+                              .withValues(alpha: 0.25),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: const Color(0xFF38BDF8)
+                                .withValues(alpha: 0.4),
+                            width: 1,
+                          ),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Simulate',
+                              style: TextStyle(
+                                color: Color(0xFF38BDF8),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            SizedBox(width: 3),
+                            Icon(
+                              Icons.arrow_forward_rounded,
+                              size: 12,
+                              color: Color(0xFF38BDF8),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

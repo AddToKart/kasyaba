@@ -9,20 +9,28 @@ import '../../app/theme/app_theme.dart';
 /// A custom [FloatingActionButtonLocation] that positions the FAB safely above
 /// the floating luxury dock of [AppShell].
 class FloatingDockFabLocation extends FloatingActionButtonLocation {
-  const FloatingDockFabLocation();
+  final double? bottomPadding;
+  final double gap;
+
+  const FloatingDockFabLocation({
+    this.bottomPadding,
+    this.gap = 20.0,
+  });
 
   @override
   Offset getOffset(ScaffoldPrelayoutGeometry scaffoldGeometry) {
-    final double bottomPadding = scaffoldGeometry.minInsets.bottom;
-    final double dockTotalHeight =
-        64.0 + (bottomPadding > 0 ? bottomPadding : 12.0);
+    final double rawBottom = bottomPadding ?? scaffoldGeometry.minInsets.bottom;
+    final double dockBottomMargin =
+        rawBottom > 0 ? rawBottom : (bottomPadding != null ? 12.0 : 24.0);
+    final double dockTotalHeight = 64.0 + dockBottomMargin;
+
     final double fabX = scaffoldGeometry.scaffoldSize.width -
         scaffoldGeometry.floatingActionButtonSize.width -
         16.0;
     final double fabY = scaffoldGeometry.scaffoldSize.height -
         dockTotalHeight -
         scaffoldGeometry.floatingActionButtonSize.height -
-        16.0;
+        gap;
     return Offset(fabX, fabY);
   }
 }

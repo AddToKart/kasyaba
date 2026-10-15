@@ -264,11 +264,14 @@ class BudgetsScreen extends ConsumerWidget {
                 );
               },
             ),
-            const SizedBox(height: 100),
+            const SizedBox(height: 140),
           ],
         ),
       ),
-      floatingActionButtonLocation: const FloatingDockFabLocation(),
+      floatingActionButtonLocation: FloatingDockFabLocation(
+        bottomPadding: MediaQuery.viewPaddingOf(context).bottom,
+        gap: 20.0,
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showCreateBudgetSheet(context),
         icon: const Icon(Icons.add),

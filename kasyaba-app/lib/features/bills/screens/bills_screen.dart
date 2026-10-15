@@ -838,11 +838,14 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                 );
               },
             ),
-            const SizedBox(height: 110),
+            const SizedBox(height: 140),
           ],
         ),
       ),
-      floatingActionButtonLocation: const FloatingDockFabLocation(),
+      floatingActionButtonLocation: FloatingDockFabLocation(
+        bottomPadding: MediaQuery.viewPaddingOf(context).bottom,
+        gap: 20.0,
+      ),
       floatingActionButton: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
