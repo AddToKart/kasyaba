@@ -33,10 +33,10 @@ void main() {
     // Forgot password link
     expect(find.text('Forgot Password?'), findsOneWidget);
 
-    // Buttons and divider
+    // Primary Sign In button
     expect(find.text('Sign In'), findsOneWidget);
-    expect(find.text('OR'), findsOneWidget);
-    expect(find.text('Continue with Demo Account'), findsOneWidget);
+    expect(find.text('OR'), findsNothing);
+    expect(find.text('Continue with Demo Account'), findsNothing);
 
     // Bottom trust footer
     expect(find.text('End-to-end local & deterministic calculation'), findsOneWidget);

@@ -70,12 +70,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     } catch (_) {}
   }
 
-  void _handleDemoLogin() {
-    formGroup.control('email').value = 'demo@kasyaba.com';
-    formGroup.control('password').value = 'Password123!';
-    _handleLogin();
-  }
-
   void _showForgotPasswordHelp(BuildContext context) {
     showDialog<void>(
       context: context,
@@ -286,72 +280,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                   isLoading: authState.isLoading,
                                   onPressed: _handleLogin,
                                   label: 'Sign In',
-                                ),
-                                const SizedBox(height: 20),
-
-                                // Subtle "or" divider
-                                const Row(
-                                  children: [
-                                    Expanded(
-                                      child: Divider(
-                                        color: Color(0x14FFFFFF),
-                                        height: 1,
-                                        thickness: 1,
-                                      ),
-                                    ),
-                                    Padding(
-                                      padding:
-                                          EdgeInsets.symmetric(horizontal: 14),
-                                      child: Text(
-                                        'OR',
-                                        style: TextStyle(
-                                          color: Color(0xFF64748B),
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.w800,
-                                          letterSpacing: 1.2,
-                                        ),
-                                      ),
-                                    ),
-                                    Expanded(
-                                      child: Divider(
-                                        color: Color(0x14FFFFFF),
-                                        height: 1,
-                                        thickness: 1,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 20),
-
-                                // Secondary "Continue with Demo Account" button
-                                OutlinedButton.icon(
-                                  onPressed: authState.isLoading
-                                      ? null
-                                      : _handleDemoLogin,
-                                  icon: const Icon(
-                                    Icons.flash_on_rounded,
-                                    color: AppColors.gold400,
-                                    size: 18,
-                                  ),
-                                  label: const Text(
-                                    'Continue with Demo Account',
-                                  ),
-                                  style: OutlinedButton.styleFrom(
-                                    minimumSize: const Size.fromHeight(48),
-                                    backgroundColor: const Color(0x1F1E293B),
-                                    foregroundColor: AppColors.textDark,
-                                    side: const BorderSide(
-                                      color: Color(0x14FFFFFF),
-                                      width: 1,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    textStyle: const TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 14,
-                                    ),
-                                  ),
                                 ),
                               ],
                             ),
