@@ -1,6 +1,29 @@
 import 'dart:math' as math;
 import '../providers/api_providers.dart';
 
+/// Individual breakdown of a goal's daily savings requirement.
+class GoalContributionDetail {
+  final String title;
+  final double targetAmount;
+  final double currentAmount;
+  final double remainingAmount;
+  final double dailyRate;
+  final int daysCounted;
+  final double totalContribution;
+  final DateTime? targetDate;
+
+  const GoalContributionDetail({
+    required this.title,
+    required this.targetAmount,
+    required this.currentAmount,
+    required this.remainingAmount,
+    required this.dailyRate,
+    required this.daysCounted,
+    required this.totalContribution,
+    this.targetDate,
+  });
+}
+
 /// Next Payday and Daily Safe-to-Spend Deterministic Models and Calculators.
 class DailySafeSpendCalculation {
   final double totalLiquidBalance;
@@ -8,6 +31,7 @@ class DailySafeSpendCalculation {
   final int unpaidBillsCount;
   final double scheduledGoalContributions;
   final int activeGoalsCount;
+  final List<GoalContributionDetail> goalDetails;
   final int daysUntilPayday;
   final DateTime nextPayday;
   final double numerator;
@@ -21,6 +45,7 @@ class DailySafeSpendCalculation {
     required this.unpaidBillsCount,
     required this.scheduledGoalContributions,
     required this.activeGoalsCount,
+    this.goalDetails = const [],
     required this.daysUntilPayday,
     required this.nextPayday,
     required this.numerator,
@@ -104,16 +129,40 @@ DailySafeSpendCalculation calculateDailySafeSpend({
   // Scheduled goal contributions for this cycle
   var scheduledGoalContributions = 0.0;
   var activeGoalsCount = 0;
+  final goalDetails = <GoalContributionDetail>[];
   for (final goal in goals) {
     if (goal.progress >= 1.0) continue;
     activeGoalsCount++;
     final reqMonthly = goal.monthlySavingsRequired;
+    double itemContrib = 0.0;
+    double dailyRate = 0.0;
+    int daysCounted = daysUntilPayday;
+    final remainingGoal = math.max(0.0, goal.targetAmount - goal.currentAmount);
+
     if (reqMonthly != null && reqMonthly > 0) {
-      scheduledGoalContributions += (reqMonthly / 30.0) * daysUntilPayday;
+      dailyRate = reqMonthly / 30.0;
+      itemContrib = dailyRate * daysUntilPayday;
     } else if (goal.daysRemaining != null && goal.daysRemaining! > 0) {
-      final remainingGoal = math.max(0.0, goal.targetAmount - goal.currentAmount);
-      final dailyReq = remainingGoal / goal.daysRemaining!;
-      scheduledGoalContributions += dailyReq * math.min(daysUntilPayday, goal.daysRemaining!);
+      dailyRate = remainingGoal / goal.daysRemaining!;
+      daysCounted = math.min(daysUntilPayday, goal.daysRemaining!);
+      itemContrib = dailyRate * daysCounted;
+    }
+
+    if (itemContrib > 0) {
+      scheduledGoalContributions += itemContrib;
+      final parsedDate = goal.targetDate != null ? DateTime.tryParse(goal.targetDate!) : null;
+      goalDetails.add(
+        GoalContributionDetail(
+          title: goal.name,
+          targetAmount: goal.targetAmount,
+          currentAmount: goal.currentAmount,
+          remainingAmount: remainingGoal,
+          dailyRate: dailyRate,
+          daysCounted: daysCounted,
+          totalContribution: itemContrib,
+          targetDate: parsedDate,
+        ),
+      );
     }
   }
 
@@ -126,6 +175,7 @@ DailySafeSpendCalculation calculateDailySafeSpend({
     unpaidBillsCount: unpaidBills.length,
     scheduledGoalContributions: scheduledGoalContributions,
     activeGoalsCount: activeGoalsCount,
+    goalDetails: goalDetails,
     daysUntilPayday: daysUntilPayday,
     nextPayday: nextPayday,
     numerator: numerator,
@@ -245,3 +295,4 @@ InstallmentComparison calculateInstallmentComparison({
     postCashBalance: currentBalance - purchaseAmount,
   );
 }
+

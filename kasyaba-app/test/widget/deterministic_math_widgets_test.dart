@@ -75,6 +75,145 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('EXACT DETERMINISTIC FORMULA'), findsNothing);
     });
+
+    testWidgets('fresh user with 0 transactions renders Quick Start Checklist and goal proration breakdown', (tester) async {
+      tester.view.physicalSize = const Size(800, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      const freshDashboardData = DashboardData(
+        totalBalance: 0.0,
+        income: 0.0,
+        expenses: 0.0,
+        savings: 0.0,
+        healthScore: 'Fair',
+        predictedMonthEnd: 0.0,
+        categoryExpenses: [],
+      );
+
+      final dummyGoal = const SavingsGoal(
+        id: 'g1',
+        name: 'Tuition Fee',
+        targetAmount: 60000.0,
+        currentAmount: 0.0,
+        daysRemaining: 136,
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            dashboardProvider.overrideWith((ref) => freshDashboardData),
+            userProfileProvider.overrideWith(
+              (ref) => const UserProfile(
+                id: 'u1',
+                email: 'fresh@example.com',
+                paydaySchedule: '15th & 30th',
+              ),
+            ),
+            billsProvider.overrideWith((ref) => []),
+            goalsProvider.overrideWith((ref) => [dummyGoal]),
+            transactionsProvider.overrideWith((ref) => []),
+            budgetStatusProvider.overrideWith((ref) => BudgetStatus.empty()),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(
+              body: DashboardScreen(),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Verify Quick Start Checklist is visible for fresh user
+      expect(find.text('QUICK SETUP GUIDE'), findsOneWidget);
+      expect(find.text('Log your starting balance or salary'), findsOneWidget);
+      expect(find.text('Confirm your payday schedule'), findsOneWidget);
+      expect(find.text('Add your upcoming bills & goals'), findsOneWidget);
+      expect(find.text('+ Add Starting Cash'), findsOneWidget);
+
+      // Open breakdown
+      await tester.tap(find.text('Breakdown'));
+      await tester.pumpAndSettle();
+
+      // Verify Itemized Goal Breakdown & Contextual ₱0 explanation
+      expect(find.text('GOAL PRORATION BREAKDOWN'), findsOneWidget);
+      expect(find.text('Tuition Fee'), findsOneWidget);
+      expect(find.text('Why is your daily safe spend ₱0.00?'), findsOneWidget);
+      expect(find.text('+ Log Starting Cash / Balance'), findsOneWidget);
+
+      await tester.tap(find.text('Close Breakdown'));
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('existing user with transactions in deficit renders Pay Period Deficit alert without checklist', (tester) async {
+      tester.view.physicalSize = const Size(800, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      const existingUserDashboard = DashboardData(
+        totalBalance: 500.0,
+        income: 25000.0,
+        expenses: 24500.0,
+        savings: 0.0,
+        healthScore: 'Poor',
+        predictedMonthEnd: 0.0,
+        categoryExpenses: [],
+      );
+
+      final dummyBill = BillItem(
+        id: 'b1',
+        name: 'Rent',
+        amount: 8000.0,
+        dueDate: DateTime.now().add(const Duration(days: 5)),
+        status: 'unpaid',
+      );
+
+      final pastTx = TransactionEntry(
+        id: 'tx1',
+        title: 'Food',
+        amount: 500.0,
+        isExpense: true,
+        categoryName: 'Food',
+        date: DateTime.now().subtract(const Duration(days: 1)),
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            dashboardProvider.overrideWith((ref) => existingUserDashboard),
+            userProfileProvider.overrideWith(
+              (ref) => const UserProfile(
+                id: 'u1',
+                email: 'existing@example.com',
+                paydaySchedule: '15th & 30th',
+              ),
+            ),
+            billsProvider.overrideWith((ref) => [dummyBill]),
+            goalsProvider.overrideWith((ref) => []),
+            transactionsProvider.overrideWith((ref) => [pastTx]),
+            budgetStatusProvider.overrideWith((ref) => BudgetStatus.empty()),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(
+              body: DashboardScreen(),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Quick setup guide should NOT be displayed for an existing user
+      expect(find.text('QUICK SETUP GUIDE'), findsNothing);
+
+      // Deficit alert SHOULD be displayed
+      expect(find.text('PAY PERIOD DEFICIT'), findsOneWidget);
+      expect(find.text('+ Add Income'), findsOneWidget);
+      expect(find.text('Adjust Goals'), findsOneWidget);
+    });
   });
 
   group('Scenario Lab (Can I Buy This?): Work-Hours & Installment Comparator', () {
