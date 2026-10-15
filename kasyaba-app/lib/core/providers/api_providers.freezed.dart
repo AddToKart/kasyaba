@@ -760,10 +760,15 @@ mixin _$DashboardData {
   double get savings => throw _privateConstructorUsedError;
   String get healthScore => throw _privateConstructorUsedError;
   double get predictedMonthEnd => throw _privateConstructorUsedError;
+  double get budgetUsedPercent => throw _privateConstructorUsedError;
   List<CategoryExpenseSummary> get categoryExpenses =>
       throw _privateConstructorUsedError;
   List<DailyBalancePoint> get dailyBalance =>
       throw _privateConstructorUsedError;
+  double get projectedIncome => throw _privateConstructorUsedError;
+  double get projectedExpenses => throw _privateConstructorUsedError;
+  String get confidence => throw _privateConstructorUsedError;
+  bool get isFromCache => throw _privateConstructorUsedError;
 
   /// Create a copy of DashboardData
   /// with the given fields replaced by the non-null parameter values.
@@ -786,8 +791,13 @@ abstract class $DashboardDataCopyWith<$Res> {
     double savings,
     String healthScore,
     double predictedMonthEnd,
+    double budgetUsedPercent,
     List<CategoryExpenseSummary> categoryExpenses,
     List<DailyBalancePoint> dailyBalance,
+    double projectedIncome,
+    double projectedExpenses,
+    String confidence,
+    bool isFromCache,
   });
 }
 
@@ -812,8 +822,13 @@ class _$DashboardDataCopyWithImpl<$Res, $Val extends DashboardData>
     Object? savings = null,
     Object? healthScore = null,
     Object? predictedMonthEnd = null,
+    Object? budgetUsedPercent = null,
     Object? categoryExpenses = null,
     Object? dailyBalance = null,
+    Object? projectedIncome = null,
+    Object? projectedExpenses = null,
+    Object? confidence = null,
+    Object? isFromCache = null,
   }) {
     return _then(
       _value.copyWith(
@@ -841,6 +856,10 @@ class _$DashboardDataCopyWithImpl<$Res, $Val extends DashboardData>
                 ? _value.predictedMonthEnd
                 : predictedMonthEnd // ignore: cast_nullable_to_non_nullable
                       as double,
+            budgetUsedPercent: null == budgetUsedPercent
+                ? _value.budgetUsedPercent
+                : budgetUsedPercent // ignore: cast_nullable_to_non_nullable
+                      as double,
             categoryExpenses: null == categoryExpenses
                 ? _value.categoryExpenses
                 : categoryExpenses // ignore: cast_nullable_to_non_nullable
@@ -849,6 +868,22 @@ class _$DashboardDataCopyWithImpl<$Res, $Val extends DashboardData>
                 ? _value.dailyBalance
                 : dailyBalance // ignore: cast_nullable_to_non_nullable
                       as List<DailyBalancePoint>,
+            projectedIncome: null == projectedIncome
+                ? _value.projectedIncome
+                : projectedIncome // ignore: cast_nullable_to_non_nullable
+                      as double,
+            projectedExpenses: null == projectedExpenses
+                ? _value.projectedExpenses
+                : projectedExpenses // ignore: cast_nullable_to_non_nullable
+                      as double,
+            confidence: null == confidence
+                ? _value.confidence
+                : confidence // ignore: cast_nullable_to_non_nullable
+                      as String,
+            isFromCache: null == isFromCache
+                ? _value.isFromCache
+                : isFromCache // ignore: cast_nullable_to_non_nullable
+                      as bool,
           )
           as $Val,
     );
@@ -871,8 +906,13 @@ abstract class _$$DashboardDataImplCopyWith<$Res>
     double savings,
     String healthScore,
     double predictedMonthEnd,
+    double budgetUsedPercent,
     List<CategoryExpenseSummary> categoryExpenses,
     List<DailyBalancePoint> dailyBalance,
+    double projectedIncome,
+    double projectedExpenses,
+    String confidence,
+    bool isFromCache,
   });
 }
 
@@ -896,8 +936,13 @@ class __$$DashboardDataImplCopyWithImpl<$Res>
     Object? savings = null,
     Object? healthScore = null,
     Object? predictedMonthEnd = null,
+    Object? budgetUsedPercent = null,
     Object? categoryExpenses = null,
     Object? dailyBalance = null,
+    Object? projectedIncome = null,
+    Object? projectedExpenses = null,
+    Object? confidence = null,
+    Object? isFromCache = null,
   }) {
     return _then(
       _$DashboardDataImpl(
@@ -925,6 +970,10 @@ class __$$DashboardDataImplCopyWithImpl<$Res>
             ? _value.predictedMonthEnd
             : predictedMonthEnd // ignore: cast_nullable_to_non_nullable
                   as double,
+        budgetUsedPercent: null == budgetUsedPercent
+            ? _value.budgetUsedPercent
+            : budgetUsedPercent // ignore: cast_nullable_to_non_nullable
+                  as double,
         categoryExpenses: null == categoryExpenses
             ? _value._categoryExpenses
             : categoryExpenses // ignore: cast_nullable_to_non_nullable
@@ -933,6 +982,22 @@ class __$$DashboardDataImplCopyWithImpl<$Res>
             ? _value._dailyBalance
             : dailyBalance // ignore: cast_nullable_to_non_nullable
                   as List<DailyBalancePoint>,
+        projectedIncome: null == projectedIncome
+            ? _value.projectedIncome
+            : projectedIncome // ignore: cast_nullable_to_non_nullable
+                  as double,
+        projectedExpenses: null == projectedExpenses
+            ? _value.projectedExpenses
+            : projectedExpenses // ignore: cast_nullable_to_non_nullable
+                  as double,
+        confidence: null == confidence
+            ? _value.confidence
+            : confidence // ignore: cast_nullable_to_non_nullable
+                  as String,
+        isFromCache: null == isFromCache
+            ? _value.isFromCache
+            : isFromCache // ignore: cast_nullable_to_non_nullable
+                  as bool,
       ),
     );
   }
@@ -948,8 +1013,13 @@ class _$DashboardDataImpl implements _DashboardData {
     required this.savings,
     required this.healthScore,
     required this.predictedMonthEnd,
+    this.budgetUsedPercent = 0.0,
     required final List<CategoryExpenseSummary> categoryExpenses,
     final List<DailyBalancePoint> dailyBalance = const [],
+    this.projectedIncome = 0.0,
+    this.projectedExpenses = 0.0,
+    this.confidence = 'medium',
+    this.isFromCache = false,
   }) : _categoryExpenses = categoryExpenses,
        _dailyBalance = dailyBalance;
 
@@ -965,6 +1035,9 @@ class _$DashboardDataImpl implements _DashboardData {
   final String healthScore;
   @override
   final double predictedMonthEnd;
+  @override
+  @JsonKey()
+  final double budgetUsedPercent;
   final List<CategoryExpenseSummary> _categoryExpenses;
   @override
   List<CategoryExpenseSummary> get categoryExpenses {
@@ -984,8 +1057,21 @@ class _$DashboardDataImpl implements _DashboardData {
   }
 
   @override
+  @JsonKey()
+  final double projectedIncome;
+  @override
+  @JsonKey()
+  final double projectedExpenses;
+  @override
+  @JsonKey()
+  final String confidence;
+  @override
+  @JsonKey()
+  final bool isFromCache;
+
+  @override
   String toString() {
-    return 'DashboardData(totalBalance: $totalBalance, income: $income, expenses: $expenses, savings: $savings, healthScore: $healthScore, predictedMonthEnd: $predictedMonthEnd, categoryExpenses: $categoryExpenses, dailyBalance: $dailyBalance)';
+    return 'DashboardData(totalBalance: $totalBalance, income: $income, expenses: $expenses, savings: $savings, healthScore: $healthScore, predictedMonthEnd: $predictedMonthEnd, budgetUsedPercent: $budgetUsedPercent, categoryExpenses: $categoryExpenses, dailyBalance: $dailyBalance, projectedIncome: $projectedIncome, projectedExpenses: $projectedExpenses, confidence: $confidence, isFromCache: $isFromCache)';
   }
 
   @override
@@ -1003,6 +1089,8 @@ class _$DashboardDataImpl implements _DashboardData {
                 other.healthScore == healthScore) &&
             (identical(other.predictedMonthEnd, predictedMonthEnd) ||
                 other.predictedMonthEnd == predictedMonthEnd) &&
+            (identical(other.budgetUsedPercent, budgetUsedPercent) ||
+                other.budgetUsedPercent == budgetUsedPercent) &&
             const DeepCollectionEquality().equals(
               other._categoryExpenses,
               _categoryExpenses,
@@ -1010,7 +1098,15 @@ class _$DashboardDataImpl implements _DashboardData {
             const DeepCollectionEquality().equals(
               other._dailyBalance,
               _dailyBalance,
-            ));
+            ) &&
+            (identical(other.projectedIncome, projectedIncome) ||
+                other.projectedIncome == projectedIncome) &&
+            (identical(other.projectedExpenses, projectedExpenses) ||
+                other.projectedExpenses == projectedExpenses) &&
+            (identical(other.confidence, confidence) ||
+                other.confidence == confidence) &&
+            (identical(other.isFromCache, isFromCache) ||
+                other.isFromCache == isFromCache));
   }
 
   @override
@@ -1022,8 +1118,13 @@ class _$DashboardDataImpl implements _DashboardData {
     savings,
     healthScore,
     predictedMonthEnd,
+    budgetUsedPercent,
     const DeepCollectionEquality().hash(_categoryExpenses),
     const DeepCollectionEquality().hash(_dailyBalance),
+    projectedIncome,
+    projectedExpenses,
+    confidence,
+    isFromCache,
   );
 
   /// Create a copy of DashboardData
@@ -1043,8 +1144,13 @@ abstract class _DashboardData implements DashboardData {
     required final double savings,
     required final String healthScore,
     required final double predictedMonthEnd,
+    final double budgetUsedPercent,
     required final List<CategoryExpenseSummary> categoryExpenses,
     final List<DailyBalancePoint> dailyBalance,
+    final double projectedIncome,
+    final double projectedExpenses,
+    final String confidence,
+    final bool isFromCache,
   }) = _$DashboardDataImpl;
 
   @override
@@ -1060,9 +1166,19 @@ abstract class _DashboardData implements DashboardData {
   @override
   double get predictedMonthEnd;
   @override
+  double get budgetUsedPercent;
+  @override
   List<CategoryExpenseSummary> get categoryExpenses;
   @override
   List<DailyBalancePoint> get dailyBalance;
+  @override
+  double get projectedIncome;
+  @override
+  double get projectedExpenses;
+  @override
+  String get confidence;
+  @override
+  bool get isFromCache;
 
   /// Create a copy of DashboardData
   /// with the given fields replaced by the non-null parameter values.
@@ -1084,6 +1200,11 @@ mixin _$TransactionEntry {
   bool get isExpense => throw _privateConstructorUsedError;
   DateTime get date => throw _privateConstructorUsedError;
   String get categoryName => throw _privateConstructorUsedError;
+  String get type => throw _privateConstructorUsedError;
+  String get status => throw _privateConstructorUsedError;
+  String? get accountId => throw _privateConstructorUsedError;
+  String? get categoryId => throw _privateConstructorUsedError;
+  String? get notes => throw _privateConstructorUsedError;
 
   /// Serializes this TransactionEntry to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -1109,6 +1230,11 @@ abstract class $TransactionEntryCopyWith<$Res> {
     bool isExpense,
     DateTime date,
     String categoryName,
+    String type,
+    String status,
+    String? accountId,
+    String? categoryId,
+    String? notes,
   });
 }
 
@@ -1133,6 +1259,11 @@ class _$TransactionEntryCopyWithImpl<$Res, $Val extends TransactionEntry>
     Object? isExpense = null,
     Object? date = null,
     Object? categoryName = null,
+    Object? type = null,
+    Object? status = null,
+    Object? accountId = freezed,
+    Object? categoryId = freezed,
+    Object? notes = freezed,
   }) {
     return _then(
       _value.copyWith(
@@ -1160,6 +1291,26 @@ class _$TransactionEntryCopyWithImpl<$Res, $Val extends TransactionEntry>
                 ? _value.categoryName
                 : categoryName // ignore: cast_nullable_to_non_nullable
                       as String,
+            type: null == type
+                ? _value.type
+                : type // ignore: cast_nullable_to_non_nullable
+                      as String,
+            status: null == status
+                ? _value.status
+                : status // ignore: cast_nullable_to_non_nullable
+                      as String,
+            accountId: freezed == accountId
+                ? _value.accountId
+                : accountId // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            categoryId: freezed == categoryId
+                ? _value.categoryId
+                : categoryId // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            notes: freezed == notes
+                ? _value.notes
+                : notes // ignore: cast_nullable_to_non_nullable
+                      as String?,
           )
           as $Val,
     );
@@ -1182,6 +1333,11 @@ abstract class _$$TransactionEntryImplCopyWith<$Res>
     bool isExpense,
     DateTime date,
     String categoryName,
+    String type,
+    String status,
+    String? accountId,
+    String? categoryId,
+    String? notes,
   });
 }
 
@@ -1205,6 +1361,11 @@ class __$$TransactionEntryImplCopyWithImpl<$Res>
     Object? isExpense = null,
     Object? date = null,
     Object? categoryName = null,
+    Object? type = null,
+    Object? status = null,
+    Object? accountId = freezed,
+    Object? categoryId = freezed,
+    Object? notes = freezed,
   }) {
     return _then(
       _$TransactionEntryImpl(
@@ -1232,6 +1393,26 @@ class __$$TransactionEntryImplCopyWithImpl<$Res>
             ? _value.categoryName
             : categoryName // ignore: cast_nullable_to_non_nullable
                   as String,
+        type: null == type
+            ? _value.type
+            : type // ignore: cast_nullable_to_non_nullable
+                  as String,
+        status: null == status
+            ? _value.status
+            : status // ignore: cast_nullable_to_non_nullable
+                  as String,
+        accountId: freezed == accountId
+            ? _value.accountId
+            : accountId // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        categoryId: freezed == categoryId
+            ? _value.categoryId
+            : categoryId // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        notes: freezed == notes
+            ? _value.notes
+            : notes // ignore: cast_nullable_to_non_nullable
+                  as String?,
       ),
     );
   }
@@ -1247,6 +1428,11 @@ class _$TransactionEntryImpl implements _TransactionEntry {
     required this.isExpense,
     required this.date,
     required this.categoryName,
+    this.type = 'expense',
+    this.status = 'posted',
+    this.accountId,
+    this.categoryId,
+    this.notes,
   });
 
   factory _$TransactionEntryImpl.fromJson(Map<String, dynamic> json) =>
@@ -1264,10 +1450,22 @@ class _$TransactionEntryImpl implements _TransactionEntry {
   final DateTime date;
   @override
   final String categoryName;
+  @override
+  @JsonKey()
+  final String type;
+  @override
+  @JsonKey()
+  final String status;
+  @override
+  final String? accountId;
+  @override
+  final String? categoryId;
+  @override
+  final String? notes;
 
   @override
   String toString() {
-    return 'TransactionEntry(id: $id, title: $title, amount: $amount, isExpense: $isExpense, date: $date, categoryName: $categoryName)';
+    return 'TransactionEntry(id: $id, title: $title, amount: $amount, isExpense: $isExpense, date: $date, categoryName: $categoryName, type: $type, status: $status, accountId: $accountId, categoryId: $categoryId, notes: $notes)';
   }
 
   @override
@@ -1282,7 +1480,14 @@ class _$TransactionEntryImpl implements _TransactionEntry {
                 other.isExpense == isExpense) &&
             (identical(other.date, date) || other.date == date) &&
             (identical(other.categoryName, categoryName) ||
-                other.categoryName == categoryName));
+                other.categoryName == categoryName) &&
+            (identical(other.type, type) || other.type == type) &&
+            (identical(other.status, status) || other.status == status) &&
+            (identical(other.accountId, accountId) ||
+                other.accountId == accountId) &&
+            (identical(other.categoryId, categoryId) ||
+                other.categoryId == categoryId) &&
+            (identical(other.notes, notes) || other.notes == notes));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1295,6 +1500,11 @@ class _$TransactionEntryImpl implements _TransactionEntry {
     isExpense,
     date,
     categoryName,
+    type,
+    status,
+    accountId,
+    categoryId,
+    notes,
   );
 
   /// Create a copy of TransactionEntry
@@ -1322,6 +1532,11 @@ abstract class _TransactionEntry implements TransactionEntry {
     required final bool isExpense,
     required final DateTime date,
     required final String categoryName,
+    final String type,
+    final String status,
+    final String? accountId,
+    final String? categoryId,
+    final String? notes,
   }) = _$TransactionEntryImpl;
 
   factory _TransactionEntry.fromJson(Map<String, dynamic> json) =
@@ -1339,6 +1554,16 @@ abstract class _TransactionEntry implements TransactionEntry {
   DateTime get date;
   @override
   String get categoryName;
+  @override
+  String get type;
+  @override
+  String get status;
+  @override
+  String? get accountId;
+  @override
+  String? get categoryId;
+  @override
+  String? get notes;
 
   /// Create a copy of TransactionEntry
   /// with the given fields replaced by the non-null parameter values.
@@ -2188,7 +2413,7 @@ mixin _$AlertItem {
   String get title => throw _privateConstructorUsedError;
   String get message => throw _privateConstructorUsedError;
   DateTime get createdAt => throw _privateConstructorUsedError;
-  bool? get readAt => throw _privateConstructorUsedError;
+  DateTime? get readAt => throw _privateConstructorUsedError;
 
   /// Serializes this AlertItem to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -2212,7 +2437,7 @@ abstract class $AlertItemCopyWith<$Res> {
     String title,
     String message,
     DateTime createdAt,
-    bool? readAt,
+    DateTime? readAt,
   });
 }
 
@@ -2268,7 +2493,7 @@ class _$AlertItemCopyWithImpl<$Res, $Val extends AlertItem>
             readAt: freezed == readAt
                 ? _value.readAt
                 : readAt // ignore: cast_nullable_to_non_nullable
-                      as bool?,
+                      as DateTime?,
           )
           as $Val,
     );
@@ -2291,7 +2516,7 @@ abstract class _$$AlertItemImplCopyWith<$Res>
     String title,
     String message,
     DateTime createdAt,
-    bool? readAt,
+    DateTime? readAt,
   });
 }
 
@@ -2346,7 +2571,7 @@ class __$$AlertItemImplCopyWithImpl<$Res>
         readAt: freezed == readAt
             ? _value.readAt
             : readAt // ignore: cast_nullable_to_non_nullable
-                  as bool?,
+                  as DateTime?,
       ),
     );
   }
@@ -2381,7 +2606,7 @@ class _$AlertItemImpl implements _AlertItem {
   @override
   final DateTime createdAt;
   @override
-  final bool? readAt;
+  final DateTime? readAt;
 
   @override
   String toString() {
@@ -2439,7 +2664,7 @@ abstract class _AlertItem implements AlertItem {
     required final String title,
     required final String message,
     required final DateTime createdAt,
-    final bool? readAt,
+    final DateTime? readAt,
   }) = _$AlertItemImpl;
 
   factory _AlertItem.fromJson(Map<String, dynamic> json) =
@@ -2458,7 +2683,7 @@ abstract class _AlertItem implements AlertItem {
   @override
   DateTime get createdAt;
   @override
-  bool? get readAt;
+  DateTime? get readAt;
 
   /// Create a copy of AlertItem
   /// with the given fields replaced by the non-null parameter values.

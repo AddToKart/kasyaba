@@ -2,18 +2,9 @@ import 'package:flutter/material.dart';
 import '../../app/theme/app_theme.dart';
 
 /// ─────────────────────────────────────────────────────────────
-///  ModernCard — Luxury glass-morphism card
+///  ModernCard — Ultra Luxury Glass & Metallic Card Widget
 /// ─────────────────────────────────────────────────────────────
-enum CardStyle {
-  /// Default glass card with subtle border
-  glass,
-  /// Vibrant filled gradient card
-  gradient,
-  /// Elevated card with deeper shadow
-  elevated,
-  /// Flat ultra-minimalist card
-  flat,
-}
+enum CardStyle { glass, gradient, elevated, flat }
 
 class ModernCard extends StatelessWidget {
   final Widget child;
@@ -41,23 +32,15 @@ class ModernCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    final effectiveBg = backgroundColor ??
-        (isDark ? AppColors.surfaceCard : AppColors.lightCard);
-
-    final effectiveBorder = borderColor ??
-        (isDark
-            ? AppColors.surface600.withValues(alpha: 0.55)
-            : AppColors.lightBorder.withValues(alpha: 0.85));
-
-    final shadow = customShadow ?? _buildShadow(isDark);
+    final effectiveBg = backgroundColor ?? AppColors.surfaceCard;
+    final effectiveBorder = borderColor ?? AppColors.subtleBorder;
+    final shadow = customShadow ?? _buildShadow();
 
     final radius = BorderRadius.circular(borderRadius);
 
-    Widget innerChild =
-        padding != null ? Padding(padding: padding!, child: child) : child;
+    Widget innerChild = padding != null
+        ? Padding(padding: padding!, child: child)
+        : child;
 
     final decoration = BoxDecoration(
       borderRadius: radius,
@@ -74,8 +57,8 @@ class ModernCard extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: radius,
-          splashColor: theme.colorScheme.primary.withValues(alpha: 0.08),
-          highlightColor: theme.colorScheme.primary.withValues(alpha: 0.04),
+          splashColor: AppColors.emerald500.withValues(alpha: 0.12),
+          highlightColor: AppColors.emerald500.withValues(alpha: 0.05),
           child: Ink(
             decoration: decoration,
             child: ClipRRect(borderRadius: radius, child: innerChild),
@@ -90,59 +73,27 @@ class ModernCard extends StatelessWidget {
     );
   }
 
-  List<BoxShadow> _buildShadow(bool isDark) {
+  List<BoxShadow> _buildShadow() {
     switch (style) {
       case CardStyle.elevated:
-        return isDark
-            ? [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.5),
-                  blurRadius: 24,
-                  offset: const Offset(0, 8),
-                ),
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.2),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
-                ),
-              ]
-            : [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.08),
-                  blurRadius: 24,
-                  offset: const Offset(0, 8),
-                ),
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
-                ),
-              ];
+        return [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.5),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+          ),
+        ];
       case CardStyle.flat:
         return [];
       case CardStyle.gradient:
       case CardStyle.glass:
-        return isDark
-            ? [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.35),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
-                ),
-              ]
-            : [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.06),
-                  blurRadius: 20,
-                  offset: const Offset(0, 6),
-                  spreadRadius: 0,
-                ),
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03),
-                  blurRadius: 4,
-                  offset: const Offset(0, 1),
-                ),
-              ];
+        return [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.35),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ];
     }
   }
 }

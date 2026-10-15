@@ -1,10 +1,23 @@
 import Decimal from 'decimal.js';
 
 type DecimalValue = Decimal | string | number;
+type DecimalLike = { toString(): string };
+type NullableDecimalValue = DecimalValue | DecimalLike | null | undefined;
 
 export function toDecimal(value: DecimalValue): Decimal {
   if (value instanceof Decimal) return value;
   return new Decimal(value);
+}
+
+/**
+ * Safely converts any database decimal value (including Prisma's Decimal or
+ * null) without routing it through a JavaScript number first.
+ */
+export function toDecimalOrZero(value: NullableDecimalValue): Decimal {
+  if (value === null || value === undefined) return new Decimal(0);
+  if (value instanceof Decimal) return value;
+  if (typeof value === 'number') return new Decimal(value);
+  return new Decimal(value.toString());
 }
 
 export function toString(value: DecimalValue): string {

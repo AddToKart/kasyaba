@@ -1,6 +1,7 @@
 import { prisma } from '../../config/database';
-import { NotFoundError } from '../../lib/errors';
+import { ConflictError, NotFoundError } from '../../lib/errors';
 import { addMonths, safeDate } from '../../lib/dates';
+import { endOfZonedDay, getZonedParts } from '../../lib/zoned-dates';
 import type { CreateBillTemplateInput, UpdateBillTemplateInput } from './validation';
 
 export async function listBillTemplates(userId: string) {
@@ -10,7 +11,26 @@ export async function listBillTemplates(userId: string) {
   });
 }
 
+async function findAccessibleCategory(userId: string, categoryId?: string | null) {
+  if (categoryId) {
+    const category = await prisma.expenseCategory.findFirst({
+      where: { id: categoryId, isArchived: false, OR: [{ userId }, { userId: null }] },
+      select: { id: true },
+    });
+    if (!category) throw new NotFoundError('Category not found');
+    return category.id;
+  }
+
+  const fallback = await prisma.expenseCategory.findFirst({
+    where: { userId: null, name: 'Other', isArchived: false },
+    select: { id: true },
+  });
+  if (!fallback) throw new NotFoundError('Default expense category not found');
+  return fallback.id;
+}
+
 export async function createBillTemplate(userId: string, input: CreateBillTemplateInput) {
+  if (input.categoryId) await findAccessibleCategory(userId, input.categoryId);
   return prisma.billTemplate.create({
     data: {
       userId,
@@ -31,6 +51,9 @@ export async function createBillTemplate(userId: string, input: CreateBillTempla
 export async function updateBillTemplate(userId: string, id: string, input: UpdateBillTemplateInput) {
   const existing = await prisma.billTemplate.findFirst({ where: { id, userId } });
   if (!existing) throw new NotFoundError('Bill template not found');
+  if (input.categoryId !== undefined) {
+    await findAccessibleCategory(userId, input.categoryId);
+  }
 
   const data: any = { ...input };
   if (input.startsOn) data.startsOn = new Date(input.startsOn);
@@ -51,6 +74,8 @@ export async function archiveBillTemplate(userId: string, id: string) {
 }
 
 export async function listBills(userId: string, query: Record<string, any>) {
+  const page = Number(query.page) || 1;
+  const limit = Math.min(Number(query.limit) || 200, 500);
   const where: any = { userId };
 
   if (query.status) where.status = query.status;
@@ -60,105 +85,173 @@ export async function listBills(userId: string, query: Record<string, any>) {
     if (query.to) where.dueDate.lte = new Date(query.to + 'T23:59:59.999Z');
   }
 
-  return prisma.billInstance.findMany({
-    where,
-    orderBy: { dueDate: 'asc' },
-  });
+  // Bounded response: paid/overdue instances accumulate over the years.
+  const [total, rows] = await Promise.all([
+    prisma.billInstance.count({ where }),
+    prisma.billInstance.findMany({
+      where,
+      orderBy: { dueDate: 'asc' },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+  ]);
+
+  return { rows, page, limit, total };
 }
 
 export async function markBillPaid(userId: string, billId: string, accountId: string) {
-  const bill = await prisma.billInstance.findFirst({ where: { id: billId, userId } });
-  if (!bill) throw new NotFoundError('Bill not found');
-  if (bill.status === 'paid') throw new NotFoundError('Bill is already paid');
-
-  const account = await prisma.financialAccount.findFirst({
-    where: { id: accountId, userId, isArchived: false },
-  });
-  if (!account) throw new NotFoundError('Account not found');
-
   return prisma.$transaction(async (tx) => {
-    const updateData: any = {
-      status: 'paid',
-      paidAt: new Date(),
-    };
+    const account = await tx.financialAccount.findFirst({
+      where: { id: accountId, userId, isArchived: false },
+      select: { id: true },
+    });
+    if (!account) throw new NotFoundError('Account not found');
 
+    const bill = await tx.billInstance.findFirst({ where: { id: billId, userId } });
+    if (!bill) throw new NotFoundError('Bill not found');
+    if (bill.status === 'paid') throw new ConflictError('Bill is already paid');
+    if (bill.status === 'cancelled') throw new ConflictError('Cancelled bills cannot be paid');
+
+    // The conditional update makes concurrent payment requests mutually
+    // exclusive. A second request waits for the first transaction and then
+    // observes that the bill is already paid.
+    const claimed = await tx.billInstance.updateMany({
+      where: { id: billId, userId, status: { notIn: ['paid', 'cancelled'] } },
+      data: { status: 'paid', paidAt: new Date() },
+    });
+    if (claimed.count !== 1) throw new ConflictError('Bill is already paid');
+
+    let categoryId: string | null = null;
     if (bill.templateId) {
-      const template = await tx.billTemplate.findUnique({ where: { id: bill.templateId } });
-      if (template && template.categoryId) {
-        const expense = await tx.expenseEntry.create({
-          data: {
-            userId,
-            accountId: account.id,
-            categoryId: template.categoryId,
-            amount: bill.amount,
-            description: `${bill.name} (paid bill)`,
-            spentAt: new Date(),
-          },
-        });
-        updateData.expenseEntryId = expense.id;
-      }
+      const template = await tx.billTemplate.findFirst({
+        where: { id: bill.templateId, userId },
+        select: { categoryId: true },
+      });
+      categoryId = template?.categoryId ?? null;
     }
+
+    if (categoryId) {
+      const category = await tx.expenseCategory.findFirst({
+        where: { id: categoryId, isArchived: false, OR: [{ userId }, { userId: null }] },
+        select: { id: true },
+      });
+      categoryId = category?.id ?? null;
+    }
+    categoryId ??= (await tx.expenseCategory.findFirst({
+      where: { userId: null, name: 'Other', isArchived: false },
+      select: { id: true },
+    }))?.id ?? null;
+    if (!categoryId) throw new NotFoundError('Default expense category not found');
+
+    const expense = await tx.expenseEntry.create({
+      data: {
+        userId,
+        accountId: account.id,
+        categoryId,
+        amount: bill.amount,
+        description: `${bill.name} (paid bill)`,
+        spentAt: new Date(),
+      },
+    });
 
     return tx.billInstance.update({
       where: { id: billId },
-      data: updateData,
+      data: { expenseEntryId: expense.id },
     });
   });
 }
 
 export async function markBillUnpaid(userId: string, billId: string) {
-  const bill = await prisma.billInstance.findFirst({ where: { id: billId, userId } });
-  if (!bill) throw new NotFoundError('Bill not found');
-
-  // If there was an expense created, delete it
-  if (bill.expenseEntryId) {
-    const expense = await prisma.expenseEntry.findUnique({ where: { id: bill.expenseEntryId } });
-    if (expense && expense.userId === userId) {
-      await prisma.expenseEntry.delete({ where: { id: bill.expenseEntryId } });
+  return prisma.$transaction(async (tx) => {
+    const bill = await tx.billInstance.findFirst({ where: { id: billId, userId } });
+    if (!bill) throw new NotFoundError('Bill not found');
+    if (bill.status !== 'paid') {
+      throw new ConflictError('Only paid bills can be marked unpaid');
     }
-  }
 
-  return prisma.billInstance.update({
-    where: { id: billId },
-    data: {
-      status: 'upcoming',
-      paidAt: null,
-      expenseEntryId: null,
-    },
+    // Conditional claim keeps concurrent unpaid requests mutually exclusive.
+    const claimed = await tx.billInstance.updateMany({
+      where: { id: billId, userId, status: 'paid' },
+      data: { status: 'upcoming', paidAt: null, expenseEntryId: null },
+    });
+    if (claimed.count !== 1) {
+      throw new ConflictError('Bill state changed. Refresh and try again.');
+    }
+
+    if (bill.expenseEntryId) {
+      await tx.expenseEntry.deleteMany({
+        where: { id: bill.expenseEntryId, userId },
+      });
+    }
+
+    return tx.billInstance.findUnique({ where: { id: billId } });
   });
 }
 
 export async function cancelBill(userId: string, billId: string) {
-  const bill = await prisma.billInstance.findFirst({ where: { id: billId, userId } });
-  if (!bill) throw new NotFoundError('Bill not found');
-  return prisma.billInstance.update({
-    where: { id: billId },
+  // A bill that has already been paid must be marked unpaid first: otherwise
+  // the linked expense would remain counted while the bill shows cancelled.
+  const claimed = await prisma.billInstance.updateMany({
+    where: { id: billId, userId, status: { notIn: ['paid', 'cancelled'] } },
     data: { status: 'cancelled' },
   });
+  if (claimed.count === 0) {
+    const bill = await prisma.billInstance.findFirst({
+      where: { id: billId, userId },
+    });
+    if (!bill) throw new NotFoundError('Bill not found');
+    if (bill.status === 'paid') {
+      throw new ConflictError('Paid bills cannot be cancelled. Mark the bill unpaid first.');
+    }
+    throw new ConflictError('Bill is already cancelled');
+  }
+  return prisma.billInstance.findUnique({ where: { id: billId } });
 }
 
 export async function generateBillInstances(userId: string, monthsAhead = 2) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { timezone: true },
+  });
+  const timeZone = user?.timezone ?? 'UTC';
+
   const templates = await prisma.billTemplate.findMany({
-    where: { userId, isActive: true, recurrence: { not: 'none' } },
+    where: { userId, isActive: true },
   });
 
   const now = new Date();
   const endDate = addMonths(now, monthsAhead);
   const created: number[] = [];
 
+  const nowParts = getZonedParts(now, timeZone);
+  const localDayOfWeek = new Date(Date.UTC(nowParts.year, nowParts.month - 1, nowParts.day)).getUTCDay();
+
   for (const template of templates) {
     let currentDate = new Date(template.startsOn);
     if (currentDate < now) {
       // Move to next occurrence
       if (template.recurrence === 'monthly' && template.dayOfMonth) {
-        currentDate = safeDate(now.getFullYear(), now.getMonth(), template.dayOfMonth);
+        currentDate = safeDate(nowParts.year, nowParts.month - 1, template.dayOfMonth);
+        currentDate.setHours(
+          template.startsOn.getHours(),
+          template.startsOn.getMinutes(),
+          template.startsOn.getSeconds(),
+          template.startsOn.getMilliseconds(),
+        );
         if (currentDate < now) {
           currentDate = addMonths(currentDate, 1);
         }
       } else if (template.recurrence === 'weekly' && template.dayOfWeek !== null) {
-        // Find next day of week
-        const dayDiff = (template.dayOfWeek - currentDate.getDay() + 7) % 7;
-        currentDate = new Date(now.getTime() + dayDiff * 86400000);
+        // Find next day of week relative to the user's local day
+        const dayDiff = (template.dayOfWeek - localDayOfWeek + 7) % 7;
+        const localToday = safeDate(nowParts.year, nowParts.month - 1, nowParts.day);
+        currentDate = new Date(localToday.getTime() + dayDiff * 86400000);
+        currentDate.setHours(
+          template.startsOn.getHours(),
+          template.startsOn.getMinutes(),
+          template.startsOn.getSeconds(),
+          template.startsOn.getMilliseconds(),
+        );
         if (currentDate < now) {
           currentDate = new Date(currentDate.getTime() + 7 * 86400000);
         }
@@ -168,26 +261,34 @@ export async function generateBillInstances(userId: string, monthsAhead = 2) {
     while (currentDate <= endDate) {
       if (template.endsOn && currentDate > template.endsOn) break;
 
-      // Check if instance already exists
-      const existing = await prisma.billInstance.findFirst({
+      const existing = await prisma.billInstance.findUnique({
         where: {
-          templateId: template.id,
-          dueDate: currentDate,
-        },
-      });
-
-      if (!existing) {
-        await prisma.billInstance.create({
-          data: {
-            userId,
+          templateId_dueDate: {
             templateId: template.id,
-            name: template.name,
-            amount: template.defaultAmount,
             dueDate: currentDate,
           },
-        });
-        created.push(1);
-      }
+        },
+        select: { id: true },
+      });
+
+      await prisma.billInstance.upsert({
+        where: {
+          templateId_dueDate: {
+            templateId: template.id,
+            dueDate: currentDate,
+          },
+        },
+        create: {
+          userId,
+          templateId: template.id,
+          name: template.name,
+          amount: template.defaultAmount,
+          dueDate: currentDate,
+        },
+        update: {},
+      });
+
+      if (!existing) created.push(1);
 
       // Advance date
       if (template.recurrence === 'monthly') {
@@ -204,12 +305,33 @@ export async function generateBillInstances(userId: string, monthsAhead = 2) {
 }
 
 export async function updateOverdueBills(userId: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { timezone: true },
+  });
+  const timeZone = user?.timezone ?? 'UTC';
   const now = new Date();
-  const result = await prisma.billInstance.updateMany({
+
+  // A bill is only overdue once its entire local due date has elapsed in the user's timezone.
+  const candidates = await prisma.billInstance.findMany({
     where: {
       userId,
       status: 'upcoming',
-      dueDate: { lt: now },
+      dueDate: { lte: now },
+    },
+    select: { id: true, dueDate: true },
+  });
+
+  const overdueIds = candidates
+    .filter((bill) => endOfZonedDay(bill.dueDate, timeZone) < now)
+    .map((bill) => bill.id);
+
+  if (overdueIds.length === 0) return 0;
+
+  const result = await prisma.billInstance.updateMany({
+    where: {
+      id: { in: overdueIds },
+      status: 'upcoming',
     },
     data: { status: 'overdue' },
   });

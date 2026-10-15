@@ -1,6 +1,8 @@
 import Decimal from 'decimal.js';
 import { prisma } from '../../config/database';
+import { toDecimalOrZero } from '../../lib/decimal';
 import { computeSnapshot } from './service';
+import { calculateDailySurplus } from './surplus';
 
 export interface PurchaseCheckInput {
   itemTitle: string;
@@ -32,57 +34,37 @@ export interface PurchaseCheckResult {
   }[];
 }
 
-export async function evaluatePurchaseAffordability(
-  userId: string,
-  input: PurchaseCheckInput
-): Promise<PurchaseCheckResult> {
+export interface CalculatePurchaseAffordabilityInput {
+  itemTitle: string;
+  amount: number | string | Decimal;
+  currentBalance: number | string | Decimal;
+  projectedMonthEndBalance: number | string | Decimal;
+  minimumThreshold: number | string | Decimal;
+  totalUpcomingBills: number | string | Decimal;
+  dailySurplus: number | string | Decimal;
+  activeGoals?: Array<{ name: string; targetDate: Date | null }>;
+  now?: Date;
+}
+
+export function calculatePurchaseAffordability(
+  input: CalculatePurchaseAffordabilityInput
+): PurchaseCheckResult {
   const purchaseAmount = new Decimal(input.amount);
-  const now = new Date();
+  const now = input.now ?? new Date();
 
-  // 1. Baseline forecast snapshot & user settings
-  const [snapshot, user, activeBills, activeGoals] = await Promise.all([
-    computeSnapshot(userId),
-    prisma.user.findUnique({
-      where: { id: userId },
-      select: { minimumBalanceThreshold: true, salaryAmount: true },
-    }),
-    prisma.billInstance.findMany({
-      where: {
-        userId,
-        status: 'upcoming',
-        dueDate: { gte: now, lte: new Date(now.getTime() + 30 * 86400000) },
-      },
-      select: { amount: true },
-    }),
-    prisma.savingsGoal.findMany({
-      where: { userId, status: 'active' },
-      include: { contributions: { select: { amount: true } } },
-    }),
-  ]);
+  const currentBalance = new Decimal(input.currentBalance);
+  const projectedMonthEnd = new Decimal(input.projectedMonthEndBalance);
+  const minThreshold = toDecimalOrZero(input.minimumThreshold);
+  const totalUpcomingBills = toDecimalOrZero(input.totalUpcomingBills);
+  const dailySurplus = toDecimalOrZero(input.dailySurplus);
+  const activeGoals = input.activeGoals ?? [];
 
-  const currentBalance = new Decimal(snapshot.actualBalance);
-  const projectedMonthEnd = new Decimal(snapshot.predictedMonthEndBalance);
-  const minThreshold = new Decimal(user?.minimumBalanceThreshold ? Number(user.minimumBalanceThreshold) : 0);
-
-  // 2. Upcoming bills total
-  const totalUpcomingBills = activeBills.reduce(
-    (sum, b) => sum.plus(new Decimal(Number(b.amount))),
-    new Decimal(0)
-  );
-
-  // 3. Post-purchase simulations
+  // Post-purchase simulations
   const postPurchaseBalance = currentBalance.minus(purchaseAmount);
   const postPurchaseMonthEnd = projectedMonthEnd.minus(purchaseAmount);
   const cashAfterBills = postPurchaseBalance.minus(totalUpcomingBills);
 
-  // 4. Daily net surplus calculation
-  const userSalary = user?.salaryAmount ? new Decimal(Number(user.salaryAmount)) : new Decimal(0);
-  const mtdExpenses = new Decimal(snapshot.expensesMonthToDate);
-  const monthlyCashflow = userSalary.gt(0) ? userSalary.minus(mtdExpenses) : currentBalance;
-  const rawSurplus = monthlyCashflow.gt(0) ? monthlyCashflow.div(30) : new Decimal(150);
-  const dailySurplus = Decimal.max(new Decimal(50), rawSurplus);
-
-  // 5. Verdict Matrix Logic
+  // Verdict Matrix Logic
   let verdict: 'AFFORDABLE' | 'RISKY' | 'NOT_RECOMMENDED';
   let statusTitle: string;
   let statusMessage: string;
@@ -90,31 +72,31 @@ export async function evaluatePurchaseAffordability(
   const reasons: string[] = [];
 
   const isNegative = postPurchaseBalance.lt(0);
-  const cannotCoverBills = cashAfterBills.lt(minThreshold);
-  const belowThreshold = postPurchaseBalance.lt(minThreshold) || postPurchaseMonthEnd.lt(minThreshold);
+  const cannotCoverBills = cashAfterBills.lt(0);
+  const belowThreshold = cashAfterBills.lt(minThreshold) || postPurchaseBalance.lt(minThreshold) || postPurchaseMonthEnd.lt(minThreshold);
 
   if (isNegative) {
     verdict = 'NOT_RECOMMENDED';
-    statusTitle = '❌ Insufficient Funds';
+    statusTitle = 'Insufficient Funds';
     statusMessage = 'This purchase would turn your balance negative immediately.';
     reasons.push(`Immediate balance deficit of ₱${postPurchaseBalance.abs().toFixed(2)}.`);
   } else if (cannotCoverBills) {
     verdict = 'NOT_RECOMMENDED';
-    statusTitle = '❌ Unable to Cover Upcoming Bills';
+    statusTitle = 'Unable to Cover Upcoming Bills';
     statusMessage = 'Buying this will leave you short for your upcoming bills over the next 30 days.';
     reasons.push(
       `Required for upcoming bills: ₱${totalUpcomingBills.toFixed(2)}. Remaining liquid cash would be only ₱${postPurchaseBalance.toFixed(2)}.`
     );
   } else if (belowThreshold) {
     verdict = 'RISKY';
-    statusTitle = '⚠️ High Risk Purchase';
+    statusTitle = 'High Risk Purchase';
     statusMessage = 'You can technically buy this, but it will drop your balance below your safety threshold.';
     reasons.push(
       `Your balance drops to ₱${postPurchaseBalance.toFixed(2)}, below your ₱${minThreshold.toFixed(2)} safety threshold.`
     );
   } else {
     verdict = 'AFFORDABLE';
-    statusTitle = '✅ Safely Affordable';
+    statusTitle = 'Safely Affordable';
     statusMessage = 'You can safely afford this purchase without compromising your bills or safety buffer!';
     reasons.push(
       `You will retain ₱${cashAfterBills.toFixed(2)} in free cash flow after all upcoming bills are covered.`
@@ -125,25 +107,29 @@ export async function evaluatePurchaseAffordability(
     `Projected month-end balance adjusts from ₱${projectedMonthEnd.toFixed(2)} to ₱${postPurchaseMonthEnd.toFixed(2)}.`
   );
 
-  // 6. Earliest Safe Buy Date ($T_{safe}$)
+  // Earliest Safe Buy Date
   let earliestSafeBuyDate: string | null = null;
   let daysUntilSafeBuy: number | null = null;
 
   if (verdict !== 'AFFORDABLE') {
     const targetRequiredCash = purchaseAmount.plus(totalUpcomingBills).plus(minThreshold);
     const deficit = targetRequiredCash.minus(currentBalance);
-    if (deficit.gt(0)) {
+    if (deficit.gt(0) && dailySurplus.gt(0)) {
       daysUntilSafeBuy = Math.ceil(deficit.div(dailySurplus).toNumber());
       const safeDate = new Date(now.getTime() + daysUntilSafeBuy * 86400000);
       earliestSafeBuyDate = safeDate.toISOString().split('T')[0];
       reasons.push(
         `At your net daily saving rate of ₱${dailySurplus.toFixed(2)}/day, you can safely buy this on ${earliestSafeBuyDate} (${daysUntilSafeBuy} days).`
       );
+    } else if (deficit.gt(0)) {
+      reasons.push('A safe purchase date cannot be estimated until you have a positive savings rate.');
     }
   }
 
-  // 7. Goal Delay Impact ($\Delta T_{goal}$)
-  const delayDays = Math.ceil(purchaseAmount.div(dailySurplus).toNumber());
+  // Goal Delay Impact
+  const delayDays = dailySurplus.gt(0)
+    ? Math.ceil(purchaseAmount.div(dailySurplus).toNumber())
+    : 0;
   const goalImpacts = activeGoals.map((g) => {
     const origDate = g.targetDate ? g.targetDate.toISOString().split('T')[0] : null;
     let delayedTargetDate: string | null = null;
@@ -182,4 +168,57 @@ export async function evaluatePurchaseAffordability(
     reasons,
     goalImpacts,
   };
+}
+
+export async function evaluatePurchaseAffordability(
+  userId: string,
+  input: PurchaseCheckInput
+): Promise<PurchaseCheckResult> {
+  const purchaseAmount = new Decimal(input.amount);
+  const now = new Date();
+
+  // 1. Baseline forecast snapshot & user settings
+  const [snapshot, user, activeBills, activeGoals] = await Promise.all([
+    computeSnapshot(userId),
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { minimumBalanceThreshold: true, salaryAmount: true },
+    }),
+    prisma.billInstance.findMany({
+      where: {
+        userId,
+        status: { in: ['upcoming', 'overdue'] },
+        dueDate: { lte: new Date(now.getTime() + 30 * 86400000) },
+      },
+      select: { amount: true },
+    }),
+    prisma.savingsGoal.findMany({
+      where: { userId, status: 'active' },
+      select: { name: true, targetDate: true },
+    }),
+  ]);
+
+  const totalUpcomingBills = activeBills.reduce(
+    (sum, b) => sum.plus(toDecimalOrZero(b.amount)),
+    new Decimal(0)
+  );
+
+  const dailySurplus = await calculateDailySurplus(userId, {
+    salaryAmount: user?.salaryAmount,
+    projectedMonthEndExpenses: snapshot.projectedMonthEndExpenses,
+    expensesMTD: snapshot.expensesMonthToDate,
+    incomeMTD: snapshot.incomeMonthToDate,
+  });
+
+  return calculatePurchaseAffordability({
+    itemTitle: input.itemTitle,
+    amount: purchaseAmount,
+    currentBalance: snapshot.actualBalance,
+    projectedMonthEndBalance: snapshot.predictedMonthEndBalance,
+    minimumThreshold: user?.minimumBalanceThreshold ?? '0',
+    totalUpcomingBills,
+    dailySurplus,
+    activeGoals,
+    now,
+  });
 }

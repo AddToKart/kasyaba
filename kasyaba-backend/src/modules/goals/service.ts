@@ -1,28 +1,10 @@
+import Decimal from 'decimal.js';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/database';
+import { toDecimalOrZero } from '../../lib/decimal';
 import { NotFoundError } from '../../lib/errors';
+import { calculateDailySurplus } from '../forecasting/surplus';
 import type { CreateGoalInput, UpdateGoalInput, CreateContributionInput } from './validation';
-
-async function getUserDailySurplus(userId: string): Promise<number> {
-  const now = new Date();
-  const thirtyDaysAgo = new Date(now.getTime() - 30 * 86400000);
-
-  const [incomeAgg, expenseAgg] = await Promise.all([
-    prisma.incomeEntry.aggregate({
-      where: { userId, receivedAt: { gte: thirtyDaysAgo } },
-      _sum: { amount: true },
-    }),
-    prisma.expenseEntry.aggregate({
-      where: { userId, spentAt: { gte: thirtyDaysAgo } },
-      _sum: { amount: true },
-    }),
-  ]);
-
-  const totalIncome = Number(incomeAgg._sum.amount) || 0;
-  const totalExpenses = Number(expenseAgg._sum.amount) || 0;
-  const net30 = totalIncome - totalExpenses;
-  const dailySurplus = net30 > 0 ? net30 / 30 : 150;
-  return Math.max(50, dailySurplus);
-}
 
 export async function listGoals(userId: string) {
   const [goals, dailySurplus] = await Promise.all([
@@ -30,49 +12,59 @@ export async function listGoals(userId: string) {
       where: { userId },
       include: {
         contributions: {
+          where: { userId },
           select: { amount: true },
         },
       },
       orderBy: { createdAt: 'desc' },
     }),
-    getUserDailySurplus(userId),
+    calculateDailySurplus(userId),
   ]);
 
   const now = new Date();
 
   return goals.map((goal) => {
-    const currentAmount = goal.contributions.reduce((s, c) => s + Number(c.amount), 0);
-    const targetAmount = Number(goal.targetAmount);
-    const remaining = Math.max(0, targetAmount - currentAmount);
+    const currentAmount = goal.contributions.reduce(
+      (sum, c) => sum.plus(toDecimalOrZero(c.amount)),
+      new Decimal(0),
+    );
+    const targetAmount = toDecimalOrZero(goal.targetAmount);
+    const remaining = Decimal.max(0, targetAmount.minus(currentAmount));
 
     let canAffordByTargetDate: boolean | null = null;
     let earliestAffordableDate: string | null = null;
     let monthlySavingsRequired: number | null = null;
     let daysRemaining: number | null = null;
 
-    if (remaining <= 0) {
+    if (remaining.lte(0)) {
       canAffordByTargetDate = true;
       earliestAffordableDate = now.toISOString().split('T')[0];
       monthlySavingsRequired = 0;
     } else {
-      const daysToSave = Math.ceil(remaining / dailySurplus);
-      const estDate = new Date(now.getTime() + daysToSave * 86400000);
-      earliestAffordableDate = estDate.toISOString().split('T')[0];
+      if (dailySurplus.gt(0)) {
+        const daysToSave = Math.ceil(remaining.div(dailySurplus).toNumber());
+        const estDate = new Date(now.getTime() + daysToSave * 86400000);
+        earliestAffordableDate = estDate.toISOString().split('T')[0];
+      }
 
       if (goal.targetDate) {
         const targetTime = new Date(goal.targetDate).getTime();
         daysRemaining = Math.max(1, Math.ceil((targetTime - now.getTime()) / 86400000));
-        const projectedSavings = currentAmount + (dailySurplus * daysRemaining);
-        canAffordByTargetDate = projectedSavings >= targetAmount;
-        monthlySavingsRequired = Math.round((remaining / (daysRemaining / 30)) * 100) / 100;
+        const projectedSavings = currentAmount.plus(dailySurplus.times(daysRemaining));
+        canAffordByTargetDate = projectedSavings.gte(targetAmount);
+        monthlySavingsRequired = remaining
+          .div(daysRemaining)
+          .times(30)
+          .toDecimalPlaces(2)
+          .toNumber();
       }
     }
 
     return {
       id: goal.id,
       name: goal.name,
-      targetAmount,
-      currentAmount,
+      targetAmount: targetAmount.toNumber(),
+      currentAmount: currentAmount.toNumber(),
       targetDate: goal.targetDate ? goal.targetDate.toISOString().split('T')[0] : null,
       status: goal.status,
       createdAt: goal.createdAt.toISOString(),
@@ -81,7 +73,7 @@ export async function listGoals(userId: string) {
       earliestAffordableDate,
       monthlySavingsRequired,
       daysRemaining,
-      dailySurplus: Math.round(dailySurplus * 100) / 100,
+      dailySurplus: dailySurplus.toDecimalPlaces(2).toNumber(),
     };
   });
 }
@@ -113,8 +105,25 @@ export async function updateGoal(userId: string, id: string, input: UpdateGoalIn
 export async function addContribution(userId: string, goalId: string, input: CreateContributionInput) {
   await getGoal(userId, goalId);
 
-  return prisma.$transaction(async (tx) => {
-    const contrib = await tx.savingsContribution.create({
+  // Idempotent replay: an offline-queued contribution that was already stored
+  // returns the original row instead of double-counting the amount.
+  if (input.clientMutationId) {
+    const existing = await prisma.savingsContribution.findUnique({
+      where: { clientMutationId: input.clientMutationId },
+    });
+    if (existing) return existing;
+  }
+
+  if (input.accountId) {
+    const account = await prisma.financialAccount.findFirst({
+      where: { id: input.accountId, userId, isArchived: false },
+      select: { id: true },
+    });
+    if (!account) throw new NotFoundError('Account not found');
+  }
+
+  try {
+    return await prisma.savingsContribution.create({
       data: {
         goalId,
         userId,
@@ -122,20 +131,24 @@ export async function addContribution(userId: string, goalId: string, input: Cre
         amount: input.amount,
         contributedAt: input.contributedAt ? new Date(input.contributedAt) : new Date(),
         notes: input.notes,
+        clientMutationId: input.clientMutationId ?? null,
       },
     });
-
-    if (input.accountId) {
-      await tx.financialAccount.update({
-        where: { id: input.accountId, userId },
-        data: {
-          balance: { decrement: input.amount },
-        },
+  } catch (err) {
+    // Two concurrent retries of the same queued contribution can race between
+    // the lookup and the insert; the unique index guarantees one winner.
+    if (
+      err instanceof Prisma.PrismaClientKnownRequestError &&
+      err.code === 'P2002' &&
+      input.clientMutationId
+    ) {
+      const existing = await prisma.savingsContribution.findUnique({
+        where: { clientMutationId: input.clientMutationId },
       });
+      if (existing) return existing;
     }
-
-    return contrib;
-  });
+    throw err;
+  }
 }
 
 export async function deleteContribution(userId: string, goalId: string, contributionId: string) {
@@ -151,30 +164,42 @@ export async function getProgress(userId: string, goalId: string) {
   const goal = await getGoal(userId, goalId);
 
   const agg = await prisma.savingsContribution.aggregate({
-    where: { goalId },
+    where: { goalId, userId },
     _sum: { amount: true },
     _count: { id: true },
   });
 
-  const totalContributed = Number(agg._sum.amount) || 0;
-  const targetAmount = Number(goal.targetAmount);
-  const percentageComplete = targetAmount > 0 ? (totalContributed / targetAmount) * 100 : 0;
-  const remaining = Math.max(0, targetAmount - totalContributed);
+  const totalContributed = toDecimalOrZero(agg._sum.amount);
+  const targetAmount = toDecimalOrZero(goal.targetAmount);
+  const percentageComplete = targetAmount.gt(0)
+    ? totalContributed.div(targetAmount).times(1000).round().div(10).toNumber()
+    : 0;
+  const remaining = Decimal.max(0, targetAmount.minus(totalContributed));
 
-  const dailySurplus = await getUserDailySurplus(userId);
+  const dailySurplus = await calculateDailySurplus(userId);
   const now = new Date();
-  const daysToSave = Math.ceil(remaining / dailySurplus);
-  const estDate = new Date(now.getTime() + daysToSave * 86400000);
-  const earliestAffordableDate = estDate.toISOString().split('T')[0];
+  const earliestAffordableDate = dailySurplus.gt(0)
+    ? new Date(
+        now.getTime() +
+          Math.ceil(remaining.div(dailySurplus).toNumber()) * 86400000,
+      ).toISOString().split('T')[0]
+    : null;
 
   let canAffordByTargetDate: boolean | null = null;
   let monthlySavingsRequired: number | null = null;
 
   if (goal.targetDate) {
-    const daysUntilTarget = Math.max(1, Math.ceil((new Date(goal.targetDate).getTime() - now.getTime()) / 86400000));
-    const projectedSavings = totalContributed + (dailySurplus * daysUntilTarget);
-    canAffordByTargetDate = projectedSavings >= targetAmount;
-    monthlySavingsRequired = Math.round((remaining / (daysUntilTarget / 30)) * 100) / 100;
+    const daysUntilTarget = Math.max(
+      1,
+      Math.ceil((new Date(goal.targetDate).getTime() - now.getTime()) / 86400000),
+    );
+    const projectedSavings = totalContributed.plus(dailySurplus.times(daysUntilTarget));
+    canAffordByTargetDate = projectedSavings.gte(targetAmount);
+    monthlySavingsRequired = remaining
+      .div(daysUntilTarget)
+      .times(30)
+      .toDecimalPlaces(2)
+      .toNumber();
   }
 
   return {
@@ -182,13 +207,13 @@ export async function getProgress(userId: string, goalId: string) {
     name: goal.name,
     targetAmount: targetAmount.toFixed(2),
     totalContributed: totalContributed.toFixed(2),
-    percentageComplete: Math.round(percentageComplete * 10) / 10,
+    percentageComplete,
     remaining: remaining.toFixed(2),
     contributionCount: agg._count.id,
     canAffordByTargetDate,
     earliestAffordableDate,
     monthlySavingsRequired,
-    dailySurplus: Math.round(dailySurplus * 100) / 100,
+    dailySurplus: dailySurplus.toDecimalPlaces(2).toNumber(),
     status: goal.status,
   };
 }

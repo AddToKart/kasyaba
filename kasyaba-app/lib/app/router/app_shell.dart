@@ -3,17 +3,43 @@ import 'package:go_router/go_router.dart';
 import '../../app/theme/app_theme.dart';
 
 /// ─────────────────────────────────────────────────────────────
-///  AppShell — Luxury floating bottom navigation shell
+///  AppShell — Ultra Luxury Floating Navigation Dock
 /// ─────────────────────────────────────────────────────────────
+
+/// A custom [FloatingActionButtonLocation] that positions the FAB safely above
+/// the floating luxury dock of [AppShell].
+class FloatingDockFabLocation extends FloatingActionButtonLocation {
+  final double? bottomPadding;
+  final double gap;
+
+  const FloatingDockFabLocation({
+    this.bottomPadding,
+    this.gap = 20.0,
+  });
+
+  @override
+  Offset getOffset(ScaffoldPrelayoutGeometry scaffoldGeometry) {
+    final double rawBottom = bottomPadding ?? scaffoldGeometry.minInsets.bottom;
+    final double dockBottomMargin =
+        rawBottom > 0 ? rawBottom : (bottomPadding != null ? 12.0 : 24.0);
+    final double dockTotalHeight = 64.0 + dockBottomMargin;
+
+    final double fabX = scaffoldGeometry.scaffoldSize.width -
+        scaffoldGeometry.floatingActionButtonSize.width -
+        16.0;
+    final double fabY = scaffoldGeometry.scaffoldSize.height -
+        dockTotalHeight -
+        scaffoldGeometry.floatingActionButtonSize.height -
+        gap;
+    return Offset(fabX, fabY);
+  }
+}
+
 class AppShell extends StatelessWidget {
   final Widget child;
   final String location;
 
-  const AppShell({
-    super.key,
-    required this.child,
-    required this.location,
-  });
+  const AppShell({super.key, required this.child, required this.location});
 
   int _getSelectedIndex() {
     if (location.startsWith('/transactions')) return 1;
@@ -48,7 +74,7 @@ class AppShell extends StatelessWidget {
     return Scaffold(
       extendBody: true,
       body: child,
-      bottomNavigationBar: _LuxuryNavBar(
+      bottomNavigationBar: _LuxuryFloatingDock(
         selectedIndex: selectedIndex,
         isDark: isDark,
         onDestinationSelected: (i) => _onDestinationSelected(context, i),
@@ -57,12 +83,12 @@ class AppShell extends StatelessWidget {
   }
 }
 
-class _LuxuryNavBar extends StatelessWidget {
+class _LuxuryFloatingDock extends StatelessWidget {
   final int selectedIndex;
   final bool isDark;
   final ValueChanged<int> onDestinationSelected;
 
-  const _LuxuryNavBar({
+  const _LuxuryFloatingDock({
     required this.selectedIndex,
     required this.isDark,
     required this.onDestinationSelected,
@@ -98,40 +124,48 @@ class _LuxuryNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bottomPadding = MediaQuery.paddingOf(context).bottom;
+
     return Container(
-      decoration: BoxDecoration(
-        border: Border(
-          top: BorderSide(
-            color: isDark
-                ? AppColors.surface600.withValues(alpha: 0.5)
-                : AppColors.lightBorder.withValues(alpha: 0.6),
-            width: 1,
-          ),
-        ),
+      margin: EdgeInsets.fromLTRB(
+        16,
+        0,
+        16,
+        bottomPadding > 0 ? bottomPadding : 12,
       ),
-      child: ClipRect(
-        child: Container(
-          color: isDark
-              ? AppColors.surface900.withValues(alpha: 0.97)
-              : AppColors.lightCard.withValues(alpha: 0.98),
-          child: SafeArea(
-            top: false,
-            child: SizedBox(
-              height: 68,
-              child: Row(
-                children: [
-                  for (int i = 0; i < _destinations.length; i++)
-                    Expanded(
-                      child: _NavItem(
-                        destination: _destinations[i],
-                        isSelected: selectedIndex == i,
-                        isDark: isDark,
-                        onTap: () => onDestinationSelected(i),
-                      ),
-                    ),
-                ],
-              ),
-            ),
+      decoration: BoxDecoration(
+        color: const Color(0xF70D121D),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: const Color(0x40334155), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.6),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+          ),
+          BoxShadow(
+            color: AppColors.emerald500.withValues(alpha: 0.08),
+            blurRadius: 16,
+            spreadRadius: 1,
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: SizedBox(
+          height: 64,
+          child: Row(
+            children: [
+              for (int i = 0; i < _destinations.length; i++)
+                Expanded(
+                  child: _NavItem(
+                    destination: _destinations[i],
+                    isSelected: selectedIndex == i,
+                    isDark: isDark,
+                    onTap: () => onDestinationSelected(i),
+                  ),
+                ),
+            ],
           ),
         ),
       ),
@@ -166,54 +200,50 @@ class _NavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final activeColor = AppColors.emerald500;
-    final inactiveColor =
-        isDark ? AppColors.textMuted : AppColors.textMutedL;
+    final inactiveColor = AppColors.textMuted;
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        splashColor: activeColor.withValues(alpha: 0.08),
-        highlightColor: activeColor.withValues(alpha: 0.04),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeOutCubic,
-                padding: EdgeInsets.symmetric(
-                  horizontal: isSelected ? 14 : 10,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? activeColor.withValues(alpha: isDark ? 0.15 : 0.10)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  isSelected ? destination.activeIcon : destination.icon,
-                  size: 22,
-                  color: isSelected ? activeColor : inactiveColor,
-                ),
+        splashColor: activeColor.withValues(alpha: 0.1),
+        highlightColor: activeColor.withValues(alpha: 0.05),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOutCubic,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? activeColor.withValues(alpha: 0.18)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(16),
+                border: isSelected
+                    ? Border.all(
+                        color: activeColor.withValues(alpha: 0.3),
+                        width: 1,
+                      )
+                    : null,
               ),
-              const SizedBox(height: 4),
-              AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 200),
-                style: TextStyle(
-                  color: isSelected ? activeColor : inactiveColor,
-                  fontWeight:
-                      isSelected ? FontWeight.w700 : FontWeight.w400,
-                  fontSize: 10,
-                  letterSpacing: 0.2,
-                ),
-                child: Text(destination.label),
+              child: Icon(
+                isSelected ? destination.activeIcon : destination.icon,
+                size: 20,
+                color: isSelected ? activeColor : inactiveColor,
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              destination.label,
+              style: TextStyle(
+                color: isSelected ? activeColor : inactiveColor,
+                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
+                fontSize: 10,
+                letterSpacing: 0.2,
+              ),
+            ),
+          ],
         ),
       ),
     );

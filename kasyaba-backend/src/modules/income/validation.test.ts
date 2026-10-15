@@ -32,6 +32,26 @@ describe('Income validation schemas', () => {
       });
       expect(result.success).toBe(false);
     });
+
+    it('accepts a future scheduled income date', () => {
+      const result = createIncomeSchema.safeParse({
+        accountId: '00000000-0000-0000-0000-000000000001',
+        amount: '15000.00',
+        source: 'Next payday',
+        receivedAt: '2099-12-31',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('rejects an impossible date', () => {
+      const result = createIncomeSchema.safeParse({
+        accountId: '00000000-0000-0000-0000-000000000001',
+        amount: '15000.00',
+        source: 'Invalid date',
+        receivedAt: '2024-02-30',
+      });
+      expect(result.success).toBe(false);
+    });
   });
 
   describe('incomeQuerySchema', () => {
@@ -57,6 +77,14 @@ describe('Income validation schemas', () => {
         expect(result.data.page).toBe(2);
         expect(result.data.limit).toBe(10);
       }
+    });
+
+    it('rejects a reversed date range', () => {
+      const result = incomeQuerySchema.safeParse({
+        from: '2026-08-29',
+        to: '2026-08-28',
+      });
+      expect(result.success).toBe(false);
     });
   });
 });

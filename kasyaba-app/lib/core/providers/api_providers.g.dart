@@ -43,6 +43,11 @@ _$TransactionEntryImpl _$$TransactionEntryImplFromJson(
   isExpense: json['isExpense'] as bool,
   date: DateTime.parse(json['date'] as String),
   categoryName: json['categoryName'] as String,
+  type: json['type'] as String? ?? 'expense',
+  status: json['status'] as String? ?? 'posted',
+  accountId: json['accountId'] as String?,
+  categoryId: json['categoryId'] as String?,
+  notes: json['notes'] as String?,
 );
 
 Map<String, dynamic> _$$TransactionEntryImplToJson(
@@ -54,6 +59,11 @@ Map<String, dynamic> _$$TransactionEntryImplToJson(
   'isExpense': instance.isExpense,
   'date': instance.date.toIso8601String(),
   'categoryName': instance.categoryName,
+  'type': instance.type,
+  'status': instance.status,
+  'accountId': instance.accountId,
+  'categoryId': instance.categoryId,
+  'notes': instance.notes,
 };
 
 _$AlertItemImpl _$$AlertItemImplFromJson(Map<String, dynamic> json) =>
@@ -64,7 +74,9 @@ _$AlertItemImpl _$$AlertItemImplFromJson(Map<String, dynamic> json) =>
       title: json['title'] as String,
       message: json['message'] as String,
       createdAt: DateTime.parse(json['createdAt'] as String),
-      readAt: json['readAt'] as bool?,
+      readAt: json['readAt'] == null
+          ? null
+          : DateTime.parse(json['readAt'] as String),
     );
 
 Map<String, dynamic> _$$AlertItemImplToJson(_$AlertItemImpl instance) =>
@@ -75,5 +87,5 @@ Map<String, dynamic> _$$AlertItemImplToJson(_$AlertItemImpl instance) =>
       'title': instance.title,
       'message': instance.message,
       'createdAt': instance.createdAt.toIso8601String(),
-      'readAt': instance.readAt,
+      'readAt': instance.readAt?.toIso8601String(),
     };

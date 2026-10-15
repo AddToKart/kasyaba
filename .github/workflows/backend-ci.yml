@@ -2,14 +2,22 @@ name: Backend CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: ['**']
     paths:
       - 'kasyaba-backend/**'
       - 'docker-compose.yml'
+      - '.github/workflows/backend-ci.yml'
   pull_request:
     branches: [main]
     paths:
       - 'kasyaba-backend/**'
+      - 'docker-compose.yml'
+      - '.github/workflows/backend-ci.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: backend-ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-and-test:
@@ -51,26 +59,67 @@ jobs:
         run: npx prisma generate
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/kasyaba_test
+          DIRECT_URL: postgresql://postgres:postgres@localhost:5432/kasyaba_test
 
       - name: Run migrations
-        run: npx prisma migrate dev
+        run: npx prisma migrate deploy
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/kasyaba_test
+          DIRECT_URL: postgresql://postgres:postgres@localhost:5432/kasyaba_test
 
       - name: Type check
         run: npx tsc --noEmit
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/kasyaba_test
+          DIRECT_URL: postgresql://postgres:postgres@localhost:5432/kasyaba_test
+          JWT_ACCESS_SECRET: test-secret-at-least-32-characters-long-here
+
+      - name: Lint
+        run: npm run lint
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/kasyaba_test
+          DIRECT_URL: postgresql://postgres:postgres@localhost:5432/kasyaba_test
           JWT_ACCESS_SECRET: test-secret-at-least-32-characters-long-here
 
       - name: Run unit tests
         run: npm test
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/kasyaba_test
+          DIRECT_URL: postgresql://postgres:postgres@localhost:5432/kasyaba_test
           JWT_ACCESS_SECRET: test-secret-at-least-32-characters-long-here
 
       - name: Build
         run: npm run build
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/kasyaba_test
+          DIRECT_URL: postgresql://postgres:postgres@localhost:5432/kasyaba_test
           JWT_ACCESS_SECRET: test-secret-at-least-32-characters-long-here
+
+  docker-image:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build production API/worker image
+        run: docker build --tag kasyaba-backend:ci ./kasyaba-backend
+
+      - name: Build one-shot migration image
+        run: docker build --target migrate --tag kasyaba-backend-migrate:ci ./kasyaba-backend
+
+      - name: Smoke-test worker-style env validation in the runtime image
+        run: |
+          docker run --rm \
+            -e NODE_ENV=production \
+            -e DATABASE_URL=postgresql://user:pass@db.example.com:5432/kasyaba \
+            -e DIRECT_URL=postgresql://user:pass@db.example.com:5432/kasyaba \
+            -e JWT_ACCESS_SECRET=0123456789012345678901234567890123456789 \
+            kasyaba-backend:ci node -e "require('./dist/config/env')"
+
+      - name: Validate production compose file
+        run: |
+          DATABASE_URL=postgresql://user:pass@db.example.com:5432/kasyaba \
+          DIRECT_URL=postgresql://user:pass@db.example.com:5432/kasyaba \
+          JWT_ACCESS_SECRET=0123456789012345678901234567890123456789 \
+          CORS_ALLOWED_ORIGINS=https://app.example.com \
+          docker compose -f docker-compose.yml config --quiet

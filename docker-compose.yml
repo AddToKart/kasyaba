@@ -1,55 +1,67 @@
-version: '3.8'
-
+# Production stack: API + worker + one-shot migrations.
+# The database is expected to be managed (Supabase/PostgreSQL); for a
+# self-contained local stack use the automatically loaded
+# docker-compose.override.yml instead (plain `docker compose up`).
+#
+# Required env (export or place in a root .env file):
+#   DATABASE_URL, DIRECT_URL, JWT_ACCESS_SECRET, CORS_ALLOWED_ORIGINS
 services:
-  db:
-    image: postgres:16-alpine
+  migrate:
+    build:
+      context: ./kasyaba-backend
+      dockerfile: Dockerfile
+      target: migrate
+    image: kasyaba-backend-migrate:latest
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: kasyaba
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL:-}
+      DIRECT_URL: ${DIRECT_URL:-}
+    restart: "no"
 
   api:
     build:
       context: ./kasyaba-backend
       dockerfile: Dockerfile
+    image: kasyaba-backend:latest
     ports:
-      - "3000:3000"
+      - "${PORT:-3000}:3000"
     environment:
-      NODE_ENV: development
-      DATABASE_URL: postgresql://postgres:postgres@db:5432/kasyaba
-      DIRECT_URL: postgresql://postgres:postgres@db:5432/kasyaba
-      JWT_ACCESS_SECRET: dev-access-secret-at-least-32-characters-long
-      LOG_LEVEL: info
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: ${DATABASE_URL:-}
+      DIRECT_URL: ${DIRECT_URL:-}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-}
+      ACCESS_TOKEN_TTL_MINUTES: ${ACCESS_TOKEN_TTL_MINUTES:-15}
+      REFRESH_TOKEN_TTL_DAYS: ${REFRESH_TOKEN_TTL_DAYS:-30}
+      GOOGLE_WEB_CLIENT_ID: ${GOOGLE_WEB_CLIENT_ID:-}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
+      TRUST_PROXY: ${TRUST_PROXY:-1}
+      SUPPORT_EMAIL: ${SUPPORT_EMAIL:-support@kasyaba.app}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
     depends_on:
-      db:
-        condition: service_healthy
-    command: sh -c "npx prisma migrate deploy && node dist/server.js"
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
 
   worker:
-    build:
-      context: ./kasyaba-backend
-      dockerfile: Dockerfile
+    image: kasyaba-backend:latest
+    # Exactly one replica. The worker assumes single-instance ownership of cron
+    # jobs and job-run reconciliation; scaling it up can corrupt job state.
+    deploy:
+      replicas: 1
     environment:
-      NODE_ENV: development
-      DATABASE_URL: postgresql://postgres:postgres@db:5432/kasyaba
-      DIRECT_URL: postgresql://postgres:postgres@db:5432/kasyaba
-      JWT_ACCESS_SECRET: dev-access-secret-at-least-32-characters-long
-      LOG_LEVEL: info
-      WORKER_TIMEZONE: Asia/Manila
-      SNAPSHOT_CRON: "10 0 * * *"
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL:-}
+      DIRECT_URL: ${DIRECT_URL:-}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      WORKER_TIMEZONE: ${WORKER_TIMEZONE:-Asia/Manila}
+      SNAPSHOT_CRON: ${SNAPSHOT_CRON:-10 0 * * *}
     depends_on:
-      db:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    # The worker serves no HTTP, so the image's API healthcheck does not apply.
+    healthcheck:
+      disable: true
     command: node dist/worker.js
-
-volumes:
-  pgdata:

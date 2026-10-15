@@ -4,9 +4,11 @@ import { evaluateFinancialRecoveryAnalysis } from '../forecasting/service';
 import { sendSuccess, sendNoContent } from '../../lib/response';
 import type { Router } from 'express';
 import { Request, Response, NextFunction } from 'express';
+import { validate } from '../../middleware/validate';
+import { alertQuerySchema } from './validation';
 
 export function registerRoutes(app: Router) {
-  app.get('/api/v1/alerts', authenticate, async (req: Request, res: Response, next: NextFunction) => {
+  app.get('/api/v1/alerts', authenticate, validate(alertQuerySchema, 'query'), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const alerts = await alertService.listAlerts(req.userId!, req.query);
       sendSuccess(res, alerts);

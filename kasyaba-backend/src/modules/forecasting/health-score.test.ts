@@ -94,4 +94,19 @@ describe('Financial Health Score', () => {
     expect(result.grade).toBe('Needs Attention');
     expect(result.score).toBeLessThan(50);
   });
+
+  it('uses projectedMonthEndIncome for budget score when provided (mid-month second paycheck)', () => {
+    const resultWithoutProjected = computeHealthScore({
+      ...baseInput,
+      incomeMTD: new Decimal(25000),
+      projectedMonthEndExpenses: new Decimal(32000),
+    });
+    const resultWithProjected = computeHealthScore({
+      ...baseInput,
+      incomeMTD: new Decimal(25000),
+      projectedMonthEndExpenses: new Decimal(32000),
+      projectedMonthEndIncome: new Decimal(50000),
+    });
+    expect(resultWithProjected.score).toBeGreaterThan(resultWithoutProjected.score);
+  });
 });

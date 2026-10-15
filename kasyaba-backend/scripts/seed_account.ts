@@ -3,6 +3,15 @@ import argon2 from 'argon2';
 
 const prisma = new PrismaClient();
 
+// Destructive development helper: it resets every user's password and deletes
+// transaction data before inserting demo records. Hard-block production.
+if (process.env.NODE_ENV === 'production') {
+  console.error(
+    'Refusing to seed account data: NODE_ENV=production. This script resets passwords and deletes data.',
+  );
+  process.exit(1);
+}
+
 async function seedAccountData() {
   console.log('🌱 Starting account data seeding...');
 

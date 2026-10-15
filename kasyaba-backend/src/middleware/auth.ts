@@ -21,7 +21,10 @@ export async function signAccessToken(payload: TokenPayload): Promise<string> {
 export async function verifyAccessToken(token: string): Promise<TokenPayload> {
   try {
     const { payload } = await jwtVerify(token, secret);
-    return { sub: payload.sub as string, email: payload.email as string };
+    if (typeof payload.sub !== 'string' || typeof payload.email !== 'string') {
+      throw new Error('Token payload is incomplete');
+    }
+    return { sub: payload.sub, email: payload.email };
   } catch {
     throw new UnauthorizedError('Invalid or expired token');
   }
@@ -30,10 +33,11 @@ export async function verifyAccessToken(token: string): Promise<TokenPayload> {
 export async function authenticate(req: Request, _res: Response, next: NextFunction) {
   try {
     const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const tokenMatch = authHeader?.match(/^Bearer\s+(\S+)$/i);
+    if (!tokenMatch) {
       throw new UnauthorizedError('Missing or invalid authorization header');
     }
-    const token = authHeader.split(' ')[1];
+    const token = tokenMatch[1];
     const payload = await verifyAccessToken(token);
     req.userId = payload.sub;
     next();
@@ -44,10 +48,11 @@ export async function authenticate(req: Request, _res: Response, next: NextFunct
 
 export function optionalAuth(req: Request, _res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  const tokenMatch = authHeader?.match(/^Bearer\s+(\S+)$/i);
+  if (!tokenMatch) {
     return next();
   }
-  const token = authHeader.split(' ')[1];
+  const token = tokenMatch[1];
   verifyAccessToken(token)
     .then((payload) => {
       req.userId = payload.sub;

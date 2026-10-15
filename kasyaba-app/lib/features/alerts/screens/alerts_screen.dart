@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../app/theme/app_theme.dart';
+import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../shared/widgets/modern_card.dart';
 
@@ -32,7 +33,9 @@ class AlertsScreen extends ConsumerWidget {
         ),
         title: Text(
           'Predictive Financial Alerts',
-          style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
         ),
         actions: [
           TextButton(
@@ -71,12 +74,13 @@ class AlertsScreen extends ConsumerWidget {
                 height: 90,
                 child: Center(child: CircularProgressIndicator()),
               ),
-              error: (err, _) => ModernCard(
-                padding: const EdgeInsets.all(20),
-                child: Text('Error loading health score: $err'),
+              error: (err, _) => _AlertsErrorCard(
+                message: friendlyErrorMessage(err),
+                onRetry: () => ref.invalidate(dashboardProvider),
               ),
               data: (data) {
-                final grade = data.healthScore; // 'Needs Attention', 'Fair', 'Good', 'Excellent'
+                final grade = data
+                    .healthScore; // 'Needs Attention', 'Fair', 'Good', 'Excellent'
                 List<Color> gradientColors;
                 IconData headerIcon;
 
@@ -115,7 +119,10 @@ class AlertsScreen extends ConsumerWidget {
                           children: [
                             Text(
                               'Financial Health Status',
-                              style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 13),
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.9),
+                                fontSize: 13,
+                              ),
                             ),
                             Text(
                               grade,
@@ -139,17 +146,24 @@ class AlertsScreen extends ConsumerWidget {
             // ── Financial Analysis & How to Recover Section ────────────────
             recoveryAsync.when(
               loading: () => const SizedBox.shrink(),
-              error: (err, _) => const SizedBox.shrink(),
+              error: (err, _) => _AlertsErrorCard(
+                message: friendlyErrorMessage(err),
+                onRetry: () => ref.invalidate(recoveryAnalysisProvider),
+              ),
               data: (analysis) {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.analytics_outlined, color: Color(0xFF0284C7), size: 22),
+                        const Icon(
+                          Icons.analytics_outlined,
+                          color: Color(0xFF0284C7),
+                          size: 22,
+                        ),
                         const SizedBox(width: 8),
                         Text(
-                          'Financial Analysis & Recovery Plan 💡',
+                          'Financial Analysis & Recovery Plan',
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
@@ -170,7 +184,9 @@ class AlertsScreen extends ConsumerWidget {
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
-                              color: isDark ? Colors.white70 : const Color(0xFF334155),
+                              color: isDark
+                                  ? Colors.white70
+                                  : const Color(0xFF334155),
                               height: 1.4,
                             ),
                           ),
@@ -199,23 +215,40 @@ class AlertsScreen extends ConsumerWidget {
                           Row(
                             children: [
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF0284C7).withValues(alpha: 0.12),
+                                  color: const Color(
+                                    0xFF0284C7,
+                                  ).withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: const Color(0xFF0284C7).withValues(alpha: 0.3)),
+                                  border: Border.all(
+                                    color: const Color(
+                                      0xFF0284C7,
+                                    ).withValues(alpha: 0.3),
+                                  ),
                                 ),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     const Text(
                                       'Daily Spend Limit',
-                                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF0284C7)),
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF0284C7),
+                                      ),
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
                                       '₱${analysis.recommendedDailySpendLimit.toStringAsFixed(0)} / day',
-                                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF0284C7)),
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w800,
+                                        color: Color(0xFF0284C7),
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -224,7 +257,11 @@ class AlertsScreen extends ConsumerWidget {
                               Expanded(
                                 child: Text(
                                   'Pacing limit for the remaining ${analysis.daysRemainingInMonth} days of this month.',
-                                  style: const TextStyle(fontSize: 11, color: Colors.grey, height: 1.3),
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey,
+                                    height: 1.3,
+                                  ),
                                 ),
                               ),
                             ],
@@ -233,18 +270,35 @@ class AlertsScreen extends ConsumerWidget {
                           if (analysis.estimatedRecoveryDate != null) ...[
                             const SizedBox(height: 14),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                                color: const Color(
+                                  0xFF10B981,
+                                ).withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(Icons.event_available_outlined, size: 16, color: Color(0xFF10B981)),
+                                  const Icon(
+                                    Icons.event_available_outlined,
+                                    size: 16,
+                                    color: Color(0xFF10B981),
+                                  ),
                                   const SizedBox(width: 8),
-                                  Text(
-                                    'Estimated Full Recovery: ${analysis.estimatedRecoveryDate}',
-                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
+                                  Expanded(
+                                    child: Text(
+                                      'Estimated Full Recovery: ${analysis.estimatedRecoveryDate}',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF10B981),
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),
@@ -279,7 +333,9 @@ class AlertsScreen extends ConsumerWidget {
             // ── Active Predictive Insights List ─────────────────────────────
             Text(
               'Active Predictive Insights',
-              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 12),
 
@@ -288,9 +344,9 @@ class AlertsScreen extends ConsumerWidget {
                 height: 120,
                 child: Center(child: CircularProgressIndicator()),
               ),
-              error: (err, _) => ModernCard(
-                padding: const EdgeInsets.all(20),
-                child: Text('Error loading alerts: $err'),
+              error: (err, _) => _AlertsErrorCard(
+                message: friendlyErrorMessage(err),
+                onRetry: () => ref.invalidate(alertsProvider),
               ),
               data: (alerts) {
                 if (alerts.isEmpty) {
@@ -308,7 +364,9 @@ class AlertsScreen extends ConsumerWidget {
                           'No unread alerts — your baseline predictions are updated.',
                           textAlign: TextAlign.center,
                           style: theme.textTheme.bodyMedium?.copyWith(
-                            color: isDark ? AppColors.textMuted : AppColors.textMutedL,
+                            color: isDark
+                                ? AppColors.textMuted
+                                : AppColors.textMutedL,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -332,6 +390,56 @@ class AlertsScreen extends ConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _AlertsErrorCard extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+
+  const _AlertsErrorCard({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return ModernCard(
+      padding: const EdgeInsets.all(20),
+      borderColor: AppColors.expense.withValues(alpha: 0.4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.error_outline_rounded,
+                color: AppColors.expense,
+                size: 24,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  message,
+                  style: const TextStyle(
+                    color: AppColors.expense,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: const Text('Retry'),
+              style: TextButton.styleFrom(foregroundColor: AppColors.expense),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -452,7 +560,9 @@ class _ActionStepTile extends StatelessWidget {
                   step.description,
                   style: TextStyle(
                     fontSize: 12,
-                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                    color: isDark
+                        ? const Color(0xFF94A3B8)
+                        : const Color(0xFF64748B),
                     height: 1.3,
                   ),
                 ),

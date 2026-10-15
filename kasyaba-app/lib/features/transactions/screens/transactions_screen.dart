@@ -1,11 +1,235 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import '../../../core/api/api_client.dart';
+import '../../../core/auth/auth_provider.dart';
+import '../../../core/database/cache_service.dart';
+import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
+import '../../../core/utils/currency_formatter.dart';
+import '../../../core/utils/category_icon_helper.dart';
 import '../../../shared/widgets/modern_card.dart';
 import '../../../shared/widgets/empty_state_view.dart';
 import '../../../app/theme/app_theme.dart';
+
+Future<void> _showTransactionActions(
+  BuildContext context,
+  WidgetRef ref,
+  TransactionEntry transaction,
+) async {
+  if (transaction.isSyncFailed) {
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.expense.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.sync_problem_rounded,
+                      color: AppColors.expense,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'Sync Failed',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                transaction.notes ?? 'This offline transaction could not be synced.',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                ),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.refresh_rounded, color: AppColors.emerald500),
+                title: const Text('Retry Sync'),
+                subtitle: const Text('Re-queue this transaction for the next sync'),
+                onTap: () => Navigator.of(sheetContext).pop('retry'),
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.delete_outline_rounded, color: AppColors.expense),
+                title: const Text('Delete Queued Entry'),
+                subtitle: const Text('Discard this transaction from local storage'),
+                onTap: () => Navigator.of(sheetContext).pop('delete'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (action == 'retry') {
+      final cacheService = ref.read(cacheServiceProvider);
+      await cacheService.retryFailedTransaction(transaction.id);
+      final userId = ref.read(authProvider).userId;
+      if (userId != null) {
+        final dio = ref.read(dioProvider);
+        unawaited(cacheService.syncPendingTransactions(dio, userId).catchError((_) => 0));
+      }
+      ref.invalidate(paginatedTransactionsProvider);
+      ref.invalidate(dashboardProvider);
+      ref.invalidate(accountBalancesProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Transaction re-queued for sync.')),
+        );
+      }
+    } else if (action == 'delete') {
+      final cacheService = ref.read(cacheServiceProvider);
+      await cacheService.deleteOfflineTransaction(transaction.id);
+      ref.invalidate(paginatedTransactionsProvider);
+      ref.invalidate(dashboardProvider);
+      ref.invalidate(accountBalancesProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Offline transaction discarded.')),
+        );
+      }
+    }
+    return;
+  }
+
+  if (transaction.isPendingSync) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'This transaction is stored locally and will automatically sync once connected.',
+        ),
+      ),
+    );
+    return;
+  }
+
+  final action = await showModalBottomSheet<String>(
+    context: context,
+    backgroundColor: Theme.of(context).colorScheme.surface,
+    showDragHandle: true,
+    builder: (sheetContext) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (!transaction.isTransfer)
+            ListTile(
+              leading: const Icon(Icons.edit_rounded),
+              title: const Text('Edit transaction'),
+              onTap: () => Navigator.of(sheetContext).pop('edit'),
+            ),
+          ListTile(
+            leading: const Icon(Icons.delete_outline_rounded),
+            title: Text(
+              transaction.isTransfer ? 'Delete transfer' : 'Delete transaction',
+            ),
+            textColor: AppColors.expense,
+            iconColor: AppColors.expense,
+            onTap: () => Navigator.of(sheetContext).pop('delete'),
+          ),
+        ],
+      ),
+    ),
+  );
+
+  if (!context.mounted || action == null) return;
+  if (action == 'edit') {
+    context.push('/transactions/edit', extra: transaction);
+    return;
+  }
+
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: Text(
+        transaction.isTransfer ? 'Delete transfer?' : 'Delete transaction?',
+      ),
+      content: Text(
+        transaction.isTransfer
+            ? 'This will restore the money to the source account and remove it from the destination account.'
+            : 'This will remove it from your balances and reports.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(false),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(dialogContext).pop(true),
+          style: FilledButton.styleFrom(backgroundColor: AppColors.expense),
+          child: const Text('Delete'),
+        ),
+      ],
+    ),
+  );
+  if (!context.mounted || confirmed != true) return;
+
+  try {
+    await ref.read(transactionMutatorProvider).deleteTransaction(transaction);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Transaction deleted.')));
+  } catch (_) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Could not delete the transaction.')),
+    );
+  }
+}
+
+Future<void> _showNewEntryMenu(BuildContext context) async {
+  final action = await showModalBottomSheet<String>(
+    context: context,
+    backgroundColor: Theme.of(context).colorScheme.surface,
+    showDragHandle: true,
+    builder: (sheetContext) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.receipt_long_rounded),
+            title: const Text('Income or expense'),
+            subtitle: const Text('Record money in or money out'),
+            onTap: () => Navigator.of(sheetContext).pop('transaction'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.swap_horiz_rounded),
+            title: const Text('Transfer between accounts'),
+            subtitle: const Text('Move money without changing net worth'),
+            onTap: () => Navigator.of(sheetContext).pop('transfer'),
+          ),
+        ],
+      ),
+    ),
+  );
+  if (!context.mounted || action == null) return;
+  context.push(action == 'transfer' ? '/transfers/add' : '/transactions/add');
+}
 
 class TransactionsScreen extends ConsumerWidget {
   const TransactionsScreen({super.key});
@@ -17,6 +241,13 @@ class TransactionsScreen extends ConsumerWidget {
     final filter = ref.watch(transactionFilterProvider);
     final paginatedAsync = ref.watch(paginatedTransactionsProvider);
 
+    void clearDateFilter() {
+      ref.read(transactionFilterProvider.notifier).state = filter.copyWith(
+        clearDates: true,
+        page: 1,
+      );
+    }
+
     return Scaffold(
       backgroundColor: isDark ? AppColors.obsidian : AppColors.lightBg,
       body: NestedScrollView(
@@ -25,13 +256,18 @@ class TransactionsScreen extends ConsumerWidget {
             isDark: isDark,
             filter: filter,
             onRefresh: () => ref.invalidate(paginatedTransactionsProvider),
+            onNewEntry: () => _showNewEntryMenu(context),
             onPickDateRange: () async {
               final picked = await showDateRangePicker(
                 context: context,
-                firstDate: DateTime(2020),
-                lastDate: DateTime(2030),
-                initialDateRange: filter.fromDate != null && filter.toDate != null
-                    ? DateTimeRange(start: filter.fromDate!, end: filter.toDate!)
+                firstDate: DateTime(2000),
+                lastDate: DateTime(2100, 12, 31),
+                initialDateRange:
+                    filter.fromDate != null && filter.toDate != null
+                    ? DateTimeRange(
+                        start: filter.fromDate!,
+                        end: filter.toDate!,
+                      )
                     : null,
                 builder: (context, child) {
                   return Theme(
@@ -54,11 +290,12 @@ class TransactionsScreen extends ConsumerWidget {
               );
 
               if (picked != null) {
-                ref.read(transactionFilterProvider.notifier).state = filter.copyWith(
-                  fromDate: picked.start,
-                  toDate: picked.end,
-                  page: 1,
-                );
+                ref.read(transactionFilterProvider.notifier).state = filter
+                    .copyWith(
+                      fromDate: picked.start,
+                      toDate: picked.end,
+                      page: 1,
+                    );
               }
             },
           ),
@@ -76,12 +313,15 @@ class TransactionsScreen extends ConsumerWidget {
                   child: Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
-                          color: AppColors.emerald500.withValues(alpha: isDark ? 0.18 : 0.10),
-                          borderRadius: BorderRadius.circular(20),
+                          color: AppColors.emerald500.withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.circular(AppTheme.tagRadius),
                           border: Border.all(
-                            color: AppColors.emerald500.withValues(alpha: 0.3),
+                            color: AppColors.emerald500.withValues(alpha: 0.4),
                             width: 1,
                           ),
                         ),
@@ -102,16 +342,29 @@ class TransactionsScreen extends ConsumerWidget {
                                 color: AppColors.emerald500,
                               ),
                             ),
-                            const SizedBox(width: 6),
-                            GestureDetector(
-                              onTap: () {
-                                ref.read(transactionFilterProvider.notifier).state =
-                                    filter.copyWith(clearDates: true, page: 1);
-                              },
-                              child: const Icon(
-                                Icons.cancel_rounded,
-                                size: 16,
-                                color: AppColors.emerald500,
+                            const SizedBox(width: 2),
+                            Tooltip(
+                              message: 'Clear date filter',
+                              child: Semantics(
+                                button: true,
+                                label: 'Clear date filter',
+                                onTap: clearDateFilter,
+                                excludeSemantics: true,
+                                child: InkWell(
+                                  onTap: clearDateFilter,
+                                  customBorder: const CircleBorder(),
+                                  child: const SizedBox(
+                                    width: 48,
+                                    height: 48,
+                                    child: Center(
+                                      child: Icon(
+                                        Icons.cancel_rounded,
+                                        size: 16,
+                                        color: AppColors.emerald500,
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
                           ],
@@ -125,13 +378,16 @@ class TransactionsScreen extends ConsumerWidget {
               Expanded(
                 child: paginatedAsync.when(
                   loading: () => const Center(
-                    child: CircularProgressIndicator(color: AppColors.emerald500),
+                    child: CircularProgressIndicator(
+                      color: AppColors.emerald500,
+                    ),
                   ),
                   error: (err, _) => Center(
                     child: Padding(
                       padding: const EdgeInsets.all(24),
                       child: ModernCard(
                         padding: const EdgeInsets.all(20),
+                        borderColor: AppColors.expense.withValues(alpha: 0.4),
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -149,12 +405,21 @@ class TransactionsScreen extends ConsumerWidget {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '$err',
+                              friendlyErrorMessage(err),
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 12,
-                                color: isDark ? AppColors.textMuted : AppColors.textMutedL,
+                                color: isDark
+                                    ? AppColors.textMuted
+                                    : AppColors.textMutedL,
                               ),
+                            ),
+                            const SizedBox(height: 16),
+                            FilledButton.tonalIcon(
+                              onPressed: () =>
+                                  ref.invalidate(paginatedTransactionsProvider),
+                              icon: const Icon(Icons.refresh_rounded, size: 18),
+                              label: const Text('Retry'),
                             ),
                           ],
                         ),
@@ -181,164 +446,54 @@ class TransactionsScreen extends ConsumerWidget {
                       );
                     }
 
-                    return Column(
-                      children: [
-                        // List items
-                        Expanded(
-                          child: ListView.builder(
-                            padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-                            itemCount: paginated.items.length,
-                            itemBuilder: (context, index) {
-                              final item = paginated.items[index];
-                              final isExpense = item.isExpense;
-                              final color = isExpense ? AppColors.expense : AppColors.income;
-
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 10),
-                                child: ModernCard(
-                                  onTap: () {},
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 14,
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        // Icon
-                                        Container(
-                                          width: 44,
-                                          height: 44,
-                                          decoration: BoxDecoration(
-                                            color: color.withValues(
-                                                alpha: isDark ? 0.15 : 0.10),
-                                            borderRadius: BorderRadius.circular(14),
-                                            border: Border.all(
-                                              color: color.withValues(
-                                                  alpha: isDark ? 0.30 : 0.20),
-                                              width: 1,
-                                            ),
-                                          ),
-                                          child: Icon(
-                                            isExpense
-                                                ? Icons.arrow_upward_rounded
-                                                : Icons.arrow_downward_rounded,
-                                            color: color,
-                                            size: 18,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 14),
-
-                                        // Details
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                item.title,
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.w600,
-                                                  fontSize: 14,
-                                                  color: isDark
-                                                      ? AppColors.textDark
-                                                      : AppColors.textLight,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 3),
-                                              Text(
-                                                '${item.categoryName} • ${DateFormat('MMM d, yyyy').format(item.date)}',
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  color: isDark
-                                                      ? AppColors.textMuted
-                                                      : AppColors.textMutedL,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-
-                                        // Amount
-                                        Text(
-                                          '${isExpense ? '–' : '+'}₱${item.amount.toStringAsFixed(2)}',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.w800,
-                                            fontSize: 15,
-                                            letterSpacing: -0.3,
-                                            color: color,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
+                    final dateGroups = _groupTransactionsByDate(paginated.items);
+                    return ListView.builder(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 110),
+                      itemCount: dateGroups.length,
+                      itemBuilder: (context, groupIndex) {
+                        final group = dateGroups[groupIndex];
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(top: 16, bottom: 8, left: 4),
+                              child: Text(
+                                group.header.toUpperCase(),
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 1.1,
+                                  color: AppColors.textMuted,
                                 ),
-                              );
-                            },
-                          ),
-                        ),
-
-                        // ── Pagination Bar Controls ──────────────────────
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          decoration: BoxDecoration(
-                            color: isDark ? AppColors.surface800 : Colors.white,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
-                                blurRadius: 10,
-                                offset: const Offset(0, -2),
                               ),
-                            ],
-                          ),
-                          child: SafeArea(
-                            top: false,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  'Total: ${paginated.totalCount} entries',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                    color: isDark ? AppColors.textMuted : AppColors.textMutedL,
-                                  ),
-                                ),
-                                Row(
-                                  children: [
-                                    IconButton(
-                                      icon: const Icon(Icons.chevron_left_rounded),
-                                      onPressed: paginated.hasPrevPage
-                                          ? () {
-                                              ref.read(transactionFilterProvider.notifier).state =
-                                                  filter.copyWith(page: paginated.page - 1);
-                                            }
-                                          : null,
-                                      tooltip: 'Previous Page',
-                                    ),
-                                    Text(
-                                      'Page ${paginated.page} of ${paginated.totalPages}',
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w700,
-                                        color: isDark ? Colors.white : AppColors.textLight,
-                                      ),
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(Icons.chevron_right_rounded),
-                                      onPressed: paginated.hasNextPage
-                                          ? () {
-                                              ref.read(transactionFilterProvider.notifier).state =
-                                                  filter.copyWith(page: paginated.page + 1);
-                                            }
-                                          : null,
-                                      tooltip: 'Next Page',
-                                    ),
-                                  ],
-                                ),
-                              ],
                             ),
-                          ),
-                        ),
-                      ],
+                            ModernCard(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              borderColor: AppColors.subtleBorder,
+                              borderRadius: 18,
+                              child: Column(
+                                children: [
+                                  for (int i = 0; i < group.items.length; i++) ...[
+                                    _buildTransactionItem(
+                                      context,
+                                      ref,
+                                      group.items[i],
+                                      isDark,
+                                    ),
+                                    if (i < group.items.length - 1)
+                                      const Divider(
+                                        height: 1,
+                                        indent: 68,
+                                        color: AppColors.subtleBorder,
+                                      ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ],
+                        );
+                      },
                     );
                   },
                 ),
@@ -347,32 +502,95 @@ class TransactionsScreen extends ConsumerWidget {
           ),
         ),
       ),
-      floatingActionButton: Container(
+    );
+  }
+
+  Widget _buildTransactionItem(
+    BuildContext context,
+    WidgetRef ref,
+    TransactionEntry item,
+    bool isDark,
+  ) {
+    final isExpense = item.isExpense;
+    final isPending = item.isPendingSync;
+    final isFailed = item.isSyncFailed;
+    final amountColor = isFailed
+        ? AppColors.expense
+        : (isPending
+            ? AppColors.gold400
+            : (item.isTransfer
+                ? AppColors.gold500
+                : (isExpense ? AppColors.expense : AppColors.income)));
+    final categoryColor = isFailed
+        ? AppColors.expense
+        : (isPending
+            ? AppColors.gold500
+            : (item.isTransfer
+                ? AppColors.info
+                : CategoryIconHelper.getColor(item.categoryName, isExpense: isExpense)));
+    final categoryIcon = isFailed
+        ? Icons.sync_problem_rounded
+        : (isPending
+            ? Icons.sync_rounded
+            : (item.isTransfer
+                ? Icons.swap_horiz_rounded
+                : CategoryIconHelper.getIcon(item.categoryName)));
+    final primaryTitle = item.title.isNotEmpty ? item.title : item.categoryName;
+    final dateStr = DateFormat('MMM d, yyyy').format(item.date);
+    final statusPrefix = isFailed
+        ? 'Sync Failed • '
+        : (isPending
+            ? 'Pending Sync • '
+            : (item.isCancelled
+                ? 'Cancelled • '
+                : (item.isScheduled ? 'Planned • ' : '')));
+    final subtitleText = '$statusPrefix${item.categoryName} • $dateStr';
+
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      onTap: () => _showTransactionActions(context, ref, item),
+      leading: Container(
+        width: 44,
+        height: 44,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          gradient: const LinearGradient(
-            colors: [Color(0xFF059669), Color(0xFF10B981)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+          color: categoryColor.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: categoryColor.withValues(alpha: 0.3),
+            width: 1,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.emerald500.withValues(alpha: 0.45),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            ),
-          ],
         ),
-        child: FloatingActionButton.extended(
-          onPressed: () => context.go('/transactions/add'),
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          icon: const Icon(Icons.add_rounded, size: 22),
-          label: const Text(
-            'New',
-            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
-          ),
-          tooltip: 'Add Transaction',
+        child: Icon(categoryIcon, color: categoryColor, size: 20),
+      ),
+      title: Text(
+        primaryTitle,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          fontWeight: FontWeight.w700,
+          fontSize: 14,
+          color: AppColors.textDark,
+        ),
+      ),
+      subtitle: Text(
+        subtitleText,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          color: AppColors.textMuted,
+        ),
+      ),
+      trailing: Text(
+        item.isTransfer
+            ? CurrencyFormatter.format(item.amount)
+            : CurrencyFormatter.formatSigned(item.amount, isExpense: isExpense),
+        style: TextStyle(
+          fontWeight: FontWeight.w800,
+          fontSize: 15,
+          color: amountColor,
+          fontFeatures: const [FontFeature.tabularFigures()],
         ),
       ),
     );
@@ -388,17 +606,49 @@ class TransactionsScreen extends ConsumerWidget {
   }
 }
 
+class _DateGroup {
+  final String header;
+  final List<TransactionEntry> items;
+  const _DateGroup({required this.header, required this.items});
+}
+
+List<_DateGroup> _groupTransactionsByDate(List<TransactionEntry> items) {
+  final Map<String, List<TransactionEntry>> map = {};
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final yesterday = today.subtract(const Duration(days: 1));
+
+  for (final item in items) {
+    final itemDay = DateTime(item.date.year, item.date.month, item.date.day);
+    String header;
+    if (itemDay == today) {
+      header = 'Today';
+    } else if (itemDay == yesterday) {
+      header = 'Yesterday';
+    } else {
+      header = DateFormat('MMMM d, yyyy').format(item.date);
+    }
+    map.putIfAbsent(header, () => []).add(item);
+  }
+
+  return map.entries
+      .map((e) => _DateGroup(header: e.key, items: e.value))
+      .toList();
+}
+
 class _TransactionsSliverAppBar extends StatelessWidget {
   final bool isDark;
   final TransactionQueryFilter filter;
   final VoidCallback onRefresh;
   final VoidCallback onPickDateRange;
+  final VoidCallback onNewEntry;
 
   const _TransactionsSliverAppBar({
     required this.isDark,
     required this.filter,
     required this.onRefresh,
     required this.onPickDateRange,
+    required this.onNewEntry,
   });
 
   @override
@@ -408,20 +658,28 @@ class _TransactionsSliverAppBar extends StatelessWidget {
     return SliverAppBar(
       pinned: true,
       floating: false,
-      backgroundColor: isDark ? AppColors.obsidian : AppColors.lightBg,
+      backgroundColor: AppColors.obsidian,
       elevation: 0,
       scrolledUnderElevation: 0,
-      title: Text(
+      title: const Text(
         'Transactions',
         style: TextStyle(
           fontWeight: FontWeight.w800,
           fontSize: 22,
-          letterSpacing: -0.5,
-          color: isDark ? Colors.white : AppColors.textLight,
+          letterSpacing: 0.5,
+          color: AppColors.textDark,
         ),
       ),
       titleSpacing: 20,
       actions: [
+        _AppBarIconBtn(
+          icon: Icons.add_rounded,
+          isDark: isDark,
+          isActive: true,
+          onTap: onNewEntry,
+          tooltip: 'Add Transaction or Transfer',
+        ),
+        const SizedBox(width: 8),
         _AppBarIconBtn(
           icon: Icons.calendar_month_rounded,
           isDark: isDark,
@@ -459,39 +717,44 @@ class _AppBarIconBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              color: isActive
-                  ? AppColors.emerald500.withValues(alpha: 0.2)
-                  : (isDark
-                      ? AppColors.surface700.withValues(alpha: 0.7)
-                      : AppColors.lightCard),
-              border: Border.all(
-                color: isActive
-                    ? AppColors.emerald500
-                    : (isDark
-                        ? AppColors.surface600.withValues(alpha: 0.6)
-                        : AppColors.lightBorder),
-                width: 1,
+    return Semantics(
+      button: true,
+      label: tooltip,
+      onTap: onTap,
+      excludeSemantics: true,
+      child: Tooltip(
+        message: tooltip,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+              child: Center(
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.zero,
+                    color: isActive
+                        ? AppColors.emerald500.withValues(alpha: 0.2)
+                        : AppColors.surface700,
+                    border: Border.all(
+                      color: isActive
+                          ? AppColors.emerald500
+                          : const Color(0xFF1F293D),
+                      width: 1,
+                    ),
+                  ),
+                  child: Icon(
+                    icon,
+                    size: 18,
+                    color: isActive
+                        ? AppColors.emerald500
+                        : AppColors.textMuted,
+                  ),
+                ),
               ),
-            ),
-            child: Icon(
-              icon,
-              size: 18,
-              color: isActive
-                  ? AppColors.emerald500
-                  : (isDark ? AppColors.textMuted : AppColors.textMutedL),
             ),
           ),
         ),

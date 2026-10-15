@@ -35,6 +35,12 @@ enum BillInstanceStatus {
   cancelled
 }
 
+enum TransactionStatus {
+  planned
+  posted
+  cancelled
+}
+
 enum AlertType {
   budget_overrun
   low_balance
@@ -76,6 +82,7 @@ model User {
   financialAccounts     FinancialAccount[]
   incomeEntries         IncomeEntry[]
   expenseEntries        ExpenseEntry[]
+  transfers             AccountTransfer[]
   expenseCategories     ExpenseCategory[]
   budgets               Budget[]
   savingsGoals          SavingsGoal[]
@@ -119,6 +126,8 @@ model FinancialAccount {
   user                User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   incomeEntries       IncomeEntry[]
   expenseEntries      ExpenseEntry[]
+  outgoingTransfers   AccountTransfer[]    @relation("TransferFromAccount")
+  incomingTransfers   AccountTransfer[]    @relation("TransferToAccount")
   savingsContributions SavingsContribution[]
 
   @@index([userId])
@@ -132,6 +141,7 @@ model IncomeEntry {
   amount               Decimal  @db.Decimal(14, 2)
   source               String
   receivedAt           DateTime
+  status               TransactionStatus @default(posted)
   notes                String?
   recurringTemplateId  String?
   clientMutationId     String?  @unique
@@ -170,6 +180,7 @@ model ExpenseEntry {
   amount               Decimal  @db.Decimal(14, 2)
   description          String
   spentAt              DateTime
+  status               TransactionStatus @default(posted)
   notes                String?
   recurringTemplateId  String?
   clientMutationId     String?  @unique
@@ -183,6 +194,29 @@ model ExpenseEntry {
   @@index([userId, spentAt])
   @@index([clientMutationId])
   @@map("expense_entries")
+}
+
+model AccountTransfer {
+  id               String            @id @default(uuid())
+  userId           String
+  fromAccountId    String
+  toAccountId      String
+  amount           Decimal           @db.Decimal(14, 2)
+  transferredAt    DateTime
+  status           TransactionStatus @default(posted)
+  notes            String?
+  clientMutationId String?           @unique
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fromAccount FinancialAccount @relation("TransferFromAccount", fields: [fromAccountId], references: [id])
+  toAccount   FinancialAccount @relation("TransferToAccount", fields: [toAccountId], references: [id])
+
+  @@index([userId, transferredAt])
+  @@index([fromAccountId, transferredAt])
+  @@index([toAccountId, transferredAt])
+  @@map("account_transfers")
 }
 
 model Budget {
@@ -228,6 +262,7 @@ model SavingsContribution {
   amount       Decimal  @db.Decimal(14, 2)
   contributedAt DateTime
   notes        String?
+  clientMutationId String? @unique
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -279,6 +314,7 @@ model BillInstance {
   user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   template BillTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
 
+  @@unique([templateId, dueDate])
   @@index([userId, dueDate, status])
   @@map("bill_instances")
 }
@@ -330,6 +366,7 @@ model FinancialAlert {
 
   @@index([userId, readAt, createdAt(desc)])
   @@index([deduplicationKey])
+  @@unique([userId, deduplicationKey])
   @@map("financial_alerts")
 }
 

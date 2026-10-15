@@ -37,8 +37,8 @@ export function registerRoutes(app: import('express').Router) {
 
   app.get('/api/v1/bills', authenticate, validate(billQuerySchema, 'query'), async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const bills = await billService.listBills(req.userId!, req.query);
-      sendSuccess(res, bills);
+      const { rows, page, limit, total } = await billService.listBills(req.userId!, req.query);
+      sendSuccess(res, rows, { page, limit, total });
     } catch (err) { next(err); }
   });
 

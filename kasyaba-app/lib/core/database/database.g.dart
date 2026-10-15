@@ -268,6 +268,15 @@ class $OfflineTransactionsTable extends OfflineTransactions
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _typeMeta = const VerificationMeta('type');
   @override
   late final GeneratedColumn<String> type = GeneratedColumn<String>(
@@ -308,8 +317,52 @@ class $OfflineTransactionsTable extends OfflineTransactions
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _retryCountMeta = const VerificationMeta(
+    'retryCount',
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, type, json, createdAt, syncedAt];
+  late final GeneratedColumn<int> retryCount = GeneratedColumn<int>(
+    'retry_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _lastErrorMeta = const VerificationMeta(
+    'lastError',
+  );
+  @override
+  late final GeneratedColumn<String> lastError = GeneratedColumn<String>(
+    'last_error',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _failedAtMeta = const VerificationMeta(
+    'failedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> failedAt = GeneratedColumn<DateTime>(
+    'failed_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    userId,
+    type,
+    json,
+    createdAt,
+    syncedAt,
+    retryCount,
+    lastError,
+    failedAt,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -326,6 +379,12 @@ class $OfflineTransactionsTable extends OfflineTransactions
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     } else if (isInserting) {
       context.missing(_idMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
     }
     if (data.containsKey('type')) {
       context.handle(
@@ -357,6 +416,24 @@ class $OfflineTransactionsTable extends OfflineTransactions
         syncedAt.isAcceptableOrUnknown(data['synced_at']!, _syncedAtMeta),
       );
     }
+    if (data.containsKey('retry_count')) {
+      context.handle(
+        _retryCountMeta,
+        retryCount.isAcceptableOrUnknown(data['retry_count']!, _retryCountMeta),
+      );
+    }
+    if (data.containsKey('last_error')) {
+      context.handle(
+        _lastErrorMeta,
+        lastError.isAcceptableOrUnknown(data['last_error']!, _lastErrorMeta),
+      );
+    }
+    if (data.containsKey('failed_at')) {
+      context.handle(
+        _failedAtMeta,
+        failedAt.isAcceptableOrUnknown(data['failed_at']!, _failedAtMeta),
+      );
+    }
     return context;
   }
 
@@ -370,6 +447,10 @@ class $OfflineTransactionsTable extends OfflineTransactions
         DriftSqlType.string,
         data['${effectivePrefix}id'],
       )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      ),
       type: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}type'],
@@ -386,6 +467,18 @@ class $OfflineTransactionsTable extends OfflineTransactions
         DriftSqlType.dateTime,
         data['${effectivePrefix}synced_at'],
       ),
+      retryCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}retry_count'],
+      )!,
+      lastError: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_error'],
+      ),
+      failedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}failed_at'],
+      ),
     );
   }
 
@@ -398,26 +491,44 @@ class $OfflineTransactionsTable extends OfflineTransactions
 class OfflineTransaction extends DataClass
     implements Insertable<OfflineTransaction> {
   final String id;
+  final String? userId;
   final String type;
   final String json;
   final DateTime createdAt;
   final DateTime? syncedAt;
+  final int retryCount;
+  final String? lastError;
+  final DateTime? failedAt;
   const OfflineTransaction({
     required this.id,
+    this.userId,
     required this.type,
     required this.json,
     required this.createdAt,
     this.syncedAt,
+    required this.retryCount,
+    this.lastError,
+    this.failedAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
+    if (!nullToAbsent || userId != null) {
+      map['user_id'] = Variable<String>(userId);
+    }
     map['type'] = Variable<String>(type);
     map['json'] = Variable<String>(json);
     map['created_at'] = Variable<DateTime>(createdAt);
     if (!nullToAbsent || syncedAt != null) {
       map['synced_at'] = Variable<DateTime>(syncedAt);
+    }
+    map['retry_count'] = Variable<int>(retryCount);
+    if (!nullToAbsent || lastError != null) {
+      map['last_error'] = Variable<String>(lastError);
+    }
+    if (!nullToAbsent || failedAt != null) {
+      map['failed_at'] = Variable<DateTime>(failedAt);
     }
     return map;
   }
@@ -425,12 +536,22 @@ class OfflineTransaction extends DataClass
   OfflineTransactionsCompanion toCompanion(bool nullToAbsent) {
     return OfflineTransactionsCompanion(
       id: Value(id),
+      userId: userId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(userId),
       type: Value(type),
       json: Value(json),
       createdAt: Value(createdAt),
       syncedAt: syncedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(syncedAt),
+      retryCount: Value(retryCount),
+      lastError: lastError == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastError),
+      failedAt: failedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(failedAt),
     );
   }
 
@@ -441,10 +562,14 @@ class OfflineTransaction extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return OfflineTransaction(
       id: serializer.fromJson<String>(json['id']),
+      userId: serializer.fromJson<String?>(json['userId']),
       type: serializer.fromJson<String>(json['type']),
       json: serializer.fromJson<String>(json['json']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       syncedAt: serializer.fromJson<DateTime?>(json['syncedAt']),
+      retryCount: serializer.fromJson<int>(json['retryCount']),
+      lastError: serializer.fromJson<String?>(json['lastError']),
+      failedAt: serializer.fromJson<DateTime?>(json['failedAt']),
     );
   }
   @override
@@ -452,33 +577,51 @@ class OfflineTransaction extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
+      'userId': serializer.toJson<String?>(userId),
       'type': serializer.toJson<String>(type),
       'json': serializer.toJson<String>(json),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'syncedAt': serializer.toJson<DateTime?>(syncedAt),
+      'retryCount': serializer.toJson<int>(retryCount),
+      'lastError': serializer.toJson<String?>(lastError),
+      'failedAt': serializer.toJson<DateTime?>(failedAt),
     };
   }
 
   OfflineTransaction copyWith({
     String? id,
+    Value<String?> userId = const Value.absent(),
     String? type,
     String? json,
     DateTime? createdAt,
     Value<DateTime?> syncedAt = const Value.absent(),
+    int? retryCount,
+    Value<String?> lastError = const Value.absent(),
+    Value<DateTime?> failedAt = const Value.absent(),
   }) => OfflineTransaction(
     id: id ?? this.id,
+    userId: userId.present ? userId.value : this.userId,
     type: type ?? this.type,
     json: json ?? this.json,
     createdAt: createdAt ?? this.createdAt,
     syncedAt: syncedAt.present ? syncedAt.value : this.syncedAt,
+    retryCount: retryCount ?? this.retryCount,
+    lastError: lastError.present ? lastError.value : this.lastError,
+    failedAt: failedAt.present ? failedAt.value : this.failedAt,
   );
   OfflineTransaction copyWithCompanion(OfflineTransactionsCompanion data) {
     return OfflineTransaction(
       id: data.id.present ? data.id.value : this.id,
+      userId: data.userId.present ? data.userId.value : this.userId,
       type: data.type.present ? data.type.value : this.type,
       json: data.json.present ? data.json.value : this.json,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       syncedAt: data.syncedAt.present ? data.syncedAt.value : this.syncedAt,
+      retryCount: data.retryCount.present
+          ? data.retryCount.value
+          : this.retryCount,
+      lastError: data.lastError.present ? data.lastError.value : this.lastError,
+      failedAt: data.failedAt.present ? data.failedAt.value : this.failedAt,
     );
   }
 
@@ -486,48 +629,78 @@ class OfflineTransaction extends DataClass
   String toString() {
     return (StringBuffer('OfflineTransaction(')
           ..write('id: $id, ')
+          ..write('userId: $userId, ')
           ..write('type: $type, ')
           ..write('json: $json, ')
           ..write('createdAt: $createdAt, ')
-          ..write('syncedAt: $syncedAt')
+          ..write('syncedAt: $syncedAt, ')
+          ..write('retryCount: $retryCount, ')
+          ..write('lastError: $lastError, ')
+          ..write('failedAt: $failedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, type, json, createdAt, syncedAt);
+  int get hashCode => Object.hash(
+    id,
+    userId,
+    type,
+    json,
+    createdAt,
+    syncedAt,
+    retryCount,
+    lastError,
+    failedAt,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is OfflineTransaction &&
           other.id == this.id &&
+          other.userId == this.userId &&
           other.type == this.type &&
           other.json == this.json &&
           other.createdAt == this.createdAt &&
-          other.syncedAt == this.syncedAt);
+          other.syncedAt == this.syncedAt &&
+          other.retryCount == this.retryCount &&
+          other.lastError == this.lastError &&
+          other.failedAt == this.failedAt);
 }
 
 class OfflineTransactionsCompanion extends UpdateCompanion<OfflineTransaction> {
   final Value<String> id;
+  final Value<String?> userId;
   final Value<String> type;
   final Value<String> json;
   final Value<DateTime> createdAt;
   final Value<DateTime?> syncedAt;
+  final Value<int> retryCount;
+  final Value<String?> lastError;
+  final Value<DateTime?> failedAt;
   final Value<int> rowid;
   const OfflineTransactionsCompanion({
     this.id = const Value.absent(),
+    this.userId = const Value.absent(),
     this.type = const Value.absent(),
     this.json = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.syncedAt = const Value.absent(),
+    this.retryCount = const Value.absent(),
+    this.lastError = const Value.absent(),
+    this.failedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   OfflineTransactionsCompanion.insert({
     required String id,
+    this.userId = const Value.absent(),
     required String type,
     required String json,
     required DateTime createdAt,
     this.syncedAt = const Value.absent(),
+    this.retryCount = const Value.absent(),
+    this.lastError = const Value.absent(),
+    this.failedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        type = Value(type),
@@ -535,36 +708,52 @@ class OfflineTransactionsCompanion extends UpdateCompanion<OfflineTransaction> {
        createdAt = Value(createdAt);
   static Insertable<OfflineTransaction> custom({
     Expression<String>? id,
+    Expression<String>? userId,
     Expression<String>? type,
     Expression<String>? json,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? syncedAt,
+    Expression<int>? retryCount,
+    Expression<String>? lastError,
+    Expression<DateTime>? failedAt,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
       if (type != null) 'type': type,
       if (json != null) 'json': json,
       if (createdAt != null) 'created_at': createdAt,
       if (syncedAt != null) 'synced_at': syncedAt,
+      if (retryCount != null) 'retry_count': retryCount,
+      if (lastError != null) 'last_error': lastError,
+      if (failedAt != null) 'failed_at': failedAt,
       if (rowid != null) 'rowid': rowid,
     });
   }
 
   OfflineTransactionsCompanion copyWith({
     Value<String>? id,
+    Value<String?>? userId,
     Value<String>? type,
     Value<String>? json,
     Value<DateTime>? createdAt,
     Value<DateTime?>? syncedAt,
+    Value<int>? retryCount,
+    Value<String?>? lastError,
+    Value<DateTime?>? failedAt,
     Value<int>? rowid,
   }) {
     return OfflineTransactionsCompanion(
       id: id ?? this.id,
+      userId: userId ?? this.userId,
       type: type ?? this.type,
       json: json ?? this.json,
       createdAt: createdAt ?? this.createdAt,
       syncedAt: syncedAt ?? this.syncedAt,
+      retryCount: retryCount ?? this.retryCount,
+      lastError: lastError ?? this.lastError,
+      failedAt: failedAt ?? this.failedAt,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -574,6 +763,9 @@ class OfflineTransactionsCompanion extends UpdateCompanion<OfflineTransaction> {
     final map = <String, Expression>{};
     if (id.present) {
       map['id'] = Variable<String>(id.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
     }
     if (type.present) {
       map['type'] = Variable<String>(type.value);
@@ -587,6 +779,15 @@ class OfflineTransactionsCompanion extends UpdateCompanion<OfflineTransaction> {
     if (syncedAt.present) {
       map['synced_at'] = Variable<DateTime>(syncedAt.value);
     }
+    if (retryCount.present) {
+      map['retry_count'] = Variable<int>(retryCount.value);
+    }
+    if (lastError.present) {
+      map['last_error'] = Variable<String>(lastError.value);
+    }
+    if (failedAt.present) {
+      map['failed_at'] = Variable<DateTime>(failedAt.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -597,10 +798,14 @@ class OfflineTransactionsCompanion extends UpdateCompanion<OfflineTransaction> {
   String toString() {
     return (StringBuffer('OfflineTransactionsCompanion(')
           ..write('id: $id, ')
+          ..write('userId: $userId, ')
           ..write('type: $type, ')
           ..write('json: $json, ')
           ..write('createdAt: $createdAt, ')
           ..write('syncedAt: $syncedAt, ')
+          ..write('retryCount: $retryCount, ')
+          ..write('lastError: $lastError, ')
+          ..write('failedAt: $failedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -794,19 +999,27 @@ typedef $$CachedDashboardTableProcessedTableManager =
 typedef $$OfflineTransactionsTableCreateCompanionBuilder =
     OfflineTransactionsCompanion Function({
       required String id,
+      Value<String?> userId,
       required String type,
       required String json,
       required DateTime createdAt,
       Value<DateTime?> syncedAt,
+      Value<int> retryCount,
+      Value<String?> lastError,
+      Value<DateTime?> failedAt,
       Value<int> rowid,
     });
 typedef $$OfflineTransactionsTableUpdateCompanionBuilder =
     OfflineTransactionsCompanion Function({
       Value<String> id,
+      Value<String?> userId,
       Value<String> type,
       Value<String> json,
       Value<DateTime> createdAt,
       Value<DateTime?> syncedAt,
+      Value<int> retryCount,
+      Value<String?> lastError,
+      Value<DateTime?> failedAt,
       Value<int> rowid,
     });
 
@@ -821,6 +1034,11 @@ class $$OfflineTransactionsTableFilterComposer
   });
   ColumnFilters<String> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -843,6 +1061,21 @@ class $$OfflineTransactionsTableFilterComposer
     column: $table.syncedAt,
     builder: (column) => ColumnFilters(column),
   );
+
+  ColumnFilters<int> get retryCount => $composableBuilder(
+    column: $table.retryCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lastError => $composableBuilder(
+    column: $table.lastError,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get failedAt => $composableBuilder(
+    column: $table.failedAt,
+    builder: (column) => ColumnFilters(column),
+  );
 }
 
 class $$OfflineTransactionsTableOrderingComposer
@@ -856,6 +1089,11 @@ class $$OfflineTransactionsTableOrderingComposer
   });
   ColumnOrderings<String> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -878,6 +1116,21 @@ class $$OfflineTransactionsTableOrderingComposer
     column: $table.syncedAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get retryCount => $composableBuilder(
+    column: $table.retryCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lastError => $composableBuilder(
+    column: $table.lastError,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get failedAt => $composableBuilder(
+    column: $table.failedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$OfflineTransactionsTableAnnotationComposer
@@ -892,6 +1145,9 @@ class $$OfflineTransactionsTableAnnotationComposer
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
   GeneratedColumn<String> get type =>
       $composableBuilder(column: $table.type, builder: (column) => column);
 
@@ -903,6 +1159,17 @@ class $$OfflineTransactionsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get syncedAt =>
       $composableBuilder(column: $table.syncedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get retryCount => $composableBuilder(
+    column: $table.retryCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get lastError =>
+      $composableBuilder(column: $table.lastError, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get failedAt =>
+      $composableBuilder(column: $table.failedAt, builder: (column) => column);
 }
 
 class $$OfflineTransactionsTableTableManager
@@ -949,33 +1216,49 @@ class $$OfflineTransactionsTableTableManager
           updateCompanionCallback:
               ({
                 Value<String> id = const Value.absent(),
+                Value<String?> userId = const Value.absent(),
                 Value<String> type = const Value.absent(),
                 Value<String> json = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime?> syncedAt = const Value.absent(),
+                Value<int> retryCount = const Value.absent(),
+                Value<String?> lastError = const Value.absent(),
+                Value<DateTime?> failedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => OfflineTransactionsCompanion(
                 id: id,
+                userId: userId,
                 type: type,
                 json: json,
                 createdAt: createdAt,
                 syncedAt: syncedAt,
+                retryCount: retryCount,
+                lastError: lastError,
+                failedAt: failedAt,
                 rowid: rowid,
               ),
           createCompanionCallback:
               ({
                 required String id,
+                Value<String?> userId = const Value.absent(),
                 required String type,
                 required String json,
                 required DateTime createdAt,
                 Value<DateTime?> syncedAt = const Value.absent(),
+                Value<int> retryCount = const Value.absent(),
+                Value<String?> lastError = const Value.absent(),
+                Value<DateTime?> failedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => OfflineTransactionsCompanion.insert(
                 id: id,
+                userId: userId,
                 type: type,
                 json: json,
                 createdAt: createdAt,
                 syncedAt: syncedAt,
+                retryCount: retryCount,
+                lastError: lastError,
+                failedAt: failedAt,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

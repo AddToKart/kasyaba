@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const createAccountSchema = z.object({
   name: z.string().min(1, 'Account name is required').max(100),
   type: z.enum(['cash', 'bank', 'ewallet', 'other']).default('cash'),
-  openingBalance: z.string().regex(/^\d+(\.\d{1,2})?$/, 'Invalid amount format').default('0'),
+  openingBalance: z.string().regex(/^\d{1,12}(\.\d{1,2})?$/, 'Invalid amount format').default('0'),
   currencyCode: z.string().length(3).default('PHP'),
 });
 

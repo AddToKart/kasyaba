@@ -16,16 +16,14 @@ const DEFAULT_CATEGORIES = [
 ];
 
 export async function seedDefaultCategories() {
-  for (const cat of DEFAULT_CATEGORIES) {
-    const existing = await prisma.expenseCategory.findFirst({
-      where: { userId: null, name: cat.name },
-    });
-    if (!existing) {
-      await prisma.expenseCategory.create({
-        data: { name: cat.name, iconKey: cat.iconKey },
-      });
-    }
-  }
+  // `skipDuplicates` emits ON CONFLICT DO NOTHING. It is only idempotent
+  // because migration 20260827000000 adds a partial unique index on (name)
+  // for system categories (userId IS NULL); PostgreSQL otherwise treats NULLs
+  // as distinct and would insert a fresh set on every server start.
+  await prisma.expenseCategory.createMany({
+    data: DEFAULT_CATEGORIES,
+    skipDuplicates: true,
+  });
 }
 
 export async function listCategories(userId: string) {

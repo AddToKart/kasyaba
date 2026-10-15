@@ -4,4 +4,7 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- Allow cleartext HTTP to the local development API on Android 9+. -->
+    <application android:networkSecurityConfig="@xml/network_security_config" />
 </manifest>
