@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
 import '../../../core/auth/auth_provider.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
@@ -10,6 +11,7 @@ import '../../../core/utils/category_icon_helper.dart';
 import '../../../shared/widgets/modern_card.dart';
 import '../../../shared/widgets/stat_card.dart';
 import '../../../shared/widgets/empty_state_view.dart';
+import '../../../shared/widgets/modern_bottom_sheet.dart';
 import '../../../app/theme/app_theme.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -54,6 +56,185 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     _ => AppColors.emerald500,
   };
 
+  void _showBufferHealthSheet(BuildContext context, dynamic data) {
+    final runwayDays = _StatGrid._calculateRunway(
+      (data.totalBalance as num).toDouble(),
+      (data.expenses as num).toDouble(),
+    );
+    final now = DateTime.now();
+    final dayOfMonth = now.day.clamp(1, 31);
+    final expenses = (data.expenses as num).toDouble();
+    final dailyBurn = expenses > 0 ? (expenses / dayOfMonth) : 0.0;
+    final healthScore = data.healthScore as String;
+
+    ModernBottomSheet.show(
+      context: context,
+      title: 'Cash Buffer & Health',
+      subtitle:
+          'Deterministic calculation of your liquid runway and spending capacity.',
+      showDragHandle: true,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.surface700.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.subtleBorder),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: _healthColor(healthScore).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: _healthColor(healthScore).withValues(alpha: 0.4),
+                    ),
+                  ),
+                  child: Icon(
+                    Icons.shield_outlined,
+                    color: _healthColor(healthScore),
+                    size: 26,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${runwayDays >= 90 ? "90+" : runwayDays} Days Buffer',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textDark,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        'Status: $healthScore',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: _healthColor(healthScore),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          _buildHealthInfoRow(
+            label: 'Total Liquid Balance',
+            value: CurrencyFormatter.format(data.totalBalance),
+            icon: Icons.account_balance_wallet_outlined,
+          ),
+          const SizedBox(height: 10),
+          _buildHealthInfoRow(
+            label: 'Average Daily Spend',
+            value: dailyBurn > 0
+                ? '${CurrencyFormatter.format(dailyBurn)} / day'
+                : '₱0.00 / day',
+            icon: Icons.local_fire_department_outlined,
+          ),
+          const SizedBox(height: 10),
+          _buildHealthInfoRow(
+            label: 'Estimated Survival Buffer',
+            value: '$runwayDays days without new income',
+            icon: Icons.timer_outlined,
+          ),
+          const SizedBox(height: 16),
+
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.surface800,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.subtleBorder),
+            ),
+            child: const Text(
+              'Your cash buffer estimates how long your current liquid accounts can cover typical daily living costs. A buffer over 30 days is healthy, while over 90 days provides strong financial resilience.',
+              style: TextStyle(
+                fontSize: 12,
+                color: AppColors.textMuted,
+                height: 1.4,
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+
+          FilledButton.icon(
+            onPressed: () {
+              Navigator.of(context).pop();
+              context.go('/alerts');
+            },
+            icon: const Icon(Icons.notifications_outlined, size: 18),
+            label: const Text('View Financial Alerts'),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.emerald500,
+              foregroundColor: Colors.black,
+              textStyle: const TextStyle(fontWeight: FontWeight.w700),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              minimumSize: const Size.fromHeight(48),
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHealthInfoRow({
+    required String label,
+    required String value,
+    required IconData icon,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+      decoration: BoxDecoration(
+        color: AppColors.surface800,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.subtleBorder),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: AppColors.emerald400),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textMuted,
+              ),
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textDark,
+              fontFeatures: [FontFeature.tabularFigures()],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
@@ -61,6 +242,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     final transactionsAsync = ref.watch(transactionsProvider);
     final goalsAsync = ref.watch(goalsProvider);
     final billsAsync = ref.watch(billsProvider);
+    final budgetStatusAsync = ref.watch(budgetStatusProvider);
     final pendingSyncCount = ref.watch(pendingSyncCountProvider);
 
     final theme = Theme.of(context);
@@ -79,6 +261,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             ref.refresh(transactionsProvider.future),
             ref.refresh(goalsProvider.future),
             ref.refresh(billsProvider.future),
+            ref.refresh(budgetStatusProvider.future),
           ]);
         },
         child: CustomScrollView(
@@ -138,10 +321,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                     data: (data) => _StatGrid(
                       data: data,
                       isDark: isDark,
+                      activeGoalCount: goalsAsync.valueOrNull?.length ?? 0,
+                      budgetCount:
+                          budgetStatusAsync.valueOrNull?.budgetCount ?? 0,
                       healthColor: _healthColor(data.healthScore),
                       onSavingsTap: () => context.go('/goals'),
                       onBudgetTap: () => context.go('/budgets'),
-                      onHealthTap: () => context.go('/alerts'),
+                      onHealthTap: () => _showBufferHealthSheet(context, data),
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -903,6 +1089,8 @@ class _QuickActionBtn extends StatelessWidget {
 class _StatGrid extends StatelessWidget {
   final dynamic data;
   final bool isDark;
+  final int activeGoalCount;
+  final int budgetCount;
   final Color healthColor;
   final VoidCallback onSavingsTap;
   final VoidCallback onBudgetTap;
@@ -911,6 +1099,8 @@ class _StatGrid extends StatelessWidget {
   const _StatGrid({
     required this.data,
     required this.isDark,
+    required this.activeGoalCount,
+    required this.budgetCount,
     required this.healthColor,
     required this.onSavingsTap,
     required this.onBudgetTap,
@@ -919,8 +1109,13 @@ class _StatGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final runwayDays = _calculateRunway(data.totalBalance, data.expenses);
-    final runwayText = '${runwayDays}d runway';
+    final runwayDays = _calculateRunway(
+      (data.totalBalance as num).toDouble(),
+      (data.expenses as num).toDouble(),
+    );
+    final hasBudgets = budgetCount > 0;
+    final budgetPercent = (data.budgetUsedPercent as num).toDouble();
+    final savingsAmount = (data.savings as num).toDouble();
 
     return IntrinsicHeight(
       child: Row(
@@ -929,9 +1124,11 @@ class _StatGrid extends StatelessWidget {
           Expanded(
             child: StatCard(
               icon: Icons.savings_outlined,
-              label: 'Savings',
-              value: CurrencyFormatter.formatCompact(data.savings),
-              subtitle: 'Secured',
+              label: 'Saved (MTD)',
+              value: CurrencyFormatter.formatCompact(savingsAmount),
+              subtitle: activeGoalCount > 0
+                  ? '$activeGoalCount Goal${activeGoalCount == 1 ? "" : "s"}'
+                  : (savingsAmount > 0 ? 'Goal Funds' : 'No Goals'),
               color: AppColors.info,
               onTap: onSavingsTap,
             ),
@@ -940,10 +1137,20 @@ class _StatGrid extends StatelessWidget {
           Expanded(
             child: StatCard(
               icon: Icons.donut_small_outlined,
-              label: 'Budget',
-              value: '${data.budgetUsedPercent.toStringAsFixed(0)}%',
-              subtitle: _budgetStatusLabel(data.budgetUsedPercent),
-              color: AppColors.gold500,
+              label: hasBudgets ? 'Budget Used' : 'Budget',
+              value: hasBudgets
+                  ? '${budgetPercent.toStringAsFixed(0)}%'
+                  : 'Not Set',
+              subtitle: hasBudgets
+                  ? _budgetStatusLabel(budgetPercent)
+                  : 'Tap to Set',
+              color: hasBudgets
+                  ? (budgetPercent >= 100
+                      ? AppColors.expense
+                      : (budgetPercent >= 90
+                          ? AppColors.warning
+                          : AppColors.gold500))
+                  : AppColors.gold500,
               onTap: onBudgetTap,
             ),
           ),
@@ -951,9 +1158,9 @@ class _StatGrid extends StatelessWidget {
           Expanded(
             child: StatCard(
               icon: Icons.shield_outlined,
-              label: 'Health',
-              value: data.healthScore,
-              subtitle: runwayText,
+              label: 'Cash Buffer',
+              value: runwayDays >= 90 ? '90+ Days' : '$runwayDays Days',
+              subtitle: data.healthScore as String,
               color: healthColor,
               onTap: onHealthTap,
             ),
@@ -989,40 +1196,35 @@ class _ForecastCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isPositive = (data.predictedMonthEnd as double) >= 0;
+    final isPositive = (data.predictedMonthEnd as num).toDouble() >= 0;
     final accentColor = isPositive ? AppColors.emerald500 : AppColors.expense;
-    final String confidence = (data.confidence as String?) ?? 'medium';
-    final confidenceColor = switch (confidence.toLowerCase()) {
-      'high' => AppColors.emerald500,
-      'low' => AppColors.warning,
-      _ => AppColors.info,
-    };
-    final confidenceLabel = '${confidence.toUpperCase()} CONFIDENCE';
 
-    final double projectedInc = (data.projectedIncome as double? ?? 0.0) > 0
-        ? (data.projectedIncome as double)
-        : (data.income as double);
-    final double projectedExp = (data.projectedExpenses as double? ?? 0.0) > 0
-        ? (data.projectedExpenses as double)
-        : (data.expenses as double);
-    final double remainingInflow = (projectedInc >= (data.income as double))
-        ? (projectedInc - (data.income as double))
-        : 0.0;
-    final double remainingOutflow = (projectedExp >= (data.expenses as double))
-        ? (projectedExp - (data.expenses as double))
-        : 0.0;
-    final bool hasExplicitProjection =
-        (data.projectedIncome as double? ?? 0.0) > 0 ||
-        (data.projectedExpenses as double? ?? 0.0) > 0;
+    final double projectedInc =
+        (data.projectedIncome as num? ?? 0.0).toDouble() > 0
+            ? (data.projectedIncome as num).toDouble()
+            : (data.income as num).toDouble();
+    final double projectedExp =
+        (data.projectedExpenses as num? ?? 0.0).toDouble() > 0
+            ? (data.projectedExpenses as num).toDouble()
+            : (data.expenses as num).toDouble();
+    final double actualInc = (data.income as num).toDouble();
+    final double actualExp = (data.expenses as num).toDouble();
 
-    final String breakdownFormula = hasExplicitProjection
-        ? '${CurrencyFormatter.format(data.totalBalance)} (Liquid) + ${CurrencyFormatter.format(remainingInflow)} (Pending Inflow) - ${CurrencyFormatter.format(remainingOutflow)} (Pending Outflow) = ${CurrencyFormatter.format(data.predictedMonthEnd)} (Forecast)'
-        : () {
-            final delta = (data.predictedMonthEnd as double) -
-                (data.totalBalance as double);
-            final sign = delta >= 0 ? '+' : '-';
-            return '${CurrencyFormatter.format(data.totalBalance)} (Liquid) $sign ${CurrencyFormatter.format(delta.abs())} (Projected Delta) = ${CurrencyFormatter.format(data.predictedMonthEnd)} (Forecast)';
-          }();
+    final double remainingInflow = (projectedInc >= actualInc)
+        ? (projectedInc - actualInc)
+        : 0.0;
+    final double remainingOutflow = (projectedExp >= actualExp)
+        ? (projectedExp - actualExp)
+        : 0.0;
+
+    final now = DateTime.now();
+    final monthEndDay = DateTime(now.year, now.month + 1, 0).day;
+    final outlookBadge =
+        '${DateFormat('MMM').format(now).toUpperCase()} $monthEndDay OUTLOOK';
+
+    final totalBalance = (data.totalBalance as num).toDouble();
+    final predictedMonthEnd = (data.predictedMonthEnd as num).toDouble();
+    final netProjectedDelta = predictedMonthEnd - totalBalance;
 
     return ModernCard(
       padding: const EdgeInsets.all(20),
@@ -1037,16 +1239,16 @@ class _ForecastCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: AppColors.info.withValues(alpha: 0.15),
+                  color: AppColors.emerald500.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: AppColors.info.withValues(alpha: 0.3),
+                    color: AppColors.emerald500.withValues(alpha: 0.3),
                     width: 1,
                   ),
                 ),
                 child: const Icon(
-                  Icons.auto_graph_rounded,
-                  color: AppColors.info,
+                  Icons.trending_up_rounded,
+                  color: AppColors.emerald400,
                   size: 22,
                 ),
               ),
@@ -1058,7 +1260,7 @@ class _ForecastCard extends StatelessWidget {
                     Row(
                       children: [
                         const Text(
-                          'MONTH-END FORECAST',
+                          'PROJECTED MONTH-END',
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w800,
@@ -1069,23 +1271,25 @@ class _ForecastCard extends StatelessWidget {
                         const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
+                            horizontal: 7,
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: confidenceColor.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(6),
+                            color: AppColors.emerald500.withValues(alpha: 0.15),
+                            borderRadius:
+                                BorderRadius.circular(AppTheme.tagRadius),
                             border: Border.all(
-                              color: confidenceColor.withValues(alpha: 0.3),
-                              width: 1,
+                              color: AppColors.emerald500
+                                  .withValues(alpha: 0.35),
+                              width: 0.8,
                             ),
                           ),
                           child: Text(
-                            confidenceLabel,
-                            style: TextStyle(
+                            outlookBadge,
+                            style: const TextStyle(
                               fontSize: 9,
-                              fontWeight: FontWeight.w700,
-                              color: confidenceColor,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.emerald400,
                               letterSpacing: 0.5,
                             ),
                           ),
@@ -1094,7 +1298,7 @@ class _ForecastCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      CurrencyFormatter.format(data.predictedMonthEnd),
+                      CurrencyFormatter.format(predictedMonthEnd),
                       style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
@@ -1103,10 +1307,10 @@ class _ForecastCard extends StatelessWidget {
                         fontFeatures: [FontFeature.tabularFigures()],
                       ),
                     ),
-                    const SizedBox(height: 3),
-                    const Text(
-                      'Cash flow projection based on trends and scheduled activity',
-                      style: TextStyle(
+                    const SizedBox(height: 2),
+                    Text(
+                      'Estimated cash balance on ${DateFormat('MMMM d').format(DateTime(now.year, now.month + 1, 0))}',
+                      style: const TextStyle(
                         fontSize: 11,
                         color: AppColors.textMuted,
                       ),
@@ -1116,15 +1320,15 @@ class _ForecastCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
 
-          // Mini Math Breakdown
+          // ── 3-Tile Cash Flow Bridge ───────────────────────────
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: AppColors.surface800,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: AppColors.subtleBorder,
                 width: 1,
@@ -1136,15 +1340,15 @@ class _ForecastCard extends StatelessWidget {
                 const Row(
                   children: [
                     Icon(
-                      Icons.calculate_outlined,
+                      Icons.account_tree_outlined,
                       size: 14,
                       color: AppColors.gold400,
                     ),
                     SizedBox(width: 6),
                     Text(
-                      'MONTH-END CASH FLOW BREAKDOWN',
+                      'CASH FLOW CALCULATION',
                       style: TextStyle(
-                        fontSize: 10,
+                        fontSize: 10.5,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 0.8,
                         color: AppColors.gold400,
@@ -1152,15 +1356,115 @@ class _ForecastCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  breakdownFormula,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textDark,
-                    fontFeatures: [FontFeature.tabularFigures()],
-                    height: 1.35,
+                const SizedBox(height: 12),
+
+                // 3 Connected Step Cards
+                Row(
+                  children: [
+                    // Step 1: Current Cash
+                    Expanded(
+                      child: _CashFlowStepTile(
+                        label: 'Current Cash',
+                        subtitle: 'In Wallets',
+                        amount: CurrencyFormatter.format(totalBalance),
+                        amountColor: AppColors.textDark,
+                      ),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 4),
+                      child: Text(
+                        '+',
+                        style: TextStyle(
+                          color: AppColors.emerald500,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                    // Step 2: Expected Pay / Inflow
+                    Expanded(
+                      child: _CashFlowStepTile(
+                        label: 'Expected Pay',
+                        subtitle: 'Upcoming In',
+                        amount: '+${CurrencyFormatter.format(remainingInflow)}',
+                        amountColor: AppColors.emerald500,
+                      ),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 4),
+                      child: Text(
+                        '-',
+                        style: TextStyle(
+                          color: AppColors.expense,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                    // Step 3: Upcoming Outflows
+                    Expanded(
+                      child: _CashFlowStepTile(
+                        label: 'Scheduled Out',
+                        subtitle: 'Bills & Spend',
+                        amount: '-${CurrencyFormatter.format(remainingOutflow)}',
+                        amountColor: AppColors.expense,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // Result Bar
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface700.withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: AppColors.subtleBorder,
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Projected Month-End Result',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          Text(
+                            CurrencyFormatter.format(predictedMonthEnd),
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                              color: isPositive
+                                  ? AppColors.emerald500
+                                  : AppColors.expense,
+                              fontFeatures: const [FontFeature.tabularFigures()],
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '(${netProjectedDelta >= 0 ? "+" : ""}${CurrencyFormatter.format(netProjectedDelta)})',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: netProjectedDelta >= 0
+                                  ? AppColors.emerald400
+                                  : AppColors.expense,
+                              fontFeatures: const [FontFeature.tabularFigures()],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -1168,9 +1472,9 @@ class _ForecastCard extends StatelessWidget {
           ),
           const SizedBox(height: 14),
 
-          // Alert Warning Capsule
+          // Alert Reassurance Capsule
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
               color: accentColor.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(12),
@@ -1192,13 +1496,13 @@ class _ForecastCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     isPositive
-                        ? 'Estimated balance at month-end looks healthy.'
-                        : 'Warning: May not cover upcoming bills before next salary.',
+                        ? 'All scheduled bills are fully covered by your projected cash buffer.'
+                        : 'Warning: Upcoming bills exceed your projected cash before next payday.',
                     style: TextStyle(
                       color: accentColor,
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      height: 1.4,
+                      height: 1.35,
                     ),
                   ),
                 ),
@@ -1222,7 +1526,7 @@ class _ForecastCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 12),
-                if (data.dailyBalance.length < 2)
+                if ((data.dailyBalance as List).length < 2)
                   Container(
                     height: 110,
                     alignment: Alignment.center,
@@ -1260,19 +1564,25 @@ class _ForecastCard extends StatelessWidget {
                     height: 140,
                     child: Builder(
                       builder: (context) {
-                        final minY = _computeMinY(data.dailyBalance);
-                        final maxY = _computeMaxY(data.dailyBalance);
+                        final list =
+                            data.dailyBalance as List<DailyBalancePoint>;
+                        final minY = _computeMinY(list);
+                        final maxY = _computeMaxY(list);
                         final range = maxY - minY;
                         final interval = range > 0 ? (range / 3) : 1000.0;
+                        final stepX = (list.length > 5)
+                            ? (list.length / 4)
+                                .clamp(1.0, 10.0)
+                                .floorToDouble()
+                            : 1.0;
 
                         return LineChart(
                           LineChartData(
                             gridData: FlGridData(
                               show: true,
                               drawVerticalLine: false,
-                              horizontalInterval: interval > 0
-                                  ? interval
-                                  : 1000.0,
+                              horizontalInterval:
+                                  interval > 0 ? interval : 1000.0,
                               getDrawingHorizontalLine: (value) {
                                 return const FlLine(
                                   color: Color(0x1F334155),
@@ -1293,19 +1603,39 @@ class _ForecastCard extends StatelessWidget {
                               bottomTitles: AxisTitles(
                                 sideTitles: SideTitles(
                                   showTitles: true,
-                                  reservedSize: 18,
+                                  reservedSize: 22,
+                                  interval: stepX,
                                   getTitlesWidget: (value, meta) {
                                     final idx = value.toInt();
-                                    final list = data.dailyBalance;
                                     if (idx < 0 || idx >= list.length) {
                                       return const SizedBox.shrink();
+                                    }
+                                    if ((value - idx).abs() > 0.001) {
+                                      return const SizedBox.shrink();
+                                    }
+                                    final dateStr = list[idx].date;
+                                    String label = dateStr;
+                                    try {
+                                      final parsed = DateTime.parse(dateStr);
+                                      final now = DateTime.now();
+                                      if (parsed.year == now.year &&
+                                          parsed.month == now.month &&
+                                          parsed.day == now.day) {
+                                        label = 'Today';
+                                      } else {
+                                        label = DateFormat('MMM d')
+                                            .format(parsed);
+                                      }
+                                    } catch (_) {
+                                      label = dateStr.split('-').last;
                                     }
                                     return Padding(
                                       padding: const EdgeInsets.only(top: 6),
                                       child: Text(
-                                        list[idx].date.split('-').last,
+                                        label,
                                         style: const TextStyle(
-                                          fontSize: 9,
+                                          fontSize: 9.5,
+                                          fontWeight: FontWeight.w600,
                                           color: AppColors.textMuted,
                                         ),
                                       ),
@@ -1318,7 +1648,7 @@ class _ForecastCard extends StatelessWidget {
                             lineBarsData: [
                               LineChartBarData(
                                 spots: _buildBalanceSpots(
-                                  data.dailyBalance,
+                                  list,
                                   'balance',
                                 ),
                                 isCurved: true,
@@ -1332,7 +1662,8 @@ class _ForecastCard extends StatelessWidget {
                                     begin: Alignment.topCenter,
                                     end: Alignment.bottomCenter,
                                     colors: [
-                                      AppColors.info.withValues(alpha: 0.22),
+                                      AppColors.info
+                                          .withValues(alpha: 0.22),
                                       AppColors.info.withValues(alpha: 0.0),
                                     ],
                                   ),
@@ -1340,7 +1671,7 @@ class _ForecastCard extends StatelessWidget {
                               ),
                               LineChartBarData(
                                 spots: _buildBalanceSpots(
-                                  data.dailyBalance,
+                                  list,
                                   'projected',
                                 ),
                                 isCurved: true,
@@ -1360,20 +1691,92 @@ class _ForecastCard extends StatelessWidget {
                       },
                     ),
                   ),
-                if (data.dailyBalance.length >= 2) ...[
+                if ((data.dailyBalance as List).length >= 2) ...[
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      const _LegendDot(color: AppColors.info, label: 'Actual'),
+                      const _LegendDot(
+                        color: AppColors.info,
+                        label: 'Actual Balance',
+                      ),
                       const SizedBox(width: 16),
                       _LegendDot(
                         color: AppColors.emerald500.withValues(alpha: 0.7),
-                        label: 'Projected',
+                        label: 'Projected Outlook',
                       ),
                     ],
                   ),
                 ],
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CashFlowStepTile extends StatelessWidget {
+  final String label;
+  final String subtitle;
+  final String amount;
+  final Color amountColor;
+
+  const _CashFlowStepTile({
+    required this.label,
+    required this.subtitle,
+    required this.amount,
+    required this.amountColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surface700.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: AppColors.subtleBorder,
+          width: 0.8,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textMuted,
+            ),
+          ),
+          const SizedBox(height: 4),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              amount,
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w800,
+                color: amountColor,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            subtitle,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textMuted.withValues(alpha: 0.7),
             ),
           ),
         ],
