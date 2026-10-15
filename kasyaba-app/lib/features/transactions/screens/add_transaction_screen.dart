@@ -50,6 +50,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen>
   String? _selectedCategoryName;
 
   late final AnimationController _typeController;
+  late final Animation<double> _typeFade;
 
   final List<Map<String, String>> _categoryItems = [
     {'id': 'cat_food', 'name': 'Food & Dining'},
@@ -86,6 +87,10 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen>
     _typeController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 250),
+    );
+    _typeFade = CurvedAnimation(
+      parent: _typeController,
+      curve: Curves.easeInOut,
     );
     _typeController.forward();
   }
@@ -319,13 +324,14 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen>
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final accountsAsync = ref.watch(accountsProvider);
+    final accountBalancesAsync = ref.watch(accountBalancesProvider);
+    final accountBalances =
+        accountBalancesAsync.valueOrNull ?? const <String, double>{};
     final categoriesAsync = ref.watch(categoriesProvider);
 
     final rawCategories = categoriesAsync.maybeWhen(
       data: (cats) => cats.isNotEmpty
-          ? cats
-                .map((c) => {'id': c.id, 'name': c.name})
-                .toList()
+          ? cats.map((c) => {'id': c.id, 'name': c.name}).toList()
           : _categoryItems,
       orElse: () => _categoryItems,
     );
@@ -347,12 +353,11 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen>
     final selectedCategoryId = _selectedCategoryForDisplay(availableCategories);
 
     // Compute live deterministic current balance & projected balance
-    final accountBalances =
-        ref.watch(accountBalancesProvider).valueOrNull ?? const {};
-    final defaultBalance =
-        ref.watch(dashboardProvider).valueOrNull?.totalBalance ?? 0.0;
+    final accounts = accountsAsync.valueOrNull ?? [];
+    final effectiveAccId =
+        _selectedAccount ?? accounts.firstOrNull?.id;
     final currentBalance =
-        accountBalances[_selectedAccount] ?? defaultBalance;
+        (effectiveAccId != null ? accountBalances[effectiveAccId] : null) ?? 0.0;
     final parsedAmount = double.tryParse(_amountController.text.trim()) ?? 0.0;
     final projectedBalance = _isExpense
         ? (currentBalance - parsedAmount)
@@ -422,11 +427,14 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen>
                 // Type cannot be changed while editing because that would
                 // turn one database record into a different resource type.
                 if (widget.transaction == null)
-                  _TypeSwitcher(
-                    isExpense: _isExpense,
-                    isDark: isDark,
-                    onExpense: () => _switchType(true),
-                    onIncome: () => _switchType(false),
+                  FadeTransition(
+                    opacity: _typeFade,
+                    child: _TypeSwitcher(
+                      isExpense: _isExpense,
+                      isDark: isDark,
+                      onExpense: () => _switchType(true),
+                      onIncome: () => _switchType(false),
+                    ),
                   )
                 else
                   _TransactionTypeBadge(isExpense: _isExpense, isDark: isDark),
@@ -521,8 +529,9 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen>
                         ),
                         error: (_, _) => InkWell(
                           onTap: () => ref.invalidate(accountsProvider),
-                          borderRadius:
-                              BorderRadius.circular(AppTheme.inputRadius),
+                          borderRadius: BorderRadius.circular(
+                            AppTheme.inputRadius,
+                          ),
                           child: Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 16,
@@ -532,12 +541,14 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen>
                               color: isDark
                                   ? AppColors.surface700.withValues(alpha: 0.5)
                                   : AppColors.lightCard2,
-                              borderRadius:
-                                  BorderRadius.circular(AppTheme.inputRadius),
+                              borderRadius: BorderRadius.circular(
+                                AppTheme.inputRadius,
+                              ),
                               border: Border.all(
                                 color: isDark
-                                    ? AppColors.surface600
-                                        .withValues(alpha: 0.7)
+                                    ? AppColors.surface600.withValues(
+                                        alpha: 0.7,
+                                      )
                                     : AppColors.lightBorder,
                                 width: 1.2,
                               ),
@@ -580,7 +591,6 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen>
                             accounts: accounts,
                             selectedAccountId: _selectedAccount,
                             accountBalances: accountBalances,
-                            defaultBalance: defaultBalance,
                             isDark: isDark,
                             onChanged: (id) =>
                                 setState(() => _selectedAccount = id),
@@ -674,8 +684,9 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen>
                   .withValues(alpha: 0.85),
               border: Border(
                 top: BorderSide(
-                  color:
-                      isDark ? AppColors.subtleBorder : AppColors.lightBorder,
+                  color: isDark
+                      ? AppColors.subtleBorder
+                      : AppColors.lightBorder,
                   width: 1,
                 ),
               ),
@@ -883,8 +894,9 @@ class _AmountCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currencySymbolColor =
-        isExpense ? const Color(0xFFF87171) : const Color(0xFF10B981);
+    final currencySymbolColor = isExpense
+        ? const Color(0xFFF87171)
+        : const Color(0xFF10B981);
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -1068,8 +1080,8 @@ class _IncomeQuickPresets extends StatelessWidget {
                               alpha: isDark ? 0.20 : 0.12,
                             )
                           : (isDark
-                              ? AppColors.surface700
-                              : AppColors.lightCard2),
+                                ? AppColors.surface700
+                                : AppColors.lightCard2),
                       borderRadius: BorderRadius.circular(AppTheme.tagRadius),
                       border: Border.all(
                         color: isSelected
@@ -1077,8 +1089,8 @@ class _IncomeQuickPresets extends StatelessWidget {
                                 alpha: isDark ? 0.50 : 0.40,
                               )
                             : (isDark
-                                ? AppColors.surface600
-                                : AppColors.lightBorder),
+                                  ? AppColors.surface600
+                                  : AppColors.lightBorder),
                         width: isSelected ? 1.5 : 1,
                       ),
                     ),
@@ -1091,8 +1103,8 @@ class _IncomeQuickPresets extends StatelessWidget {
                           color: isSelected
                               ? AppColors.income
                               : (isDark
-                                  ? AppColors.textMuted
-                                  : AppColors.textMutedL),
+                                    ? AppColors.textMuted
+                                    : AppColors.textMutedL),
                         ),
                         const SizedBox(width: 6),
                         Text(
@@ -1105,8 +1117,8 @@ class _IncomeQuickPresets extends StatelessWidget {
                             color: isSelected
                                 ? AppColors.income
                                 : (isDark
-                                    ? AppColors.textDark
-                                    : AppColors.textLight),
+                                      ? AppColors.textDark
+                                      : AppColors.textLight),
                           ),
                         ),
                       ],
@@ -1184,8 +1196,8 @@ class _CategoryGrid extends StatelessWidget {
                             alpha: isDark ? 0.40 : 0.30,
                           )
                         : (isDark
-                            ? AppColors.surface600
-                            : AppColors.lightBorder),
+                              ? AppColors.surface600
+                              : AppColors.lightBorder),
                     width: isSelected ? 1.5 : 1,
                   ),
                 ),
@@ -1205,13 +1217,14 @@ class _CategoryGrid extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 11,
-                          fontWeight:
-                              isSelected ? FontWeight.w700 : FontWeight.w500,
+                          fontWeight: isSelected
+                              ? FontWeight.w700
+                              : FontWeight.w500,
                           color: isSelected
                               ? AppColors.expense
                               : (isDark
-                                  ? AppColors.textDark
-                                  : AppColors.textLight),
+                                    ? AppColors.textDark
+                                    : AppColors.textLight),
                         ),
                       ),
                     ),
@@ -1232,7 +1245,6 @@ class _AccountDropdown extends StatelessWidget {
   final List<Account> accounts;
   final String? selectedAccountId;
   final Map<String, double> accountBalances;
-  final double defaultBalance;
   final bool isDark;
   final ValueChanged<String> onChanged;
 
@@ -1240,14 +1252,14 @@ class _AccountDropdown extends StatelessWidget {
     required this.accounts,
     required this.selectedAccountId,
     required this.accountBalances,
-    required this.defaultBalance,
     required this.isDark,
     required this.onChanged,
   });
 
   @override
   Widget build(BuildContext context) {
-    final effectiveSelectedId = (selectedAccountId != null &&
+    final effectiveSelectedId =
+        (selectedAccountId != null &&
             accounts.any((a) => a.id == selectedAccountId))
         ? selectedAccountId!
         : accounts.first.id;
@@ -1279,7 +1291,7 @@ class _AccountDropdown extends StatelessWidget {
           ),
           selectedItemBuilder: (context) {
             return accounts.map((acc) {
-              final accBalance = accountBalances[acc.id] ?? defaultBalance;
+              final accBalance = accountBalances[acc.id] ?? 0.0;
               return Row(
                 children: [
                   const Icon(
@@ -1294,8 +1306,9 @@ class _AccountDropdown extends StatelessWidget {
                       style: TextStyle(
                         fontWeight: FontWeight.w500,
                         fontSize: 15,
-                        color:
-                            isDark ? AppColors.textDark : AppColors.textLight,
+                        color: isDark
+                            ? AppColors.textDark
+                            : AppColors.textLight,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -1307,8 +1320,7 @@ class _AccountDropdown extends StatelessWidget {
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
                       fontFeatures: CurrencyFormatter.tabularFigures,
-                      color:
-                          isDark ? AppColors.textDark : AppColors.textLight,
+                      color: isDark ? AppColors.textDark : AppColors.textLight,
                     ),
                   ),
                 ],
@@ -1317,7 +1329,7 @@ class _AccountDropdown extends StatelessWidget {
           },
           items: accounts.map((acc) {
             final isSelected = acc.id == effectiveSelectedId;
-            final accBalance = accountBalances[acc.id] ?? defaultBalance;
+            final accBalance = accountBalances[acc.id] ?? 0.0;
             return DropdownMenuItem<String>(
               value: acc.id,
               child: Padding(
@@ -1330,22 +1342,23 @@ class _AccountDropdown extends StatelessWidget {
                       color: isSelected
                           ? AppColors.emerald500
                           : (isDark
-                              ? AppColors.textMuted
-                              : AppColors.textMutedL),
+                                ? AppColors.textMuted
+                                : AppColors.textMutedL),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         acc.name,
                         style: TextStyle(
-                          fontWeight:
-                              isSelected ? FontWeight.w700 : FontWeight.w500,
+                          fontWeight: isSelected
+                              ? FontWeight.w700
+                              : FontWeight.w500,
                           fontSize: 14,
                           color: isSelected
                               ? AppColors.emerald500
                               : (isDark
-                                  ? AppColors.textDark
-                                  : AppColors.textLight),
+                                    ? AppColors.textDark
+                                    : AppColors.textLight),
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -1360,8 +1373,8 @@ class _AccountDropdown extends StatelessWidget {
                         color: isSelected
                             ? AppColors.emerald500
                             : (isDark
-                                ? AppColors.textMuted
-                                : AppColors.textMutedL),
+                                  ? AppColors.textMuted
+                                  : AppColors.textMutedL),
                       ),
                     ),
                   ],
@@ -1370,9 +1383,7 @@ class _AccountDropdown extends StatelessWidget {
             );
           }).toList(),
           onChanged: (val) {
-            if (val != null) {
-              onChanged(val);
-            }
+            if (val != null) onChanged(val);
           },
         ),
       ),

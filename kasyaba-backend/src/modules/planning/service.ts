@@ -2,7 +2,7 @@ import Decimal from 'decimal.js';
 import { prisma } from '../../config/database';
 import { ValidationError } from '../../lib/errors';
 import { parseDateOnlyEnd, parseTransactionDate } from '../../lib/transaction-dates';
-import { startOfZonedDay } from '../../lib/zoned-dates';
+import { formatZonedDate, startOfZonedDay } from '../../lib/zoned-dates';
 import type { PlanningQuery } from './validation';
 
 type PlanningEventKind = 'income' | 'expense' | 'bill';
@@ -142,8 +142,9 @@ export function calculatePlanningOverview(input: PlanningCalculationInput): Plan
 }
 
 function defaultDateRange(timeZone: string): { from: string; to: string } {
-  const today = startOfZonedDay(new Date(), timeZone);
-  return { from: dateKey(today), to: dateKey(addDays(today, 30)) };
+  const start = startOfZonedDay(new Date(), timeZone);
+  const end = new Date(start.getTime() + 30 * DAY_MS);
+  return { from: formatZonedDate(start, timeZone), to: formatZonedDate(end, timeZone) };
 }
 
 export async function getPlanningOverview(userId: string, query: PlanningQuery): Promise<PlanningOverview> {

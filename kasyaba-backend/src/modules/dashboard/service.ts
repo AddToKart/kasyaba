@@ -3,7 +3,7 @@ import { prisma } from '../../config/database';
 import { logger } from '../../lib/logger';
 import { toDecimalOrZero } from '../../lib/decimal';
 import { withUserResponseCache } from '../../lib/user-cache';
-import { endOfZonedMonth, startOfZonedMonth } from '../../lib/zoned-dates';
+import { endOfZonedMonth, formatZonedDate, startOfZonedMonth } from '../../lib/zoned-dates';
 import * as forecastingService from '../forecasting/service';
 
 export function getDashboard(userId: string, period = 'month') {
@@ -133,15 +133,15 @@ async function buildDashboard(userId: string, _period = 'month') {
     total: toDecimalOrZero(ce._sum.amount).toFixed(2),
   }));
 
-  // Daily balance chart data (last 30 days)
+  // Daily balance chart data (last 30 days) formatted in user's timezone
   const dailyBalance = dailySnapshots.map((s) => ({
-    date: s.snapshotDate.toISOString().split('T')[0],
+    date: formatZonedDate(s.snapshotDate, timeZone),
     balance: s.actualBalance.toString(),
     predictedEnd: s.predictedMonthEndBalance.toString(),
   }));
 
-  // Ensure current day is present and up to date on chart
-  const todayStr = now.toISOString().split('T')[0];
+  // Ensure current day is present and up to date on chart using the same timezone
+  const todayStr = formatZonedDate(now, timeZone);
   const lastEntry = dailyBalance[dailyBalance.length - 1];
   if (lastEntry && lastEntry.date === todayStr) {
     lastEntry.balance = forecast.actualBalance.toString();
@@ -162,6 +162,8 @@ async function buildDashboard(userId: string, _period = 'month') {
     savings: forecast.savingsMonthToDate,
     budgetUsedPercent,
     predictedMonthEndBalance: forecast.predictedMonthEndBalance,
+    projectedMonthEndIncome: forecast.projectedMonthEndIncome,
+    projectedMonthEndExpenses: forecast.projectedMonthEndExpenses,
     healthScore: forecast.healthScore,
     healthGrade: forecast.healthGrade,
     confidence: forecast.confidence,

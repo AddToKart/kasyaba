@@ -765,6 +765,10 @@ mixin _$DashboardData {
       throw _privateConstructorUsedError;
   List<DailyBalancePoint> get dailyBalance =>
       throw _privateConstructorUsedError;
+  double get projectedIncome => throw _privateConstructorUsedError;
+  double get projectedExpenses => throw _privateConstructorUsedError;
+  String get confidence => throw _privateConstructorUsedError;
+  bool get isFromCache => throw _privateConstructorUsedError;
 
   /// Create a copy of DashboardData
   /// with the given fields replaced by the non-null parameter values.
@@ -790,6 +794,10 @@ abstract class $DashboardDataCopyWith<$Res> {
     double budgetUsedPercent,
     List<CategoryExpenseSummary> categoryExpenses,
     List<DailyBalancePoint> dailyBalance,
+    double projectedIncome,
+    double projectedExpenses,
+    String confidence,
+    bool isFromCache,
   });
 }
 
@@ -817,6 +825,10 @@ class _$DashboardDataCopyWithImpl<$Res, $Val extends DashboardData>
     Object? budgetUsedPercent = null,
     Object? categoryExpenses = null,
     Object? dailyBalance = null,
+    Object? projectedIncome = null,
+    Object? projectedExpenses = null,
+    Object? confidence = null,
+    Object? isFromCache = null,
   }) {
     return _then(
       _value.copyWith(
@@ -856,6 +868,22 @@ class _$DashboardDataCopyWithImpl<$Res, $Val extends DashboardData>
                 ? _value.dailyBalance
                 : dailyBalance // ignore: cast_nullable_to_non_nullable
                       as List<DailyBalancePoint>,
+            projectedIncome: null == projectedIncome
+                ? _value.projectedIncome
+                : projectedIncome // ignore: cast_nullable_to_non_nullable
+                      as double,
+            projectedExpenses: null == projectedExpenses
+                ? _value.projectedExpenses
+                : projectedExpenses // ignore: cast_nullable_to_non_nullable
+                      as double,
+            confidence: null == confidence
+                ? _value.confidence
+                : confidence // ignore: cast_nullable_to_non_nullable
+                      as String,
+            isFromCache: null == isFromCache
+                ? _value.isFromCache
+                : isFromCache // ignore: cast_nullable_to_non_nullable
+                      as bool,
           )
           as $Val,
     );
@@ -881,6 +909,10 @@ abstract class _$$DashboardDataImplCopyWith<$Res>
     double budgetUsedPercent,
     List<CategoryExpenseSummary> categoryExpenses,
     List<DailyBalancePoint> dailyBalance,
+    double projectedIncome,
+    double projectedExpenses,
+    String confidence,
+    bool isFromCache,
   });
 }
 
@@ -907,6 +939,10 @@ class __$$DashboardDataImplCopyWithImpl<$Res>
     Object? budgetUsedPercent = null,
     Object? categoryExpenses = null,
     Object? dailyBalance = null,
+    Object? projectedIncome = null,
+    Object? projectedExpenses = null,
+    Object? confidence = null,
+    Object? isFromCache = null,
   }) {
     return _then(
       _$DashboardDataImpl(
@@ -946,6 +982,22 @@ class __$$DashboardDataImplCopyWithImpl<$Res>
             ? _value._dailyBalance
             : dailyBalance // ignore: cast_nullable_to_non_nullable
                   as List<DailyBalancePoint>,
+        projectedIncome: null == projectedIncome
+            ? _value.projectedIncome
+            : projectedIncome // ignore: cast_nullable_to_non_nullable
+                  as double,
+        projectedExpenses: null == projectedExpenses
+            ? _value.projectedExpenses
+            : projectedExpenses // ignore: cast_nullable_to_non_nullable
+                  as double,
+        confidence: null == confidence
+            ? _value.confidence
+            : confidence // ignore: cast_nullable_to_non_nullable
+                  as String,
+        isFromCache: null == isFromCache
+            ? _value.isFromCache
+            : isFromCache // ignore: cast_nullable_to_non_nullable
+                  as bool,
       ),
     );
   }
@@ -964,6 +1016,10 @@ class _$DashboardDataImpl implements _DashboardData {
     this.budgetUsedPercent = 0.0,
     required final List<CategoryExpenseSummary> categoryExpenses,
     final List<DailyBalancePoint> dailyBalance = const [],
+    this.projectedIncome = 0.0,
+    this.projectedExpenses = 0.0,
+    this.confidence = 'medium',
+    this.isFromCache = false,
   }) : _categoryExpenses = categoryExpenses,
        _dailyBalance = dailyBalance;
 
@@ -1001,8 +1057,21 @@ class _$DashboardDataImpl implements _DashboardData {
   }
 
   @override
+  @JsonKey()
+  final double projectedIncome;
+  @override
+  @JsonKey()
+  final double projectedExpenses;
+  @override
+  @JsonKey()
+  final String confidence;
+  @override
+  @JsonKey()
+  final bool isFromCache;
+
+  @override
   String toString() {
-    return 'DashboardData(totalBalance: $totalBalance, income: $income, expenses: $expenses, savings: $savings, healthScore: $healthScore, predictedMonthEnd: $predictedMonthEnd, budgetUsedPercent: $budgetUsedPercent, categoryExpenses: $categoryExpenses, dailyBalance: $dailyBalance)';
+    return 'DashboardData(totalBalance: $totalBalance, income: $income, expenses: $expenses, savings: $savings, healthScore: $healthScore, predictedMonthEnd: $predictedMonthEnd, budgetUsedPercent: $budgetUsedPercent, categoryExpenses: $categoryExpenses, dailyBalance: $dailyBalance, projectedIncome: $projectedIncome, projectedExpenses: $projectedExpenses, confidence: $confidence, isFromCache: $isFromCache)';
   }
 
   @override
@@ -1029,7 +1098,15 @@ class _$DashboardDataImpl implements _DashboardData {
             const DeepCollectionEquality().equals(
               other._dailyBalance,
               _dailyBalance,
-            ));
+            ) &&
+            (identical(other.projectedIncome, projectedIncome) ||
+                other.projectedIncome == projectedIncome) &&
+            (identical(other.projectedExpenses, projectedExpenses) ||
+                other.projectedExpenses == projectedExpenses) &&
+            (identical(other.confidence, confidence) ||
+                other.confidence == confidence) &&
+            (identical(other.isFromCache, isFromCache) ||
+                other.isFromCache == isFromCache));
   }
 
   @override
@@ -1044,6 +1121,10 @@ class _$DashboardDataImpl implements _DashboardData {
     budgetUsedPercent,
     const DeepCollectionEquality().hash(_categoryExpenses),
     const DeepCollectionEquality().hash(_dailyBalance),
+    projectedIncome,
+    projectedExpenses,
+    confidence,
+    isFromCache,
   );
 
   /// Create a copy of DashboardData
@@ -1066,6 +1147,10 @@ abstract class _DashboardData implements DashboardData {
     final double budgetUsedPercent,
     required final List<CategoryExpenseSummary> categoryExpenses,
     final List<DailyBalancePoint> dailyBalance,
+    final double projectedIncome,
+    final double projectedExpenses,
+    final String confidence,
+    final bool isFromCache,
   }) = _$DashboardDataImpl;
 
   @override
@@ -1086,6 +1171,14 @@ abstract class _DashboardData implements DashboardData {
   List<CategoryExpenseSummary> get categoryExpenses;
   @override
   List<DailyBalancePoint> get dailyBalance;
+  @override
+  double get projectedIncome;
+  @override
+  double get projectedExpenses;
+  @override
+  String get confidence;
+  @override
+  bool get isFromCache;
 
   /// Create a copy of DashboardData
   /// with the given fields replaced by the non-null parameter values.

@@ -2,7 +2,7 @@ import Decimal from 'decimal.js';
 import { prisma } from '../../config/database';
 import { toDecimalOrZero } from '../../lib/decimal';
 import { daysInMonth, daysBetween } from '../../lib/dates';
-import { endOfZonedMonth, startOfZonedDay, startOfZonedMonth } from '../../lib/zoned-dates';
+import { endOfZonedMonth, getZonedParts, startOfZonedDay, startOfZonedMonth } from '../../lib/zoned-dates';
 import * as alertService from '../alerts/service';
 
 type Confidence = 'high' | 'medium' | 'low';
@@ -134,6 +134,7 @@ export async function computeSnapshot(
   const [
     [incByAccount, expByAccount, savingsByAccount, outgoingByAccount, incomingByAccount],
     expenseHistory,
+    billsPaidMTDAgg,
   ] = await Promise.all([
     accountIds.length === 0
       ? Promise.resolve([[], [], [], [], []])
@@ -168,7 +169,21 @@ export async function computeSnapshot(
       where: expenseHistoryWhere,
       orderBy: { spentAt: 'desc' },
     }),
+    billExpenseIds.length === 0
+      ? Promise.resolve({ _sum: { amount: null } })
+      : prisma.expenseEntry.aggregate({
+          where: {
+            userId,
+            id: { in: billExpenseIds },
+            status: { in: ['posted', 'planned'] },
+            spentAt: { gte: monthStart, lte: now },
+          },
+          _sum: { amount: true },
+        }),
   ]);
+
+  const billsPaidMTD = toDecimalOrZero(billsPaidMTDAgg._sum.amount);
+  const variableExpensesMTD = Decimal.max(0, expensesMTD.minus(billsPaidMTD));
 
   const incMap = new Map(incByAccount.map((r) => [r.accountId, toDecimalOrZero(r._sum.amount)]));
   const expMap = new Map(expByAccount.map((r) => [r.accountId, toDecimalOrZero(r._sum.amount)]));
@@ -224,19 +239,20 @@ export async function computeSnapshot(
       .plus(expMonthlyValues[2]?.times(0.2) || new Decimal(0));
     dataConfidence = 'high';
   } else if (expMonthlyValues.length >= 1 || elapsedDays >= 30) {
-    const dailyAvg = expensesMTD.div(elapsedDays || 1);
+    const dailyAvg = variableExpensesMTD.div(elapsedDays || 1);
     projectedVariableExpenses = dailyAvg.times(totalDays);
     dataConfidence = 'medium';
   } else {
-    projectedVariableExpenses = expensesMTD.div(elapsedDays || 1).times(totalDays);
+    projectedVariableExpenses = variableExpensesMTD.div(elapsedDays || 1).times(totalDays);
     dataConfidence = 'low';
   }
 
-  // --- 5. Known upcoming bills ---
+  // --- 5. Known upcoming bills and total bills for month ---
   const billsTotal = unpaidBills.reduce(
     (s, b) => s.plus(toDecimalOrZero(b.amount)),
     new Decimal(0)
   );
+  const totalMonthBills = billsPaidMTD.plus(billsTotal);
 
   // --- 6. Projected month end ---
   // Known future-dated entries are part of the month-end plan, but not today's
@@ -248,11 +264,14 @@ export async function computeSnapshot(
     ? projectedIncome
     : knownMonthEndIncome;
 
-  const knownMonthEndExpenses = expensesMTD.plus(scheduledExpenses);
-  const projectedVariableExpensesVal = projectedVariableExpenses.gt(knownMonthEndExpenses)
+  const knownMonthEndVariable = variableExpensesMTD.plus(scheduledExpenses);
+  const projectedVariableExpensesVal = projectedVariableExpenses.gt(knownMonthEndVariable)
     ? projectedVariableExpenses
-    : knownMonthEndExpenses;
-  const projectedMonthEndExpensesVal = projectedVariableExpensesVal.plus(billsTotal);
+    : knownMonthEndVariable;
+  const projectedMonthEndExpensesVal = Decimal.max(
+    projectedVariableExpensesVal.plus(totalMonthBills),
+    expensesMTD.plus(scheduledExpenses),
+  );
 
   const predictedMonthEndBalance = actualBalance
     .plus(projectedMonthEndIncomeVal.minus(incomeMTD))
@@ -270,6 +289,7 @@ export async function computeSnapshot(
     expensesMTD,
     savingsMTD,
     projectedMonthEndExpenses: projectedMonthEndExpensesVal,
+    projectedMonthEndIncome: projectedMonthEndIncomeVal,
     actualBalance,
     predictedMonthEndBalance,
     userId,
@@ -403,11 +423,21 @@ export async function generateAlertsFromSnapshot(userId: string): Promise<void> 
   );
   await alertService.resolveAlertsByKey(userId, `${userId}:budget_overrun:`);
 
+  const elapsedDays = daysBetween(monthStart, now);
+  const totalDays = daysInMonth(now);
+
   for (const budget of budgets) {
     const budgetAmount = toDecimalOrZero(budget.amount);
-    const projectedSpend = budget.categoryId
-      ? (categoryExpenseTotals.get(budget.categoryId) ?? new Decimal(0))
-      : toDecimalOrZero(currentSnapshot.projectedMonthEndExpenses);
+    let projectedSpend: Decimal;
+    if (budget.categoryId) {
+      const mtdSpend = categoryExpenseTotals.get(budget.categoryId) ?? new Decimal(0);
+      const extrapolated = elapsedDays > 0
+        ? mtdSpend.div(elapsedDays).times(totalDays)
+        : mtdSpend;
+      projectedSpend = Decimal.max(mtdSpend, extrapolated);
+    } else {
+      projectedSpend = toDecimalOrZero(currentSnapshot.projectedMonthEndExpenses);
+    }
     const percentUsed = budgetAmount.gt(0)
       ? projectedSpend.div(budgetAmount).times(100).toNumber()
       : 0;
@@ -672,8 +702,9 @@ export async function evaluateFinancialRecoveryAnalysis(userId: string): Promise
   const snapshot = await computeSnapshot(userId);
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { minimumBalanceThreshold: true, salaryAmount: true },
+    select: { minimumBalanceThreshold: true, salaryAmount: true, timezone: true },
   });
+  const timeZone = user?.timezone ?? 'UTC';
 
   const activeBills = await prisma.billInstance.findMany({
     where: {
@@ -693,8 +724,9 @@ export async function evaluateFinancialRecoveryAnalysis(userId: string): Promise
   const incomeMTD = toDecimalOrZero(snapshot.incomeMonthToDate);
   const projectedMonthEnd = toDecimalOrZero(snapshot.predictedMonthEndBalance);
 
-  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const daysRemaining = Math.max(1, daysInMonth - now.getDate());
+  const parts = getZonedParts(now, timeZone);
+  const daysInMonthTotal = new Date(parts.year, parts.month, 0).getDate();
+  const daysRemaining = Math.max(1, daysInMonthTotal - parts.day);
 
   const safeLiquidCash = actualBalance.minus(totalBills).minus(minThreshold);
   const rawDailyLimit = safeLiquidCash.gt(0)
@@ -798,19 +830,20 @@ export async function evaluateFinancialRecoveryAnalysis(userId: string): Promise
   };
 }
 
-interface HealthInput {
+export interface HealthInput {
   incomeMTD: Decimal;
   expensesMTD: Decimal;
   savingsMTD: Decimal;
   projectedMonthEndExpenses: Decimal;
+  projectedMonthEndIncome?: Decimal;
   actualBalance: Decimal;
   predictedMonthEndBalance: Decimal;
-  userId: string;
-  now: Date;
+  userId?: string;
+  now?: Date;
   billPaymentRate: number; // -1 means no billing history
 }
 
-interface HealthOutput {
+export interface HealthOutput {
   score: number;
   grade: HealthGrade;
 }
@@ -828,9 +861,13 @@ export function computeHealthScore(input: HealthInput): HealthOutput {
   })();
 
   // --- Budget score (30%) ---
+  // Compares full-month projected expenses against full-month projected income
+  // (falling back to incomeMTD if projected income is absent or non-positive).
   const budgetTotal = input.projectedMonthEndExpenses.toNumber();
-  const incomeTotal = incomeMTD.toNumber();
-  const budgetRatio = incomeTotal > 0 ? budgetTotal / incomeTotal : 1;
+  const effectiveIncome = (input.projectedMonthEndIncome && input.projectedMonthEndIncome.gt(0))
+    ? input.projectedMonthEndIncome.toNumber()
+    : incomeMTD.toNumber();
+  const budgetRatio = effectiveIncome > 0 ? budgetTotal / effectiveIncome : 1;
 
   const budgetScore = (() => {
     if (budgetRatio <= 0.90) return 100;
@@ -853,10 +890,11 @@ export function computeHealthScore(input: HealthInput): HealthOutput {
     billScore = Math.max(0, rate / 0.50 * 30);
   }
   // --- Balance resilience score (20%) ---
+  const resilienceIncome = effectiveIncome;
   const projectedBalance = input.predictedMonthEndBalance.toNumber();
   const resilienceScore = projectedBalance > 0
-    ? Math.min(100, 50 + (projectedBalance / (incomeTotal || 1)) * 100)
-    : Math.max(0, 50 + (projectedBalance / (incomeTotal || 1)) * 50);
+    ? Math.min(100, 50 + (projectedBalance / (resilienceIncome || 1)) * 100)
+    : Math.max(0, 50 + (projectedBalance / (resilienceIncome || 1)) * 50);
 
   // --- Composite ---
   const totalScore = Math.round(

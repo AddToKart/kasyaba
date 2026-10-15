@@ -1,6 +1,7 @@
 import { prisma } from '../../config/database';
 import { ConflictError, NotFoundError } from '../../lib/errors';
 import { addMonths, safeDate } from '../../lib/dates';
+import { endOfZonedDay } from '../../lib/zoned-dates';
 import type { CreateBillTemplateInput, UpdateBillTemplateInput } from './validation';
 
 export async function listBillTemplates(userId: string) {
@@ -294,12 +295,33 @@ export async function generateBillInstances(userId: string, monthsAhead = 2) {
 }
 
 export async function updateOverdueBills(userId: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { timezone: true },
+  });
+  const timeZone = user?.timezone ?? 'UTC';
   const now = new Date();
-  const result = await prisma.billInstance.updateMany({
+
+  // A bill is only overdue once its entire local due date has elapsed in the user's timezone.
+  const candidates = await prisma.billInstance.findMany({
     where: {
       userId,
       status: 'upcoming',
-      dueDate: { lt: now },
+      dueDate: { lte: now },
+    },
+    select: { id: true, dueDate: true },
+  });
+
+  const overdueIds = candidates
+    .filter((bill) => endOfZonedDay(bill.dueDate, timeZone) < now)
+    .map((bill) => bill.id);
+
+  if (overdueIds.length === 0) return 0;
+
+  const result = await prisma.billInstance.updateMany({
+    where: {
+      id: { in: overdueIds },
+      status: 'upcoming',
     },
     data: { status: 'overdue' },
   });

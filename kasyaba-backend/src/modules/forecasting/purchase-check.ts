@@ -2,6 +2,7 @@ import Decimal from 'decimal.js';
 import { prisma } from '../../config/database';
 import { toDecimalOrZero } from '../../lib/decimal';
 import { computeSnapshot } from './service';
+import { calculateDailySurplus } from './surplus';
 
 export interface PurchaseCheckInput {
   itemTitle: string;
@@ -77,17 +78,14 @@ export async function evaluatePurchaseAffordability(
   const cashAfterBills = postPurchaseBalance.minus(totalUpcomingBills);
 
   // 4. Daily net surplus calculation
-  const userSalary = toDecimalOrZero(user?.salaryAmount);
-  const mtdExpenses = new Decimal(snapshot.expensesMonthToDate);
-  const observedCashflow = new Decimal(snapshot.incomeMonthToDate).minus(mtdExpenses);
-  const monthlyCashflow = userSalary.gt(0)
-    ? userSalary.minus(mtdExpenses)
-    : observedCashflow;
-  // Never invent a savings rate. Without a positive observed/configured
-  // surplus, the safe-buy date is unknown rather than arbitrarily optimistic.
-  const dailySurplus = monthlyCashflow.gt(0)
-    ? monthlyCashflow.div(30)
-    : new Decimal(0);
+  // Uses canonical calculateDailySurplus that blends configured salary with
+  // monthly expenses, falling back to trailing 30-day or MTD cashflow.
+  const dailySurplus = await calculateDailySurplus(userId, {
+    salaryAmount: user?.salaryAmount,
+    projectedMonthEndExpenses: snapshot.projectedMonthEndExpenses,
+    expensesMTD: snapshot.expensesMonthToDate,
+    incomeMTD: snapshot.incomeMonthToDate,
+  });
 
   // 5. Verdict Matrix Logic
   let verdict: 'AFFORDABLE' | 'RISKY' | 'NOT_RECOMMENDED';

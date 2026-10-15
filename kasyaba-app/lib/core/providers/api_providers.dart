@@ -239,6 +239,10 @@ class DashboardData with _$DashboardData {
     @Default(0.0) double budgetUsedPercent,
     required List<CategoryExpenseSummary> categoryExpenses,
     @Default([]) List<DailyBalancePoint> dailyBalance,
+    @Default(0.0) double projectedIncome,
+    @Default(0.0) double projectedExpenses,
+    @Default('medium') String confidence,
+    @Default(false) bool isFromCache,
   }) = _DashboardData;
 
   factory DashboardData.fromJson(Map<String, dynamic> json) {
@@ -270,9 +274,9 @@ class DashboardData with _$DashboardData {
       healthScore = json['healthGrade'].toString();
     } else if (json['healthScore'] != null) {
       final score = parseNum(json['healthScore']);
-      if (score >= 80) {
+      if (score >= 85) {
         healthScore = 'Excellent';
-      } else if (score >= 60) {
+      } else if (score >= 70) {
         healthScore = 'Good';
       } else if (score >= 50) {
         healthScore = 'Fair';
@@ -303,6 +307,14 @@ class DashboardData with _$DashboardData {
       budgetUsedPercent: parseNum(json['budgetUsedPercent']),
       categoryExpenses: cats,
       dailyBalance: dailyBalance,
+      projectedIncome: parseNum(
+        json['projectedMonthEndIncome'] ?? json['projectedIncome'],
+      ),
+      projectedExpenses: parseNum(
+        json['projectedMonthEndExpenses'] ?? json['projectedExpenses'],
+      ),
+      confidence: json['confidence']?.toString() ?? 'medium',
+      isFromCache: false,
     );
   }
 }
@@ -315,6 +327,9 @@ extension DashboardDataJson on DashboardData {
     'savings': savings.toStringAsFixed(2),
     'healthGrade': healthScore,
     'predictedMonthEndBalance': predictedMonthEnd.toStringAsFixed(2),
+    'projectedMonthEndIncome': projectedIncome.toStringAsFixed(2),
+    'projectedMonthEndExpenses': projectedExpenses.toStringAsFixed(2),
+    'confidence': confidence,
     'budgetUsedPercent': budgetUsedPercent,
     'charts': {
       'expensesByCategory': categoryExpenses.map((c) => c.toJson()).toList(),
@@ -455,7 +470,7 @@ final dashboardProvider = FutureProvider<DashboardData>((ref) async {
   } catch (e) {
     // Try cached data as fallback
     final cached = await cacheService.getCachedDashboard(userId);
-    if (cached != null) return cached;
+    if (cached != null) return cached.copyWith(isFromCache: true);
     throw StateError('Dashboard data is unavailable. Please try again.');
   }
 });
@@ -787,10 +802,7 @@ class TransactionMutator {
       status = TransactionSaveStatus.queued;
     }
 
-    _ref.invalidate(dashboardProvider);
-    _invalidateTransactionProviders();
-    _ref.invalidate(alertsProvider);
-    _ref.invalidate(recoveryAnalysisProvider);
+    _afterTransactionMutation();
     return status;
   }
 
@@ -829,10 +841,7 @@ class TransactionMutator {
       status = TransactionSaveStatus.queued;
     }
 
-    _ref.invalidate(dashboardProvider);
-    _invalidateTransactionProviders();
-    _ref.invalidate(alertsProvider);
-    _ref.invalidate(recoveryAnalysisProvider);
+    _afterTransactionMutation();
     return status;
   }
 
@@ -935,13 +944,17 @@ class TransactionMutator {
       'currencyCode': 'PHP',
     });
     _ref.invalidate(accountsProvider);
+    _ref.invalidate(accountBalancesProvider);
     _ref.invalidate(dashboardProvider);
+    _ref.invalidate(planningProvider);
   }
 
   Future<void> archiveAccount(String accountId) async {
     await _dio.post('/accounts/$accountId/archive');
     _ref.invalidate(accountsProvider);
+    _ref.invalidate(accountBalancesProvider);
     _ref.invalidate(dashboardProvider);
+    _ref.invalidate(planningProvider);
   }
 
   void _afterTransactionMutation() {
@@ -950,6 +963,11 @@ class TransactionMutator {
     _ref.invalidate(alertsProvider);
     _ref.invalidate(recoveryAnalysisProvider);
     _ref.invalidate(accountsProvider);
+    _ref.invalidate(accountBalancesProvider);
+    _ref.invalidate(planningProvider);
+    _ref.invalidate(budgetStatusProvider);
+    _ref.invalidate(goalsProvider);
+    _ref.invalidate(billsProvider);
   }
 
   Future<String> _resolveCategoryId({
@@ -1016,6 +1034,7 @@ class TransactionMutator {
 
     _ref.invalidate(goalsProvider);
     _ref.invalidate(dashboardProvider);
+    _ref.invalidate(planningProvider);
   }
 
   Future<void> addGoalContribution({
@@ -1039,8 +1058,10 @@ class TransactionMutator {
     _ref.invalidate(goalsProvider);
     _ref.invalidate(dashboardProvider);
     _ref.invalidate(accountsProvider);
+    _ref.invalidate(accountBalancesProvider);
     _ref.invalidate(paginatedTransactionsProvider);
     _ref.invalidate(transactionsProvider);
+    _ref.invalidate(planningProvider);
   }
 
   Future<void> addBill({
@@ -1060,6 +1081,30 @@ class TransactionMutator {
 
     _ref.invalidate(billsProvider);
     _ref.invalidate(dashboardProvider);
+    _ref.invalidate(planningProvider);
+  }
+
+  Future<void> markBillPaid({
+    required String billId,
+    required String accountId,
+  }) async {
+    await _dio.post('/bills/$billId/mark-paid', data: {'accountId': accountId});
+    _ref.invalidate(billsProvider);
+    _ref.invalidate(dashboardProvider);
+    _ref.invalidate(accountsProvider);
+    _ref.invalidate(accountBalancesProvider);
+    _invalidateTransactionProviders();
+    _ref.invalidate(planningProvider);
+  }
+
+  Future<void> markBillUnpaid(String billId) async {
+    await _dio.post('/bills/$billId/mark-unpaid');
+    _ref.invalidate(billsProvider);
+    _ref.invalidate(dashboardProvider);
+    _ref.invalidate(accountsProvider);
+    _ref.invalidate(accountBalancesProvider);
+    _invalidateTransactionProviders();
+    _ref.invalidate(planningProvider);
   }
 
   Future<void> updateProfile({
@@ -1144,6 +1189,29 @@ final userProfileProvider = FutureProvider<UserProfile>((ref) async {
   }
 });
 
+class GoalImpactItem {
+  final String goalName;
+  final String? originalTargetDate;
+  final String? delayedTargetDate;
+  final int delayDays;
+
+  const GoalImpactItem({
+    required this.goalName,
+    this.originalTargetDate,
+    this.delayedTargetDate,
+    required this.delayDays,
+  });
+
+  factory GoalImpactItem.fromJson(Map<String, dynamic> json) {
+    return GoalImpactItem(
+      goalName: json['goalName']?.toString() ?? 'Savings Goal',
+      originalTargetDate: json['originalTargetDate']?.toString(),
+      delayedTargetDate: json['delayedTargetDate']?.toString(),
+      delayDays: (json['delayDays'] as num?)?.toInt() ?? 0,
+    );
+  }
+}
+
 class PurchaseCheckResult {
   final String itemTitle;
   final double amount;
@@ -1159,6 +1227,7 @@ class PurchaseCheckResult {
   final String? earliestSafeBuyDate;
   final int? daysUntilSafeBuy;
   final List<String> reasons;
+  final List<GoalImpactItem> goalImpacts;
 
   PurchaseCheckResult({
     required this.itemTitle,
@@ -1175,6 +1244,7 @@ class PurchaseCheckResult {
     this.earliestSafeBuyDate,
     this.daysUntilSafeBuy,
     required this.reasons,
+    this.goalImpacts = const [],
   });
 
   factory PurchaseCheckResult.fromJson(Map<String, dynamic> json) {
@@ -1207,6 +1277,11 @@ class PurchaseCheckResult {
       reasons:
           (json['reasons'] as List<dynamic>?)
               ?.map((e) => e.toString())
+              .toList() ??
+          [],
+      goalImpacts:
+          (json['goalImpacts'] as List<dynamic>?)
+              ?.map((e) => GoalImpactItem.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
     );
@@ -1322,8 +1397,8 @@ class RecoveryAnalysis {
     }
 
     return RecoveryAnalysis(
-      healthScore: (json['healthScore'] as num?)?.toInt() ?? 80,
-      healthGrade: json['healthGrade']?.toString() ?? 'Good',
+      healthScore: (json['healthScore'] as num?)?.toInt() ?? 0,
+      healthGrade: json['healthGrade']?.toString() ?? 'Needs Attention',
       summaryMessage: json['summaryMessage']?.toString() ?? '',
       rootCauses:
           (json['rootCauses'] as List<dynamic>?)

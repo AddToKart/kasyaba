@@ -1,4 +1,4 @@
-interface ZonedParts {
+export interface ZonedParts {
   year: number;
   month: number;
   day: number;
@@ -89,4 +89,26 @@ export function endOfZonedMonth(date: Date, timeZone: string): Date {
     second: 0,
   };
   return new Date(utcForLocal(nextParts, timeZone).getTime() - 1);
+}
+
+export function getZonedParts(date: Date, timeZone: string): ZonedParts {
+  return partsFor(date, timeZone);
+}
+
+export function formatZonedDate(date: Date, timeZone: string): string {
+  const parts = partsFor(date, timeZone);
+  const year = parts.year.toString().padStart(4, '0');
+  const month = parts.month.toString().padStart(2, '0');
+  const day = parts.day.toString().padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+export function endOfZonedDay(date: Date, timeZone: string): Date {
+  const parts = partsFor(date, timeZone);
+  return new Date(
+    utcForLocal(
+      { ...parts, hour: 23, minute: 59, second: 59 },
+      timeZone,
+    ).getTime() + 999,
+  );
 }

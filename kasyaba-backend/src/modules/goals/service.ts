@@ -3,28 +3,8 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/database';
 import { toDecimalOrZero } from '../../lib/decimal';
 import { NotFoundError } from '../../lib/errors';
+import { calculateDailySurplus } from '../forecasting/surplus';
 import type { CreateGoalInput, UpdateGoalInput, CreateContributionInput } from './validation';
-
-async function getUserDailySurplus(userId: string): Promise<Decimal> {
-  const now = new Date();
-  const thirtyDaysAgo = new Date(now.getTime() - 30 * 86400000);
-
-  const [incomeAgg, expenseAgg] = await Promise.all([
-    prisma.incomeEntry.aggregate({
-      where: { userId, status: { in: ['posted', 'planned'] }, receivedAt: { gte: thirtyDaysAgo, lte: now } },
-      _sum: { amount: true },
-    }),
-    prisma.expenseEntry.aggregate({
-      where: { userId, status: { in: ['posted', 'planned'] }, spentAt: { gte: thirtyDaysAgo, lte: now } },
-      _sum: { amount: true },
-    }),
-  ]);
-
-  const net30 = toDecimalOrZero(incomeAgg._sum.amount).minus(
-    toDecimalOrZero(expenseAgg._sum.amount),
-  );
-  return net30.gt(0) ? net30.div(30) : new Decimal(0);
-}
 
 export async function listGoals(userId: string) {
   const [goals, dailySurplus] = await Promise.all([
@@ -38,7 +18,7 @@ export async function listGoals(userId: string) {
       },
       orderBy: { createdAt: 'desc' },
     }),
-    getUserDailySurplus(userId),
+    calculateDailySurplus(userId),
   ]);
 
   const now = new Date();
@@ -196,7 +176,7 @@ export async function getProgress(userId: string, goalId: string) {
     : 0;
   const remaining = Decimal.max(0, targetAmount.minus(totalContributed));
 
-  const dailySurplus = await getUserDailySurplus(userId);
+  const dailySurplus = await calculateDailySurplus(userId);
   const now = new Date();
   const earliestAffordableDate = dailySurplus.gt(0)
     ? new Date(

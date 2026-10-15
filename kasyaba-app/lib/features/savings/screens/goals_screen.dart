@@ -541,7 +541,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
       context: context,
       title: 'Can I Buy This?',
       subtitle:
-          'Deterministic financial impact calculation on cash flow, bills, and threshold.',
+          'Financial impact calculation on cash flow, bills, and threshold.',
       showDragHandle: false,
       child: StatefulBuilder(
         builder: (context, setModalState) {
@@ -1358,6 +1358,136 @@ class _PurchaseCheckCardResult extends StatelessWidget {
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
                         color: AppColors.textDark,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          if (result.reasons.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.surface800,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.subtleBorder),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline_rounded,
+                        size: 14,
+                        color: AppColors.textMuted,
+                      ),
+                      SizedBox(width: 6),
+                      Text(
+                        'ANALYSIS DETAILS',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.8,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  ...result.reasons.map(
+                    (reason) => Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            '• ',
+                            style: TextStyle(
+                              color: AppColors.textMuted,
+                              fontSize: 12,
+                            ),
+                          ),
+                          Expanded(
+                            child: Text(
+                              reason,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textDark,
+                                height: 1.35,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          if (result.goalImpacts.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.surface800,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppColors.gold500.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(
+                        Icons.savings_outlined,
+                        size: 14,
+                        color: AppColors.gold400,
+                      ),
+                      SizedBox(width: 6),
+                      Text(
+                        'SAVINGS GOAL IMPACT',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.8,
+                          color: AppColors.gold400,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  ...result.goalImpacts.map(
+                    (impact) => Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            '• ',
+                            style: TextStyle(
+                              color: AppColors.gold400,
+                              fontSize: 12,
+                            ),
+                          ),
+                          Expanded(
+                            child: Text(
+                              '${impact.goalName}: delayed by ~${impact.delayDays} day${impact.delayDays == 1 ? '' : 's'}${impact.delayedTargetDate != null ? ' (new date: ${impact.delayedTargetDate})' : ''}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textDark,
+                                height: 1.35,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),

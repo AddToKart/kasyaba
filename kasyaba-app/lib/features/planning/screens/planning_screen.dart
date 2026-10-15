@@ -124,7 +124,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            '₱${_money(adjustedClosing)} projected close',
+                            '${_money(adjustedClosing)} projected close',
                             style: const TextStyle(
                               color: AppColors.textDark,
                               fontSize: 24,
@@ -133,7 +133,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            '₱${_money(adjustedDaily)} safe to spend per day',
+                            '${_money(adjustedDaily)} safe to spend per day',
                             style: const TextStyle(
                               color: AppColors.emerald400,
                               fontWeight: FontWeight.w700,
@@ -142,8 +142,8 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                           const SizedBox(height: 10),
                           Text(
                             adjustedBuffer < 0
-                                ? 'This scenario breaks your safety buffer by ₱${_money(adjustedBuffer.abs())}.'
-                                : 'This leaves ₱${_money(adjustedBuffer)} above your safety buffer.',
+                                ? 'This scenario breaks your safety buffer by ${_money(adjustedBuffer.abs())}.'
+                                : 'This leaves ${_money(adjustedBuffer)} above your safety buffer.',
                             style: const TextStyle(
                               color: AppColors.textMuted,
                               fontSize: 12,
@@ -301,19 +301,33 @@ class _PlanningHero extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            '₱${_money(overview.safeToSpendPerDay)}',
-            style: const TextStyle(color: AppColors.textDark, fontSize: 36, fontWeight: FontWeight.w900, letterSpacing: -0.8),
+            _money(overview.safeToSpendPerDay),
+            style: const TextStyle(
+              color: AppColors.textDark,
+              fontSize: 36,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.8,
+              fontFeatures: CurrencyFormatter.tabularFigures,
+            ),
           ),
           const Text('safe to spend per day', style: TextStyle(color: AppColors.textMuted, fontSize: 14)),
           const SizedBox(height: 18),
           Text(
-            'Projected close: ₱${_money(overview.projectedClosingBalance)} after scheduled activity',
-            style: const TextStyle(color: AppColors.textDark, fontWeight: FontWeight.w700),
+            'Projected close: ${_money(overview.projectedClosingBalance)} after scheduled activity',
+            style: const TextStyle(
+              color: AppColors.textDark,
+              fontWeight: FontWeight.w700,
+              fontFeatures: CurrencyFormatter.tabularFigures,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
-            'Planning window: ${overview.daysInWindow} days • Buffer: ₱${_money(overview.minimumBalanceThreshold)} protected',
-            style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+            'Planning window: ${overview.daysInWindow} days • Buffer: ${_money(overview.minimumBalanceThreshold)} protected',
+            style: const TextStyle(
+              color: AppColors.textMuted,
+              fontSize: 12,
+              fontFeatures: CurrencyFormatter.tabularFigures,
+            ),
           ),
           const SizedBox(height: 18),
           OutlinedButton.icon(
@@ -364,7 +378,15 @@ class _PlanningMetric extends StatelessWidget {
         children: [
           Text(label, style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
           const SizedBox(height: 5),
-          Text('₱${_money(value)}', style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 14)),
+          Text(
+            _money(value),
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w800,
+              fontSize: 14,
+              fontFeatures: CurrencyFormatter.tabularFigures,
+            ),
+          ),
         ],
       ),
     );
@@ -380,9 +402,9 @@ class _PlanningDayTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = _statusColor(day.pressure);
     final eventParts = <String>[];
-    if (day.income > 0) eventParts.add('+₱${_money(day.income)} income');
-    if (day.expenses > 0) eventParts.add('-₱${_money(day.expenses)} planned');
-    if (day.bills > 0) eventParts.add('-₱${_money(day.bills)} bills');
+    if (day.income > 0) eventParts.add('+${_money(day.income)} income');
+    if (day.expenses > 0) eventParts.add('-${_money(day.expenses)} planned');
+    if (day.bills > 0) eventParts.add('-${_money(day.bills)} bills');
     if (eventParts.isEmpty) eventParts.add('No scheduled activity');
 
     return ModernCard(
@@ -405,7 +427,15 @@ class _PlanningDayTile extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(child: Text(eventParts.join(' • '), style: const TextStyle(color: AppColors.textMuted, fontSize: 11, height: 1.35))),
           const SizedBox(width: 8),
-          Text('₱${_money(day.projectedBalance)}', style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 12)),
+          Text(
+            _money(day.projectedBalance),
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w800,
+              fontSize: 12,
+              fontFeatures: CurrencyFormatter.tabularFigures,
+            ),
+          ),
         ],
       ),
     );
@@ -452,4 +482,4 @@ String _statusLabel(String status) {
   };
 }
 
-String _money(double value) => CurrencyFormatter.formatNumber(value);
+String _money(double value) => CurrencyFormatter.format(value);

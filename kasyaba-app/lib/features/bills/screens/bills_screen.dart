@@ -191,6 +191,229 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
     );
   }
 
+  void _showBillActionsBottomSheet(BuildContext context, BillItem bill) {
+    final isPaid = bill.status.toLowerCase() == 'paid';
+    final accounts = ref.read(accountsProvider).valueOrNull ?? [];
+    String? selectedAccount = accounts.firstOrNull?.id;
+    bool isSubmitting = false;
+
+    ModernBottomSheet.show(
+      context: context,
+      title: bill.name,
+      subtitle: 'Due date: ${DateFormat('MMMM d, yyyy').format(bill.dueDate)}',
+      child: StatefulBuilder(
+        builder: (context, setModalState) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.surface800,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.subtleBorder),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'AMOUNT DUE',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.8,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          CurrencyFormatter.format(bill.amount),
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            color: AppColors.textDark,
+                            fontFeatures: CurrencyFormatter.tabularFigures,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: (isPaid
+                                ? AppColors.emerald500
+                                : AppColors.gold500)
+                            .withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(
+                          AppTheme.tagRadius,
+                        ),
+                        border: Border.all(
+                          color: (isPaid
+                                  ? AppColors.emerald500
+                                  : AppColors.gold500)
+                              .withValues(alpha: 0.35),
+                          width: 1,
+                        ),
+                      ),
+                      child: Text(
+                        bill.status.toUpperCase(),
+                        style: TextStyle(
+                          color: isPaid
+                              ? AppColors.emerald500
+                              : AppColors.gold500,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.6,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              if (!isPaid) ...[
+                if (accounts.isNotEmpty) ...[
+                  const Text(
+                    'Pay from Account',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedAccount,
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: AppColors.surface800,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.subtleBorder),
+                      ),
+                    ),
+                    items: accounts
+                        .map(
+                          (a) => DropdownMenuItem(
+                            value: a.id,
+                            child: Text(a.name),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (val) => setModalState(() => selectedAccount = val),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+
+                FilledButton.icon(
+                  onPressed: isSubmitting || selectedAccount == null
+                      ? null
+                      : () async {
+                          setModalState(() => isSubmitting = true);
+                          try {
+                            await ref.read(transactionMutatorProvider).markBillPaid(
+                              billId: bill.id,
+                              accountId: selectedAccount!,
+                            );
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('${bill.name} marked as paid!'),
+                                  backgroundColor: AppColors.emerald500,
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              setModalState(() => isSubmitting = false);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(friendlyErrorMessage(e, fallback: 'Failed to mark bill as paid.')),
+                                  backgroundColor: AppColors.expense,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                  icon: isSubmitting
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.check_circle_outline_rounded, size: 18),
+                  label: Text(isSubmitting ? 'Processing...' : 'Mark as Paid'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.emerald500,
+                    minimumSize: const Size.fromHeight(48),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ] else ...[
+                OutlinedButton.icon(
+                  onPressed: isSubmitting
+                      ? null
+                      : () async {
+                          setModalState(() => isSubmitting = true);
+                          try {
+                            await ref.read(transactionMutatorProvider).markBillUnpaid(bill.id);
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('${bill.name} marked as unpaid.'),
+                                  backgroundColor: AppColors.gold500,
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              setModalState(() => isSubmitting = false);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(friendlyErrorMessage(e, fallback: 'Failed to update bill.')),
+                                  backgroundColor: AppColors.expense,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                  icon: isSubmitting
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.undo_rounded, size: 18),
+                  label: Text(isSubmitting ? 'Processing...' : 'Mark as Unpaid'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.gold400,
+                    side: const BorderSide(color: AppColors.gold500),
+                    minimumSize: const Size.fromHeight(48),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ],
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   bool _isBillOverdue(BillItem bill, DateTime today) {
     if (bill.status.toLowerCase() == 'paid') return false;
     if (bill.status.toLowerCase() == 'overdue') return true;
@@ -247,6 +470,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
               child: ListTile(
                 dense: true,
                 visualDensity: VisualDensity.compact,
+                onTap: () => _showBillActionsBottomSheet(context, bill),
                 leading: Container(
                   padding: const EdgeInsets.all(7),
                   decoration: BoxDecoration(
@@ -542,6 +766,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                               : 0;
 
                           return ListTile(
+                            onTap: () => _showBillActionsBottomSheet(context, bill),
                             leading: Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(

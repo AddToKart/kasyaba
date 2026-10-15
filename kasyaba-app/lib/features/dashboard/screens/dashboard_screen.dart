@@ -828,9 +828,7 @@ class _StatGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final runwayDays = _calculateRunway(data.totalBalance, data.expenses);
-    final runwayColor = runwayDays >= 30
-        ? AppColors.emerald500
-        : (runwayDays >= 14 ? AppColors.warning : AppColors.expense);
+    final runwayText = '${runwayDays}d runway';
 
     return IntrinsicHeight(
       child: Row(
@@ -861,10 +859,10 @@ class _StatGrid extends StatelessWidget {
           Expanded(
             child: StatCard(
               icon: Icons.shield_outlined,
-              label: 'Runway',
-              value: '${runwayDays}d',
-              subtitle: runwayDays >= 30 ? 'Safe' : 'Watch',
-              color: runwayColor,
+              label: 'Health',
+              value: data.healthScore,
+              subtitle: runwayText,
+              color: healthColor,
               onTap: onHealthTap,
             ),
           ),
@@ -901,6 +899,38 @@ class _ForecastCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isPositive = (data.predictedMonthEnd as double) >= 0;
     final accentColor = isPositive ? AppColors.emerald500 : AppColors.expense;
+    final String confidence = (data.confidence as String?) ?? 'medium';
+    final confidenceColor = switch (confidence.toLowerCase()) {
+      'high' => AppColors.emerald500,
+      'low' => AppColors.warning,
+      _ => AppColors.info,
+    };
+    final confidenceLabel = '${confidence.toUpperCase()} CONFIDENCE';
+
+    final double projectedInc = (data.projectedIncome as double? ?? 0.0) > 0
+        ? (data.projectedIncome as double)
+        : (data.income as double);
+    final double projectedExp = (data.projectedExpenses as double? ?? 0.0) > 0
+        ? (data.projectedExpenses as double)
+        : (data.expenses as double);
+    final double remainingInflow = (projectedInc >= (data.income as double))
+        ? (projectedInc - (data.income as double))
+        : 0.0;
+    final double remainingOutflow = (projectedExp >= (data.expenses as double))
+        ? (projectedExp - (data.expenses as double))
+        : 0.0;
+    final bool hasExplicitProjection =
+        (data.projectedIncome as double? ?? 0.0) > 0 ||
+        (data.projectedExpenses as double? ?? 0.0) > 0;
+
+    final String breakdownFormula = hasExplicitProjection
+        ? '${CurrencyFormatter.format(data.totalBalance)} (Liquid) + ${CurrencyFormatter.format(remainingInflow)} (Pending Inflow) - ${CurrencyFormatter.format(remainingOutflow)} (Pending Outflow) = ${CurrencyFormatter.format(data.predictedMonthEnd)} (Forecast)'
+        : () {
+            final delta = (data.predictedMonthEnd as double) -
+                (data.totalBalance as double);
+            final sign = delta >= 0 ? '+' : '-';
+            return '${CurrencyFormatter.format(data.totalBalance)} (Liquid) $sign ${CurrencyFormatter.format(delta.abs())} (Projected Delta) = ${CurrencyFormatter.format(data.predictedMonthEnd)} (Forecast)';
+          }();
 
     return ModernCard(
       padding: const EdgeInsets.all(20),
@@ -933,14 +963,42 @@ class _ForecastCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'MONTH-END FORECAST',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.2,
-                        color: AppColors.textMuted,
-                      ),
+                    Row(
+                      children: [
+                        const Text(
+                          'MONTH-END FORECAST',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.2,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: confidenceColor.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: confidenceColor.withValues(alpha: 0.3),
+                              width: 1,
+                            ),
+                          ),
+                          child: Text(
+                            confidenceLabel,
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w700,
+                              color: confidenceColor,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 3),
                     Text(
@@ -955,7 +1013,7 @@ class _ForecastCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 3),
                     const Text(
-                      'Deterministic forecast from scheduled cash flows',
+                      'Cash flow projection based on trends and scheduled activity',
                       style: TextStyle(
                         fontSize: 11,
                         color: AppColors.textMuted,
@@ -968,7 +1026,7 @@ class _ForecastCard extends StatelessWidget {
           ),
           const SizedBox(height: 14),
 
-          // Deterministic Mini Math Breakdown
+          // Mini Math Breakdown
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(12),
@@ -992,7 +1050,7 @@ class _ForecastCard extends StatelessWidget {
                     ),
                     SizedBox(width: 6),
                     Text(
-                      'DETERMINISTIC CASH FLOW BREAKDOWN',
+                      'MONTH-END CASH FLOW BREAKDOWN',
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w800,
@@ -1004,7 +1062,7 @@ class _ForecastCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  '${CurrencyFormatter.format(data.totalBalance)} (Liquid) + ${CurrencyFormatter.format(data.income)} (Inflow) - ${CurrencyFormatter.format(data.expenses)} (Outflow) = ${CurrencyFormatter.format(data.predictedMonthEnd)} (Forecast)',
+                  breakdownFormula,
                   style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
