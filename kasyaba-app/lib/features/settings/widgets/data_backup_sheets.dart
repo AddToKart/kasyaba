@@ -13,50 +13,19 @@ import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/data_export_helper.dart';
 
 /// Shows the modal bottom sheet to export a full JSON backup.
-Future<void> showExportBackupSheet(BuildContext context, WidgetRef ref) async {
-  showDialog(
+Future<void> showExportBackupSheet(
+  BuildContext context,
+  WidgetRef ref, {
+  Map<String, dynamic>? initialData,
+}) {
+  return showModalBottomSheet(
     context: context,
-    barrierDismissible: false,
-    builder: (_) => const Center(
-      child: CircularProgressIndicator(color: AppColors.emerald500),
-    ),
+    isScrollControlled: true,
+    useRootNavigator: true,
+    backgroundColor: Colors.transparent,
+    barrierColor: Colors.black.withValues(alpha: 0.75),
+    builder: (ctx) => _ExportBackupSheet(initialData: initialData),
   );
-
-  try {
-    final data = await ref.read(authProvider.notifier).exportData();
-    if (!context.mounted) return;
-    Navigator.of(context).pop(); // Dismiss loading indicator
-
-    final validation = DataExportHelper.validateBackup(data);
-    final jsonPretty = const JsonEncoder.withIndent('  ').convert(data);
-
-    if (!context.mounted) return;
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      useRootNavigator: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withValues(alpha: 0.75),
-      builder: (ctx) => _ExportBackupSheet(
-        data: data,
-        jsonPretty: jsonPretty,
-        validation: validation,
-      ),
-    );
-  } catch (e) {
-    if (!context.mounted) return;
-    Navigator.of(context).pop(); // Dismiss loading indicator
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          friendlyErrorMessage(
-            e,
-            fallback: 'Failed to export financial backup.',
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 /// Shows the modal bottom sheet to import / restore a JSON backup.
@@ -72,76 +41,95 @@ Future<void> showRestoreBackupSheet(BuildContext context, WidgetRef ref) {
 }
 
 /// Shows the modal bottom sheet to export all transactions to CSV.
-Future<void> showExportCsvSheet(BuildContext context, WidgetRef ref) async {
-  showDialog(
+Future<void> showExportCsvSheet(
+  BuildContext context,
+  WidgetRef ref, {
+  List<TransactionEntry>? initialTransactions,
+  String? initialCsvContent,
+}) {
+  return showModalBottomSheet(
     context: context,
-    barrierDismissible: false,
-    builder: (_) => const Center(
-      child: CircularProgressIndicator(color: AppColors.gold500),
+    isScrollControlled: true,
+    useRootNavigator: true,
+    backgroundColor: Colors.transparent,
+    barrierColor: Colors.black.withValues(alpha: 0.75),
+    builder: (ctx) => _ExportCsvSheet(
+      initialTransactions: initialTransactions,
+      initialCsvContent: initialCsvContent,
     ),
   );
-
-  try {
-    final paginated = await ref.read(paginatedTransactionsProvider.future);
-    final accounts = await ref.read(accountsProvider.future);
-    if (!context.mounted) return;
-    Navigator.of(context).pop(); // Dismiss loader
-
-    final accountMap = {for (final a in accounts) a.id: a.name};
-    final transactions = paginated.items;
-    final csv = DataExportHelper.generateTransactionsCsv(
-      transactions: transactions,
-      accountNames: accountMap,
-    );
-
-    if (!context.mounted) return;
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      useRootNavigator: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withValues(alpha: 0.75),
-      builder: (ctx) => _ExportCsvSheet(
-        transactions: transactions,
-        csvContent: csv,
-      ),
-    );
-  } catch (e) {
-    if (!context.mounted) return;
-    Navigator.of(context).pop();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          friendlyErrorMessage(
-            e,
-            fallback: 'Failed to compile transactions for CSV export.',
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 // ─────────────────────────────────────────────────────────────
 // 1. Export Backup Sheet
 // ─────────────────────────────────────────────────────────────
 
-class _ExportBackupSheet extends StatelessWidget {
-  final Map<String, dynamic> data;
-  final String jsonPretty;
-  final BackupValidationResult validation;
+class _ExportBackupSheet extends ConsumerStatefulWidget {
+  final Map<String, dynamic>? initialData;
 
-  const _ExportBackupSheet({
-    required this.data,
-    required this.jsonPretty,
-    required this.validation,
-  });
+  const _ExportBackupSheet({this.initialData});
+
+  @override
+  ConsumerState<_ExportBackupSheet> createState() => _ExportBackupSheetState();
+}
+
+class _ExportBackupSheetState extends ConsumerState<_ExportBackupSheet> {
+  bool _isLoading = true;
+  String? _errorMessage;
+  String? _jsonPretty;
+  BackupValidationResult? _validation;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialData != null) {
+      _validation = DataExportHelper.validateBackup(widget.initialData!);
+      _jsonPretty =
+          const JsonEncoder.withIndent('  ').convert(widget.initialData!);
+      _isLoading = false;
+    } else {
+      _loadBackup();
+    }
+  }
+
+  Future<void> _loadBackup() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final data = await ref.read(authProvider.notifier).exportData();
+      final validation = DataExportHelper.validateBackup(data);
+      final jsonPretty = const JsonEncoder.withIndent('  ').convert(data);
+
+      if (mounted) {
+        setState(() {
+          _validation = validation;
+          _jsonPretty = jsonPretty;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = friendlyErrorMessage(
+            e,
+            fallback: 'Failed to export financial backup.',
+          );
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final now = DateTime.now();
     final formattedTime = DateFormat('MMM d, yyyy h:mm a').format(now);
+    final validation = _validation;
+    final jsonPretty = _jsonPretty;
 
     return ClipRRect(
       borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
@@ -272,6 +260,73 @@ class _ExportBackupSheet extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 18),
+
+                if (_isLoading) ...[
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 48),
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CircularProgressIndicator(color: Color(0xFF38BDF8)),
+                          SizedBox(height: 16),
+                          Text(
+                            'Compiling complete account snapshot...',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ] else if (_errorMessage != null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: AppColors.expense.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: AppColors.expense.withValues(alpha: 0.4),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.error_outline_rounded,
+                          size: 18,
+                          color: Color(0xFFF87171),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            _errorMessage!,
+                            style: const TextStyle(
+                              fontSize: 12.5,
+                              color: Color(0xFFF87171),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: _loadBackup,
+                    icon: const Icon(Icons.refresh_rounded, size: 18),
+                    label: const Text('Try Again'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF0284C7),
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size.fromHeight(48),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ] else if (validation != null && jsonPretty != null) ...[
 
                 // Record Counts Grid Card
                 Container(
@@ -442,6 +497,7 @@ class _ExportBackupSheet extends StatelessWidget {
                     ),
                   ),
                 ),
+                ],
               ],
             ),
           ),
@@ -956,18 +1012,79 @@ class _RestoreBackupSheetState extends ConsumerState<_RestoreBackupSheet> {
 // 3. Export CSV Sheet
 // ─────────────────────────────────────────────────────────────
 
-class _ExportCsvSheet extends StatelessWidget {
-  final List<TransactionEntry> transactions;
-  final String csvContent;
+class _ExportCsvSheet extends ConsumerStatefulWidget {
+  final List<TransactionEntry>? initialTransactions;
+  final String? initialCsvContent;
 
   const _ExportCsvSheet({
-    required this.transactions,
-    required this.csvContent,
+    this.initialTransactions,
+    this.initialCsvContent,
   });
+
+  @override
+  ConsumerState<_ExportCsvSheet> createState() => _ExportCsvSheetState();
+}
+
+class _ExportCsvSheetState extends ConsumerState<_ExportCsvSheet> {
+  bool _isLoading = true;
+  String? _errorMessage;
+  List<TransactionEntry> _transactions = const [];
+  String _csvContent = '';
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialTransactions != null &&
+        widget.initialCsvContent != null) {
+      _transactions = widget.initialTransactions!;
+      _csvContent = widget.initialCsvContent!;
+      _isLoading = false;
+    } else {
+      _loadCsv();
+    }
+  }
+
+  Future<void> _loadCsv() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final paginated = await ref.read(paginatedTransactionsProvider.future);
+      final accounts = await ref.read(accountsProvider.future);
+      final accountMap = {for (final a in accounts) a.id: a.name};
+      final transactions = paginated.items;
+      final csv = DataExportHelper.generateTransactionsCsv(
+        transactions: transactions,
+        accountNames: accountMap,
+      );
+
+      if (mounted) {
+        setState(() {
+          _transactions = transactions;
+          _csvContent = csv;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = friendlyErrorMessage(
+            e,
+            fallback: 'Failed to compile transactions for CSV export.',
+          );
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final transactions = _transactions;
+    final csvContent = _csvContent;
     final totalCount = transactions.length;
 
     DateTime? earliest;
@@ -1111,171 +1228,243 @@ class _ExportCsvSheet extends StatelessWidget {
                 ),
                 const SizedBox(height: 18),
 
-                // Metrics Box
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: isDark ? AppColors.surface800 : AppColors.lightCard2,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: isDark
-                          ? AppColors.subtleBorder
-                          : AppColors.lightBorder,
+                if (_isLoading) ...[
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 48),
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CircularProgressIndicator(color: Color(0xFFFBBF24)),
+                          SizedBox(height: 16),
+                          Text(
+                            'Compiling transaction ledger...',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Total Transactions:',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: isDark
-                                  ? AppColors.textMuted
-                                  : AppColors.textMutedL,
-                            ),
-                          ),
-                          Text(
-                            '$totalCount entries',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w800,
-                              fontFeatures: CurrencyFormatter.tabularFigures,
-                              color: isDark
-                                  ? Colors.white
-                                  : AppColors.textLight,
-                            ),
-                          ),
-                        ],
+                ] else if (_errorMessage != null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: AppColors.expense.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: AppColors.expense.withValues(alpha: 0.4),
                       ),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Date Coverage:',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: isDark
-                                  ? AppColors.textMuted
-                                  : AppColors.textMutedL,
-                            ),
-                          ),
-                          Text(
-                            dateRangeStr,
-                            style: TextStyle(
-                              fontSize: 13,
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.error_outline_rounded,
+                          size: 18,
+                          color: Color(0xFFF87171),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            _errorMessage!,
+                            style: const TextStyle(
+                              fontSize: 12.5,
+                              color: Color(0xFFF87171),
                               fontWeight: FontWeight.w600,
-                              color: isDark
-                                  ? Colors.white
-                                  : AppColors.textLight,
                             ),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'CSV Schema:',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: isDark
-                                  ? AppColors.textMuted
-                                  : AppColors.textMutedL,
-                            ),
-                          ),
-                          const Text(
-                            'RFC 4180 (8 Columns)',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFFFBBF24),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 20),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: _loadCsv,
+                    icon: const Icon(Icons.refresh_rounded, size: 18),
+                    label: const Text('Try Again'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFD97706),
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size.fromHeight(48),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ] else ...[
+                  // Metrics Box
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? AppColors.surface800
+                          : AppColors.lightCard2,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: isDark
+                            ? AppColors.subtleBorder
+                            : AppColors.lightBorder,
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Total Transactions:',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: isDark
+                                    ? AppColors.textMuted
+                                    : AppColors.textMutedL,
+                              ),
+                            ),
+                            Text(
+                              '$totalCount entries',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                                fontFeatures: CurrencyFormatter.tabularFigures,
+                                color: isDark
+                                    ? Colors.white
+                                    : AppColors.textLight,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Date Coverage:',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: isDark
+                                    ? AppColors.textMuted
+                                    : AppColors.textMutedL,
+                              ),
+                            ),
+                            Text(
+                              dateRangeStr,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: isDark
+                                    ? Colors.white
+                                    : AppColors.textLight,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'CSV Schema:',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: isDark
+                                    ? AppColors.textMuted
+                                    : AppColors.textMutedL,
+                              ),
+                            ),
+                            const Text(
+                              'RFC 4180 (8 Columns)',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFFFBBF24),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
 
-                // Action Buttons
-                ElevatedButton.icon(
-                  onPressed: () async {
-                    try {
-                      final timestamp =
-                          DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
-                      final filename = 'kasyaba_transactions_$timestamp.csv';
-                      final path = await DataExportHelper.saveToFile(
-                        filename: filename,
-                        content: csvContent,
-                      );
+                  // Action Buttons
+                  ElevatedButton.icon(
+                    onPressed: () async {
+                      try {
+                        final timestamp = DateFormat(
+                          'yyyyMMdd_HHmmss',
+                        ).format(DateTime.now());
+                        final filename = 'kasyaba_transactions_$timestamp.csv';
+                        final path = await DataExportHelper.saveToFile(
+                          filename: filename,
+                          content: csvContent,
+                        );
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('CSV saved to: $path'),
+                              backgroundColor: const Color(0xFFD97706),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                          Navigator.of(context).pop();
+                        }
+                      } catch (err) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Failed to save CSV: $err'),
+                              backgroundColor: AppColors.expense,
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    icon: const Icon(Icons.file_download_rounded, size: 18),
+                    label: const Text('Save CSV File to Device'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFD97706),
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size.fromHeight(48),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      await Clipboard.setData(ClipboardData(text: csvContent));
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('CSV saved to: $path'),
-                            backgroundColor: const Color(0xFFD97706),
+                          const SnackBar(
+                            content: Text('CSV content copied to clipboard!'),
+                            backgroundColor: Color(0xFF10B981),
                             behavior: SnackBarBehavior.floating,
                           ),
                         );
                         Navigator.of(context).pop();
                       }
-                    } catch (err) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Failed to save CSV: $err'),
-                            backgroundColor: AppColors.expense,
-                          ),
-                        );
-                      }
-                    }
-                  },
-                  icon: const Icon(Icons.file_download_rounded, size: 18),
-                  label: const Text('Save CSV File to Device'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFD97706),
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size.fromHeight(48),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                    },
+                    icon: const Icon(Icons.copy_rounded, size: 18),
+                    label: const Text('Copy CSV to Clipboard'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: isDark
+                          ? Colors.white
+                          : AppColors.textLight,
+                      side: BorderSide(
+                        color: isDark
+                            ? AppColors.surface600
+                            : AppColors.lightBorder,
+                      ),
+                      minimumSize: const Size.fromHeight(48),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 10),
-                OutlinedButton.icon(
-                  onPressed: () async {
-                    await Clipboard.setData(ClipboardData(text: csvContent));
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('CSV content copied to clipboard!'),
-                          backgroundColor: Color(0xFF10B981),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                      Navigator.of(context).pop();
-                    }
-                  },
-                  icon: const Icon(Icons.copy_rounded, size: 18),
-                  label: const Text('Copy CSV to Clipboard'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: isDark ? Colors.white : AppColors.textLight,
-                    side: BorderSide(
-                      color: isDark
-                          ? AppColors.surface600
-                          : AppColors.lightBorder,
-                    ),
-                    minimumSize: const Size.fromHeight(48),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
+                ],
               ],
             ),
           ),
