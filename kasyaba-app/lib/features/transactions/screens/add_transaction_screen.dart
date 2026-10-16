@@ -1152,9 +1152,9 @@ class _TypeSwitcher extends StatelessWidget {
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: isDark ? AppColors.surface700 : AppColors.lightCard2,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDark ? AppColors.surface600 : AppColors.lightBorder,
+          color: isDark ? AppColors.subtleBorder : AppColors.lightBorder,
           width: 1,
         ),
       ),
@@ -1180,7 +1180,7 @@ class _TypeSwitcher extends StatelessWidget {
             label: 'Transfer',
             icon: Icons.swap_horiz_rounded,
             isSelected: mode == TransactionTypeMode.transfer,
-            activeColor: const Color(0xFF38BDF8),
+            activeColor: AppColors.info,
             isDark: isDark,
             onTap: () => onModeChanged(TransactionTypeMode.transfer),
           ),
@@ -1214,7 +1214,7 @@ class _TransactionTypeBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: color.withValues(alpha: 0.35)),
       ),
       child: Row(
@@ -1270,23 +1270,14 @@ class _TypeTab extends StatelessWidget {
         child: GestureDetector(
           onTap: onTap,
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 220),
+            duration: const Duration(milliseconds: 180),
             curve: Curves.easeOutCubic,
             alignment: Alignment.center,
-            constraints: const BoxConstraints(minHeight: 46),
-            padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 4),
+            constraints: const BoxConstraints(minHeight: 44),
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
             decoration: BoxDecoration(
               color: isSelected ? activeColor : Colors.transparent,
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: isSelected
-                  ? [
-                      BoxShadow(
-                        color: activeColor.withValues(alpha: 0.35),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ]
-                  : [],
+              borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -1341,37 +1332,17 @@ class _AmountCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currencySymbolColor = switch (mode) {
-      TransactionTypeMode.expense => const Color(0xFFF87171),
-      TransactionTypeMode.income => const Color(0xFF10B981),
-      TransactionTypeMode.transfer => const Color(0xFF38BDF8),
-    };
+    final currencySymbolColor = isDark ? Colors.white : AppColors.textLight;
 
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppTheme.cardRadius),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isDark
-              ? [typeColor.withValues(alpha: 0.12), AppColors.surface800]
-              : [
-                  typeColor.withValues(alpha: 0.06),
-                  typeColor.withValues(alpha: 0.03),
-                ],
-        ),
+        color: isDark ? AppColors.surface800 : AppColors.lightCard,
         border: Border.all(
-          color: typeColor.withValues(alpha: isDark ? 0.25 : 0.15),
-          width: 1.5,
+          color: isDark ? AppColors.subtleBorder : AppColors.lightBorder,
+          width: 1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: typeColor.withValues(alpha: 0.08),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1394,8 +1365,8 @@ class _AmountCard extends StatelessWidget {
                 fontSize: 38,
                 fontWeight: FontWeight.w900,
                 color: isDark
-                    ? const Color(0x73FFFFFF)
-                    : AppColors.textMutedL.withValues(alpha: 0.5),
+                    ? const Color(0xFFFAFAFA)
+                    : AppColors.textLight,
                 letterSpacing: -1.0,
                 fontFeatures: CurrencyFormatter.tabularFigures,
               ),
@@ -1700,7 +1671,7 @@ class _CategoryGrid extends StatelessWidget {
             color: Colors.transparent,
             child: InkWell(
               onTap: () => onSelect(cat['id']!),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(10),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
                 alignment: Alignment.center,
@@ -1711,14 +1682,14 @@ class _CategoryGrid extends StatelessWidget {
                           alpha: isDark ? 0.18 : 0.10,
                         )
                       : (isDark ? AppColors.surface700 : AppColors.lightCard2),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
                   border: Border.all(
                     color: isSelected
                         ? AppColors.expense.withValues(
                             alpha: isDark ? 0.40 : 0.30,
                           )
                         : (isDark
-                              ? AppColors.surface600
+                              ? AppColors.subtleBorder
                               : AppColors.lightBorder),
                     width: isSelected ? 1.5 : 1,
                   ),
@@ -2295,15 +2266,7 @@ class _SaveButton extends StatelessWidget {
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
               ),
-        boxShadow: isSubmitting
-            ? []
-            : [
-                BoxShadow(
-                  color: typeColor.withValues(alpha: 0.35),
-                  blurRadius: 16,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+        boxShadow: const [],
       ),
       child: ElevatedButton.icon(
         onPressed: isSubmitting ? null : onPressed,

@@ -56,20 +56,14 @@ class ModernBottomSheet extends StatelessWidget {
       padding: EdgeInsets.only(bottom: bottomInset),
       decoration: BoxDecoration(
         color: AppColors.surface800,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
         border: const Border(
           top: BorderSide(
-            color: Color(0x66D4AF37), // Hairline Gold
+            color: AppColors.subtleBorder,
             width: 1,
           ),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.6),
-            blurRadius: 32,
-            offset: const Offset(0, -8),
-          ),
-        ],
+        boxShadow: const [],
       ),
       child: SafeArea(
         top: false,
@@ -129,7 +123,7 @@ class ModernBottomSheet extends StatelessWidget {
               ),
               const SizedBox(height: 20),
 
-              const Divider(height: 1, color: Color(0x33334155)),
+              const Divider(height: 1, color: AppColors.subtleBorder),
               const SizedBox(height: 20),
 
               Flexible(
@@ -169,7 +163,7 @@ class _CloseButton extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: AppColors.surface700,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0x40334155), width: 1),
+                  border: Border.all(color: AppColors.subtleBorder, width: 1),
                 ),
                 child: const Icon(
                   Icons.close_rounded,

@@ -1,4 +1,3 @@
-import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:reactive_forms/reactive_forms.dart';
 import '../../../app/theme/app_theme.dart';
@@ -253,28 +252,19 @@ class AuthFormCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: const Color(0xBF0F172A), // rgba(15, 23, 42, 0.75)
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: const Color(0x14FFFFFF), // rgba(255, 255, 255, 0.08)
-              width: 1,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.45),
-                blurRadius: 32,
-                offset: const Offset(0, 12),
-              ),
-            ],
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: AppColors.surface800,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: AppColors.subtleBorder,
+            width: 1,
           ),
-          child: child,
+          boxShadow: const [],
         ),
+        child: child,
       ),
     );
   }
@@ -356,16 +346,8 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
         AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: _isFocused
-                ? [
-                    BoxShadow(
-                      color: AppColors.emerald500.withValues(alpha: 0.16),
-                      blurRadius: 10,
-                      spreadRadius: 1,
-                    ),
-                  ]
-                : [],
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: const [],
           ),
           child: ReactiveTextField<dynamic>(
             formControlName: widget.formControlName,
@@ -388,7 +370,7 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
                 fontSize: 14,
               ),
               filled: true,
-              fillColor: const Color(0xFF0B111D),
+              fillColor: AppColors.surface700,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
                 vertical: 14,
@@ -400,28 +382,28 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
               ),
               suffixIcon: widget.suffixIcon,
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(10),
                 borderSide: const BorderSide(
                   color: Color(0x14FFFFFF), // 1px rgba(255,255,255,0.08)
                   width: 1,
                 ),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(10),
                 borderSide: const BorderSide(
                   color: focusedIconColor, // #10B981
                   width: 1.2,
                 ),
               ),
               errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(10),
                 borderSide: const BorderSide(
                   color: AppColors.expense,
                   width: 1,
                 ),
               ),
               focusedErrorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(10),
                 borderSide: const BorderSide(
                   color: AppColors.expense,
                   width: 1.2,
@@ -453,7 +435,7 @@ class AuthGradientButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
         gradient: isLoading
             ? null
             : const LinearGradient(
@@ -481,7 +463,7 @@ class AuthGradientButton extends StatelessWidget {
           shadowColor: Colors.transparent,
           minimumSize: const Size.fromHeight(50),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(10),
           ),
           elevation: 0,
         ),
@@ -513,24 +495,33 @@ class AuthTrustFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Icon(
-          Icons.lock_outline_rounded,
-          size: 13,
-          color: Color(0xFF64748B), // Muted slate
-        ),
-        const SizedBox(width: 6),
-        const Text(
-          'End-to-end local & deterministic calculation',
-          style: TextStyle(
-            color: Color(0xFF64748B),
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.surface800,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.subtleBorder),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.shield_outlined,
+            size: 13,
+            color: AppColors.emerald500,
           ),
-        ),
-      ],
+          SizedBox(width: 6),
+          Text(
+            '100% Deterministic • Zero AI',
+            style: TextStyle(
+              color: AppColors.textMuted,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.3,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -652,7 +643,7 @@ class AuthErrorBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
         color: AppColors.expense.withValues(alpha: 0.12),
         border: Border.all(
           color: AppColors.expense.withValues(alpha: 0.3),

@@ -134,24 +134,19 @@ class _LuxuryFloatingDock extends StatelessWidget {
         bottomPadding > 0 ? bottomPadding : 12,
       ),
       decoration: BoxDecoration(
-        color: const Color(0xF70D121D),
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: const Color(0x40334155), width: 1),
+        color: const Color(0xF7121215),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.subtleBorder, width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.6),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
-          ),
-          BoxShadow(
-            color: AppColors.emerald500.withValues(alpha: 0.08),
-            blurRadius: 16,
-            spreadRadius: 1,
+            color: Colors.black.withValues(alpha: 0.4),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(20),
         child: SizedBox(
           height: 64,
           child: Row(
@@ -219,7 +214,7 @@ class _NavItem extends StatelessWidget {
                 color: isSelected
                     ? activeColor.withValues(alpha: 0.18)
                     : Colors.transparent,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(10),
                 border: isSelected
                     ? Border.all(
                         color: activeColor.withValues(alpha: 0.3),

@@ -799,36 +799,27 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       ),
       body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
         children: [
           // User Profile Card
           ModernCard(
             padding: const EdgeInsets.all(20),
-            borderRadius: 20,
+            borderRadius: 16,
             borderColor: AppColors.subtleBorder,
-            gradient: LinearGradient(
-              colors: isDark
-                  ? const [Color(0xFF1E293B), Color(0xFF0F172A)]
-                  : const [Color(0xFFECFDF5), Color(0xFFF8FAFC)],
-            ),
+            backgroundColor: isDark ? AppColors.surface800 : AppColors.lightCard,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Container(
-                  width: 58,
-                  height: 58,
+                  width: 54,
+                  height: 54,
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF059669), Color(0xFF10B981)],
-                    ),
+                    color: isDark ? AppColors.surface700 : AppColors.lightCard2,
                     shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF10B981).withValues(alpha: 0.3),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
+                    border: Border.all(
+                      color: AppColors.emerald500,
+                      width: 2,
+                    ),
                   ),
                   child: Center(
                     child: Text(

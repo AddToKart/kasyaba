@@ -539,7 +539,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
         color: AppColors.emerald500,
         onRefresh: () async => ref.invalidate(billsProvider),
         child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
           children: [
             // ── Calendar ───────────────────────────────────────
             TableCalendar(
@@ -587,6 +587,18 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                     ),
                   );
                 },
+              ),
+              daysOfWeekStyle: DaysOfWeekStyle(
+                weekdayStyle: TextStyle(
+                  color: isDark ? AppColors.textMuted : AppColors.textMutedL,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                ),
+                weekendStyle: TextStyle(
+                  color: isDark ? AppColors.textMuted : AppColors.textMutedL,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                ),
               ),
               calendarStyle: CalendarStyle(
                 todayDecoration: BoxDecoration(
@@ -851,22 +863,16 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
           borderRadius: BorderRadius.circular(16),
           color: AppColors.emerald500,
           border: Border.all(
-            color: AppColors.gold500.withValues(alpha: 0.5),
+            color: AppColors.subtleBorder,
             width: 1,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.6),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
-            ),
-          ],
+          boxShadow: const [],
         ),
         child: FloatingActionButton.extended(
           onPressed: () => _showAddBillBottomSheet(context),
           backgroundColor: Colors.transparent,
           elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           icon: const Icon(Icons.add_rounded, size: 22, color: Colors.black),
           label: const Text(
             'New Bill',

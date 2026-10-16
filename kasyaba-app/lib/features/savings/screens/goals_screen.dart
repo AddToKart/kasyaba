@@ -772,7 +772,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                                         tenureMonths)
                                     : amount;
                                 final evalTitle = isInstallment
-                                    ? '$title (${tenureMonths}m Installment: ₱${evalAmount.toStringAsFixed(2)}/mo)'
+                                    ? '$title (${tenureMonths}m Installment: ${CurrencyFormatter.format(evalAmount)}/mo)'
                                     : title;
 
                                 final result =
@@ -886,7 +886,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
         color: AppColors.emerald500,
         onRefresh: () async => ref.invalidate(goalsProvider),
         child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 110),
           children: [
             _CanIBuyThisHeroCard(
               isDark: isDark,
@@ -970,25 +970,19 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
       ),
       floatingActionButton: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(10),
           color: AppColors.emerald500,
           border: Border.all(
-            color: AppColors.gold500.withValues(alpha: 0.5),
+            color: AppColors.subtleBorder,
             width: 1,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.6),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
-            ),
-          ],
+          boxShadow: const [],
         ),
         child: FloatingActionButton.extended(
           onPressed: () => _showAddGoalBottomSheet(context),
           backgroundColor: Colors.transparent,
           elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           icon: const Icon(Icons.add_rounded, size: 22, color: Colors.black),
           label: const Text(
             'New Goal',
@@ -1498,7 +1492,7 @@ class _PurchaseCheckCardResult extends StatelessWidget {
 
     // Strip any leading emoji from statusTitle to ensure no duplicate icons
     final cleanTitle = result.statusTitle
-        .replaceAll(RegExp(r'^[^\w\s]+\s*'), '')
+        .replaceAll(RegExp(r'^[^\w\s]+\s*'), '').replaceAll(RegExp(r'[❌✖✕✗✘]'), '')
         .trim();
 
     final workHours = calculateWorkHoursEquivalent(
@@ -1518,7 +1512,7 @@ class _PurchaseCheckCardResult extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: cardColor.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: cardColor.withValues(alpha: 0.35), width: 1),
       ),
       child: Column(
@@ -1618,7 +1612,7 @@ class _PurchaseCheckCardResult extends StatelessWidget {
                         ),
                         const SizedBox(height: 3),
                         Text(
-                          'Based on ₱${CurrencyFormatter.format(workHours.salaryAmount!)}/mo salary (₱${workHours.hourlyWage.toStringAsFixed(2)}/hr across 176 monthly work hours)',
+                          'Based on ${CurrencyFormatter.format(workHours.salaryAmount!)}/mo salary (${CurrencyFormatter.format(workHours.hourlyWage)}/hr across 176 monthly work hours)',
                           style: const TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w500,
@@ -1691,7 +1685,7 @@ class _PurchaseCheckCardResult extends StatelessWidget {
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: AppColors.surface800,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(10),
               border: Border.all(color: AppColors.subtleBorder),
             ),
             child: Column(

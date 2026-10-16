@@ -39,7 +39,7 @@ void main() {
     expect(find.text('Continue with Demo Account'), findsNothing);
 
     // Bottom trust footer
-    expect(find.text('End-to-end local & deterministic calculation'), findsOneWidget);
+    expect(find.text('100% Deterministic • Zero AI'), findsOneWidget);
 
     // Test Forgot Password dialog
     await tester.tap(find.text('Forgot Password?'));
@@ -81,7 +81,7 @@ void main() {
     expect(find.text('CONFIRM PASSWORD'), findsOneWidget);
 
     // Trust footer and terms note
-    expect(find.text('End-to-end local & deterministic calculation'), findsOneWidget);
+    expect(find.text('100% Deterministic • Zero AI'), findsOneWidget);
     expect(find.textContaining('Terms of Service and Privacy Policy'), findsOneWidget);
 
     // Enter a password to trigger strength indicator

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
+import '../../../core/utils/currency_formatter.dart';
 import '../../../shared/widgets/modern_card.dart';
 
 class AlertsScreen extends ConsumerWidget {
@@ -66,7 +67,7 @@ class AlertsScreen extends ConsumerWidget {
           ref.invalidate(recoveryAnalysisProvider);
         },
         child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
           children: [
             // ── Dynamic Health Score Header Banner ─────────────────────────
             dashboardAsync.when(
@@ -243,7 +244,7 @@ class AlertsScreen extends ConsumerWidget {
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
-                                      '₱${analysis.recommendedDailySpendLimit.toStringAsFixed(0)} / day',
+                                      '${CurrencyFormatter.format(analysis.recommendedDailySpendLimit)} / day',
                                       style: const TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w800,

@@ -110,7 +110,7 @@ void main() {
     expect(find.text('Done'), findsOneWidget);
 
     // Tap a preset chip
-    await tester.tap(find.text('🛒 Shopping (-₱5k)'));
+    await tester.tap(find.text('Shopping (-₱5k)'));
     await tester.pumpAndSettle();
 
     // Check that simulated impact updated

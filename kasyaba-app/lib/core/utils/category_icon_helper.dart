@@ -39,7 +39,7 @@ class CategoryIconHelper {
         lower.contains('pharmacy') ||
         lower.contains('medicine') ||
         lower.contains('clinic')) {
-      return Icons.local_hospital_rounded;
+      return Icons.medical_services_rounded;
     }
     if (lower.contains('transport') ||
         lower.contains('commute') ||

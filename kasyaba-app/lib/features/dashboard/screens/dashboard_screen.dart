@@ -1397,7 +1397,11 @@ void _showSafeSpendBreakdownSheet(
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('🎯', style: TextStyle(fontSize: 12)),
+                            const Icon(
+                              Icons.track_changes_rounded,
+                              size: 14,
+                              color: AppColors.emerald500,
+                            ),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Column(
@@ -1908,29 +1912,22 @@ class _QuickActionBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final btnRadius = BorderRadius.circular(10);
     return Material(
       color: Colors.transparent,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: btnRadius,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: btnRadius,
         child: Container(
           height: 46,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: btnRadius,
             color: isIncome ? AppColors.emerald500 : AppColors.surface700,
             border: isIncome
                 ? null
                 : Border.all(color: AppColors.subtleBorder, width: 1),
-            boxShadow: isIncome
-                ? [
-                    BoxShadow(
-                      color: AppColors.emerald500.withValues(alpha: 0.35),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ]
-                : null,
+            boxShadow: const [],
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -1938,7 +1935,7 @@ class _QuickActionBtn extends StatelessWidget {
               Icon(
                 icon,
                 size: 18,
-                color: isIncome ? Colors.black : AppColors.gold400,
+                color: isIncome ? Colors.black : AppColors.expense,
               ),
               const SizedBox(width: 6),
               Text(
@@ -2413,24 +2410,22 @@ class _ForecastCard extends StatelessWidget {
                       ),
                     ),
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: const Row(
+                    child: const Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          Icons.show_chart_rounded,
-                          size: 18,
+                          Icons.insights_rounded,
+                          size: 24,
                           color: AppColors.textMuted,
                         ),
-                        SizedBox(width: 8),
-                        Flexible(
-                          child: Text(
-                            'Insufficient data to plot trend line (requires ≥ 2 points)',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textMuted,
-                              fontWeight: FontWeight.w500,
-                            ),
+                        SizedBox(height: 8),
+                        Text(
+                          'Track more days to reveal your balance trend',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textMuted,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
@@ -3677,7 +3672,7 @@ class _QuickStartChecklistCard extends StatelessWidget {
                   ),
                 ),
                 child: const Icon(
-                  Icons.auto_awesome_rounded,
+                  Icons.checklist_rounded,
                   size: 16,
                   color: AppColors.emerald400,
                 ),

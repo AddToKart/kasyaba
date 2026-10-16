@@ -474,7 +474,7 @@ class TransactionsScreen extends ConsumerWidget {
                             ModernCard(
                               padding: const EdgeInsets.symmetric(vertical: 4),
                               borderColor: AppColors.subtleBorder,
-                              borderRadius: 18,
+                              borderRadius: 16,
                               child: Column(
                                 children: [
                                   for (int i = 0; i < group.items.length; i++) ...[
@@ -738,14 +738,14 @@ class _AppBarIconBtn extends StatelessWidget {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.zero,
+                    borderRadius: BorderRadius.circular(10),
                     color: isActive
                         ? AppColors.emerald500.withValues(alpha: 0.2)
                         : AppColors.surface700,
                     border: Border.all(
                       color: isActive
                           ? AppColors.emerald500
-                          : const Color(0xFF1F293D),
+                          : AppColors.subtleBorder,
                       width: 1,
                     ),
                   ),

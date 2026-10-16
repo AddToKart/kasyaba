@@ -1199,31 +1199,31 @@ class _WhatIfSimulatorSheetState extends State<_WhatIfSimulatorSheet> {
           child: Row(
             children: [
               _PresetChip(
-                label: '☕ Dinner (-₱1.5k)',
+                label: 'Dinner (-₱1.5k)',
                 isSelected: _selectedPresetIndex == 0,
                 onTap: () => _applyPreset(index: 0, expense: 1500),
               ),
               const SizedBox(width: 8),
               _PresetChip(
-                label: '🛒 Shopping (-₱5k)',
+                label: 'Shopping (-₱5k)',
                 isSelected: _selectedPresetIndex == 1,
                 onTap: () => _applyPreset(index: 1, expense: 5000),
               ),
               const SizedBox(width: 8),
               _PresetChip(
-                label: '📱 Gadget (-₱15k)',
+                label: 'Gadget (-₱15k)',
                 isSelected: _selectedPresetIndex == 2,
                 onTap: () => _applyPreset(index: 2, expense: 15000),
               ),
               const SizedBox(width: 8),
               _PresetChip(
-                label: '💰 Bonus (+₱10k)',
+                label: 'Bonus (+₱10k)',
                 isSelected: _selectedPresetIndex == 3,
                 onTap: () => _applyPreset(index: 3, income: 10000),
               ),
               const SizedBox(width: 8),
               _PresetChip(
-                label: '↺ Reset',
+                label: 'Reset',
                 isSelected: false,
                 isReset: true,
                 onTap: _reset,

@@ -33,12 +33,12 @@ class EmptyStateView extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // ── Layered Sharp Icon Container ───────────────
+            // ── Layered Icon Container ───────────────
             Container(
-              width: 64,
-              height: 64,
+              width: 56,
+              height: 56,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.zero,
+                borderRadius: BorderRadius.circular(12),
                 color: accent.withValues(alpha: 0.12),
                 border: Border.all(
                   color: accent.withValues(alpha: 0.35),
@@ -82,9 +82,9 @@ class EmptyStateView extends StatelessWidget {
                 style: FilledButton.styleFrom(
                   backgroundColor: accent,
                   foregroundColor: Colors.black,
-                  minimumSize: const Size(140, 48),
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.zero,
+                  minimumSize: const Size(140, 44),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
                   ),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 24,
@@ -94,9 +94,9 @@ class EmptyStateView extends StatelessWidget {
                 child: Text(
                   actionLabel!,
                   style: const TextStyle(
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w700,
                     fontSize: 14,
-                    letterSpacing: 0.5,
+                    letterSpacing: 0.2,
                   ),
                 ),
               ),

@@ -6,6 +6,7 @@ import '../../../app/theme/app_theme.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
+import '../../../core/utils/currency_formatter.dart';
 import '../../../shared/widgets/modern_card.dart';
 import '../../../shared/widgets/empty_state_view.dart';
 import '../../../shared/widgets/modern_bottom_sheet.dart';
@@ -185,7 +186,7 @@ class BudgetsScreen extends ConsumerWidget {
                         children: [
                           Flexible(
                             child: Text(
-                              '₱${status.totalSpent.toStringAsFixed(2)} / ₱${status.totalBudget.toStringAsFixed(2)}',
+                              '${CurrencyFormatter.format(status.totalSpent)} / ${CurrencyFormatter.format(status.totalBudget)}',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: theme.textTheme.headlineMedium?.copyWith(
@@ -544,7 +545,7 @@ class _BudgetTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '₱${budget.spent.toStringAsFixed(2)} / ₱${budget.amount.toStringAsFixed(2)}',
+                      '${CurrencyFormatter.format(budget.spent)} / ${CurrencyFormatter.format(budget.amount)}',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: isDark
                             ? AppColors.textMuted

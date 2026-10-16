@@ -32,7 +32,7 @@ class StatCard extends StatelessWidget {
 
     return ModernCard(
       onTap: onTap,
-      borderRadius: 18.0,
+      borderRadius: 16.0,
       backgroundColor: AppColors.surfaceCard,
       borderColor: AppColors.subtleBorder,
       padding: EdgeInsets.symmetric(

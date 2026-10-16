@@ -25,7 +25,7 @@ class ModernCard extends StatelessWidget {
     this.gradient,
     this.borderColor,
     this.backgroundColor,
-    this.borderRadius = 20.0,
+    this.borderRadius = 16.0,
     this.style = CardStyle.glass,
     this.customShadow,
   });
@@ -57,8 +57,8 @@ class ModernCard extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: radius,
-          splashColor: AppColors.emerald500.withValues(alpha: 0.12),
-          highlightColor: AppColors.emerald500.withValues(alpha: 0.05),
+          splashColor: Colors.white.withValues(alpha: 0.05),
+          highlightColor: Colors.white.withValues(alpha: 0.03),
           child: Ink(
             decoration: decoration,
             child: ClipRRect(borderRadius: radius, child: innerChild),
@@ -84,22 +84,15 @@ class ModernCard extends StatelessWidget {
       case CardStyle.elevated:
         return [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.5),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
+            color: Colors.black.withValues(alpha: 0.25),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
           ),
         ];
       case CardStyle.flat:
-        return [];
       case CardStyle.gradient:
       case CardStyle.glass:
-        return [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.35),
-            blurRadius: 18,
-            offset: const Offset(0, 6),
-          ),
-        ];
+        return const [];
     }
   }
 }
