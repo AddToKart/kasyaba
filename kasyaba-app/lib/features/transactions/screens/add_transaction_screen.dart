@@ -24,6 +24,12 @@ bool _categoryNamesMatch(String left, String right) {
   return a == b || a.startsWith(b) || b.startsWith(a);
 }
 
+enum TransactionTypeMode {
+  expense,
+  income,
+  transfer,
+}
+
 class AddTransactionScreen extends ConsumerStatefulWidget {
   final TransactionEntry? transaction;
   final String? initialType;
@@ -41,11 +47,17 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen>
   final _amountController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _notesController = TextEditingController();
+  final _feeController = TextEditingController(text: '');
 
-  bool _isExpense = true;
+  TransactionTypeMode _mode = TransactionTypeMode.expense;
+  bool get _isExpense => _mode == TransactionTypeMode.expense;
+  bool get _isIncome => _mode == TransactionTypeMode.income;
+  bool get _isTransfer => _mode == TransactionTypeMode.transfer;
+
   bool _isSubmitting = false;
   String? _selectedCategory;
   String? _selectedAccount;
+  String? _selectedToAccount;
   DateTime _selectedDate = _dateOnly(DateTime.now());
   String? _selectedCategoryName;
 
@@ -69,9 +81,25 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen>
     super.initState();
     final transaction = widget.transaction;
     // Initial type only applies to new entries; edits keep the stored type.
-    _isExpense =
-        transaction?.isExpense ??
-        (widget.initialType?.toLowerCase() == 'income' ? false : true);
+    if (transaction != null) {
+      if (transaction.isTransfer) {
+        _mode = TransactionTypeMode.transfer;
+      } else if (transaction.isExpense) {
+        _mode = TransactionTypeMode.expense;
+      } else {
+        _mode = TransactionTypeMode.income;
+      }
+    } else {
+      final initial = widget.initialType?.toLowerCase();
+      if (initial == 'income') {
+        _mode = TransactionTypeMode.income;
+      } else if (initial == 'transfer') {
+        _mode = TransactionTypeMode.transfer;
+      } else {
+        _mode = TransactionTypeMode.expense;
+      }
+    }
+
     _selectedCategory = transaction?.categoryId ?? _categoryItems.first['id'];
     _selectedCategoryName =
         transaction?.categoryName ?? _categoryItems.first['name'];
@@ -84,6 +112,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen>
     }
     _amountController.addListener(_onAmountChanged);
     _descriptionController.addListener(_onDescriptionChanged);
+    _feeController.addListener(_onFeeChanged);
     _typeController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 250),
@@ -103,13 +132,19 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen>
     if (mounted) setState(() {});
   }
 
+  void _onFeeChanged() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
     _amountController.removeListener(_onAmountChanged);
     _descriptionController.removeListener(_onDescriptionChanged);
+    _feeController.removeListener(_onFeeChanged);
     _typeController.dispose();
     _amountController.dispose();
     _descriptionController.dispose();
+    _feeController.dispose();
     _notesController.dispose();
     super.dispose();
   }
@@ -122,11 +157,11 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen>
     }
   }
 
-  void _switchType(bool toExpense) {
-    if (_isExpense == toExpense) return;
+  void _switchMode(TransactionTypeMode targetMode) {
+    if (_mode == targetMode) return;
     _typeController.reverse().then((_) {
       if (!mounted) return;
-      setState(() => _isExpense = toExpense);
+      setState(() => _mode = targetMode);
       _typeController.forward();
     });
   }
@@ -151,11 +186,15 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen>
   }
 
   String _successMessage({
-    required bool isExpense,
+    required TransactionTypeMode mode,
     required bool isScheduled,
     TransactionSaveStatus? status,
   }) {
-    final label = isExpense ? 'Expense' : 'Income';
+    final label = switch (mode) {
+      TransactionTypeMode.expense => 'Expense',
+      TransactionTypeMode.income => 'Income',
+      TransactionTypeMode.transfer => 'Transfer',
+    };
     if (status == TransactionSaveStatus.queued) {
       return '$label saved offline — will sync when online';
     }
@@ -187,6 +226,151 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen>
 
   Future<void> _handleSave() async {
     if (!_formKey.currentState!.validate()) return;
+
+    if (_isTransfer) {
+      final fromAccountId = _selectedAccount;
+      final toAccountId = _selectedToAccount;
+      if (fromAccountId == null ||
+          !RegExp(
+            r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$',
+          ).hasMatch(fromAccountId)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Select a valid source wallet.')),
+        );
+        return;
+      }
+      if (toAccountId == null ||
+          !RegExp(
+            r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$',
+          ).hasMatch(toAccountId)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Select a valid destination wallet.')),
+        );
+        return;
+      }
+      if (fromAccountId == toAccountId) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Source and destination wallets must be different.'),
+          ),
+        );
+        return;
+      }
+
+      final amount = double.tryParse(_amountController.text.trim()) ?? 0.0;
+      if (amount <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Enter an amount greater than zero.')),
+        );
+        return;
+      }
+
+      final fee = double.tryParse(_feeController.text.trim()) ?? 0.0;
+      if (fee < 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Transfer fee cannot be negative.')),
+        );
+        return;
+      }
+
+      setState(() => _isSubmitting = true);
+      final description = _descriptionController.text.trim();
+      final notes = _notesController.text.trim();
+
+      try {
+        final mutator = ref.read(transactionMutatorProvider);
+        final accounts = ref.read(accountsProvider).valueOrNull ?? [];
+        final fromAcc = accounts.firstWhere(
+          (a) => a.id == fromAccountId,
+          orElse: () => Account(id: fromAccountId, name: 'Source Wallet'),
+        );
+        final toAcc = accounts.firstWhere(
+          (a) => a.id == toAccountId,
+          orElse: () => Account(id: toAccountId, name: 'Destination Wallet'),
+        );
+
+        final transferNote = notes.isNotEmpty
+            ? notes
+            : (description.isNotEmpty
+                ? description
+                : 'Transfer: ${fromAcc.name} → ${toAcc.name}');
+
+        final saveStatus = await mutator.addTransfer(
+          fromAccountId: fromAccountId,
+          toAccountId: toAccountId,
+          amount: amount,
+          transferredAt: _selectedDate,
+          notes: transferNote,
+        );
+
+        if (fee > 0) {
+          await mutator.addExpense(
+            accountId: fromAccountId,
+            categoryId: 'cat_other',
+            categoryName: 'Bank & Transfer Fees',
+            amount: fee,
+            description: 'Transfer Fee (${fromAcc.name} → ${toAcc.name})',
+            spentAt: _selectedDate,
+            notes:
+                'Automated transfer fee for transfer of ${CurrencyFormatter.format(amount)}',
+          );
+        }
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(
+                    Icons.check_circle_rounded,
+                    color: Colors.white,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      saveStatus == TransactionSaveStatus.queued
+                          ? 'Transfer saved offline — will sync when online'
+                          : fee > 0
+                              ? 'Transfer recorded! (${CurrencyFormatter.format(amount)} + ${CurrencyFormatter.format(fee)} fee)'
+                              : 'Transfer recorded! (${CurrencyFormatter.format(amount)})',
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: const Color(0xFF0284C7),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+          );
+          _handleClose();
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                friendlyErrorMessage(
+                  e,
+                  fallback: 'Could not record transfer. Please try again.',
+                ),
+              ),
+              backgroundColor: AppColors.expense,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _isSubmitting = false);
+      }
+      return;
+    }
 
     final accountId = _selectedAccount ?? widget.transaction?.accountId;
     if (accountId == null ||
@@ -278,7 +462,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen>
                 const SizedBox(width: 10),
                 Text(
                   _successMessage(
-                    isExpense: isExpense,
+                    mode: _mode,
                     isScheduled: isScheduled,
                     status: saveStatus,
                   ),
@@ -354,17 +538,42 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen>
 
     // Compute live deterministic current balance & projected balance
     final accounts = accountsAsync.valueOrNull ?? [];
-    final effectiveAccId =
-        _selectedAccount ?? accounts.firstOrNull?.id;
+    final effectiveAccId = _selectedAccount ?? accounts.firstOrNull?.id;
     final currentBalance =
         (effectiveAccId != null ? accountBalances[effectiveAccId] : null) ?? 0.0;
     final parsedAmount = double.tryParse(_amountController.text.trim()) ?? 0.0;
-    final projectedBalance = _isExpense
-        ? (currentBalance - parsedAmount)
-        : (currentBalance + parsedAmount);
+    final transferFee = double.tryParse(_feeController.text.trim()) ?? 0.0;
 
-    // Determine accent color based on type
-    final typeColor = _isExpense ? AppColors.expense : AppColors.income;
+    final projectedBalance = switch (_mode) {
+      TransactionTypeMode.expense => currentBalance - parsedAmount,
+      TransactionTypeMode.income => currentBalance + parsedAmount,
+      TransactionTypeMode.transfer =>
+        currentBalance - (parsedAmount + (transferFee > 0 ? transferFee : 0.0)),
+    };
+
+    final effectiveToId = _selectedToAccount ??
+        (accounts.length > 1 ? accounts[1].id : null);
+    final destinationCurrentBalance = effectiveToId != null
+        ? (accountBalances[effectiveToId] ?? 0.0)
+        : null;
+    final destinationProjectedBalance = destinationCurrentBalance != null
+        ? destinationCurrentBalance + parsedAmount
+        : null;
+
+    // Determine accent color based on mode
+    final typeColor = _modeColor(_mode);
+
+    final screenTitle = widget.transaction == null
+        ? switch (_mode) {
+            TransactionTypeMode.expense => 'Add Expense',
+            TransactionTypeMode.income => 'Add Income',
+            TransactionTypeMode.transfer => 'Transfer Funds',
+          }
+        : switch (_mode) {
+            TransactionTypeMode.expense => 'Edit Expense',
+            TransactionTypeMode.income => 'Edit Income',
+            TransactionTypeMode.transfer => 'Transfer Details',
+          };
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.obsidian : AppColors.lightBg,
@@ -399,10 +608,8 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen>
         title: AnimatedSwitcher(
           duration: const Duration(milliseconds: 200),
           child: Text(
-            widget.transaction == null
-                ? (_isExpense ? 'Add Expense' : 'Add Income')
-                : (_isExpense ? 'Edit Expense' : 'Edit Income'),
-            key: ValueKey(_isExpense),
+            screenTitle,
+            key: ValueKey(_mode),
             style: TextStyle(
               fontWeight: FontWeight.w800,
               fontSize: 18,
@@ -430,24 +637,26 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen>
                   FadeTransition(
                     opacity: _typeFade,
                     child: _TypeSwitcher(
-                      isExpense: _isExpense,
+                      mode: _mode,
                       isDark: isDark,
-                      onExpense: () => _switchType(true),
-                      onIncome: () => _switchType(false),
+                      onModeChanged: _switchMode,
                     ),
                   )
                 else
-                  _TransactionTypeBadge(isExpense: _isExpense, isDark: isDark),
+                  _TransactionTypeBadge(mode: _mode, isDark: isDark),
                 const SizedBox(height: 16),
 
                 // ── Amount Card ──────────────────────────
                 _AmountCard(
                   controller: _amountController,
-                  isExpense: _isExpense,
+                  mode: _mode,
                   isDark: isDark,
                   typeColor: typeColor,
                   currentBalance: currentBalance,
                   projectedBalance: projectedBalance,
+                  destinationCurrentBalance: destinationCurrentBalance,
+                  destinationProjectedBalance: destinationProjectedBalance,
+                  transferFee: transferFee,
                 ),
                 const SizedBox(height: 16),
 
@@ -457,12 +666,17 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Description or Income Source
+                      // Description or Income Source or Transfer Note
                       _FieldLabel(
-                        label: _isExpense ? 'Description' : 'Income Source',
+                        label: switch (_mode) {
+                          TransactionTypeMode.expense => 'Description',
+                          TransactionTypeMode.income => 'Income Source',
+                          TransactionTypeMode.transfer =>
+                            'Transfer Note / Reference (Optional)',
+                        },
                         isDark: isDark,
                       ),
-                      if (!_isExpense) ...[
+                      if (_isIncome) ...[
                         const SizedBox(height: 8),
                         _IncomeQuickPresets(
                           selectedSource: _descriptionController.text.trim(),
@@ -485,17 +699,25 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen>
                           fontWeight: FontWeight.w500,
                         ),
                         decoration: InputDecoration(
-                          hintText: _isExpense
-                              ? 'e.g. Grocery Shopping, Electricity Bill'
-                              : 'e.g. Monthly Salary, Freelance Work',
+                          hintText: switch (_mode) {
+                            TransactionTypeMode.expense =>
+                              'e.g. Grocery Shopping, Electricity Bill',
+                            TransactionTypeMode.income =>
+                              'e.g. Monthly Salary, Freelance Work',
+                            TransactionTypeMode.transfer =>
+                              'e.g. Bank transfer, Maya to GCash, Savings',
+                          },
                           prefixIcon: const Padding(
                             padding: EdgeInsets.only(left: 4),
                             child: Icon(Icons.description_outlined, size: 20),
                           ),
                         ),
-                        validator: (v) => (v?.trim().length ?? 0) >= 1
-                            ? null
-                            : 'Description is required',
+                        validator: (v) {
+                          if (_isTransfer) return null;
+                          return (v?.trim().length ?? 0) >= 1
+                              ? null
+                              : 'Description is required';
+                        },
                       ),
                       const SizedBox(height: 20),
 
@@ -520,84 +742,282 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen>
                         const SizedBox(height: 20),
                       ],
 
-                      // Account / Wallet
-                      _FieldLabel(label: 'Account / Wallet', isDark: isDark),
-                      const SizedBox(height: 8),
-                      accountsAsync.when(
-                        loading: () => const LinearProgressIndicator(
-                          color: AppColors.emerald500,
-                        ),
-                        error: (_, _) => InkWell(
-                          onTap: () => ref.invalidate(accountsProvider),
-                          borderRadius: BorderRadius.circular(
-                            AppTheme.inputRadius,
+                      // Wallets Section
+                      if (!_isTransfer) ...[
+                        _FieldLabel(label: 'Account / Wallet', isDark: isDark),
+                        const SizedBox(height: 8),
+                        accountsAsync.when(
+                          loading: () => const LinearProgressIndicator(
+                            color: AppColors.emerald500,
                           ),
-                          child: Container(
+                          error: (_, _) => _RetryWalletsButton(
+                            isDark: isDark,
+                            onRetry: () => ref.invalidate(accountsProvider),
+                          ),
+                          data: (accounts) {
+                            if (accounts.isEmpty) {
+                              return _NoAccountsNotice(isDark: isDark);
+                            }
+                            if (_selectedAccount == null) {
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                if (mounted && _selectedAccount == null) {
+                                  setState(
+                                    () => _selectedAccount = accounts.first.id,
+                                  );
+                                }
+                              });
+                            }
+                            return _AccountDropdown(
+                              accounts: accounts,
+                              selectedAccountId: _selectedAccount,
+                              accountBalances: accountBalances,
+                              isDark: isDark,
+                              onChanged: (id) =>
+                                  setState(() => _selectedAccount = id),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 20),
+                      ] else ...[
+                        // Transfer Mode: From & To Wallet Pickers
+                        _FieldLabel(
+                          label: 'From Account / Wallet',
+                          isDark: isDark,
+                        ),
+                        const SizedBox(height: 8),
+                        accountsAsync.when(
+                          loading: () => const LinearProgressIndicator(
+                            color: Color(0xFF38BDF8),
+                          ),
+                          error: (_, _) => _RetryWalletsButton(
+                            isDark: isDark,
+                            onRetry: () => ref.invalidate(accountsProvider),
+                          ),
+                          data: (accounts) {
+                            if (accounts.isEmpty) {
+                              return _NoAccountsNotice(isDark: isDark);
+                            }
+                            if (_selectedAccount == null) {
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                if (mounted && _selectedAccount == null) {
+                                  setState(() {
+                                    _selectedAccount = accounts.first.id;
+                                    if (_selectedToAccount == null &&
+                                        accounts.length > 1) {
+                                      _selectedToAccount = accounts[1].id;
+                                    }
+                                  });
+                                }
+                              });
+                            }
+                            return _AccountDropdown(
+                              accounts: accounts,
+                              selectedAccountId: _selectedAccount,
+                              accountBalances: accountBalances,
+                              isDark: isDark,
+                              onChanged: (id) =>
+                                  setState(() => _selectedAccount = id),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 10),
+
+                        // Swap Wallets Button
+                        Center(
+                          child: InkWell(
+                            onTap: () {
+                              final temp = _selectedAccount;
+                              setState(() {
+                                _selectedAccount = _selectedToAccount;
+                                _selectedToAccount = temp;
+                              });
+                            },
+                            borderRadius: BorderRadius.circular(20),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? AppColors.surface700
+                                    : AppColors.lightCard2,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: isDark
+                                      ? AppColors.surface600
+                                      : AppColors.lightBorder,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.swap_vert_rounded,
+                                    size: 16,
+                                    color: Color(0xFF38BDF8),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Swap Wallets',
+                                    style: TextStyle(
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: isDark
+                                          ? AppColors.textMuted
+                                          : AppColors.textMutedL,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+
+                        _FieldLabel(
+                          label: 'To Account / Wallet',
+                          isDark: isDark,
+                        ),
+                        const SizedBox(height: 8),
+                        accountsAsync.when(
+                          loading: () => const LinearProgressIndicator(
+                            color: Color(0xFF38BDF8),
+                          ),
+                          error: (_, _) => _RetryWalletsButton(
+                            isDark: isDark,
+                            onRetry: () => ref.invalidate(accountsProvider),
+                          ),
+                          data: (accounts) {
+                            if (accounts.isEmpty) {
+                              return _NoAccountsNotice(isDark: isDark);
+                            }
+                            if (_selectedToAccount == null &&
+                                accounts.length > 1) {
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                if (mounted &&
+                                    _selectedToAccount == null &&
+                                    accounts.length > 1) {
+                                  setState(
+                                    () => _selectedToAccount = accounts[1].id,
+                                  );
+                                }
+                              });
+                            }
+                            return _AccountDropdown(
+                              accounts: accounts,
+                              selectedAccountId: _selectedToAccount,
+                              accountBalances: accountBalances,
+                              isDark: isDark,
+                              onChanged: (id) =>
+                                  setState(() => _selectedToAccount = id),
+                            );
+                          },
+                        ),
+                        if (_selectedAccount != null &&
+                            _selectedToAccount != null &&
+                            _selectedAccount == _selectedToAccount) ...[
+                          const SizedBox(height: 10),
+                          Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 14,
+                              horizontal: 12,
+                              vertical: 8,
                             ),
                             decoration: BoxDecoration(
-                              color: isDark
-                                  ? AppColors.surface700.withValues(alpha: 0.5)
-                                  : AppColors.lightCard2,
-                              borderRadius: BorderRadius.circular(
-                                AppTheme.inputRadius,
-                              ),
+                              color: AppColors.expense.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(10),
                               border: Border.all(
-                                color: isDark
-                                    ? AppColors.surface600.withValues(
-                                        alpha: 0.7,
-                                      )
-                                    : AppColors.lightBorder,
-                                width: 1.2,
+                                color:
+                                    AppColors.expense.withValues(alpha: 0.3),
                               ),
                             ),
-                            child: Row(
+                            child: const Row(
                               children: [
-                                const Icon(
-                                  Icons.refresh_rounded,
-                                  size: 18,
-                                  color: AppColors.warning,
+                                Icon(
+                                  Icons.warning_amber_rounded,
+                                  size: 16,
+                                  color: AppColors.expense,
                                 ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  'Retry loading wallets',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: isDark
-                                        ? AppColors.textDark
-                                        : AppColors.textLight,
+                                SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Source and destination wallets must be different.',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.expense,
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
                           ),
+                        ],
+                        const SizedBox(height: 20),
+
+                        // Transfer Fee (Optional) section
+                        _FieldLabel(
+                          label: 'Transfer Fee (Optional)',
+                          isDark: isDark,
                         ),
-                        data: (accounts) {
-                          if (accounts.isEmpty) {
-                            return _NoAccountsNotice(isDark: isDark);
-                          }
-                          if (_selectedAccount == null) {
-                            WidgetsBinding.instance.addPostFrameCallback((_) {
-                              if (mounted && _selectedAccount == null) {
-                                setState(
-                                  () => _selectedAccount = accounts.first.id,
-                                );
-                              }
+                        const SizedBox(height: 8),
+                        _TransferFeePresets(
+                          selectedFee:
+                              double.tryParse(_feeController.text.trim()) ??
+                                  0.0,
+                          isDark: isDark,
+                          onSelect: (feeVal) {
+                            setState(() {
+                              _feeController.text = feeVal.toStringAsFixed(2);
                             });
-                          }
-                          return _AccountDropdown(
-                            accounts: accounts,
-                            selectedAccountId: _selectedAccount,
-                            accountBalances: accountBalances,
-                            isDark: isDark,
-                            onChanged: (id) =>
-                                setState(() => _selectedAccount = id),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 20),
+                          },
+                        ),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _feeController,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          style: TextStyle(
+                            color: isDark
+                                ? AppColors.textDark
+                                : AppColors.textLight,
+                            fontWeight: FontWeight.w600,
+                            fontFeatures: CurrencyFormatter.tabularFigures,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: '0.00',
+                            prefixIcon: const Padding(
+                              padding: EdgeInsets.only(left: 14, right: 8),
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  '₱',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF38BDF8),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            prefixIconConstraints: const BoxConstraints(
+                              minWidth: 32,
+                              minHeight: 0,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Transfer fee is deterministically logged as a Bank / Transfer Fee expense under the source wallet.',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: isDark
+                                ? AppColors.textMuted
+                                : AppColors.textMutedL,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                      ],
 
                       // Date
                       _FieldLabel(label: 'Transaction Date', isDark: isDark),
@@ -610,7 +1030,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen>
                       if (_isFutureDate(_selectedDate)) ...[
                         const SizedBox(height: 10),
                         _ScheduledDateNotice(
-                          isExpense: _isExpense,
+                          mode: _mode,
                           selectedDate: _selectedDate,
                           isDark: isDark,
                         ),
@@ -692,7 +1112,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen>
               ),
             ),
             child: _SaveButton(
-              isExpense: _isExpense,
+              mode: _mode,
               isEditing: widget.transaction != null,
               isSubmitting: _isSubmitting,
               onPressed: _handleSave,
@@ -705,19 +1125,25 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen>
   }
 }
 
+Color _modeColor(TransactionTypeMode mode) {
+  return switch (mode) {
+    TransactionTypeMode.expense => AppColors.expense,
+    TransactionTypeMode.income => AppColors.income,
+    TransactionTypeMode.transfer => const Color(0xFF38BDF8),
+  };
+}
+
 // ─── Type Switcher ────────────────────────────────────────────
 
 class _TypeSwitcher extends StatelessWidget {
-  final bool isExpense;
+  final TransactionTypeMode mode;
   final bool isDark;
-  final VoidCallback onExpense;
-  final VoidCallback onIncome;
+  final ValueChanged<TransactionTypeMode> onModeChanged;
 
   const _TypeSwitcher({
-    required this.isExpense,
+    required this.mode,
     required this.isDark,
-    required this.onExpense,
-    required this.onIncome,
+    required this.onModeChanged,
   });
 
   @override
@@ -737,18 +1163,26 @@ class _TypeSwitcher extends StatelessWidget {
           _TypeTab(
             label: 'Expense',
             icon: Icons.arrow_upward_rounded,
-            isSelected: isExpense,
+            isSelected: mode == TransactionTypeMode.expense,
             activeColor: AppColors.expense,
             isDark: isDark,
-            onTap: onExpense,
+            onTap: () => onModeChanged(TransactionTypeMode.expense),
           ),
           _TypeTab(
             label: 'Income',
             icon: Icons.arrow_downward_rounded,
-            isSelected: !isExpense,
+            isSelected: mode == TransactionTypeMode.income,
             activeColor: AppColors.income,
             isDark: isDark,
-            onTap: onIncome,
+            onTap: () => onModeChanged(TransactionTypeMode.income),
+          ),
+          _TypeTab(
+            label: 'Transfer',
+            icon: Icons.swap_horiz_rounded,
+            isSelected: mode == TransactionTypeMode.transfer,
+            activeColor: const Color(0xFF38BDF8),
+            isDark: isDark,
+            onTap: () => onModeChanged(TransactionTypeMode.transfer),
           ),
         ],
       ),
@@ -757,14 +1191,25 @@ class _TypeSwitcher extends StatelessWidget {
 }
 
 class _TransactionTypeBadge extends StatelessWidget {
-  final bool isExpense;
+  final TransactionTypeMode mode;
   final bool isDark;
 
-  const _TransactionTypeBadge({required this.isExpense, required this.isDark});
+  const _TransactionTypeBadge({required this.mode, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
-    final color = isExpense ? AppColors.expense : AppColors.income;
+    final color = _modeColor(mode);
+    final icon = switch (mode) {
+      TransactionTypeMode.expense => Icons.arrow_upward_rounded,
+      TransactionTypeMode.income => Icons.arrow_downward_rounded,
+      TransactionTypeMode.transfer => Icons.swap_horiz_rounded,
+    };
+    final label = switch (mode) {
+      TransactionTypeMode.expense => 'Expense',
+      TransactionTypeMode.income => 'Income',
+      TransactionTypeMode.transfer => 'Transfer',
+    };
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -775,16 +1220,10 @@ class _TransactionTypeBadge extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            isExpense
-                ? Icons.arrow_upward_rounded
-                : Icons.arrow_downward_rounded,
-            color: color,
-            size: 17,
-          ),
+          Icon(icon, color: color, size: 17),
           const SizedBox(width: 8),
           Text(
-            isExpense ? 'Expense' : 'Income',
+            label,
             style: TextStyle(
               color: isDark ? Colors.white : AppColors.textLight,
               fontWeight: FontWeight.w700,
@@ -815,6 +1254,12 @@ class _TypeTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textColor = isSelected
+        ? (activeColor == const Color(0xFF38BDF8)
+            ? const Color(0xFF0F172A)
+            : Colors.white)
+        : (isDark ? AppColors.textMuted : AppColors.textMutedL);
+
     return Expanded(
       child: Semantics(
         button: true,
@@ -828,8 +1273,8 @@ class _TypeTab extends StatelessWidget {
             duration: const Duration(milliseconds: 220),
             curve: Curves.easeOutCubic,
             alignment: Alignment.center,
-            constraints: const BoxConstraints(minHeight: 48),
-            padding: const EdgeInsets.symmetric(vertical: 13),
+            constraints: const BoxConstraints(minHeight: 46),
+            padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 4),
             decoration: BoxDecoration(
               color: isSelected ? activeColor : Colors.transparent,
               borderRadius: BorderRadius.circular(14),
@@ -848,20 +1293,16 @@ class _TypeTab extends StatelessWidget {
               children: [
                 Icon(
                   icon,
-                  size: 16,
-                  color: isSelected
-                      ? Colors.white
-                      : (isDark ? AppColors.textMuted : AppColors.textMutedL),
+                  size: 15,
+                  color: textColor,
                 ),
-                const SizedBox(width: 7),
+                const SizedBox(width: 6),
                 Text(
                   label,
                   style: TextStyle(
-                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                    fontSize: 14,
-                    color: isSelected
-                        ? Colors.white
-                        : (isDark ? AppColors.textMuted : AppColors.textMutedL),
+                    fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                    fontSize: 13,
+                    color: textColor,
                   ),
                 ),
               ],
@@ -877,26 +1318,34 @@ class _TypeTab extends StatelessWidget {
 
 class _AmountCard extends StatelessWidget {
   final TextEditingController controller;
-  final bool isExpense;
+  final TransactionTypeMode mode;
   final bool isDark;
   final Color typeColor;
   final double currentBalance;
   final double projectedBalance;
+  final double? destinationCurrentBalance;
+  final double? destinationProjectedBalance;
+  final double transferFee;
 
   const _AmountCard({
     required this.controller,
-    required this.isExpense,
+    required this.mode,
     required this.isDark,
     required this.typeColor,
     required this.currentBalance,
     required this.projectedBalance,
+    this.destinationCurrentBalance,
+    this.destinationProjectedBalance,
+    this.transferFee = 0.0,
   });
 
   @override
   Widget build(BuildContext context) {
-    final currencySymbolColor = isExpense
-        ? const Color(0xFFF87171)
-        : const Color(0xFF10B981);
+    final currencySymbolColor = switch (mode) {
+      TransactionTypeMode.expense => const Color(0xFFF87171),
+      TransactionTypeMode.income => const Color(0xFF10B981),
+      TransactionTypeMode.transfer => const Color(0xFF38BDF8),
+    };
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -991,31 +1440,104 @@ class _AmountCard extends StatelessWidget {
                 width: 1,
               ),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'New Balance: ',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: isDark ? AppColors.textMuted : AppColors.textMutedL,
+            child: mode == TransactionTypeMode.transfer
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Source: ',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                              color: isDark
+                                  ? AppColors.textMuted
+                                  : AppColors.textMutedL,
+                            ),
+                          ),
+                          Flexible(
+                            child: Text(
+                              '${CurrencyFormatter.format(currentBalance)} → ${CurrencyFormatter.format(projectedBalance)}${transferFee > 0 ? " (incl. ${CurrencyFormatter.format(transferFee)} fee)" : ""}',
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w700,
+                                fontFeatures:
+                                    CurrencyFormatter.tabularFigures,
+                                color: isDark
+                                    ? Colors.white
+                                    : AppColors.textLight,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (destinationCurrentBalance != null &&
+                          destinationProjectedBalance != null) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Destination: ',
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w600,
+                                color: isDark
+                                    ? AppColors.textMuted
+                                    : AppColors.textMutedL,
+                              ),
+                            ),
+                            Flexible(
+                              child: Text(
+                                '${CurrencyFormatter.format(destinationCurrentBalance!)} → ${CurrencyFormatter.format(destinationProjectedBalance!)}',
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w700,
+                                  fontFeatures:
+                                      CurrencyFormatter.tabularFigures,
+                                  color: isDark
+                                      ? Colors.white
+                                      : AppColors.textLight,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  )
+                : Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'New Balance: ',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: isDark
+                              ? AppColors.textMuted
+                              : AppColors.textMutedL,
+                        ),
+                      ),
+                      Flexible(
+                        child: Text(
+                          '${CurrencyFormatter.format(currentBalance)} → ${CurrencyFormatter.format(projectedBalance)}',
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            fontFeatures: CurrencyFormatter.tabularFigures,
+                            color: isDark ? Colors.white : AppColors.textLight,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                Flexible(
-                  child: Text(
-                    '${CurrencyFormatter.format(currentBalance)} → ${CurrencyFormatter.format(projectedBalance)}',
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      fontFeatures: CurrencyFormatter.tabularFigures,
-                      color: isDark ? Colors.white : AppColors.textLight,
-                    ),
-                  ),
-                ),
-              ],
-            ),
           ),
         ],
       ),
@@ -1513,19 +2035,25 @@ class _DatePicker extends StatelessWidget {
 }
 
 class _ScheduledDateNotice extends StatelessWidget {
-  final bool isExpense;
+  final TransactionTypeMode mode;
   final DateTime selectedDate;
   final bool isDark;
 
   const _ScheduledDateNotice({
-    required this.isExpense,
+    required this.mode,
     required this.selectedDate,
     required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
-    final color = isExpense ? AppColors.expense : AppColors.income;
+    final color = _modeColor(mode);
+    final noun = switch (mode) {
+      TransactionTypeMode.expense => 'This expense',
+      TransactionTypeMode.income => 'This income',
+      TransactionTypeMode.transfer => 'This transfer',
+    };
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -1540,7 +2068,7 @@ class _ScheduledDateNotice extends StatelessWidget {
           const SizedBox(width: 9),
           Expanded(
             child: Text(
-              '${isExpense ? 'This expense' : 'This income'} is scheduled for ${DateFormat('MMM d, yyyy').format(selectedDate)}. It will affect your current balance when the date arrives.',
+              '$noun is scheduled for ${DateFormat('MMM d, yyyy').format(selectedDate)}. It will affect your account balance when the date arrives.',
               style: TextStyle(
                 color: isDark ? AppColors.textDark : AppColors.textLight,
                 fontSize: 12,
@@ -1575,17 +2103,150 @@ class _FieldLabel extends StatelessWidget {
   }
 }
 
+// ─── Transfer Fee Presets ─────────────────────────────────────
+
+class _TransferFeePresets extends StatelessWidget {
+  final double selectedFee;
+  final bool isDark;
+  final ValueChanged<double> onSelect;
+
+  static const _presets = [
+    {'label': 'Free', 'fee': 0.0},
+    {'label': '₱10', 'fee': 10.0},
+    {'label': '₱15 InstaPay', 'fee': 15.0},
+    {'label': '₱25', 'fee': 25.0},
+  ];
+
+  const _TransferFeePresets({
+    required this.selectedFee,
+    required this.isDark,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: _presets.map((preset) {
+          final fee = preset['fee'] as double;
+          final label = preset['label'] as String;
+          final isSelected = (selectedFee - fee).abs() < 0.01;
+
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: Semantics(
+              button: true,
+              selected: isSelected,
+              label: 'Set transfer fee to $label',
+              child: InkWell(
+                onTap: () => onSelect(fee),
+                borderRadius: BorderRadius.circular(20),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 7,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? const Color(0xFF38BDF8).withValues(alpha: 0.18)
+                        : (isDark
+                            ? AppColors.surface700
+                            : AppColors.lightCard2),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isSelected
+                          ? const Color(0xFF38BDF8)
+                          : (isDark
+                              ? AppColors.surface600
+                              : AppColors.lightBorder),
+                      width: isSelected ? 1.4 : 1,
+                    ),
+                  ),
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight:
+                          isSelected ? FontWeight.w700 : FontWeight.w500,
+                      color: isSelected
+                          ? const Color(0xFF38BDF8)
+                          : (isDark
+                              ? AppColors.textMuted
+                              : AppColors.textMutedL),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+// ─── Retry Wallets Button ─────────────────────────────────────
+
+class _RetryWalletsButton extends StatelessWidget {
+  final bool isDark;
+  final VoidCallback onRetry;
+
+  const _RetryWalletsButton({required this.isDark, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onRetry,
+      borderRadius: BorderRadius.circular(AppTheme.inputRadius),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: isDark
+              ? AppColors.surface700.withValues(alpha: 0.5)
+              : AppColors.lightCard2,
+          borderRadius: BorderRadius.circular(AppTheme.inputRadius),
+          border: Border.all(
+            color: isDark
+                ? AppColors.surface600.withValues(alpha: 0.7)
+                : AppColors.lightBorder,
+            width: 1.2,
+          ),
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.refresh_rounded,
+              size: 18,
+              color: AppColors.warning,
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Retry loading wallets',
+              style: TextStyle(
+                fontSize: 14,
+                color: isDark ? AppColors.textDark : AppColors.textLight,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // ─── Save Button ──────────────────────────────────────────────
 
 class _SaveButton extends StatelessWidget {
-  final bool isExpense;
+  final TransactionTypeMode mode;
   final bool isSubmitting;
   final bool isEditing;
   final VoidCallback onPressed;
   final Color typeColor;
 
   const _SaveButton({
-    required this.isExpense,
+    required this.mode,
     required this.isSubmitting,
     required this.isEditing,
     required this.onPressed,
@@ -1594,15 +2255,43 @@ class _SaveButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final gradientColors = switch (mode) {
+      TransactionTypeMode.expense => [
+          const Color(0xFFDC2626),
+          AppColors.expense,
+        ],
+      TransactionTypeMode.income => [
+          const Color(0xFF059669),
+          AppColors.income,
+        ],
+      TransactionTypeMode.transfer => [
+          const Color(0xFF0284C7),
+          const Color(0xFF38BDF8),
+        ],
+    };
+
+    final icon = switch (mode) {
+      TransactionTypeMode.expense => Icons.arrow_upward_rounded,
+      TransactionTypeMode.income => Icons.arrow_downward_rounded,
+      TransactionTypeMode.transfer => Icons.swap_horiz_rounded,
+    };
+
+    final actionLabel = switch (mode) {
+      TransactionTypeMode.expense =>
+        '${isEditing ? "Update" : "Save"} Expense',
+      TransactionTypeMode.income =>
+        '${isEditing ? "Update" : "Save"} Income',
+      TransactionTypeMode.transfer =>
+        '${isEditing ? "Update" : "Save"} Transfer',
+    };
+
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppTheme.buttonRadius),
         gradient: isSubmitting
             ? null
             : LinearGradient(
-                colors: isExpense
-                    ? [const Color(0xFFDC2626), AppColors.expense]
-                    : [const Color(0xFF059669), AppColors.income],
+                colors: gradientColors,
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
               ),
@@ -1639,16 +2328,9 @@ class _SaveButton extends StatelessWidget {
                   color: Colors.white,
                 ),
               )
-            : Icon(
-                isExpense
-                    ? Icons.arrow_upward_rounded
-                    : Icons.arrow_downward_rounded,
-                size: 20,
-              ),
+            : Icon(icon, size: 20),
         label: Text(
-          isSubmitting
-              ? 'Saving...'
-              : '${isEditing ? "Update" : "Save"} ${isExpense ? "Expense" : "Income"}',
+          isSubmitting ? 'Saving...' : actionLabel,
           style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w700,

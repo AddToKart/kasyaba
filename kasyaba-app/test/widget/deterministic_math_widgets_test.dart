@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:intl/intl.dart';
 import 'package:kasyaba/core/providers/api_providers.dart';
 import 'package:kasyaba/core/utils/deterministic_math.dart';
 import 'package:kasyaba/features/dashboard/screens/dashboard_screen.dart';
-import 'package:kasyaba/features/savings/screens/goals_screen.dart';
 
 void main() {
   group('Daily Safe Spend Hero Card & Breakdown Sheet', () {
@@ -322,20 +320,18 @@ class _PurchaseCheckCardResultTestWrapper extends StatelessWidget {
       daysUntilPayday: daysUntilPayday,
     );
 
-    return Container(
-      child: Column(
-        children: [
-          Text(result.statusTitle),
-          Text(result.statusMessage),
-          if (workHours.hasSalary)
-            Text('Time Cost: ${workHours.workHours.toStringAsFixed(1)} Work Hours (${workHours.workDays.toStringAsFixed(1)} Workdays)'),
-          const Text('CASH VS. INSTALLMENT COMPARATOR'),
-          const Text('PAY FULL CASH'),
-          Text('INSTALLMENT (${comp.tenureMonths}M)'),
-          const Text('Cash Preserved Today'),
-          Text(comp.totalInterest > 0 ? 'Installment preserves' : '0% BNPL preserves'),
-        ],
-      ),
+    return Column(
+      children: [
+        Text(result.statusTitle),
+        Text(result.statusMessage),
+        if (workHours.hasSalary)
+          Text('Time Cost: ${workHours.workHours.toStringAsFixed(1)} Work Hours (${workHours.workDays.toStringAsFixed(1)} Workdays)'),
+        const Text('CASH VS. INSTALLMENT COMPARATOR'),
+        const Text('PAY FULL CASH'),
+        Text('INSTALLMENT (${comp.tenureMonths}M)'),
+        const Text('Cash Preserved Today'),
+        Text(comp.totalInterest > 0 ? 'Installment preserves' : '0% BNPL preserves'),
+      ],
     );
   }
 }

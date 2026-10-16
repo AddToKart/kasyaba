@@ -14,6 +14,7 @@ import '../../../shared/widgets/stat_card.dart';
 import '../../../shared/widgets/empty_state_view.dart';
 import '../../../shared/widgets/modern_bottom_sheet.dart';
 import '../../../app/theme/app_theme.dart';
+import '../../accounts/widgets/reconcile_balance_sheet.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -830,9 +831,55 @@ class _HeroBalanceCard extends StatelessWidget {
                           ],
                         ],
                       ),
-                      _VisibilityToggle(
-                        isVisible: isVisible,
-                        onToggle: onToggleVisibility,
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Tooltip(
+                            message: 'Reconcile Balance (Quick Audit)',
+                            child: InkWell(
+                              onTap: () => showReconcileBalanceSheet(context),
+                              borderRadius: BorderRadius.circular(10),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.08),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.12),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.tune_rounded,
+                                      size: 14,
+                                      color: AppColors.gold400,
+                                    ),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      'Audit',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.gold400,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          _VisibilityToggle(
+                            isVisible: isVisible,
+                            onToggle: onToggleVisibility,
+                          ),
+                        ],
                       ),
                     ],
                   ),

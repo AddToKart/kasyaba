@@ -4,8 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
+import '../../../core/utils/currency_formatter.dart';
 import '../../../shared/widgets/empty_state_view.dart';
 import '../../../shared/widgets/modern_card.dart';
+import '../widgets/reconcile_balance_sheet.dart';
 
 class AccountsScreen extends ConsumerStatefulWidget {
   const AccountsScreen({super.key});
@@ -206,7 +208,12 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final accountsAsync = ref.watch(accountsProvider);
+    final balancesAsync = ref.watch(accountBalancesProvider);
+    final balances = balancesAsync.valueOrNull ?? const <String, double>{};
+
     return Scaffold(
       appBar: AppBar(title: const Text('Accounts & Wallets')),
       floatingActionButton: FloatingActionButton.extended(
@@ -259,7 +266,8 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
                 ModernCard(
                   child: EmptyStateView(
                     title: 'No active accounts',
-                    message: 'Add a wallet, bank account, or e-wallet to start tracking.',
+                    message:
+                        'Add a wallet, bank account, or e-wallet to start tracking.',
                     icon: Icons.account_balance_wallet_outlined,
                     actionLabel: 'Add account',
                     onAction: () => _showAddAccount(context),
@@ -272,24 +280,175 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
           return ListView.separated(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 110),
             itemCount: accounts.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 10),
+            separatorBuilder: (_, _) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               final account = accounts[index];
+              final balance = balances[account.id] ?? 0.0;
+
               return ModernCard(
-                padding: EdgeInsets.zero,
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: AppColors.emerald500.withValues(alpha: 0.16),
-                    child: Icon(_iconForType(account.type), color: AppColors.emerald400),
-                  ),
-                  title: Text(account.name),
-                  subtitle: Text(account.type.toUpperCase()),
-                  trailing: IconButton(
-                    tooltip: 'Archive account',
-                    onPressed: () =>
-                        _archiveAccount(context, account, accounts.length),
-                    icon: const Icon(Icons.archive_outlined),
-                  ),
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Top row: Type icon, Account name, Type pill, Archive
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 18,
+                          backgroundColor:
+                              AppColors.emerald500.withValues(alpha: 0.16),
+                          child: Icon(
+                            _iconForType(account.type),
+                            color: AppColors.emerald400,
+                            size: 18,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                account.name,
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                  color: isDark
+                                      ? Colors.white
+                                      : AppColors.textLight,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? AppColors.surface700
+                                      : AppColors.lightCard2,
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(
+                                    color: isDark
+                                        ? AppColors.surface600
+                                        : AppColors.lightBorder,
+                                    width: 0.8,
+                                  ),
+                                ),
+                                child: Text(
+                                  account.type.toUpperCase(),
+                                  style: TextStyle(
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0.5,
+                                    color: isDark
+                                        ? AppColors.textMuted
+                                        : AppColors.textMutedL,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Archive account',
+                          onPressed: () => _archiveAccount(
+                            context,
+                            account,
+                            accounts.length,
+                          ),
+                          icon: const Icon(Icons.archive_outlined, size: 20),
+                          color: isDark
+                              ? AppColors.textMuted
+                              : AppColors.textMutedL,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Divider
+                    Container(
+                      height: 1,
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.06)
+                          : AppColors.lightBorder,
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Balance row + Reconcile Button
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'CURRENT BALANCE',
+                              style: TextStyle(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.8,
+                                color: isDark
+                                    ? AppColors.textMuted
+                                    : AppColors.textMutedL,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              CurrencyFormatter.format(balance),
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: -0.4,
+                                fontFeatures:
+                                    CurrencyFormatter.tabularFigures,
+                                color: isDark
+                                    ? Colors.white
+                                    : AppColors.textLight,
+                              ),
+                            ),
+                          ],
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: () => showReconcileBalanceSheet(
+                            context,
+                            targetAccount: account,
+                          ),
+                          icon: const Icon(
+                            Icons.tune_rounded,
+                            size: 15,
+                            color: AppColors.emerald400,
+                          ),
+                          label: const Text(
+                            'Reconcile',
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.emerald400,
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(
+                              color: AppColors.emerald500
+                                  .withValues(alpha: 0.35),
+                            ),
+                            backgroundColor: AppColors.emerald500
+                                .withValues(alpha: 0.08),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            minimumSize: const Size(0, 36),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               );
             },
