@@ -790,47 +790,54 @@ class _HeroBalanceCard extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.credit_card_rounded,
-                            size: 16,
-                            color: AppColors.gold400,
-                          ),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'TOTAL LIQUID BALANCE',
-                            style: TextStyle(
-                              color: AppColors.gold400,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 1.2,
+                      Expanded(
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.credit_card_rounded,
+                              size: 16,
+                              color: AppColors.textMuted,
                             ),
-                          ),
-                          if (data.isFromCache == true) ...[
                             const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: const Text(
-                                'CACHED',
+                            const Flexible(
+                              child: Text(
+                                'TOTAL LIQUID BALANCE',
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
                                 style: TextStyle(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w800,
                                   color: AppColors.textMuted,
-                                  letterSpacing: 0.8,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 1.1,
                                 ),
                               ),
                             ),
+                            if (data.isFromCache == true) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Text(
+                                  'CACHED',
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.textMuted,
+                                    letterSpacing: 0.8,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
+                      const SizedBox(width: 8),
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -842,13 +849,13 @@ class _HeroBalanceCard extends StatelessWidget {
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 8,
-                                  vertical: 6,
+                                  vertical: 5,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.08),
+                                  color: AppColors.surface700,
                                   borderRadius: BorderRadius.circular(10),
                                   border: Border.all(
-                                    color: Colors.white.withValues(alpha: 0.12),
+                                    color: AppColors.subtleBorder,
                                     width: 1,
                                   ),
                                 ),
@@ -857,8 +864,8 @@ class _HeroBalanceCard extends StatelessWidget {
                                   children: [
                                     Icon(
                                       Icons.tune_rounded,
-                                      size: 14,
-                                      color: AppColors.gold400,
+                                      size: 13,
+                                      color: AppColors.textMuted,
                                     ),
                                     SizedBox(width: 4),
                                     Text(
@@ -866,7 +873,7 @@ class _HeroBalanceCard extends StatelessWidget {
                                       style: TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.w700,
-                                        color: AppColors.gold400,
+                                        color: AppColors.textMuted,
                                       ),
                                     ),
                                   ],
@@ -1044,57 +1051,64 @@ class _DailySafeSpendSection extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
-                          color: accentColor.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: accentColor.withValues(alpha: 0.4),
-                            width: 0.75,
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: accentColor.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: accentColor.withValues(alpha: 0.4),
+                              width: 0.75,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 6,
+                                height: 6,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: accentColor,
+                                ),
+                              ),
+                              const SizedBox(width: 5),
+                              const Text(
+                                'KASYA BA TODAY?',
+                                style: TextStyle(
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.8,
+                                  color: AppColors.textDark,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 6,
-                              height: 6,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: accentColor,
-                              ),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            'DAILY SAFE SPEND',
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.9,
+                              color: accentColor,
                             ),
-                            const SizedBox(width: 5),
-                            const Text(
-                              'KASYA BA TODAY?',
-                              style: TextStyle(
-                                fontSize: 9.5,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 0.8,
-                                color: AppColors.textDark,
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'DAILY SAFE SPEND',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.9,
-                          color: accentColor,
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   Tooltip(
                     message: 'View deterministic math breakdown',
                     child: Container(
@@ -3201,16 +3215,21 @@ class _SectionHeader extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.3,
-            color: AppColors.textDark,
+        Expanded(
+          child: Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.3,
+              color: AppColors.textDark,
+            ),
           ),
         ),
-        if (actionLabel != null && onAction != null)
+        if (actionLabel != null && onAction != null) ...[
+          const SizedBox(width: 8),
           TextButton(
             onPressed: onAction,
             style: TextButton.styleFrom(
@@ -3226,17 +3245,18 @@ class _SectionHeader extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.gold400,
+                    color: AppColors.emerald400,
                   ),
                 ),
                 const Icon(
                   Icons.chevron_right_rounded,
                   size: 18,
-                  color: AppColors.gold400,
+                  color: AppColors.emerald400,
                 ),
               ],
             ),
           ),
+        ],
       ],
     );
   }
