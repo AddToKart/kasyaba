@@ -303,6 +303,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
     return data;
   }
 
+  /// Restores a portable JSON backup of the signed-in user's financial data.
+  Future<Map<String, dynamic>> restoreData(Map<String, dynamic> backupJson) async {
+    final response = await _dio.post('/auth/restore', data: backupJson);
+    final data = response.data['data'];
+    if (data is! Map<String, dynamic>) {
+      throw const FormatException('Unexpected restore response format.');
+    }
+    return data;
+  }
+
   /// Permanently deletes the signed-in account and all associated server data,
   /// then clears local credentials and session state.
   ///

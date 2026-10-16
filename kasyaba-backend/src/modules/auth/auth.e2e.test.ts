@@ -313,6 +313,39 @@ describe('Auth Endpoints E2E Integration Tests', () => {
       expect(res.body.data.exportedAt).toBeDefined();
       expect(res.body.data.user.email).toBe('test@kasyaba.app');
     });
+
+    it('successfully restores user data on POST /api/v1/auth/restore', async () => {
+      const validToken = await signAccessToken({ sub: 'user-123', email: 'test@kasyaba.app' });
+      vi.mocked(authService.restoreUserData).mockResolvedValueOnce({
+        restoredAt: new Date().toISOString(),
+        counts: {
+          accounts: 2,
+          expenses: 5,
+          incomes: 1,
+          transfers: 1,
+          categories: 3,
+          goals: 1,
+          budgets: 1,
+          bills: 1,
+        },
+      });
+
+      const res = await request(app)
+        .post('/api/v1/auth/restore')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({
+          exportedAt: new Date().toISOString(),
+          user: {
+            salaryAmount: '45000',
+            financialAccounts: [{ id: 'a1', name: 'BDO' }],
+          },
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.restoredAt).toBeDefined();
+      expect(res.body.data.counts.accounts).toBe(2);
+      expect(res.body.data.counts.expenses).toBe(5);
+    });
   });
 
   describe('Public Legal & Health Check Routes', () => {
