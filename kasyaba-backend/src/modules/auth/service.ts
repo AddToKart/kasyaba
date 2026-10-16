@@ -16,6 +16,7 @@ import type {
   RegisterInput,
   LoginInput,
   UpdateProfileInput,
+  RestoreInput,
 } from "./validation";
 
 function hashToken(token: string): string {
@@ -342,6 +343,7 @@ export async function exportUserData(userId: string) {
       financialAccounts: true,
       incomeEntries: true,
       expenseEntries: true,
+      transfers: true,
       expenseCategories: true,
       budgets: true,
       savingsGoals: {
@@ -364,6 +366,308 @@ export async function exportUserData(userId: string) {
     exportedAt: new Date().toISOString(),
     user,
   };
+}
+
+export async function restoreUserData(userId: string, input: RestoreInput) {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) {
+    throw new NotFoundError('User not found');
+  }
+
+  const source =
+    input.user && typeof input.user === 'object'
+      ? (input.user as Record<string, any>)
+      : (input as Record<string, any>);
+
+  const accounts: any[] = Array.isArray(source.financialAccounts)
+    ? source.financialAccounts
+    : Array.isArray(source.accounts)
+      ? source.accounts
+      : [];
+  const categories: any[] = Array.isArray(source.expenseCategories)
+    ? source.expenseCategories
+    : Array.isArray(source.categories)
+      ? source.categories
+      : [];
+  const expenses: any[] = Array.isArray(source.expenseEntries)
+    ? source.expenseEntries
+    : Array.isArray(source.expenses)
+      ? source.expenses
+      : [];
+  const incomes: any[] = Array.isArray(source.incomeEntries)
+    ? source.incomeEntries
+    : Array.isArray(source.income)
+      ? source.income
+      : [];
+  const transfers: any[] = Array.isArray(source.transfers)
+    ? source.transfers
+    : Array.isArray(source.accountTransfers)
+      ? source.accountTransfers
+      : [];
+  const goals: any[] = Array.isArray(source.savingsGoals)
+    ? source.savingsGoals
+    : Array.isArray(source.goals)
+      ? source.goals
+      : [];
+  const budgets: any[] = Array.isArray(source.budgets) ? source.budgets : [];
+  const bills: any[] = Array.isArray(source.billTemplates)
+    ? source.billTemplates
+    : Array.isArray(source.bills)
+      ? source.bills
+      : [];
+
+  return prisma.$transaction(
+    async (tx) => {
+      // 1. Update user settings if present
+      const profileUpdates: Prisma.UserUpdateInput = {};
+      if (source.salaryAmount !== undefined && source.salaryAmount !== null) {
+        profileUpdates.salaryAmount = source.salaryAmount;
+      }
+      if (source.paydayFrequency !== undefined && source.paydayFrequency !== null) {
+        profileUpdates.paydayFrequency = source.paydayFrequency;
+      }
+      if (source.paydaySchedule !== undefined && source.paydaySchedule !== null) {
+        profileUpdates.paydaySchedule = source.paydaySchedule;
+      }
+      if (source.minimumBalanceThreshold !== undefined && source.minimumBalanceThreshold !== null) {
+        profileUpdates.minimumBalanceThreshold = source.minimumBalanceThreshold;
+      }
+      if (Object.keys(profileUpdates).length > 0) {
+        await tx.user.update({
+          where: { id: userId },
+          data: profileUpdates,
+        });
+      }
+
+      // 2. Categories
+      let restoredCategories = 0;
+      for (const cat of categories) {
+        if (!cat.id || !cat.name) continue;
+        await tx.expenseCategory.upsert({
+          where: { id: cat.id },
+          update: {
+            name: cat.name,
+            icon: cat.icon ?? 'more-horizontal',
+            color: cat.color ?? '#64748B',
+          },
+          create: {
+            id: cat.id,
+            userId,
+            name: cat.name,
+            icon: cat.icon ?? 'more-horizontal',
+            color: cat.color ?? '#64748B',
+          },
+        });
+        restoredCategories++;
+      }
+
+      // 3. Accounts
+      let restoredAccounts = 0;
+      for (const acc of accounts) {
+        if (!acc.id || !acc.name) continue;
+        await tx.financialAccount.upsert({
+          where: { id: acc.id },
+          update: {
+            name: acc.name,
+            type: acc.type ?? 'cash',
+            currency: acc.currency ?? 'PHP',
+            openingBalance: acc.openingBalance ?? 0,
+            isArchived: acc.isArchived ?? false,
+          },
+          create: {
+            id: acc.id,
+            userId,
+            name: acc.name,
+            type: acc.type ?? 'cash',
+            currency: acc.currency ?? 'PHP',
+            openingBalance: acc.openingBalance ?? 0,
+            isArchived: acc.isArchived ?? false,
+            createdAt: acc.createdAt ? new Date(acc.createdAt) : new Date(),
+          },
+        });
+        restoredAccounts++;
+      }
+
+      // 4. Expenses
+      let restoredExpenses = 0;
+      for (const exp of expenses) {
+        if (!exp.id || exp.amount === undefined || !exp.accountId || !exp.categoryId) continue;
+        await tx.expenseEntry.upsert({
+          where: { id: exp.id },
+          update: {
+            accountId: exp.accountId,
+            categoryId: exp.categoryId,
+            amount: exp.amount,
+            description: exp.description ?? 'Expense',
+            spentAt: exp.spentAt ? new Date(exp.spentAt) : new Date(),
+            status: exp.status ?? 'posted',
+            notes: exp.notes,
+          },
+          create: {
+            id: exp.id,
+            userId,
+            accountId: exp.accountId,
+            categoryId: exp.categoryId,
+            amount: exp.amount,
+            description: exp.description ?? 'Expense',
+            spentAt: exp.spentAt ? new Date(exp.spentAt) : new Date(),
+            status: exp.status ?? 'posted',
+            notes: exp.notes,
+            createdAt: exp.createdAt ? new Date(exp.createdAt) : new Date(),
+          },
+        });
+        restoredExpenses++;
+      }
+
+      // 5. Incomes
+      let restoredIncomes = 0;
+      for (const inc of incomes) {
+        if (!inc.id || inc.amount === undefined || !inc.accountId) continue;
+        await tx.incomeEntry.upsert({
+          where: { id: inc.id },
+          update: {
+            accountId: inc.accountId,
+            amount: inc.amount,
+            source: inc.source ?? 'Income',
+            receivedAt: inc.receivedAt ? new Date(inc.receivedAt) : new Date(),
+            status: inc.status ?? 'posted',
+            notes: inc.notes,
+          },
+          create: {
+            id: inc.id,
+            userId,
+            accountId: inc.accountId,
+            amount: inc.amount,
+            source: inc.source ?? 'Income',
+            receivedAt: inc.receivedAt ? new Date(inc.receivedAt) : new Date(),
+            status: inc.status ?? 'posted',
+            notes: inc.notes,
+            createdAt: inc.createdAt ? new Date(inc.createdAt) : new Date(),
+          },
+        });
+        restoredIncomes++;
+      }
+
+      // 6. Transfers
+      let restoredTransfers = 0;
+      for (const tr of transfers) {
+        if (!tr.id || tr.amount === undefined || !tr.fromAccountId || !tr.toAccountId) continue;
+        await tx.accountTransfer.upsert({
+          where: { id: tr.id },
+          update: {
+            fromAccountId: tr.fromAccountId,
+            toAccountId: tr.toAccountId,
+            amount: tr.amount,
+            transferredAt: tr.transferredAt ? new Date(tr.transferredAt) : new Date(),
+            notes: tr.notes,
+          },
+          create: {
+            id: tr.id,
+            userId,
+            fromAccountId: tr.fromAccountId,
+            toAccountId: tr.toAccountId,
+            amount: tr.amount,
+            transferredAt: tr.transferredAt ? new Date(tr.transferredAt) : new Date(),
+            notes: tr.notes,
+            createdAt: tr.createdAt ? new Date(tr.createdAt) : new Date(),
+          },
+        });
+        restoredTransfers++;
+      }
+
+      // 7. Goals
+      let restoredGoals = 0;
+      for (const g of goals) {
+        if (!g.id || !g.name || g.targetAmount === undefined) continue;
+        await tx.savingsGoal.upsert({
+          where: { id: g.id },
+          update: {
+            name: g.name,
+            targetAmount: g.targetAmount,
+            targetDate: g.targetDate ? new Date(g.targetDate) : null,
+            status: g.status ?? 'active',
+          },
+          create: {
+            id: g.id,
+            userId,
+            name: g.name,
+            targetAmount: g.targetAmount,
+            targetDate: g.targetDate ? new Date(g.targetDate) : null,
+            status: g.status ?? 'active',
+            createdAt: g.createdAt ? new Date(g.createdAt) : new Date(),
+          },
+        });
+        restoredGoals++;
+      }
+
+      // 8. Budgets
+      let restoredBudgets = 0;
+      for (const b of budgets) {
+        if (!b.id || !b.categoryId || b.amount === undefined) continue;
+        await tx.budget.upsert({
+          where: { id: b.id },
+          update: {
+            categoryId: b.categoryId,
+            amount: b.amount,
+            month: b.month ? new Date(b.month) : new Date(),
+          },
+          create: {
+            id: b.id,
+            userId,
+            categoryId: b.categoryId,
+            amount: b.amount,
+            month: b.month ? new Date(b.month) : new Date(),
+            createdAt: b.createdAt ? new Date(b.createdAt) : new Date(),
+          },
+        });
+        restoredBudgets++;
+      }
+
+      // 9. Bill templates
+      let restoredBills = 0;
+      for (const bill of bills) {
+        if (!bill.id || !bill.name || bill.amount === undefined || !bill.categoryId) continue;
+        await tx.billTemplate.upsert({
+          where: { id: bill.id },
+          update: {
+            name: bill.name,
+            amount: bill.amount,
+            categoryId: bill.categoryId,
+            frequency: bill.frequency ?? 'monthly',
+            dueDay: bill.dueDay ?? 1,
+            isActive: bill.isActive ?? true,
+          },
+          create: {
+            id: bill.id,
+            userId,
+            name: bill.name,
+            amount: bill.amount,
+            categoryId: bill.categoryId,
+            frequency: bill.frequency ?? 'monthly',
+            dueDay: bill.dueDay ?? 1,
+            isActive: bill.isActive ?? true,
+            createdAt: bill.createdAt ? new Date(bill.createdAt) : new Date(),
+          },
+        });
+        restoredBills++;
+      }
+
+      return {
+        restoredAt: new Date().toISOString(),
+        counts: {
+          accounts: restoredAccounts,
+          expenses: restoredExpenses,
+          incomes: restoredIncomes,
+          transfers: restoredTransfers,
+          categories: restoredCategories,
+          goals: restoredGoals,
+          budgets: restoredBudgets,
+          bills: restoredBills,
+        },
+      };
+    },
+    { timeout: 30000 },
+  );
 }
 
 async function createSession(userId: string, email: string, hasPassword: boolean) {

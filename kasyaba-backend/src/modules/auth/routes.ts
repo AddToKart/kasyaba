@@ -10,6 +10,7 @@ import {
   refreshSchema,
   updateProfileSchema,
   deleteAccountSchema,
+  restoreSchema,
 } from "./validation";
 import * as authService from "./service";
 import { sendSuccess, sendCreated, sendNoContent } from "../../lib/response";
@@ -213,6 +214,21 @@ export function registerRoutes(router: Router) {
       try {
         const data = await authService.exportUserData(req.userId!);
         sendSuccess(res, data);
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  // POST /api/v1/auth/restore (User Data Restore / Import)
+  router.post(
+    "/api/v1/auth/restore",
+    authenticate,
+    validate(restoreSchema),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const result = await authService.restoreUserData(req.userId!, req.body);
+        sendSuccess(res, result);
       } catch (err) {
         next(err);
       }

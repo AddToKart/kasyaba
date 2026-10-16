@@ -22,6 +22,7 @@ Future<void> _showTransactionActions(
   if (transaction.isSyncFailed) {
     final action = await showModalBottomSheet<String>(
       context: context,
+      useRootNavigator: true,
       backgroundColor: Theme.of(context).colorScheme.surface,
       showDragHandle: true,
       builder: (sheetContext) => SafeArea(
@@ -130,6 +131,7 @@ Future<void> _showTransactionActions(
 
   final action = await showModalBottomSheet<String>(
     context: context,
+    useRootNavigator: true,
     backgroundColor: Theme.of(context).colorScheme.surface,
     showDragHandle: true,
     builder: (sheetContext) => SafeArea(
@@ -205,6 +207,7 @@ Future<void> _showTransactionActions(
 Future<void> _showNewEntryMenu(BuildContext context) async {
   final action = await showModalBottomSheet<String>(
     context: context,
+    useRootNavigator: true,
     backgroundColor: Theme.of(context).colorScheme.surface,
     showDragHandle: true,
     builder: (sheetContext) => SafeArea(

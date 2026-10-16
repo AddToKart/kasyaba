@@ -69,7 +69,13 @@ class ModernCard extends StatelessWidget {
 
     return Container(
       decoration: decoration,
-      child: ClipRRect(borderRadius: radius, child: innerChild),
+      child: ClipRRect(
+        borderRadius: radius,
+        child: Material(
+          color: Colors.transparent,
+          child: innerChild,
+        ),
+      ),
     );
   }
 
