@@ -15,7 +15,9 @@ Future<void> showReconcileBalanceSheet(
   return showModalBottomSheet(
     context: context,
     isScrollControlled: true,
+    useRootNavigator: true,
     backgroundColor: Colors.transparent,
+    barrierColor: Colors.black.withValues(alpha: 0.75),
     builder: (ctx) => ReconcileBalanceSheet(initialAccount: targetAccount),
   );
 }
@@ -209,11 +211,16 @@ class _ReconcileBalanceSheetState extends ConsumerState<ReconcileBalanceSheet> {
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
             child: Container(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(context).height * 0.92,
+              ),
               padding: EdgeInsets.fromLTRB(
                 20,
                 12,
                 20,
-                20 + MediaQuery.viewInsetsOf(context).bottom,
+                20 +
+                    MediaQuery.viewInsetsOf(context).bottom +
+                    MediaQuery.paddingOf(context).bottom,
               ),
               decoration: BoxDecoration(
                 color: isDark

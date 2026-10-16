@@ -27,7 +27,7 @@ class ModernBottomSheet extends StatelessWidget {
     required Widget child,
     Widget? action,
     bool showDragHandle = true,
-    bool useRootNavigator = false,
+    bool useRootNavigator = true,
   }) {
     return showModalBottomSheet<T>(
       context: context,
