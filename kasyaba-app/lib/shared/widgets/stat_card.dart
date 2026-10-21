@@ -28,13 +28,12 @@ class StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final iconBg = color.withValues(alpha: 0.15);
+    final isDark = theme.brightness == Brightness.dark;
+    final iconBg = color.withValues(alpha: isDark ? 0.15 : 0.12);
 
     return ModernCard(
       onTap: onTap,
-      borderRadius: 16.0,
-      backgroundColor: AppColors.surfaceCard,
-      borderColor: AppColors.subtleBorder,
+      borderRadius: 18.0,
       padding: EdgeInsets.symmetric(
         horizontal: compact ? 12 : 14,
         vertical: compact ? 14 : 16,
@@ -68,7 +67,7 @@ class StatCard extends StatelessWidget {
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.4,
-                  color: AppColors.textDark,
+                  color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
                   fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
@@ -78,7 +77,7 @@ class StatCard extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.labelSmall?.copyWith(
-                  color: AppColors.textMuted,
+                  color: isDark ? AppColors.textMuted : AppColors.lightTextSecondary,
                   fontWeight: FontWeight.w500,
                   letterSpacing: 0.3,
                 ),

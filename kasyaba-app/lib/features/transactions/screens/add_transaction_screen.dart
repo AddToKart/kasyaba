@@ -7,6 +7,8 @@ import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../shared/widgets/modern_card.dart';
 import '../../../app/theme/app_theme.dart';
+import '../../../app/theme/app_motion.dart';
+import '../../../shared/widgets/pressable_scale.dart';
 import '../../../core/utils/category_icon_helper.dart';
 import '../../../core/utils/currency_formatter.dart';
 
@@ -1151,10 +1153,10 @@ class _TypeSwitcher extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.surface700 : AppColors.lightCard2,
+        color: isDark ? AppColors.surface700 : AppColors.lightInputFill,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDark ? AppColors.subtleBorder : AppColors.lightBorder,
+          color: isDark ? AppColors.subtleBorder : AppColors.lightBorderHairline,
           width: 1,
         ),
       ),
@@ -1265,10 +1267,16 @@ class _TypeTab extends StatelessWidget {
         button: true,
         selected: isSelected,
         label: label,
-        onTap: onTap,
+        onTap: () {
+          AppHaptics.selectionClick();
+          onTap();
+        },
         excludeSemantics: true,
-        child: GestureDetector(
-          onTap: onTap,
+        child: PressableScale(
+          onTap: () {
+            AppHaptics.selectionClick();
+            onTap();
+          },
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 180),
             curve: Curves.easeOutCubic,
@@ -1665,64 +1673,66 @@ class _CategoryGrid extends StatelessWidget {
           button: true,
           selected: isSelected,
           label: catName,
-          onTap: () => onSelect(cat['id']!),
+          onTap: () {
+            AppHaptics.selectionClick();
+            onSelect(cat['id']!);
+          },
           excludeSemantics: true,
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () => onSelect(cat['id']!),
-              borderRadius: BorderRadius.circular(10),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                alignment: Alignment.center,
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                decoration: BoxDecoration(
+          child: PressableScale(
+            onTap: () {
+              AppHaptics.selectionClick();
+              onSelect(cat['id']!);
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              alignment: Alignment.center,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? AppColors.expense.withValues(
+                        alpha: isDark ? 0.18 : 0.10,
+                      )
+                    : (isDark ? AppColors.surface700 : AppColors.lightInputFill),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
                   color: isSelected
                       ? AppColors.expense.withValues(
-                          alpha: isDark ? 0.18 : 0.10,
+                          alpha: isDark ? 0.40 : 0.30,
                         )
-                      : (isDark ? AppColors.surface700 : AppColors.lightCard2),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: isSelected
-                        ? AppColors.expense.withValues(
-                            alpha: isDark ? 0.40 : 0.30,
-                          )
-                        : (isDark
-                              ? AppColors.subtleBorder
-                              : AppColors.lightBorder),
-                    width: isSelected ? 1.5 : 1,
-                  ),
+                      : (isDark
+                            ? AppColors.subtleBorder
+                            : AppColors.lightBorderHairline),
+                  width: isSelected ? 1.5 : 1,
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      catIcon,
-                      size: 15,
-                      color: isSelected ? AppColors.expense : catColor,
-                    ),
-                    const SizedBox(width: 6),
-                    Flexible(
-                      child: Text(
-                        catName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: isSelected
-                              ? FontWeight.w700
-                              : FontWeight.w500,
-                          color: isSelected
-                              ? AppColors.expense
-                              : (isDark
-                                    ? AppColors.textDark
-                                    : AppColors.textLight),
-                        ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    catIcon,
+                    size: 15,
+                    color: isSelected ? AppColors.expense : catColor,
+                  ),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      catName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: isSelected
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                        color: isSelected
+                            ? AppColors.expense
+                            : (isDark
+                                  ? AppColors.textDark
+                                  : AppColors.textLight),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -2256,20 +2266,28 @@ class _SaveButton extends StatelessWidget {
         '${isEditing ? "Update" : "Save"} Transfer',
     };
 
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppTheme.buttonRadius),
-        gradient: isSubmitting
-            ? null
-            : LinearGradient(
-                colors: gradientColors,
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-              ),
-        boxShadow: const [],
-      ),
-      child: ElevatedButton.icon(
-        onPressed: isSubmitting ? null : onPressed,
+    return PressableScale(
+      onTap: isSubmitting ? null : () {
+        AppHaptics.mediumImpact();
+        onPressed();
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(AppTheme.buttonRadius),
+          gradient: isSubmitting
+              ? null
+              : LinearGradient(
+                  colors: gradientColors,
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+          boxShadow: const [],
+        ),
+        child: ElevatedButton.icon(
+          onPressed: isSubmitting ? null : () {
+            AppHaptics.mediumImpact();
+            onPressed();
+          },
         style: ElevatedButton.styleFrom(
           backgroundColor: isSubmitting
               ? AppColors.surface600
@@ -2301,6 +2319,6 @@ class _SaveButton extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ));
   }
 }

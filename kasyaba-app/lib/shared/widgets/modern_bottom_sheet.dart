@@ -49,21 +49,28 @@ class ModernBottomSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 0),
       padding: EdgeInsets.only(bottom: bottomInset),
       decoration: BoxDecoration(
-        color: AppColors.surface800,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-        border: const Border(
+        color: isDark ? AppColors.darkCardSurface : AppColors.lightCardSurface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        border: Border(
           top: BorderSide(
-            color: AppColors.subtleBorder,
+            color: isDark ? AppColors.subtleBorder : AppColors.lightBorderHairline,
             width: 1,
           ),
         ),
-        boxShadow: const [],
+        boxShadow: [
+          BoxShadow(
+            color: isDark ? Colors.black.withValues(alpha: 0.4) : const Color(0x18000000),
+            blurRadius: 16,
+            offset: const Offset(0, -4),
+          ),
+        ],
       ),
       child: SafeArea(
         top: false,
@@ -79,7 +86,7 @@ class ModernBottomSheet extends StatelessWidget {
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: AppColors.surface600,
+                      color: isDark ? AppColors.surface600 : const Color(0xFFD4D4D8),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -101,7 +108,7 @@ class ModernBottomSheet extends StatelessWidget {
                           style: theme.textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w800,
                             letterSpacing: -0.3,
-                            color: AppColors.textDark,
+                            color: isDark ? AppColors.textDark : AppColors.textLight,
                           ),
                         ),
                         if (subtitle != null) ...[
@@ -109,7 +116,7 @@ class ModernBottomSheet extends StatelessWidget {
                           Text(
                             subtitle!,
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: AppColors.textMuted,
+                              color: isDark ? AppColors.textMuted : AppColors.textMutedL,
                             ),
                           ),
                         ],
@@ -123,7 +130,7 @@ class ModernBottomSheet extends StatelessWidget {
               ),
               const SizedBox(height: 20),
 
-              const Divider(height: 1, color: AppColors.subtleBorder),
+              Divider(height: 1, color: isDark ? AppColors.subtleBorder : AppColors.lightBorderHairline),
               const SizedBox(height: 20),
 
               Flexible(
@@ -146,6 +153,7 @@ class _CloseButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Tooltip(
       message: 'Close',
       child: SizedBox(
@@ -161,13 +169,16 @@ class _CloseButton extends StatelessWidget {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: AppColors.surface700,
+                  color: isDark ? AppColors.surface700 : AppColors.lightInputFill,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppColors.subtleBorder, width: 1),
+                  border: Border.all(
+                    color: isDark ? AppColors.subtleBorder : AppColors.lightBorderHairline,
+                    width: 1,
+                  ),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.close_rounded,
-                  color: AppColors.textMuted,
+                  color: isDark ? AppColors.textMuted : AppColors.textMutedL,
                   size: 18,
                 ),
               ),

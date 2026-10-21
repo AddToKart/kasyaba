@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../app/theme/app_theme.dart';
+import '../../../app/theme/app_motion.dart';
+import '../../../core/providers/theme_provider.dart';
+import '../../../shared/widgets/pressable_scale.dart';
 import '../../../core/app_info.dart';
 import '../../../core/auth/auth_provider.dart';
 import '../../../core/errors/error_messages.dart';
@@ -84,13 +87,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
                     color: isDark
-                        ? const Color(0xFF1E293B)
-                        : const Color(0xFFF1F5F9),
+                        ? AppColors.surface700
+                        : AppColors.lightInputFill,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: isDark
                           ? AppColors.subtleBorder
-                          : AppColors.lightBorder,
+                          : AppColors.lightBorderHairline,
                     ),
                   ),
                   child: Row(
@@ -105,7 +108,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             decoration: BoxDecoration(
                               color: !isCalculatorMode
                                   ? (isDark
-                                      ? const Color(0xFF334155)
+                                      ? const Color(0xFF27272A)
                                       : Colors.white)
                                   : Colors.transparent,
                               borderRadius: BorderRadius.circular(8),
@@ -163,7 +166,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             decoration: BoxDecoration(
                               color: isCalculatorMode
                                   ? (isDark
-                                      ? const Color(0xFF334155)
+                                      ? const Color(0xFF27272A)
                                       : Colors.white)
                                   : Colors.transparent,
                               borderRadius: BorderRadius.circular(8),
@@ -778,6 +781,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final currentThemeMode = ref.watch(themeModeProvider);
     final authState = ref.watch(authProvider);
     final profileAsync = ref.watch(userProfileProvider);
 
@@ -824,10 +828,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   child: Center(
                     child: Text(
                       initial,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: isDark ? Colors.white : AppColors.textLight,
                       ),
                     ),
                   ),
@@ -985,6 +989,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ],
                 ),
               );
+            },
+          ),
+          const SizedBox(height: 20),
+
+          // ── Appearance & Theme Card ──────────────────────────────
+          _ThemeSelectorCard(
+            currentMode: currentThemeMode,
+            isDark: isDark,
+            onThemeChanged: (mode) {
+              ref.read(themeModeProvider.notifier).setThemeMode(mode);
             },
           ),
           const SizedBox(height: 24),
@@ -1317,6 +1331,193 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
           const SizedBox(height: 120),
         ],
+      ),
+    );
+  }
+}
+
+
+// ─────────────────────────────────────────────────────────────
+//  Tactile Appearance & Theme Selector
+// ─────────────────────────────────────────────────────────────
+
+class _ThemeSelectorCard extends StatelessWidget {
+  final ThemeMode currentMode;
+  final bool isDark;
+  final ValueChanged<ThemeMode> onThemeChanged;
+
+  const _ThemeSelectorCard({
+    required this.currentMode,
+    required this.isDark,
+    required this.onThemeChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ModernCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: AppColors.emerald500.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: AppColors.emerald500.withValues(alpha: 0.25),
+                  ),
+                ),
+                child: const Icon(
+                  Icons.palette_outlined,
+                  color: AppColors.emerald500,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Appearance & Theme',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        color: isDark ? AppColors.textDark : AppColors.textLight,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Choose your lighting atmosphere',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? AppColors.textMuted : AppColors.textMutedL,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.surface700 : AppColors.lightInputFill,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isDark ? AppColors.subtleBorder : AppColors.lightBorderHairline,
+                width: 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                _ThemeSegmentButton(
+                  icon: Icons.dark_mode_rounded,
+                  label: 'Dark',
+                  isSelected: currentMode == ThemeMode.dark,
+                  isDark: isDark,
+                  onTap: () => onThemeChanged(ThemeMode.dark),
+                ),
+                const SizedBox(width: 4),
+                _ThemeSegmentButton(
+                  icon: Icons.light_mode_rounded,
+                  label: 'Light',
+                  isSelected: currentMode == ThemeMode.light,
+                  isDark: isDark,
+                  onTap: () => onThemeChanged(ThemeMode.light),
+                ),
+                const SizedBox(width: 4),
+                _ThemeSegmentButton(
+                  icon: Icons.brightness_auto_rounded,
+                  label: 'System',
+                  isSelected: currentMode == ThemeMode.system,
+                  isDark: isDark,
+                  onTap: () => onThemeChanged(ThemeMode.system),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ThemeSegmentButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool isSelected;
+  final bool isDark;
+  final VoidCallback onTap;
+
+  const _ThemeSegmentButton({
+    required this.icon,
+    required this.label,
+    required this.isSelected,
+    required this.isDark,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final activeBg = isDark ? const Color(0xFF27272A) : Colors.white;
+    final activeTextColor = isDark ? Colors.white : AppColors.textLight;
+    final inactiveTextColor = isDark ? AppColors.textMuted : AppColors.textMutedL;
+
+    return Expanded(
+      child: PressableScale(
+        onTap: () {
+          AppHaptics.selectionClick();
+          onTap();
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+          padding: const EdgeInsets.symmetric(vertical: 9),
+          decoration: BoxDecoration(
+            color: isSelected ? activeBg : Colors.transparent,
+            borderRadius: BorderRadius.circular(9),
+            border: isSelected
+                ? Border.all(
+                    color: isDark ? AppColors.subtleBorder : AppColors.lightBorderHairline,
+                    width: 1,
+                  )
+                : null,
+            boxShadow: isSelected && !isDark
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.06),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 16,
+                color: isSelected ? AppColors.emerald500 : inactiveTextColor,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: isSelected ? activeTextColor : inactiveTextColor,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

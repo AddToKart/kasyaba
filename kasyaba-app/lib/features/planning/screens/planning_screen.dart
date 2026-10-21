@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_theme.dart';
+import '../../../app/theme/app_motion.dart';
+import '../../../shared/widgets/pressable_scale.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
@@ -1497,23 +1499,29 @@ class _PresetChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return PressableScale(
+      onTap: () {
+        AppHaptics.selectionClick();
+        onTap();
+      },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.gold500.withValues(alpha: 0.2)
+              ? AppColors.emerald500.withValues(alpha: isDark ? 0.2 : 0.12)
               : isReset
-                  ? AppColors.surface700
-                  : AppColors.surface800,
+                  ? (isDark ? AppColors.surface700 : AppColors.lightInputFill)
+                  : (isDark ? AppColors.surface800 : AppColors.lightInputFill),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isSelected
-                ? AppColors.gold400
-                : AppColors.surface600.withValues(alpha: 0.5),
+                ? AppColors.emerald500
+                : (isDark
+                    ? AppColors.surface600.withValues(alpha: 0.5)
+                    : AppColors.lightBorderHairline),
             width: 1,
           ),
         ),
@@ -1521,10 +1529,10 @@ class _PresetChip extends StatelessWidget {
           label,
           style: TextStyle(
             color: isSelected
-                ? AppColors.gold300
+                ? AppColors.emerald500
                 : isReset
-                    ? AppColors.textMuted
-                    : AppColors.textDark,
+                    ? (isDark ? AppColors.textMuted : AppColors.textMutedL)
+                    : (isDark ? AppColors.textDark : AppColors.textLight),
             fontSize: 11,
             fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
           ),

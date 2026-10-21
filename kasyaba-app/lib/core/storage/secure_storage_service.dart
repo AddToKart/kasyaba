@@ -84,4 +84,12 @@ class SecureStorageService {
       _storage.delete(key: _userDisplayNameKey),
     ]);
   }
+
+  Future<String?> readRaw(String key) async {
+    return _storage.read(key: key);
+  }
+
+  Future<void> writeRaw(String key, String value) async {
+    await _storage.write(key: key, value: value);
+  }
 }

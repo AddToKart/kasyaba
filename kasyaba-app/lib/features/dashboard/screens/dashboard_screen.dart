@@ -14,6 +14,9 @@ import '../../../shared/widgets/stat_card.dart';
 import '../../../shared/widgets/empty_state_view.dart';
 import '../../../shared/widgets/modern_bottom_sheet.dart';
 import '../../../app/theme/app_theme.dart';
+import '../../../app/theme/app_motion.dart';
+import '../../../shared/widgets/pressable_scale.dart';
+import '../../../shared/widgets/rolling_counter.dart';
 import '../../accounts/widgets/reconcile_balance_sheet.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -329,6 +332,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                           context.go('/transactions/add', extra: 'expense'),
                       onIncome: () =>
                           context.go('/transactions/add', extra: 'income'),
+                      onTransfer: () =>
+                          context.go('/transactions/add', extra: 'transfer'),
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -728,6 +733,7 @@ class _HeroBalanceCard extends StatelessWidget {
   final VoidCallback onToggleVisibility;
   final VoidCallback onExpense;
   final VoidCallback onIncome;
+  final VoidCallback? onTransfer;
 
   const _HeroBalanceCard({
     required this.data,
@@ -737,6 +743,7 @@ class _HeroBalanceCard extends StatelessWidget {
     required this.onToggleVisibility,
     required this.onExpense,
     required this.onIncome,
+    this.onTransfer,
   });
 
   @override
@@ -744,23 +751,26 @@ class _HeroBalanceCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
-        gradient: AppColors.gradientHeroCard,
+        color: isDark ? AppColors.surface800 : AppColors.lightCardSurface,
         border: Border.all(
-          color: AppColors.gold500.withValues(alpha: 0.4),
+          color: isDark ? AppColors.subtleBorder : AppColors.lightBorderHairline,
           width: 1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.7),
-            blurRadius: 28,
-            offset: const Offset(0, 10),
-          ),
-          BoxShadow(
-            color: AppColors.emerald500.withValues(alpha: 0.08),
-            blurRadius: 16,
-            spreadRadius: 1,
-          ),
-        ],
+        boxShadow: isDark
+            ? [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.35),
+                  blurRadius: 18,
+                  offset: const Offset(0, 6),
+                ),
+              ]
+            : const [
+                BoxShadow(
+                  color: Color(0x0A000000),
+                  blurRadius: 16,
+                  offset: Offset(0, 4),
+                ),
+              ],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(24),
@@ -892,22 +902,17 @@ class _HeroBalanceCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 14),
 
-                  // Prominent Formatted Balance
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 300),
-                    child: Text(
-                      isVisible
-                          ? CurrencyFormatter.format(data.totalBalance)
-                          : '₱ •••••••',
-                      key: ValueKey(isVisible),
-                      style: const TextStyle(
-                        fontSize: 34,
-                        fontWeight: FontWeight.w900,
-                        color: AppColors.textDark,
-                        letterSpacing: -0.5,
-                        height: 1.1,
-                        fontFeatures: [FontFeature.tabularFigures()],
-                      ),
+                  // Prominent Formatted Rolling Balance
+                  RollingCounter(
+                    value: (data.totalBalance as num).toDouble(),
+                    prefix: '₱ ',
+                    isPrivacyMode: !isVisible,
+                    style: TextStyle(
+                      fontSize: 38,
+                      fontWeight: FontWeight.w900,
+                      color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
+                      letterSpacing: -0.8,
+                      height: 1.1,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -982,13 +987,23 @@ class _HeroBalanceCard extends StatelessWidget {
                           isIncome: false,
                         ),
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: _QuickActionBtn(
                           label: 'Add Income',
                           icon: Icons.add_rounded,
                           onTap: onIncome,
                           isIncome: true,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _QuickActionBtn(
+                          label: 'Transfer',
+                          icon: Icons.swap_horiz_rounded,
+                          onTap: onTransfer ?? () => context.go('/transactions/add', extra: 'transfer'),
+                          isIncome: false,
+                          isTransfer: true,
                         ),
                       ),
                     ],
@@ -1916,53 +1931,73 @@ class _QuickActionBtn extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
   final bool isIncome;
+  final bool isTransfer;
 
   const _QuickActionBtn({
     required this.label,
     required this.icon,
     required this.onTap,
-    required this.isIncome,
+    this.isIncome = false,
+    this.isTransfer = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final btnRadius = BorderRadius.circular(10);
-    return Material(
-      color: Colors.transparent,
-      borderRadius: btnRadius,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: btnRadius,
-        child: Container(
-          height: 46,
-          decoration: BoxDecoration(
-            borderRadius: btnRadius,
-            color: isIncome ? AppColors.emerald500 : AppColors.surface700,
-            border: isIncome
-                ? null
-                : Border.all(color: AppColors.subtleBorder, width: 1),
-            boxShadow: const [],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 18,
-                color: isIncome ? Colors.black : AppColors.expense,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
-                  color: isIncome ? Colors.black : AppColors.textDark,
-                  letterSpacing: 0.3,
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final btnRadius = BorderRadius.circular(12);
+
+    final Color bgColor;
+    final Color iconColor;
+    final Color textColor;
+
+    if (isIncome) {
+      bgColor = AppColors.emerald500;
+      iconColor = Colors.black;
+      textColor = Colors.black;
+    } else if (isTransfer) {
+      bgColor = isDark ? const Color(0xFF16232D) : const Color(0xFFE0F2FE);
+      iconColor = AppColors.transfer;
+      textColor = isDark ? AppColors.textDark : const Color(0xFF0369A1);
+    } else {
+      bgColor = isDark ? AppColors.surface700 : AppColors.lightInputFill;
+      iconColor = AppColors.expense;
+      textColor = isDark ? AppColors.textDark : AppColors.lightTextPrimary;
+    }
+
+    return PressableScale(
+      onTap: onTap,
+      child: Container(
+        height: 46,
+        decoration: BoxDecoration(
+          borderRadius: btnRadius,
+          color: bgColor,
+          border: isIncome
+              ? null
+              : Border.all(
+                  color: isDark ? AppColors.subtleBorder : AppColors.lightBorderHairline,
+                  width: 1,
                 ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 17,
+              color: iconColor,
+            ),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w800,
+                color: textColor,
+                letterSpacing: 0.2,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -2416,10 +2451,14 @@ class _ForecastCard extends StatelessWidget {
                     height: 110,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: AppColors.surface800.withValues(alpha: 0.5),
+                      color: isDark
+                          ? AppColors.surface800.withValues(alpha: 0.5)
+                          : AppColors.lightInputFill,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: AppColors.subtleBorder,
+                        color: isDark
+                            ? AppColors.subtleBorder
+                            : AppColors.lightBorderHairline,
                         width: 1,
                       ),
                     ),
@@ -2991,48 +3030,57 @@ class _TransactionTile extends StatelessWidget {
     final primaryTitle = item.title.isNotEmpty ? item.title : item.categoryName;
     final subtitleText = '${item.categoryName} • $dateStr';
 
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      leading: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          color: categoryColor.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: categoryColor.withValues(alpha: 0.3),
-            width: 1,
+    final primaryTextColor = isDark ? AppColors.textDark : AppColors.textLight;
+    final secondaryTextColor = isDark ? AppColors.textMuted : AppColors.textMutedL;
+
+    return PressableScale(
+      onTap: () {
+        AppHaptics.lightImpact();
+        context.push('/transactions');
+      },
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        leading: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: categoryColor.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: categoryColor.withValues(alpha: 0.3),
+              width: 1,
+            ),
+          ),
+          child: Icon(categoryIcon, color: categoryColor, size: 20),
+        ),
+        title: Text(
+          primaryTitle,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 14,
+            color: primaryTextColor,
           ),
         ),
-        child: Icon(categoryIcon, color: categoryColor, size: 20),
-      ),
-      title: Text(
-        primaryTitle,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
-          fontWeight: FontWeight.w700,
-          fontSize: 14,
-          color: AppColors.textDark,
+        subtitle: Text(
+          subtitleText,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: secondaryTextColor,
+          ),
         ),
-      ),
-      subtitle: Text(
-        subtitleText,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-          color: AppColors.textMuted,
-        ),
-      ),
-      trailing: Text(
-        CurrencyFormatter.formatSigned(item.amount, isExpense: isExpense),
-        style: TextStyle(
-          fontWeight: FontWeight.w800,
-          fontSize: 15,
-          color: amountColor,
-          fontFeatures: const [FontFeature.tabularFigures()],
+        trailing: Text(
+          CurrencyFormatter.formatSigned(item.amount, isExpense: isExpense),
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 15,
+            color: amountColor,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
         ),
       ),
     );
@@ -3079,51 +3127,59 @@ class _GoalRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final pct = (goal.progress * 100).clamp(0, 100).toStringAsFixed(0);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                goal.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                  color: AppColors.textDark,
+    final primaryTextColor = isDark ? AppColors.textDark : AppColors.textLight;
+
+    return PressableScale(
+      onTap: () {
+        AppHaptics.lightImpact();
+        context.push('/goals');
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  goal.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    color: primaryTextColor,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text(
-                '${CurrencyFormatter.format(goal.currentAmount)} / ${CurrencyFormatter.format(goal.targetAmount)} ($pct%)',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.end,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.emerald500,
-                  fontFeatures: [FontFeature.tabularFigures()],
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  '${CurrencyFormatter.format(goal.currentAmount)} / ${CurrencyFormatter.format(goal.targetAmount)} ($pct%)',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.end,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.emerald500,
+                    fontFeatures: [FontFeature.tabularFigures()],
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(6),
-          child: LinearProgressIndicator(
-            value: goal.progress.clamp(0.0, 1.0),
-            minHeight: 6,
-            backgroundColor: const Color(0xFF182234),
-            color: AppColors.emerald500,
+            ],
           ),
-        ),
-      ],
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              value: goal.progress.clamp(0.0, 1.0),
+              minHeight: 6,
+              backgroundColor: isDark ? const Color(0xFF27272A) : AppColors.lightInputFill,
+              color: AppColors.emerald500,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -3149,51 +3205,61 @@ class _BillsList extends StatelessWidget {
       child: Column(
         children: [
           for (int i = 0; i < bills.length; i++) ...[
-            ListTile(
-              leading: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: AppColors.gold500.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: AppColors.gold500.withValues(alpha: 0.3),
-                    width: 1,
+            PressableScale(
+              onTap: () {
+                AppHaptics.lightImpact();
+                context.push('/bills');
+              },
+              child: ListTile(
+                leading: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: AppColors.gold500.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.gold500.withValues(alpha: 0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.receipt_rounded,
+                    color: AppColors.gold400,
+                    size: 20,
                   ),
                 ),
-                child: const Icon(
-                  Icons.receipt_rounded,
-                  color: AppColors.gold400,
-                  size: 20,
+                title: Text(
+                  bills[i].name,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    color: isDark ? AppColors.textDark : AppColors.textLight,
+                  ),
                 ),
-              ),
-              title: Text(
-                bills[i].name,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                  color: AppColors.textDark,
+                subtitle: Text(
+                  'Due: ${bills[i].dueDate.toIso8601String().split('T').first}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDark ? AppColors.textMuted : AppColors.textMutedL,
+                  ),
                 ),
-              ),
-              subtitle: Text(
-                'Due: ${bills[i].dueDate.toIso8601String().split('T').first}',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textMuted,
-                ),
-              ),
-              trailing: Text(
-                CurrencyFormatter.format(bills[i].amount),
-                style: const TextStyle(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 15,
-                  color: AppColors.textDark,
-                  fontFeatures: [FontFeature.tabularFigures()],
+                trailing: Text(
+                  CurrencyFormatter.format(bills[i].amount),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 15,
+                    color: isDark ? AppColors.textDark : AppColors.textLight,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
                 ),
               ),
             ),
             if (i < bills.length - 1)
-              const Divider(height: 1, indent: 68, color: AppColors.subtleBorder),
+              Divider(
+                height: 1,
+                indent: 68,
+                color: isDark ? AppColors.subtleBorder : AppColors.lightBorderHairline,
+              ),
           ],
         ],
       ),

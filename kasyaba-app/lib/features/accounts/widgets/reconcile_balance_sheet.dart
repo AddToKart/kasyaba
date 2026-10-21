@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/app_theme.dart';
+import '../../../app/theme/app_motion.dart';
+import '../../../shared/widgets/pressable_scale.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
@@ -779,17 +781,34 @@ class _ReconcileBalanceSheetState extends ConsumerState<ReconcileBalanceSheet> {
                       const SizedBox(height: 18),
 
                       // Primary Action CTA
-                      ElevatedButton(
-                        onPressed: (_isSubmitting ||
+                      PressableScale(
+                        onTap: (_isSubmitting ||
                                 discrepancy == null ||
                                 discrepancy.abs() < 0.005)
                             ? null
-                            : () => _handleSync(
+                            : () {
+                                AppHaptics.mediumImpact();
+                                _handleSync(
                                   selected,
                                   recordedBalance,
                                   actualBalance!,
                                   discrepancy,
-                                ),
+                                );
+                              },
+                        child: ElevatedButton(
+                          onPressed: (_isSubmitting ||
+                                  discrepancy == null ||
+                                  discrepancy.abs() < 0.005)
+                              ? null
+                              : () {
+                                  AppHaptics.mediumImpact();
+                                  _handleSync(
+                                    selected,
+                                    recordedBalance,
+                                    actualBalance!,
+                                    discrepancy,
+                                  );
+                                },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.emerald500,
                           foregroundColor: Colors.black,
@@ -823,6 +842,7 @@ class _ReconcileBalanceSheetState extends ConsumerState<ReconcileBalanceSheet> {
                                   letterSpacing: 0.2,
                                 ),
                               ),
+                        ),
                       ),
                     ],
                   ),

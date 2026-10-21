@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../app/theme/app_theme.dart';
+import '../theme/app_motion.dart';
 
 /// ─────────────────────────────────────────────────────────────
 ///  AppShell — Ultra Luxury Floating Navigation Dock
@@ -134,13 +135,20 @@ class _LuxuryFloatingDock extends StatelessWidget {
         bottomPadding > 0 ? bottomPadding : 12,
       ),
       decoration: BoxDecoration(
-        color: const Color(0xF7121215),
+        color: isDark
+            ? const Color(0xF7121215)
+            : const Color(0xF7FFFFFF),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.subtleBorder, width: 1),
+        border: Border.all(
+          color: isDark ? AppColors.subtleBorder : AppColors.lightBorderHairline,
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.4),
-            blurRadius: 12,
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.4)
+                : const Color(0x18000000),
+            blurRadius: isDark ? 12 : 20,
             offset: const Offset(0, 4),
           ),
         ],
@@ -195,12 +203,15 @@ class _NavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final activeColor = AppColors.emerald500;
-    final inactiveColor = AppColors.textMuted;
+    final inactiveColor = isDark ? AppColors.textMuted : AppColors.textMutedL;
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: onTap,
+        onTap: () {
+          AppHaptics.selectionClick();
+          onTap();
+        },
         splashColor: activeColor.withValues(alpha: 0.1),
         highlightColor: activeColor.withValues(alpha: 0.05),
         child: Column(
