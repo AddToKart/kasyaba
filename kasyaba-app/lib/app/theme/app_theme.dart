@@ -58,8 +58,8 @@ class AppColors {
   static const lightBorder2 = Color(0xFFD1D5DB);
 
   // ── Text Colors ────────────────────────────────────────────
-  static const textDark = Color(0xFFFAFAFA); // Crisp White Zinc 50
-  static const textLight = Color(0xFFFAFAFA);
+  static const textDark = Color(0xFFFAFAFA); // Crisp White Zinc 50 (Dark Mode)
+  static const textLight = Color(0xFF09090B); // Deep Obsidian Zinc 950 (Light Mode)
   static const textMuted = Color(0xFFA1A1AA); // Zinc 400
   static const textMutedL = Color(0xFF71717A); // Zinc 500
 
