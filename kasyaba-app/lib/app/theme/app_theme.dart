@@ -64,7 +64,8 @@ class AppColors {
   static const textMutedL = Color(0xFF71717A); // Zinc 500
 
   // ── Border Colors ──────────────────────────────────────────
-  static const subtleBorder = Color(0xFF27272A); // Crisp 1px Zinc 700 border
+  static const subtleBorder = Color(0x1FFFFFFF); // 12% white opacity — ultra-luxury etched glass edge, zero glaring outlines
+  static const subtleBorderZinc = Color(0xFF27272A); // Zinc 700 solid fall-back
 
   // ── Sleek Restrained Gradients ─────────────────────────────
   static const gradientHeroCard = LinearGradient(
@@ -90,6 +91,20 @@ class AppColors {
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
+
+  // ── Adaptive Theme Color Helpers ───────────────────────────
+  static Color subtleBorderAdaptive(bool isDark) =>
+      isDark ? subtleBorder : lightBorderHairline;
+  static Color cardBg(bool isDark) =>
+      isDark ? surfaceCard : lightCardSurface;
+  static Color scaffoldBg(bool isDark) =>
+      isDark ? obsidian : lightScaffold;
+  static Color textPrimary(bool isDark) =>
+      isDark ? textDark : lightTextPrimary;
+  static Color textSecondary(bool isDark) =>
+      isDark ? textMuted : lightTextSecondary;
+  static Color inputSurface(bool isDark) =>
+      isDark ? surface700 : lightInputFill;
 }
 
 class AppTheme {

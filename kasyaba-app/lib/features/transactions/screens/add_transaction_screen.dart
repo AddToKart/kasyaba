@@ -1257,10 +1257,8 @@ class _TypeTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textColor = isSelected
-        ? (activeColor == const Color(0xFF38BDF8)
-            ? const Color(0xFF0F172A)
-            : Colors.white)
-        : (isDark ? AppColors.textMuted : AppColors.textMutedL);
+        ? Colors.white
+        : (isDark ? AppColors.textMuted : AppColors.lightTextSecondary);
 
     return Expanded(
       child: Semantics(
@@ -1340,8 +1338,6 @@ class _AmountCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currencySymbolColor = isDark ? Colors.white : AppColors.textLight;
-
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -1373,8 +1369,8 @@ class _AmountCard extends StatelessWidget {
                 fontSize: 38,
                 fontWeight: FontWeight.w900,
                 color: isDark
-                    ? const Color(0xFFFAFAFA)
-                    : AppColors.textLight,
+                    ? AppColors.textMuted.withValues(alpha: 0.4)
+                    : AppColors.lightTextSecondary.withValues(alpha: 0.4),
                 letterSpacing: -1.0,
                 fontFeatures: CurrencyFormatter.tabularFigures,
               ),
@@ -1382,7 +1378,7 @@ class _AmountCard extends StatelessWidget {
               prefixStyle: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.w800,
-                color: currencySymbolColor,
+                color: isDark ? AppColors.textMuted : AppColors.lightTextSecondary,
                 fontFeatures: CurrencyFormatter.tabularFigures,
               ),
               border: InputBorder.none,

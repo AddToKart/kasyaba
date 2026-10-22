@@ -76,8 +76,7 @@ class _RollingCounterState extends State<RollingCounter> {
 
     return Row(
       mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.baseline,
-      textBaseline: TextBaseline.alphabetic,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         if (widget.prefix != null)
           Text(
@@ -86,6 +85,7 @@ class _RollingCounterState extends State<RollingCounter> {
           ),
         for (int i = 0; i < characters.length; i++)
           _CharacterSlot(
+            key: ValueKey('slot_${i}_${characters.length}'),
             char: characters[i],
             style: effectiveStyle,
             duration: widget.duration,
@@ -110,6 +110,7 @@ class _CharacterSlot extends StatelessWidget {
   final int staggerIndex;
 
   const _CharacterSlot({
+    super.key,
     required this.char,
     required this.style,
     required this.duration,
@@ -121,29 +122,26 @@ class _CharacterSlot extends StatelessWidget {
   Widget build(BuildContext context) {
     final digit = int.tryParse(char);
 
-    // Non-digit characters (, . - •) don't roll; they render statically
+    // Non-digit characters (, . - •) render statically or with fade
     if (digit == null) {
-      return AnimatedSwitcher(
-        duration: AppMotion.snappy,
-        child: Text(
-          char,
-          key: ValueKey(char),
-          style: style,
-        ),
+      return Text(
+        char,
+        key: ValueKey(char),
+        style: style,
       );
     }
 
-    // Digit column: 0 to 9 in a vertical strip
+    // Digit column: animated vertical transition per digit
     return _DigitColumn(
       targetDigit: digit,
       style: style,
-      duration: duration + Duration(milliseconds: staggerIndex * 25),
+      duration: duration + Duration(milliseconds: staggerIndex * 20),
       curve: curve,
     );
   }
 }
 
-class _DigitColumn extends StatefulWidget {
+class _DigitColumn extends StatelessWidget {
   final int targetDigit;
   final TextStyle style;
   final Duration duration;
@@ -157,98 +155,29 @@ class _DigitColumn extends StatefulWidget {
   });
 
   @override
-  State<_DigitColumn> createState() => _DigitColumnState();
-}
-
-class _DigitColumnState extends State<_DigitColumn>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late Animation<double> _animation;
-  late int _currentDigit;
-
-  @override
-  void initState() {
-    super.initState();
-    _currentDigit = widget.targetDigit;
-    _controller = AnimationController(
-      vsync: this,
-      duration: widget.duration,
-    );
-    _animation = AlwaysStoppedAnimation<double>(_currentDigit.toDouble());
-  }
-
-  @override
-  void didUpdateWidget(_DigitColumn oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.targetDigit != widget.targetDigit) {
-      final start = _animation.value;
-      final end = widget.targetDigit.toDouble();
-      _controller.duration = widget.duration;
-      _animation = Tween<double>(begin: start, end: end).animate(
-        CurvedAnimation(
-          parent: _controller,
-          curve: widget.curve,
-        ),
-      );
-      _controller.forward(from: 0.0);
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    // Hidden '0' sets the exact intrinsic width and height to match the TextStyle
-    return ClipRect(
-      child: Stack(
-        children: [
-          Opacity(
-            opacity: 0.0,
-            child: Text('0', style: widget.style),
-          ),
-          Positioned.fill(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final digitHeight = constraints.maxHeight;
-                return AnimatedBuilder(
-                  animation: _animation,
-                  builder: (context, _) {
-                    final yOffset = -_animation.value * digitHeight;
-                    return Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        Positioned(
-                          top: yOffset,
-                          left: 0,
-                          right: 0,
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              for (int d = 0; d <= 9; d++)
-                                SizedBox(
-                                  height: digitHeight,
-                                  child: Center(
-                                    child: Text(
-                                      '$d',
-                                      style: widget.style,
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                );
-              },
+    return AnimatedSwitcher(
+      duration: duration,
+      switchInCurve: curve,
+      switchOutCurve: curve,
+      transitionBuilder: (child, animation) {
+        return ClipRect(
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0.0, 0.4),
+              end: Offset.zero,
+            ).animate(animation),
+            child: FadeTransition(
+              opacity: animation,
+              child: child,
             ),
           ),
-        ],
+        );
+      },
+      child: Text(
+        '$targetDigit',
+        key: ValueKey<int>(targetDigit),
+        style: style,
       ),
     );
   }

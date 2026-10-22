@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../app/theme/app_theme.dart';
@@ -135,40 +136,46 @@ class _LuxuryFloatingDock extends StatelessWidget {
         bottomPadding > 0 ? bottomPadding : 12,
       ),
       decoration: BoxDecoration(
-        color: isDark
-            ? const Color(0xF7121215)
-            : const Color(0xF7FFFFFF),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isDark ? AppColors.subtleBorder : AppColors.lightBorderHairline,
-          width: 1,
-        ),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
             color: isDark
-                ? Colors.black.withValues(alpha: 0.4)
+                ? Colors.black.withValues(alpha: 0.5)
                 : const Color(0x18000000),
-            blurRadius: isDark ? 12 : 20,
-            offset: const Offset(0, 4),
+            blurRadius: isDark ? 16 : 24,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: SizedBox(
-          height: 64,
-          child: Row(
-            children: [
-              for (int i = 0; i < _destinations.length; i++)
-                Expanded(
-                  child: _NavItem(
-                    destination: _destinations[i],
-                    isSelected: selectedIndex == i,
-                    isDark: isDark,
-                    onTap: () => onDestinationSelected(i),
+        borderRadius: BorderRadius.circular(24),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            height: 64,
+            decoration: BoxDecoration(
+              color: isDark
+                  ? const Color(0xE0121215)
+                  : const Color(0xEBFFFFFF),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: isDark ? AppColors.subtleBorder : AppColors.lightBorderHairline,
+                width: 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                for (int i = 0; i < _destinations.length; i++)
+                  Expanded(
+                    child: _NavItem(
+                      destination: _destinations[i],
+                      isSelected: selectedIndex == i,
+                      isDark: isDark,
+                      onTap: () => onDestinationSelected(i),
+                    ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -202,8 +209,8 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final activeColor = AppColors.emerald500;
-    final inactiveColor = isDark ? AppColors.textMuted : AppColors.textMutedL;
+    final activeColor = isDark ? AppColors.emerald400 : AppColors.emerald600;
+    final inactiveColor = isDark ? AppColors.textMuted : AppColors.lightTextSecondary;
 
     return Material(
       color: Colors.transparent,
@@ -212,41 +219,40 @@ class _NavItem extends StatelessWidget {
           AppHaptics.selectionClick();
           onTap();
         },
-        splashColor: activeColor.withValues(alpha: 0.1),
-        highlightColor: activeColor.withValues(alpha: 0.05),
+        splashColor: activeColor.withValues(alpha: 0.08),
+        highlightColor: Colors.transparent,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 250),
+            AnimatedScale(
+              scale: isSelected ? 1.1 : 1.0,
+              duration: const Duration(milliseconds: 200),
               curve: Curves.easeOutCubic,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? activeColor.withValues(alpha: 0.18)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(10),
-                border: isSelected
-                    ? Border.all(
-                        color: activeColor.withValues(alpha: 0.3),
-                        width: 1,
-                      )
-                    : null,
-              ),
               child: Icon(
                 isSelected ? destination.activeIcon : destination.icon,
-                size: 20,
+                size: 21,
                 color: isSelected ? activeColor : inactiveColor,
               ),
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 3),
             Text(
               destination.label,
               style: TextStyle(
                 color: isSelected ? activeColor : inactiveColor,
-                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
-                fontSize: 10,
-                letterSpacing: 0.2,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                fontSize: 10.5,
+                letterSpacing: 0.1,
+              ),
+            ),
+            const SizedBox(height: 2),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOutCubic,
+              width: isSelected ? 12 : 0,
+              height: 2.5,
+              decoration: BoxDecoration(
+                color: isSelected ? activeColor : Colors.transparent,
+                borderRadius: BorderRadius.circular(99),
               ),
             ),
           ],

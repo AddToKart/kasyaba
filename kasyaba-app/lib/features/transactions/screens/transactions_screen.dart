@@ -473,7 +473,7 @@ class TransactionsScreen extends ConsumerWidget {
                             ),
                             ModernCard(
                               padding: const EdgeInsets.symmetric(vertical: 4),
-                              borderColor: AppColors.subtleBorder,
+                              borderColor: AppColors.subtleBorderAdaptive(isDark),
                               borderRadius: 16,
                               child: Column(
                                 children: [
@@ -485,10 +485,10 @@ class TransactionsScreen extends ConsumerWidget {
                                       isDark,
                                     ),
                                     if (i < group.items.length - 1)
-                                      const Divider(
+                                      Divider(
                                         height: 1,
                                         indent: 68,
-                                        color: AppColors.subtleBorder,
+                                        color: AppColors.subtleBorderAdaptive(isDark),
                                       ),
                                   ],
                                 ],
@@ -569,10 +569,10 @@ class TransactionsScreen extends ConsumerWidget {
         primaryTitle,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
+        style: TextStyle(
           fontWeight: FontWeight.w700,
           fontSize: 14,
-          color: AppColors.textDark,
+          color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
         ),
       ),
       subtitle: Text(
@@ -661,16 +661,16 @@ class _TransactionsSliverAppBar extends StatelessWidget {
     return SliverAppBar(
       pinned: true,
       floating: false,
-      backgroundColor: AppColors.obsidian,
+      backgroundColor: isDark ? AppColors.obsidian : AppColors.lightScaffold,
       elevation: 0,
       scrolledUnderElevation: 0,
-      title: const Text(
+      title: Text(
         'Transactions',
         style: TextStyle(
           fontWeight: FontWeight.w800,
           fontSize: 22,
           letterSpacing: 0.5,
-          color: AppColors.textDark,
+          color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
         ),
       ),
       titleSpacing: 20,
@@ -741,11 +741,11 @@ class _AppBarIconBtn extends StatelessWidget {
                     borderRadius: BorderRadius.circular(10),
                     color: isActive
                         ? AppColors.emerald500.withValues(alpha: 0.2)
-                        : AppColors.surface700,
+                        : (isDark ? AppColors.surface700 : AppColors.lightInputFill),
                     border: Border.all(
                       color: isActive
                           ? AppColors.emerald500
-                          : AppColors.subtleBorder,
+                          : AppColors.subtleBorderAdaptive(isDark),
                       width: 1,
                     ),
                   ),
@@ -754,7 +754,7 @@ class _AppBarIconBtn extends StatelessWidget {
                     size: 18,
                     color: isActive
                         ? AppColors.emerald500
-                        : AppColors.textMuted,
+                        : (isDark ? AppColors.textMuted : AppColors.lightTextSecondary),
                   ),
                 ),
               ),

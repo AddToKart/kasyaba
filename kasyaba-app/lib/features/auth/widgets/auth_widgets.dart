@@ -27,8 +27,8 @@ class AuthBackground extends StatelessWidget {
         return Container(
           width: size.width,
           height: size.height,
-          decoration: const BoxDecoration(
-            color: AppColors.obsidian,
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.obsidian : AppColors.lightScaffold,
           ),
           child: Stack(
             children: [
@@ -180,7 +180,7 @@ class AuthBrandHeader extends StatelessWidget {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(13),
                 gradient: const LinearGradient(
-                  colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
+                  colors: [Color(0xFF18181B), Color(0xFF121215)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -224,14 +224,19 @@ class AuthBrandHeader extends StatelessWidget {
             const SizedBox(width: 12),
 
             // Bold KASYABA wordmark
-            const Text(
-              'KASYABA',
-              style: TextStyle(
-                color: AppColors.textDark,
-                fontWeight: FontWeight.w900,
-                fontSize: 26,
-                letterSpacing: 2.4,
-              ),
+            Builder(
+              builder: (ctx) {
+                final isDark = Theme.of(ctx).brightness == Brightness.dark;
+                return Text(
+                  'KASYABA',
+                  style: TextStyle(
+                    color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 26,
+                    letterSpacing: 2.4,
+                  ),
+                );
+              },
             ),
           ],
         ),
@@ -251,15 +256,16 @@ class AuthFormCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: AppColors.surface800,
+          color: isDark ? AppColors.surface800 : AppColors.lightCardSurface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: AppColors.subtleBorder,
+            color: AppColors.subtleBorderAdaptive(isDark),
             width: 1,
           ),
           boxShadow: const [],
@@ -325,6 +331,7 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     const unfocusedIconColor = Color(0xFF64748B); // Muted slate
     const focusedIconColor = AppColors.emerald500; // #10B981
 
@@ -358,8 +365,8 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
             onSubmitted: widget.onSubmitted != null
                 ? (_) => widget.onSubmitted!()
                 : null,
-            style: const TextStyle(
-              color: AppColors.textDark,
+            style: TextStyle(
+              color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
               fontSize: 14,
               fontWeight: FontWeight.w500,
             ),
@@ -370,7 +377,7 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
                 fontSize: 14,
               ),
               filled: true,
-              fillColor: AppColors.surface700,
+              fillColor: isDark ? AppColors.surface700 : AppColors.lightInputFill,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
                 vertical: 14,
@@ -383,8 +390,8 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
               suffixIcon: widget.suffixIcon,
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(
-                  color: Color(0x14FFFFFF), // 1px rgba(255,255,255,0.08)
+                borderSide: BorderSide(
+                  color: isDark ? const Color(0x14FFFFFF) : AppColors.lightBorderHairline,
                   width: 1,
                 ),
               ),
@@ -495,12 +502,13 @@ class AuthTrustFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.surface800,
+        color: isDark ? AppColors.surface800 : AppColors.lightCardSurface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.subtleBorder),
+        border: Border.all(color: AppColors.subtleBorderAdaptive(isDark)),
       ),
       child: const Row(
         mainAxisSize: MainAxisSize.min,

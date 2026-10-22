@@ -58,18 +58,19 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
           'Set a target amount and optional date for affordability forecasting.',
       child: StatefulBuilder(
         builder: (context, setModalState) {
+          final isDark = Theme.of(context).brightness == Brightness.dark;
           return Form(
             key: formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
+                Text(
                   'Quick Presets',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 13,
-                    color: AppColors.textDark,
+                    color: AppColors.textPrimary(isDark),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -303,6 +304,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
 
           return StatefulBuilder(
             builder: (context, setModalState) {
+              final isDark = Theme.of(context).brightness == Brightness.dark;
               // Deposits require an account whenever the user has accounts;
               // while the list is still loading we cannot pick one yet.
               final accountReady = accounts.isEmpty
@@ -325,38 +327,39 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               'Deduct From Account',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 13,
-                                color: AppColors.textDark,
+                                color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
                               ),
                             ),
                             const SizedBox(height: 8),
                             DropdownButtonFormField<String>(
                               initialValue: selectedAccountId,
-                              decoration: const InputDecoration(
-                                prefixIcon: Icon(
+                              dropdownColor: isDark ? AppColors.surfaceCard : AppColors.lightCardSurface,
+                              decoration: InputDecoration(
+                                prefixIcon: const Icon(
                                   Icons.account_balance_wallet_outlined,
                                   color: AppColors.emerald500,
                                 ),
                                 filled: true,
-                                fillColor: AppColors.surface700,
+                                fillColor: isDark ? AppColors.surface700 : AppColors.lightInputFill,
                                 border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.all(
+                                  borderRadius: const BorderRadius.all(
                                     Radius.circular(12),
                                   ),
                                   borderSide: BorderSide(
-                                    color: AppColors.subtleBorder,
+                                    color: AppColors.subtleBorderAdaptive(isDark),
                                   ),
                                 ),
                                 enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.all(
+                                  borderRadius: const BorderRadius.all(
                                     Radius.circular(12),
                                   ),
                                   borderSide: BorderSide(
-                                    color: AppColors.subtleBorder,
+                                    color: AppColors.subtleBorderAdaptive(isDark),
                                   ),
                                 ),
                               ),
@@ -365,10 +368,10 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                                   value: acc.id,
                                   child: Text(
                                     acc.name,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontWeight: FontWeight.w600,
                                       fontSize: 14,
-                                      color: AppColors.textDark,
+                                      color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
                                     ),
                                   ),
                                 );
@@ -385,12 +388,12 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                       },
                     ),
 
-                    const Text(
+                    Text(
                       'Quick Deposit Amounts',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
-                        color: AppColors.textDark,
+                        color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -409,8 +412,8 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                             borderRadius: BorderRadius.circular(
                               AppTheme.tagRadius,
                             ),
-                            side: const BorderSide(
-                              color: AppColors.subtleBorder,
+                            side: BorderSide(
+                              color: AppColors.subtleBorderAdaptive(isDark),
                             ),
                           ),
                           onPressed: () {
@@ -568,6 +571,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
 
           return StatefulBuilder(
             builder: (context, setModalState) {
+              final isDark = Theme.of(context).brightness == Brightness.dark;
               return Form(
                 key: formKey,
                 child: Column(
@@ -607,117 +611,122 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                     const SizedBox(height: 14),
 
                     // ── Cash vs. Installment Mode Toggle ──────────────────
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.surface800,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.subtleBorder),
-                      ),
-                      padding: const EdgeInsets.all(4),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: _PaymentModeToggleBtn(
-                              label: 'Pay Full Cash',
-                              icon: Icons.payments_outlined,
-                              isSelected: !isInstallment,
-                              onTap: () =>
-                                  setModalState(() => isInstallment = false),
-                            ),
+                    Builder(
+                      builder: (ctx) {
+                        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+                        return Container(
+                          decoration: BoxDecoration(
+                            color: isDark ? AppColors.surface800 : AppColors.lightInputFill,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppColors.subtleBorderAdaptive(isDark)),
                           ),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: _PaymentModeToggleBtn(
-                              label: 'Installment / BNPL',
-                              icon: Icons.splitscreen_rounded,
-                              isSelected: isInstallment,
-                              onTap: () =>
-                                  setModalState(() => isInstallment = true),
-                            ),
+                          padding: const EdgeInsets.all(4),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: _PaymentModeToggleBtn(
+                                  label: 'Pay Full Cash',
+                                  icon: Icons.payments_outlined,
+                                  isSelected: !isInstallment,
+                                  onTap: () =>
+                                      setModalState(() => isInstallment = false),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: _PaymentModeToggleBtn(
+                                  label: 'Installment / BNPL',
+                                  icon: Icons.splitscreen_rounded,
+                                  isSelected: isInstallment,
+                                  onTap: () =>
+                                      setModalState(() => isInstallment = true),
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        );
+                      },
                     ),
 
                     // ── Installment Tenure & Monthly Interest % Input ─────
                     if (isInstallment) ...[
                       const SizedBox(height: 12),
                       Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: AppColors.surface800,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: AppColors.info.withValues(alpha: 0.35),
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Installment Tenure Duration',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.textDark,
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: isDark ? AppColors.surface800 : AppColors.lightCardSurface,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: AppColors.info.withValues(alpha: 0.35),
                               ),
                             ),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [3, 6, 12].map((months) {
-                                final isSelected = tenureMonths == months;
-                                return Expanded(
-                                  child: Padding(
-                                    padding:
-                                        const EdgeInsets.symmetric(horizontal: 3),
-                                    child: InkWell(
-                                      onTap: () => setModalState(
-                                        () => tenureMonths = months,
-                                      ),
-                                      borderRadius: BorderRadius.circular(10),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 8,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: isSelected
-                                              ? AppColors.info
-                                                  .withValues(alpha: 0.2)
-                                              : AppColors.surface700,
-                                          borderRadius:
-                                              BorderRadius.circular(10),
-                                          border: Border.all(
-                                            color: isSelected
-                                                ? AppColors.info
-                                                : AppColors.subtleBorder,
-                                            width: isSelected ? 1.5 : 1,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Installment Tenure Duration',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [3, 6, 12].map((months) {
+                                    final isSelected = tenureMonths == months;
+                                    return Expanded(
+                                      child: Padding(
+                                        padding:
+                                            const EdgeInsets.symmetric(horizontal: 3),
+                                        child: InkWell(
+                                          onTap: () => setModalState(
+                                            () => tenureMonths = months,
                                           ),
-                                        ),
-                                        child: Center(
-                                          child: Text(
-                                            '$months Months',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: isSelected
-                                                  ? FontWeight.w800
-                                                  : FontWeight.w600,
+                                          borderRadius: BorderRadius.circular(10),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 8,
+                                            ),
+                                            decoration: BoxDecoration(
                                               color: isSelected
                                                   ? AppColors.info
-                                                  : AppColors.textMuted,
+                                                      .withValues(alpha: 0.2)
+                                                  : (isDark ? AppColors.surface700 : AppColors.lightInputFill),
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                              border: Border.all(
+                                                color: isSelected
+                                                    ? AppColors.info
+                                                    : AppColors.subtleBorderAdaptive(isDark),
+                                                width: isSelected ? 1.5 : 1,
+                                              ),
+                                            ),
+                                            child: Center(
+                                              child: Text(
+                                                '$months Months',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: isSelected
+                                                      ? FontWeight.w800
+                                                      : FontWeight.w600,
+                                                  color: isSelected
+                                                      ? AppColors.info
+                                                      : (isDark ? AppColors.textMuted : AppColors.lightTextSecondary),
+                                                ),
+                                              ),
                                             ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
-                            ),
-                            const SizedBox(height: 14),
-                            ModernTextField(
-                              controller: interestRateController,
-                              label: 'Monthly Interest Rate (%)',
-                              hint: '0.0 (0% for interest-free promos)',
+                                    );
+                                  }).toList(),
+                                ),
+                                const SizedBox(height: 14),
+                                ModernTextField(
+                                  controller: interestRateController,
+                                  label: 'Monthly Interest Rate (%)',
+                                  hint: '0.0 (0% for interest-free promos)',
                               prefixIcon: Icons.percent_rounded,
                               keyboardType:
                                   const TextInputType.numberWithOptions(
@@ -1013,187 +1022,162 @@ class _CanIBuyThisHeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.surface800 : AppColors.lightCard,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: const Color(0xFF0284C7).withValues(alpha: isDark ? 0.35 : 0.25),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.05),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(20),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+    return ModernCard(
+      padding: const EdgeInsets.all(18),
+      borderRadius: 20,
+      backgroundColor: isDark ? AppColors.surface800 : AppColors.lightCardSurface,
+      borderColor: AppColors.subtleBorderAdaptive(isDark),
+      onTap: onTap,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.gold500.withValues(alpha: isDark ? 0.15 : 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppColors.gold500.withValues(alpha: isDark ? 0.35 : 0.25),
+                    width: 1,
+                  ),
+                ),
+                child: const Center(
+                  child: Icon(
+                    Icons.tune_rounded,
+                    size: 20,
+                    color: AppColors.gold400,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF0284C7).withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: const Color(0xFF38BDF8).withValues(alpha: 0.35),
-                          width: 1,
-                        ),
-                      ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.shopping_bag_outlined,
-                          size: 20,
-                          color: Color(0xFF38BDF8),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Text(
-                                'Can I Buy This?',
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 0.2,
-                                  color: isDark
-                                      ? AppColors.textDark
-                                      : AppColors.textLight,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 7,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF0284C7)
-                                      .withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(
-                                    AppTheme.tagRadius,
-                                  ),
-                                  border: Border.all(
-                                    color: const Color(0xFF38BDF8)
-                                        .withValues(alpha: 0.45),
-                                    width: 0.8,
-                                  ),
-                                ),
-                                child: const Text(
-                                  'SIMULATOR',
-                                  style: TextStyle(
-                                    color: Color(0xFF38BDF8),
-                                    fontSize: 9.5,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                              ),
-                            ],
+                    Row(
+                      children: [
+                        Text(
+                          'Can I Buy This?',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.2,
+                            color: isDark
+                                ? AppColors.textDark
+                                : AppColors.lightTextPrimary,
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Simulate any purchase before you spend. Evaluates bill conflicts, cash buffer, and savings goal delays.',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: isDark
-                                  ? AppColors.textMuted
-                                  : AppColors.textMutedL,
-                              height: 1.35,
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.gold500.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(
+                              AppTheme.tagRadius,
+                            ),
+                            border: Border.all(
+                              color: AppColors.gold500.withValues(alpha: 0.35),
+                              width: 1,
                             ),
                           ),
-                        ],
+                          child: const Text(
+                            'SIMULATOR',
+                            style: TextStyle(
+                              color: AppColors.gold400,
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Simulate any purchase before you spend. Evaluates bill conflicts, cash buffer, and savings goal delays.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark
+                            ? AppColors.textMuted
+                            : AppColors.lightTextSecondary,
+                        height: 1.4,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 14),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 9,
+            ),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? AppColors.surface700.withValues(alpha: 0.5)
+                  : AppColors.lightInputFill,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppColors.subtleBorderAdaptive(isDark),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.auto_awesome_rounded,
+                  size: 14,
+                  color: AppColors.gold400,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Test purchase impact on goals',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
+                    ),
+                  ),
+                ),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
+                    horizontal: 10,
+                    vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: (isDark
-                            ? const Color(0xFF0B132B)
-                            : const Color(0xFFF0F9FF))
-                        .withValues(alpha: 0.6),
-                    borderRadius: BorderRadius.circular(12),
+                    color: AppColors.gold500.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: const Color(0xFF0284C7).withValues(alpha: 0.2),
+                      color: AppColors.gold500.withValues(alpha: 0.35),
                       width: 1,
                     ),
                   ),
-                  child: Row(
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(
-                        Icons.bolt_rounded,
-                        size: 14,
-                        color: Color(0xFF38BDF8),
-                      ),
-                      const SizedBox(width: 6),
-                      const Expanded(
-                        child: Text(
-                          'Test purchase impact on goals',
-                          style: TextStyle(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF38BDF8),
-                          ),
+                      Text(
+                        'Simulate',
+                        style: TextStyle(
+                          color: AppColors.gold400,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF0284C7)
-                              .withValues(alpha: 0.25),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: const Color(0xFF38BDF8)
-                                .withValues(alpha: 0.4),
-                            width: 1,
-                          ),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              'Simulate',
-                              style: TextStyle(
-                                color: Color(0xFF38BDF8),
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            SizedBox(width: 3),
-                            Icon(
-                              Icons.arrow_forward_rounded,
-                              size: 12,
-                              color: Color(0xFF38BDF8),
-                            ),
-                          ],
-                        ),
+                      SizedBox(width: 4),
+                      Icon(
+                        Icons.arrow_forward_rounded,
+                        size: 12,
+                        color: AppColors.gold400,
                       ),
                     ],
                   ),
@@ -1201,7 +1185,7 @@ class _CanIBuyThisHeroCard extends StatelessWidget {
               ],
             ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -1233,8 +1217,8 @@ class _ModernGoalCard extends StatelessWidget {
     return ModernCard(
       padding: const EdgeInsets.all(20),
       borderRadius: 20.0,
-      backgroundColor: AppColors.surfaceCard,
-      borderColor: AppColors.subtleBorder,
+      backgroundColor: isDark ? AppColors.surfaceCard : AppColors.lightCardSurface,
+      borderColor: AppColors.subtleBorderAdaptive(isDark),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1269,11 +1253,11 @@ class _ModernGoalCard extends StatelessWidget {
                   children: [
                     Text(
                       goal.name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 0.2,
-                        color: AppColors.textDark,
+                        color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -1400,11 +1384,11 @@ class _ModernGoalCard extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     CurrencyFormatter.format(remaining),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.textDark,
-                      fontFeatures: [FontFeature.tabularFigures()],
+                      color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
+                      fontFeatures: const [FontFeature.tabularFigures()],
                     ),
                   ),
                 ],
@@ -1423,7 +1407,7 @@ class _ModernGoalCard extends StatelessWidget {
                 height: 8,
                 width: barWidth,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF161E2E),
+                  color: isDark ? const Color(0xFF161E2E) : AppColors.lightInputFill,
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Align(
@@ -1476,6 +1460,7 @@ class _PurchaseCheckCardResult extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     Color cardColor;
     IconData icon;
 
@@ -1537,10 +1522,10 @@ class _PurchaseCheckCardResult extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             result.statusMessage,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w500,
-              color: AppColors.textDark,
+              color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
               height: 1.35,
             ),
           ),
@@ -1551,15 +1536,15 @@ class _PurchaseCheckCardResult extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFF0F172A),
+                color: isDark ? AppColors.surface700 : AppColors.lightInputFill,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                  color: AppColors.info.withValues(alpha: 0.4),
+                  color: AppColors.info.withValues(alpha: isDark ? 0.35 : 0.25),
                   width: 1,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.info.withValues(alpha: 0.08),
+                    color: AppColors.info.withValues(alpha: isDark ? 0.08 : 0.04),
                     blurRadius: 10,
                     offset: const Offset(0, 3),
                   ),
@@ -1587,16 +1572,16 @@ class _PurchaseCheckCardResult extends StatelessWidget {
                       children: [
                         RichText(
                           text: TextSpan(
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12.5,
-                              color: AppColors.textDark,
+                              color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
                             ),
                             children: [
-                              const TextSpan(
+                              TextSpan(
                                 text: 'Time Cost: ',
                                 style: TextStyle(
                                   fontWeight: FontWeight.w600,
-                                  color: AppColors.textMuted,
+                                  color: isDark ? AppColors.textMuted : AppColors.lightTextSecondary,
                                 ),
                               ),
                               TextSpan(
@@ -1613,10 +1598,10 @@ class _PurchaseCheckCardResult extends StatelessWidget {
                         const SizedBox(height: 3),
                         Text(
                           'Based on ${CurrencyFormatter.format(workHours.salaryAmount!)}/mo salary (${CurrencyFormatter.format(workHours.hourlyWage)}/hr across 176 monthly work hours)',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w500,
-                            color: AppColors.textMuted,
+                            color: isDark ? AppColors.textMuted : AppColors.lightTextSecondary,
                           ),
                         ),
                       ],
@@ -1629,10 +1614,12 @@ class _PurchaseCheckCardResult extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFF0F172A),
+                color: isDark ? AppColors.surface700 : AppColors.lightInputFill,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                  color: AppColors.gold500.withValues(alpha: 0.4),
+                  color: isDark
+                      ? AppColors.gold500.withValues(alpha: 0.35)
+                      : AppColors.lightBorderHairline,
                   width: 1,
                 ),
               ),
@@ -1684,9 +1671,9 @@ class _PurchaseCheckCardResult extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: AppColors.surface800,
+              color: isDark ? AppColors.surface800 : AppColors.lightCardSurface,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.subtleBorder),
+              border: Border.all(color: AppColors.subtleBorderAdaptive(isDark)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1753,12 +1740,14 @@ class _PurchaseCheckCardResult extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: !isInstallment
                               ? AppColors.emerald500.withValues(alpha: 0.08)
-                              : AppColors.surface700.withValues(alpha: 0.4),
+                              : (isDark
+                                  ? AppColors.surface700.withValues(alpha: 0.4)
+                                  : AppColors.lightInputFill),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color: !isInstallment
                                 ? AppColors.emerald500.withValues(alpha: 0.35)
-                                : AppColors.subtleBorder,
+                                : AppColors.subtleBorderAdaptive(isDark),
                           ),
                         ),
                         child: Column(
@@ -1783,11 +1772,11 @@ class _PurchaseCheckCardResult extends StatelessWidget {
                             ),
                             Text(
                               '-${CurrencyFormatter.format(comp.purchaseAmount)}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w800,
-                                color: AppColors.textDark,
-                                fontFeatures: [FontFeature.tabularFigures()],
+                                color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
+                                fontFeatures: const [FontFeature.tabularFigures()],
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -1805,8 +1794,8 @@ class _PurchaseCheckCardResult extends StatelessWidget {
                                 fontWeight: FontWeight.w800,
                                 color: comp.postCashBalance < 0
                                     ? AppColors.expense
-                                    : AppColors.textDark,
-                                fontFeatures: [FontFeature.tabularFigures()],
+                                    : (isDark ? AppColors.textDark : AppColors.lightTextPrimary),
+                                fontFeatures: const [FontFeature.tabularFigures()],
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -1871,12 +1860,14 @@ class _PurchaseCheckCardResult extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: isInstallment
                               ? AppColors.info.withValues(alpha: 0.08)
-                              : AppColors.surface700.withValues(alpha: 0.4),
+                              : (isDark
+                                  ? AppColors.surface700.withValues(alpha: 0.4)
+                                  : AppColors.lightInputFill),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color: isInstallment
                                 ? AppColors.info.withValues(alpha: 0.35)
-                                : AppColors.subtleBorder,
+                                : AppColors.subtleBorderAdaptive(isDark),
                           ),
                         ),
                         child: Column(
@@ -1901,11 +1892,11 @@ class _PurchaseCheckCardResult extends StatelessWidget {
                             ),
                             Text(
                               '-${CurrencyFormatter.format(comp.monthlyInstallment)}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w800,
-                                color: AppColors.textDark,
-                                fontFeatures: [FontFeature.tabularFigures()],
+                                color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
+                                fontFeatures: const [FontFeature.tabularFigures()],
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -2034,9 +2025,9 @@ class _PurchaseCheckCardResult extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: AppColors.surface800,
+              color: isDark ? AppColors.surface800 : AppColors.lightCardSurface,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.subtleBorder),
+              border: Border.all(color: AppColors.subtleBorderAdaptive(isDark)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -2069,9 +2060,13 @@ class _PurchaseCheckCardResult extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: AppColors.surface700.withValues(alpha: 0.5),
+                          color: isDark
+                              ? AppColors.surface700.withValues(alpha: 0.5)
+                              : AppColors.lightInputFill,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.subtleBorder),
+                          border: Border.all(
+                            color: AppColors.subtleBorderAdaptive(isDark),
+                          ),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -2099,7 +2094,7 @@ class _PurchaseCheckCardResult extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
-                                color: AppColors.textDark,
+                                color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
                                 fontFeatures: CurrencyFormatter.tabularFigures,
                               ),
                             ),
@@ -2119,7 +2114,7 @@ class _PurchaseCheckCardResult extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
-                                color: AppColors.textDark,
+                                color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
                                 fontFeatures: CurrencyFormatter.tabularFigures,
                               ),
                             ),
@@ -2170,7 +2165,7 @@ class _PurchaseCheckCardResult extends StatelessWidget {
                                 fontWeight: FontWeight.bold,
                                 color: result.postPurchaseBalance < 0
                                     ? AppColors.expense
-                                    : AppColors.textDark,
+                                    : (isDark ? AppColors.textDark : AppColors.lightTextPrimary),
                                 fontFeatures: CurrencyFormatter.tabularFigures,
                               ),
                             ),
@@ -2210,9 +2205,9 @@ class _PurchaseCheckCardResult extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: AppColors.surface700,
+                color: isDark ? AppColors.surface700 : AppColors.lightInputFill,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.subtleBorder),
+                border: Border.all(color: AppColors.subtleBorderAdaptive(isDark)),
               ),
               child: Row(
                 children: [
@@ -2225,10 +2220,10 @@ class _PurchaseCheckCardResult extends StatelessWidget {
                   Expanded(
                     child: Text(
                       'Safe to purchase on ${result.earliestSafeBuyDate} (${result.daysUntilSafeBuy} days remaining)',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textDark,
+                        color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
                       ),
                     ),
                   ),
@@ -2242,9 +2237,9 @@ class _PurchaseCheckCardResult extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.surface800,
+                color: isDark ? AppColors.surface800 : AppColors.lightCardSurface,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.subtleBorder),
+                border: Border.all(color: AppColors.subtleBorderAdaptive(isDark)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -2285,9 +2280,9 @@ class _PurchaseCheckCardResult extends StatelessWidget {
                           Expanded(
                             child: Text(
                               reason,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
-                                color: AppColors.textDark,
+                                color: AppColors.textPrimary(isDark),
                                 height: 1.35,
                               ),
                             ),
@@ -2306,7 +2301,7 @@ class _PurchaseCheckCardResult extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.surface800,
+                color: isDark ? AppColors.surface800 : AppColors.lightInputFill,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: AppColors.gold500.withValues(alpha: 0.3),
@@ -2351,9 +2346,9 @@ class _PurchaseCheckCardResult extends StatelessWidget {
                           Expanded(
                             child: Text(
                               '${impact.goalName}: delayed by ~${impact.delayDays} day${impact.delayDays == 1 ? '' : 's'}${impact.delayedTargetDate != null ? ' (new date: ${impact.delayedTargetDate})' : ''}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
-                                color: AppColors.textDark,
+                                color: AppColors.textPrimary(isDark),
                                 height: 1.35,
                               ),
                             ),
@@ -2387,16 +2382,22 @@ class _PaymentModeToggleBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(10),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 9),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.surface700 : Colors.transparent,
+          color: isSelected
+              ? (isDark ? AppColors.surface700 : AppColors.lightInputFill)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
           border: isSelected
-              ? Border.all(color: AppColors.subtleBorder, width: 1)
+              ? Border.all(
+                  color: AppColors.subtleBorderAdaptive(isDark),
+                  width: 1,
+                )
               : null,
         ),
         child: Row(
@@ -2413,7 +2414,9 @@ class _PaymentModeToggleBtn extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                color: isSelected ? AppColors.textDark : AppColors.textMuted,
+                color: isSelected
+                    ? AppColors.textPrimary(isDark)
+                    : AppColors.textMuted,
               ),
             ),
           ],

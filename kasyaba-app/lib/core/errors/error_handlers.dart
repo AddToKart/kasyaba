@@ -33,27 +33,28 @@ class _FriendlyErrorWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Material(
-      color: AppColors.obsidian,
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Material(
+      color: AppColors.scaffoldBg(isDark),
       child: Center(
         child: Padding(
-          padding: EdgeInsets.all(24),
+          padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.error_outline_rounded, color: AppColors.textMuted, size: 40),
-              SizedBox(height: 12),
+              const Icon(Icons.error_outline_rounded, color: AppColors.textMuted, size: 40),
+              const SizedBox(height: 12),
               Text(
                 'Something went wrong on this screen.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: AppColors.textDark,
+                  color: AppColors.textPrimary(isDark),
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              SizedBox(height: 6),
-              Text(
+              const SizedBox(height: 6),
+              const Text(
                 'Please go back and try again. If it keeps happening, restart the app.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: AppColors.textMuted, fontSize: 13),

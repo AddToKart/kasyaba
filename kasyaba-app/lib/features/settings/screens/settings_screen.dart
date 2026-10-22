@@ -302,13 +302,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                     filled: true,
                     fillColor: isDark
-                        ? const Color(0xFF1E293B)
-                        : const Color(0xFFF1F5F9),
+                        ? AppColors.surface700
+                        : AppColors.lightInputFill,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide.none,
+                      borderSide: BorderSide(
+                        color: AppColors.subtleBorderAdaptive(isDark),
+                      ),
                     ),
                   ),
+                  dropdownColor: isDark ? AppColors.surfaceCard : AppColors.lightCardSurface,
                   items: const [
                     DropdownMenuItem(
                       value: 'semi-monthly',
@@ -337,6 +340,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
                   initialValue: paydaySched,
+                  dropdownColor: isDark ? AppColors.surfaceCard : AppColors.lightCardSurface,
                   decoration: InputDecoration(
                     prefixIcon: const Icon(
                       Icons.calendar_today_outlined,
@@ -344,11 +348,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                     filled: true,
                     fillColor: isDark
-                        ? const Color(0xFF1E293B)
-                        : const Color(0xFFF1F5F9),
+                        ? AppColors.surface700
+                        : AppColors.lightInputFill,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide.none,
+                      borderSide: BorderSide(
+                        color: AppColors.subtleBorderAdaptive(isDark),
+                      ),
                     ),
                   ),
                   items: const [
@@ -516,10 +522,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       return Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+          color: isDark ? AppColors.surface700 : AppColors.lightInputFill,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: isDark ? AppColors.subtleBorder : AppColors.lightBorder,
+            color: AppColors.subtleBorderAdaptive(isDark),
           ),
         ),
         child: Row(
@@ -527,7 +533,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             const Icon(
               Icons.info_outline_rounded,
               size: 18,
-              color: Color(0xFF38BDF8),
+              color: AppColors.info,
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -535,7 +541,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 'Enter your Gross Basic Salary to see your official statutory deductions and take-home pay.',
                 style: TextStyle(
                   fontSize: 12,
-                  color: isDark ? AppColors.textMuted : AppColors.textMutedL,
+                  color: isDark ? AppColors.textMuted : AppColors.lightTextSecondary,
                 ),
               ),
             ),
@@ -547,7 +553,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF0F172A) : Colors.white,
+        color: isDark ? AppColors.surface800 : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: const Color(0xFF10B981).withValues(alpha: 0.35),
@@ -809,7 +815,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ModernCard(
             padding: const EdgeInsets.all(20),
             borderRadius: 16,
-            borderColor: AppColors.subtleBorder,
+            borderColor: AppColors.subtleBorderAdaptive(isDark),
             backgroundColor: isDark ? AppColors.surface800 : AppColors.lightCard,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,

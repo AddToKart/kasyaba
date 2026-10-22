@@ -25,6 +25,7 @@ class EmptyStateView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final accent = accentColor ?? AppColors.emerald500;
 
     return Padding(
@@ -39,9 +40,9 @@ class EmptyStateView extends StatelessWidget {
               height: 56,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
-                color: accent.withValues(alpha: 0.12),
+                color: accent.withValues(alpha: isDark ? 0.12 : 0.08),
                 border: Border.all(
-                  color: accent.withValues(alpha: 0.35),
+                  color: accent.withValues(alpha: isDark ? 0.35 : 0.25),
                   width: 1,
                 ),
               ),
@@ -57,7 +58,7 @@ class EmptyStateView extends StatelessWidget {
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w800,
                 letterSpacing: 0.2,
-                color: AppColors.textDark,
+                color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
               ),
             ),
 
@@ -69,7 +70,7 @@ class EmptyStateView extends StatelessWidget {
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: AppColors.textMuted,
+                  color: isDark ? AppColors.textMuted : AppColors.lightTextSecondary,
                   height: 1.5,
                 ),
               ),

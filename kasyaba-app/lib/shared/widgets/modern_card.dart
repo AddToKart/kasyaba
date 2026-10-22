@@ -39,8 +39,19 @@ class ModernCard extends StatelessWidget {
 
     final effectiveBg = backgroundColor ??
         (isDark ? AppColors.surfaceCard : AppColors.lightCardSurface);
-    final effectiveBorder = borderColor ??
-        (isDark ? AppColors.subtleBorder : AppColors.lightBorderHairline);
+
+    // Intelligently detect if this card surface is dark:
+    final bool isSurfaceDark = gradient != null ||
+        (backgroundColor != null
+            ? backgroundColor!.computeLuminance() < 0.2
+            : isDark);
+
+    // Guaranteed guard against stark white outlines on dark surfaces:
+    final effectiveBorder = borderColor != null
+        ? (isSurfaceDark && (borderColor == AppColors.lightBorderHairline || borderColor == AppColors.lightBorder)
+            ? AppColors.subtleBorder
+            : borderColor!)
+        : (isSurfaceDark ? AppColors.subtleBorder : AppColors.lightBorderHairline);
     final shadow = customShadow ?? _buildShadow(isDark);
 
     final radius = BorderRadius.circular(borderRadius);

@@ -36,6 +36,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
   }
 
   void _showAddBillBottomSheet(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     _billNameController.clear();
     _billAmountController.clear();
     final formKey = GlobalKey<FormState>();
@@ -77,7 +78,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                   label: Text(preset['name'] as String),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(AppTheme.tagRadius),
-                    side: const BorderSide(color: AppColors.subtleBorder),
+                    side: BorderSide(color: AppColors.subtleBorderAdaptive(isDark)),
                   ),
                   onPressed: () {
                     _billNameController.text = preset['name'] as String;
@@ -203,6 +204,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
       subtitle: 'Due date: ${DateFormat('MMMM d, yyyy').format(bill.dueDate)}',
       child: StatefulBuilder(
         builder: (context, setModalState) {
+          final isDark = Theme.of(context).brightness == Brightness.dark;
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
@@ -210,9 +212,9 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.surface800,
+                  color: isDark ? AppColors.surface800 : AppColors.lightCardSurface,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.subtleBorder),
+                  border: Border.all(color: AppColors.subtleBorderAdaptive(isDark)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -232,10 +234,10 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                         const SizedBox(height: 4),
                         Text(
                           CurrencyFormatter.format(bill.amount),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.w900,
-                            color: AppColors.textDark,
+                            color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
                             fontFeatures: CurrencyFormatter.tabularFigures,
                           ),
                         ),
@@ -294,14 +296,14 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                     initialValue: selectedAccount,
                     decoration: InputDecoration(
                       filled: true,
-                      fillColor: AppColors.surface800,
+                      fillColor: isDark ? AppColors.surface800 : AppColors.lightInputFill,
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 14,
                         vertical: 12,
                       ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: AppColors.subtleBorder),
+                        borderSide: BorderSide(color: AppColors.subtleBorderAdaptive(isDark)),
                       ),
                     ),
                     items: accounts
@@ -863,7 +865,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
           borderRadius: BorderRadius.circular(16),
           color: AppColors.emerald500,
           border: Border.all(
-            color: AppColors.subtleBorder,
+            color: AppColors.subtleBorderAdaptive(isDark),
             width: 1,
           ),
           boxShadow: const [],

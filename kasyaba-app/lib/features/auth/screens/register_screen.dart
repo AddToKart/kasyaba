@@ -132,15 +132,16 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final size = MediaQuery.sizeOf(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: AppColors.obsidian,
+      backgroundColor: isDark ? AppColors.obsidian : AppColors.lightScaffold,
       body: Stack(
         children: [
           // ── Background with grid & emerald aura ───────────
           AuthBackground(
             rotateAnimation: _bgRotate,
-            isDark: true,
+            isDark: isDark,
             size: size,
           ),
 
@@ -148,13 +149,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
           SafeArea(
             child: Stack(
               children: [
-                // Top-left back button
-                Positioned(
-                  top: 8,
-                  left: 12,
-                  child: _AuthBackButton(),
-                ),
-
                 Center(
                   child: SingleChildScrollView(
                     physics: const ClampingScrollPhysics(),
@@ -167,30 +161,30 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                       child: SlideTransition(
                         position: _slideUp,
                         child: ReactiveForm(
-                          formGroup: formGroup,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              const SizedBox(height: 38),
+                      formGroup: formGroup,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const SizedBox(height: 38),
 
-                              // ── Upgraded Brand Header Lockup ──
-                              const AuthBrandHeader(),
-                              const SizedBox(height: 24),
+                          // ── Upgraded Brand Header Lockup ──
+                          const AuthBrandHeader(),
+                          const SizedBox(height: 24),
 
-                              // ── Screen Title ──────────────────
-                              const Center(
-                                child: Column(
-                                  children: [
-                                    Text(
-                                      'Create Account',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w900,
-                                        fontSize: 26,
-                                        letterSpacing: -0.6,
-                                        color: AppColors.textDark,
-                                      ),
-                                    ),
+                          // ── Screen Title ──────────────────
+                          Center(
+                            child: Column(
+                              children: [
+                                Text(
+                                  'Create Account',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 26,
+                                    letterSpacing: -0.6,
+                                    color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
+                                  ),
+                                ),
                                     SizedBox(height: 6),
                                     Text(
                                       'Start tracking your deterministic runway today',
@@ -394,6 +388,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                     ),
                   ),
                 ),
+
+                // Top-left back button
+                const Positioned(
+                  top: 8,
+                  left: 12,
+                  child: _AuthBackButton(),
+                ),
               ],
             ),
           ),
@@ -404,8 +405,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
 }
 
 class _AuthBackButton extends StatelessWidget {
+  const _AuthBackButton();
+
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Tooltip(
       message: 'Back to sign in',
       child: Material(
@@ -418,16 +422,18 @@ class _AuthBackButton extends StatelessWidget {
             height: 42,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              color: const Color(0xBF0F172A),
+              color: isDark ? const Color(0xBF0F172A) : AppColors.lightInputFill,
               border: Border.all(
-                color: const Color(0x14FFFFFF),
+                color: isDark
+                    ? const Color(0x14FFFFFF)
+                    : AppColors.lightBorderHairline,
                 width: 1,
               ),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.arrow_back_ios_new_rounded,
               size: 16,
-              color: AppColors.textDark,
+              color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
             ),
           ),
         ),
