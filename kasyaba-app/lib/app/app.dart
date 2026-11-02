@@ -5,6 +5,7 @@ import '../core/connectivity/connectivity_service.dart';
 import '../core/database/offline_sync_service.dart';
 import '../core/notifications/bill_reminder_sync.dart';
 import '../core/providers/api_providers.dart';
+import '../core/providers/theme_provider.dart';
 import 'theme/app_theme.dart';
 
 class KasyabaApp extends ConsumerWidget {
@@ -14,6 +15,7 @@ class KasyabaApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
     final isOnline = ref.watch(isOnlineProvider);
+    final themeMode = ref.watch(themeModeProvider);
     ref.watch(offlineSyncProvider);
     ref.watch(billReminderSyncProvider);
     ref.watch(accountBootstrapProvider);
@@ -21,11 +23,9 @@ class KasyabaApp extends ConsumerWidget {
     return MaterialApp.router(
       title: 'Kasyaba',
       debugShowCheckedModeBanner: false,
-      // The product is designed as an obsidian dark experience; pin the theme
-      // so light-mode devices do not render a half-configured light variant.
-      theme: AppTheme().dark,
+      theme: AppTheme().light,
       darkTheme: AppTheme().dark,
-      themeMode: ThemeMode.dark,
+      themeMode: themeMode,
       routerConfig: router,
       builder: (context, child) {
         return Stack(

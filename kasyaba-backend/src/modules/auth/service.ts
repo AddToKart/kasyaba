@@ -447,15 +447,13 @@ export async function restoreUserData(userId: string, input: RestoreInput) {
           where: { id: cat.id },
           update: {
             name: cat.name,
-            icon: cat.icon ?? 'more-horizontal',
-            color: cat.color ?? '#64748B',
+            iconKey: cat.iconKey ?? cat.icon ?? 'receipt',
           },
           create: {
             id: cat.id,
             userId,
             name: cat.name,
-            icon: cat.icon ?? 'more-horizontal',
-            color: cat.color ?? '#64748B',
+            iconKey: cat.iconKey ?? cat.icon ?? 'receipt',
           },
         });
         restoredCategories++;
@@ -470,7 +468,7 @@ export async function restoreUserData(userId: string, input: RestoreInput) {
           update: {
             name: acc.name,
             type: acc.type ?? 'cash',
-            currency: acc.currency ?? 'PHP',
+            currencyCode: acc.currencyCode ?? acc.currency ?? 'PHP',
             openingBalance: acc.openingBalance ?? 0,
             isArchived: acc.isArchived ?? false,
           },
@@ -479,7 +477,7 @@ export async function restoreUserData(userId: string, input: RestoreInput) {
             userId,
             name: acc.name,
             type: acc.type ?? 'cash',
-            currency: acc.currency ?? 'PHP',
+            currencyCode: acc.currencyCode ?? acc.currency ?? 'PHP',
             openingBalance: acc.openingBalance ?? 0,
             isArchived: acc.isArchived ?? false,
             createdAt: acc.createdAt ? new Date(acc.createdAt) : new Date(),
@@ -604,19 +602,20 @@ export async function restoreUserData(userId: string, input: RestoreInput) {
       let restoredBudgets = 0;
       for (const b of budgets) {
         if (!b.id || !b.categoryId || b.amount === undefined) continue;
+        const startsOn = b.startsOn ? new Date(b.startsOn) : (b.month ? new Date(b.month) : new Date());
         await tx.budget.upsert({
           where: { id: b.id },
           update: {
             categoryId: b.categoryId,
             amount: b.amount,
-            month: b.month ? new Date(b.month) : new Date(),
+            startsOn,
           },
           create: {
             id: b.id,
             userId,
             categoryId: b.categoryId,
             amount: b.amount,
-            month: b.month ? new Date(b.month) : new Date(),
+            startsOn,
             createdAt: b.createdAt ? new Date(b.createdAt) : new Date(),
           },
         });
@@ -626,25 +625,31 @@ export async function restoreUserData(userId: string, input: RestoreInput) {
       // 9. Bill templates
       let restoredBills = 0;
       for (const bill of bills) {
-        if (!bill.id || !bill.name || bill.amount === undefined || !bill.categoryId) continue;
+        if (!bill.id || !bill.name || (bill.defaultAmount === undefined && bill.amount === undefined)) continue;
+        const defaultAmount = bill.defaultAmount ?? bill.amount;
+        const startsOn = bill.startsOn ? new Date(bill.startsOn) : new Date();
+        const recurrence = (bill.recurrence === 'weekly' || bill.recurrence === 'monthly' || bill.recurrence === 'none')
+          ? bill.recurrence
+          : 'monthly';
         await tx.billTemplate.upsert({
           where: { id: bill.id },
           update: {
             name: bill.name,
-            amount: bill.amount,
-            categoryId: bill.categoryId,
-            frequency: bill.frequency ?? 'monthly',
-            dueDay: bill.dueDay ?? 1,
+            defaultAmount,
+            categoryId: bill.categoryId ?? null,
+            recurrence,
+            dayOfMonth: bill.dayOfMonth ?? bill.dueDay ?? 1,
             isActive: bill.isActive ?? true,
           },
           create: {
             id: bill.id,
             userId,
             name: bill.name,
-            amount: bill.amount,
-            categoryId: bill.categoryId,
-            frequency: bill.frequency ?? 'monthly',
-            dueDay: bill.dueDay ?? 1,
+            defaultAmount,
+            categoryId: bill.categoryId ?? null,
+            recurrence,
+            startsOn,
+            dayOfMonth: bill.dayOfMonth ?? bill.dueDay ?? 1,
             isActive: bill.isActive ?? true,
             createdAt: bill.createdAt ? new Date(bill.createdAt) : new Date(),
           },

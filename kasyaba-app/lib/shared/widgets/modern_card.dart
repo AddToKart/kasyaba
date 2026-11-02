@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../app/theme/app_theme.dart';
+import 'pressable_scale.dart';
 
 /// ─────────────────────────────────────────────────────────────
-///  ModernCard — Ultra Luxury Glass & Metallic Card Widget
+///  ModernCard — Tactile Squircle Card Widget (Option C)
+///  Adapts to Obsidian Dark & Porcelain Light with tactile spring physics.
 /// ─────────────────────────────────────────────────────────────
 enum CardStyle { glass, gradient, elevated, flat }
 
@@ -32,9 +34,25 @@ class ModernCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveBg = backgroundColor ?? AppColors.surfaceCard;
-    final effectiveBorder = borderColor ?? AppColors.subtleBorder;
-    final shadow = customShadow ?? _buildShadow();
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final effectiveBg = backgroundColor ??
+        (isDark ? AppColors.surfaceCard : AppColors.lightCardSurface);
+
+    // Intelligently detect if this card surface is dark:
+    final bool isSurfaceDark = gradient != null ||
+        (backgroundColor != null
+            ? backgroundColor!.computeLuminance() < 0.2
+            : isDark);
+
+    // Guaranteed guard against stark white outlines on dark surfaces:
+    final effectiveBorder = borderColor != null
+        ? (isSurfaceDark && (borderColor == AppColors.lightBorderHairline || borderColor == AppColors.lightBorder)
+            ? AppColors.subtleBorder
+            : borderColor!)
+        : (isSurfaceDark ? AppColors.subtleBorder : AppColors.lightBorderHairline);
+    final shadow = customShadow ?? _buildShadow(isDark);
 
     final radius = BorderRadius.circular(borderRadius);
 
@@ -50,24 +68,7 @@ class ModernCard extends StatelessWidget {
       boxShadow: shadow,
     );
 
-    if (onTap != null) {
-      return Material(
-        color: Colors.transparent,
-        borderRadius: radius,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: radius,
-          splashColor: AppColors.emerald500.withValues(alpha: 0.12),
-          highlightColor: AppColors.emerald500.withValues(alpha: 0.05),
-          child: Ink(
-            decoration: decoration,
-            child: ClipRRect(borderRadius: radius, child: innerChild),
-          ),
-        ),
-      );
-    }
-
-    return Container(
+    final cardWidget = Container(
       decoration: decoration,
       child: ClipRRect(
         borderRadius: radius,
@@ -77,29 +78,41 @@ class ModernCard extends StatelessWidget {
         ),
       ),
     );
+
+    if (onTap != null) {
+      return PressableScale(
+        onTap: onTap,
+        child: cardWidget,
+      );
+    }
+
+    return cardWidget;
   }
 
-  List<BoxShadow> _buildShadow() {
+  List<BoxShadow> _buildShadow(bool isDark) {
     switch (style) {
       case CardStyle.elevated:
         return [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.5),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.3)
+                : const Color(0x0C000000),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ];
       case CardStyle.flat:
-        return [];
       case CardStyle.gradient:
       case CardStyle.glass:
-        return [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.35),
-            blurRadius: 18,
-            offset: const Offset(0, 6),
-          ),
-        ];
+        return isDark
+            ? const []
+            : const [
+                BoxShadow(
+                  color: Color(0x06000000),
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
+                ),
+              ];
     }
   }
 }

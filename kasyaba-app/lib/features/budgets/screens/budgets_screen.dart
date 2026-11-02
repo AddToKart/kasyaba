@@ -6,6 +6,7 @@ import '../../../app/theme/app_theme.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
+import '../../../core/utils/currency_formatter.dart';
 import '../../../shared/widgets/modern_card.dart';
 import '../../../shared/widgets/empty_state_view.dart';
 import '../../../shared/widgets/modern_bottom_sheet.dart';
@@ -133,11 +134,8 @@ class BudgetsScreen extends ConsumerWidget {
 
                 return ModernCard(
                   padding: const EdgeInsets.all(20),
-                  gradient: LinearGradient(
-                    colors: isDark
-                        ? const [Color(0xFF1E293B), Color(0xFF0F172A)]
-                        : const [Color(0xFFFEF3C7), Color(0xFFFFFBEB)],
-                  ),
+                  backgroundColor: isDark ? AppColors.surface800 : AppColors.lightCardSurface,
+                  borderColor: AppColors.subtleBorderAdaptive(isDark),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -152,8 +150,8 @@ class BudgetsScreen extends ConsumerWidget {
                               style: theme.textTheme.titleSmall?.copyWith(
                                 fontWeight: FontWeight.bold,
                                 color: isDark
-                                    ? Colors.white
-                                    : const Color(0xFFB45309),
+                                    ? AppColors.textDark
+                                    : AppColors.lightTextPrimary,
                               ),
                             ),
                           ),
@@ -164,15 +162,17 @@ class BudgetsScreen extends ConsumerWidget {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(
-                                0xFFF59E0B,
-                              ).withValues(alpha: 0.2),
+                              color: progressColor.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: progressColor.withValues(alpha: 0.35),
+                                width: 1,
+                              ),
                             ),
                             child: Text(
                               pctLabel,
-                              style: const TextStyle(
-                                color: Color(0xFFD97706),
+                              style: TextStyle(
+                                color: progressColor,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 12,
                               ),
@@ -185,12 +185,13 @@ class BudgetsScreen extends ConsumerWidget {
                         children: [
                           Flexible(
                             child: Text(
-                              '₱${status.totalSpent.toStringAsFixed(2)} / ₱${status.totalBudget.toStringAsFixed(2)}',
+                              '${CurrencyFormatter.format(status.totalSpent)} / ${CurrencyFormatter.format(status.totalBudget)}',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: theme.textTheme.headlineMedium?.copyWith(
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: -0.5,
+                                color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
                               ),
                             ),
                           ),
@@ -201,8 +202,10 @@ class BudgetsScreen extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(8),
                         child: LinearProgressIndicator(
                           value: (pct / 100).clamp(0.0, 1.0),
-                          minHeight: 10,
-                          backgroundColor: const Color(0xFFFDE68A),
+                          minHeight: 8,
+                          backgroundColor: isDark
+                              ? AppColors.surface700
+                              : AppColors.lightInputFill,
                           valueColor: AlwaysStoppedAnimation<Color>(
                             progressColor,
                           ),
@@ -406,7 +409,9 @@ class _CreateBudgetSheetState extends ConsumerState<_CreateBudgetSheet> {
                 color: AppColors.emerald500,
               ),
               filled: true,
-              fillColor: AppColors.surface700,
+              fillColor: Theme.of(context).brightness == Brightness.dark
+                  ? AppColors.surface700
+                  : AppColors.lightInputFill,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
                 borderSide: BorderSide.none,
@@ -484,7 +489,7 @@ class _BudgetHeroSkeleton extends StatelessWidget {
       height: 160,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        color: isDark ? AppColors.surface700 : AppColors.lightCard2,
+        color: isDark ? AppColors.surface700 : AppColors.lightInputFill,
       ),
       child: Center(
         child: CircularProgressIndicator(color: AppColors.emerald500),
@@ -544,7 +549,7 @@ class _BudgetTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '₱${budget.spent.toStringAsFixed(2)} / ₱${budget.amount.toStringAsFixed(2)}',
+                      '${CurrencyFormatter.format(budget.spent)} / ${CurrencyFormatter.format(budget.amount)}',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: isDark
                             ? AppColors.textMuted

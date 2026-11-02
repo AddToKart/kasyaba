@@ -25,6 +25,7 @@ class EmptyStateView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final accent = accentColor ?? AppColors.emerald500;
 
     return Padding(
@@ -33,15 +34,15 @@ class EmptyStateView extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // ── Layered Sharp Icon Container ───────────────
+            // ── Layered Icon Container ───────────────
             Container(
-              width: 64,
-              height: 64,
+              width: 56,
+              height: 56,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.zero,
-                color: accent.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
+                color: accent.withValues(alpha: isDark ? 0.12 : 0.08),
                 border: Border.all(
-                  color: accent.withValues(alpha: 0.35),
+                  color: accent.withValues(alpha: isDark ? 0.35 : 0.25),
                   width: 1,
                 ),
               ),
@@ -57,7 +58,7 @@ class EmptyStateView extends StatelessWidget {
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w800,
                 letterSpacing: 0.2,
-                color: AppColors.textDark,
+                color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
               ),
             ),
 
@@ -69,7 +70,7 @@ class EmptyStateView extends StatelessWidget {
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: AppColors.textMuted,
+                  color: isDark ? AppColors.textMuted : AppColors.lightTextSecondary,
                   height: 1.5,
                 ),
               ),
@@ -82,9 +83,9 @@ class EmptyStateView extends StatelessWidget {
                 style: FilledButton.styleFrom(
                   backgroundColor: accent,
                   foregroundColor: Colors.black,
-                  minimumSize: const Size(140, 48),
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.zero,
+                  minimumSize: const Size(140, 44),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
                   ),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 24,
@@ -94,9 +95,9 @@ class EmptyStateView extends StatelessWidget {
                 child: Text(
                   actionLabel!,
                   style: const TextStyle(
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w700,
                     fontSize: 14,
-                    letterSpacing: 0.5,
+                    letterSpacing: 0.2,
                   ),
                 ),
               ),

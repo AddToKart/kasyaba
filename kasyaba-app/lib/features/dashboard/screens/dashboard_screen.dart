@@ -14,6 +14,9 @@ import '../../../shared/widgets/stat_card.dart';
 import '../../../shared/widgets/empty_state_view.dart';
 import '../../../shared/widgets/modern_bottom_sheet.dart';
 import '../../../app/theme/app_theme.dart';
+import '../../../app/theme/app_motion.dart';
+import '../../../shared/widgets/pressable_scale.dart';
+import '../../../shared/widgets/rolling_counter.dart';
 import '../../accounts/widgets/reconcile_balance_sheet.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -60,6 +63,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   };
 
   void _showBufferHealthSheet(BuildContext context, dynamic data) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final runwayDays = _StatGrid._calculateRunway(
       (data.totalBalance as num).toDouble(),
       (data.expenses as num).toDouble(),
@@ -69,6 +73,48 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     final expenses = (data.expenses as num).toDouble();
     final dailyBurn = expenses > 0 ? (expenses / dayOfMonth) : 0.0;
     final healthScore = data.healthScore as String;
+
+    Widget buildHealthInfoRow({
+      required String label,
+      required String value,
+      required IconData icon,
+    }) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.surface800 : AppColors.lightCardSurface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isDark ? AppColors.subtleBorder : AppColors.lightBorderHairline,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 16, color: AppColors.emerald400),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w500,
+                  color: isDark ? AppColors.textMuted : AppColors.lightTextSecondary,
+                ),
+              ),
+            ),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     ModernBottomSheet.show(
       context: context,
@@ -83,9 +129,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.surface700.withValues(alpha: 0.5),
+              color: isDark ? AppColors.surface700.withValues(alpha: 0.5) : AppColors.lightCardSurface,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.subtleBorder),
+              border: Border.all(
+                color: isDark ? AppColors.subtleBorder : AppColors.lightBorderHairline,
+              ),
             ),
             child: Row(
               children: [
@@ -112,10 +160,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                     children: [
                       Text(
                         '${runwayDays >= 90 ? "90+" : runwayDays} Days Buffer',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
-                          color: AppColors.textDark,
+                          color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
                           letterSpacing: -0.3,
                         ),
                       ),
@@ -136,13 +184,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           ),
           const SizedBox(height: 16),
 
-          _buildHealthInfoRow(
+          buildHealthInfoRow(
             label: 'Total Liquid Balance',
             value: CurrencyFormatter.format(data.totalBalance),
             icon: Icons.account_balance_wallet_outlined,
           ),
           const SizedBox(height: 10),
-          _buildHealthInfoRow(
+          buildHealthInfoRow(
             label: 'Average Daily Spend',
             value: dailyBurn > 0
                 ? '${CurrencyFormatter.format(dailyBurn)} / day'
@@ -150,7 +198,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             icon: Icons.local_fire_department_outlined,
           ),
           const SizedBox(height: 10),
-          _buildHealthInfoRow(
+          buildHealthInfoRow(
             label: 'Estimated Survival Buffer',
             value: '$runwayDays days without new income',
             icon: Icons.timer_outlined,
@@ -160,15 +208,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.surface800,
+              color: isDark ? AppColors.surface800 : AppColors.lightInputFill,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.subtleBorder),
+              border: Border.all(
+                color: isDark ? AppColors.subtleBorder : AppColors.lightBorderHairline,
+              ),
             ),
-            child: const Text(
+            child: Text(
               'Your cash buffer estimates how long your current liquid accounts can cover typical daily living costs. A buffer over 30 days is healthy, while over 90 days provides strong financial resilience.',
               style: TextStyle(
                 fontSize: 12,
-                color: AppColors.textMuted,
+                color: isDark ? AppColors.textMuted : AppColors.lightTextSecondary,
                 height: 1.4,
               ),
             ),
@@ -193,46 +243,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             ),
           ),
           const SizedBox(height: 8),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHealthInfoRow({
-    required String label,
-    required String value,
-    required IconData icon,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-      decoration: BoxDecoration(
-        color: AppColors.surface800,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.subtleBorder),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 16, color: AppColors.emerald400),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textMuted,
-              ),
-            ),
-          ),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textDark,
-              fontFeatures: [FontFeature.tabularFigures()],
-            ),
-          ),
         ],
       ),
     );
@@ -268,10 +278,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     );
 
     return Scaffold(
-      backgroundColor: AppColors.obsidian,
+      backgroundColor: isDark ? AppColors.obsidian : AppColors.lightScaffold,
       body: RefreshIndicator(
         color: AppColors.emerald500,
-        backgroundColor: AppColors.surface800,
+        backgroundColor: isDark ? AppColors.surface800 : AppColors.lightCardSurface,
         onRefresh: () async {
           await Future.wait([
             ref.refresh(dashboardProvider.future),
@@ -329,6 +339,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                           context.go('/transactions/add', extra: 'expense'),
                       onIncome: () =>
                           context.go('/transactions/add', extra: 'income'),
+                      onTransfer: () =>
+                          context.go('/transactions/add', extra: 'transfer'),
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -564,10 +576,10 @@ class _DashboardAppBar extends StatelessWidget {
                     _greeting(),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: AppColors.textMuted,
+                      color: isDark ? AppColors.textMuted : AppColors.lightTextSecondary,
                       letterSpacing: 0.3,
                     ),
                   ),
@@ -576,11 +588,11 @@ class _DashboardAppBar extends StatelessWidget {
                     firstName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w800,
                       letterSpacing: -0.4,
-                      color: AppColors.textDark,
+                      color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
                     ),
                   ),
                 ],
@@ -635,6 +647,7 @@ class _AppBarAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Tooltip(
       message: tooltip,
       child: Material(
@@ -648,10 +661,26 @@ class _AppBarAction extends StatelessWidget {
             height: 42,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(14),
-              color: AppColors.surface700,
-              border: Border.all(color: const Color(0x33334155), width: 1),
+              color: isDark ? AppColors.surface700 : AppColors.lightCardSurface,
+              border: Border.all(
+                color: isDark ? AppColors.subtleBorder : AppColors.lightBorderHairline,
+                width: 1,
+              ),
+              boxShadow: isDark
+                  ? null
+                  : const [
+                      BoxShadow(
+                        color: Color(0x08000000),
+                        blurRadius: 8,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
             ),
-            child: Icon(icon, size: 20, color: AppColors.textMuted),
+            child: Icon(
+              icon,
+              size: 20,
+              color: isDark ? AppColors.textMuted : AppColors.lightTextSecondary,
+            ),
           ),
         ),
       ),
@@ -684,13 +713,13 @@ class _OfflineSyncBanner extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: hasPending
-            ? AppColors.gold500.withValues(alpha: 0.12)
-            : Colors.white.withValues(alpha: 0.05),
+            ? AppColors.gold500.withValues(alpha: isDark ? 0.12 : 0.08)
+            : (isDark ? Colors.white.withValues(alpha: 0.05) : AppColors.lightInputFill),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: hasPending
-              ? AppColors.gold500.withValues(alpha: 0.3)
-              : Colors.white.withValues(alpha: 0.1),
+              ? AppColors.gold500.withValues(alpha: isDark ? 0.3 : 0.25)
+              : (isDark ? Colors.white.withValues(alpha: 0.1) : AppColors.lightBorderHairline),
           width: 1,
         ),
       ),
@@ -699,7 +728,9 @@ class _OfflineSyncBanner extends StatelessWidget {
           Icon(
             hasPending ? Icons.sync_rounded : Icons.cloud_off_rounded,
             size: 16,
-            color: hasPending ? AppColors.gold400 : AppColors.textMuted,
+            color: hasPending
+                ? (isDark ? AppColors.gold400 : AppColors.gold500)
+                : (isDark ? AppColors.textMuted : AppColors.lightTextSecondary),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -708,7 +739,9 @@ class _OfflineSyncBanner extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: hasPending ? AppColors.gold300 : AppColors.textMuted,
+                color: hasPending
+                    ? (isDark ? AppColors.gold300 : AppColors.gold500)
+                    : (isDark ? AppColors.textMuted : AppColors.lightTextSecondary),
               ),
             ),
           ),
@@ -728,6 +761,7 @@ class _HeroBalanceCard extends StatelessWidget {
   final VoidCallback onToggleVisibility;
   final VoidCallback onExpense;
   final VoidCallback onIncome;
+  final VoidCallback? onTransfer;
 
   const _HeroBalanceCard({
     required this.data,
@@ -737,6 +771,7 @@ class _HeroBalanceCard extends StatelessWidget {
     required this.onToggleVisibility,
     required this.onExpense,
     required this.onIncome,
+    this.onTransfer,
   });
 
   @override
@@ -744,23 +779,26 @@ class _HeroBalanceCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
-        gradient: AppColors.gradientHeroCard,
+        color: isDark ? AppColors.surface800 : AppColors.lightCardSurface,
         border: Border.all(
-          color: AppColors.gold500.withValues(alpha: 0.4),
+          color: isDark ? AppColors.subtleBorder : AppColors.lightBorderHairline,
           width: 1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.7),
-            blurRadius: 28,
-            offset: const Offset(0, 10),
-          ),
-          BoxShadow(
-            color: AppColors.emerald500.withValues(alpha: 0.08),
-            blurRadius: 16,
-            spreadRadius: 1,
-          ),
-        ],
+        boxShadow: isDark
+            ? [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.35),
+                  blurRadius: 18,
+                  offset: const Offset(0, 6),
+                ),
+              ]
+            : const [
+                BoxShadow(
+                  color: Color(0x0A000000),
+                  blurRadius: 16,
+                  offset: Offset(0, 4),
+                ),
+              ],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(24),
@@ -790,47 +828,54 @@ class _HeroBalanceCard extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.credit_card_rounded,
-                            size: 16,
-                            color: AppColors.gold400,
-                          ),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'TOTAL LIQUID BALANCE',
-                            style: TextStyle(
-                              color: AppColors.gold400,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 1.2,
+                      Expanded(
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.credit_card_rounded,
+                              size: 16,
+                              color: AppColors.textMuted,
                             ),
-                          ),
-                          if (data.isFromCache == true) ...[
                             const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: const Text(
-                                'CACHED',
+                            const Flexible(
+                              child: Text(
+                                'TOTAL LIQUID BALANCE',
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
                                 style: TextStyle(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w800,
                                   color: AppColors.textMuted,
-                                  letterSpacing: 0.8,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 1.1,
                                 ),
                               ),
                             ),
+                            if (data.isFromCache == true) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Text(
+                                  'CACHED',
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.textMuted,
+                                    letterSpacing: 0.8,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
+                      const SizedBox(width: 8),
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -842,31 +887,31 @@ class _HeroBalanceCard extends StatelessWidget {
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 8,
-                                  vertical: 6,
+                                  vertical: 5,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.08),
+                                  color: isDark ? AppColors.surface700 : AppColors.lightInputFill,
                                   borderRadius: BorderRadius.circular(10),
                                   border: Border.all(
-                                    color: Colors.white.withValues(alpha: 0.12),
+                                    color: isDark ? AppColors.subtleBorder : AppColors.lightBorderHairline,
                                     width: 1,
                                   ),
                                 ),
-                                child: const Row(
+                                child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Icon(
                                       Icons.tune_rounded,
-                                      size: 14,
-                                      color: AppColors.gold400,
+                                      size: 13,
+                                      color: isDark ? AppColors.textMuted : AppColors.lightTextSecondary,
                                     ),
-                                    SizedBox(width: 4),
+                                    const SizedBox(width: 4),
                                     Text(
                                       'Audit',
                                       style: TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.w700,
-                                        color: AppColors.gold400,
+                                        color: isDark ? AppColors.textMuted : AppColors.lightTextSecondary,
                                       ),
                                     ),
                                   ],
@@ -885,22 +930,17 @@ class _HeroBalanceCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 14),
 
-                  // Prominent Formatted Balance
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 300),
-                    child: Text(
-                      isVisible
-                          ? CurrencyFormatter.format(data.totalBalance)
-                          : '₱ •••••••',
-                      key: ValueKey(isVisible),
-                      style: const TextStyle(
-                        fontSize: 34,
-                        fontWeight: FontWeight.w900,
-                        color: AppColors.textDark,
-                        letterSpacing: -0.5,
-                        height: 1.1,
-                        fontFeatures: [FontFeature.tabularFigures()],
-                      ),
+                  // Prominent Formatted Rolling Balance
+                  RollingCounter(
+                    value: (data.totalBalance as num).toDouble(),
+                    prefix: '₱ ',
+                    isPrivacyMode: !isVisible,
+                    style: TextStyle(
+                      fontSize: 38,
+                      fontWeight: FontWeight.w900,
+                      color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
+                      letterSpacing: -0.8,
+                      height: 1.1,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -922,10 +962,14 @@ class _HeroBalanceCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: AppColors.surface800.withValues(alpha: 0.9),
+                      color: isDark
+                          ? AppColors.surface800.withValues(alpha: 0.9)
+                          : AppColors.lightInputFill,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: AppColors.subtleBorder,
+                        color: isDark
+                            ? AppColors.subtleBorder
+                            : AppColors.lightBorderHairline,
                         width: 1,
                       ),
                     ),
@@ -945,7 +989,7 @@ class _HeroBalanceCard extends StatelessWidget {
                         Container(
                           width: 1,
                           height: 32,
-                          color: AppColors.subtleBorder,
+                          color: isDark ? AppColors.subtleBorder : AppColors.lightBorderHairline,
                         ),
                         Expanded(
                           child: _FinancePill(
@@ -975,13 +1019,23 @@ class _HeroBalanceCard extends StatelessWidget {
                           isIncome: false,
                         ),
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: _QuickActionBtn(
                           label: 'Add Income',
                           icon: Icons.add_rounded,
                           onTap: onIncome,
                           isIncome: true,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _QuickActionBtn(
+                          label: 'Transfer',
+                          icon: Icons.swap_horiz_rounded,
+                          onTap: onTransfer ?? () => context.go('/transactions/add', extra: 'transfer'),
+                          isIncome: false,
+                          isTransfer: true,
                         ),
                       ),
                     ],
@@ -1011,6 +1065,7 @@ class _DailySafeSpendSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final hasSafeSpend = calc.dailySafeSpend > 0;
     final accentColor = hasSafeSpend ? AppColors.emerald500 : AppColors.gold500;
     final formattedDate = DateFormat('MMM d').format(calc.nextPayday);
@@ -1023,15 +1078,15 @@ class _DailySafeSpendSection extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: const Color(0xE6090D16),
+            color: isDark ? const Color(0xE6090D16) : AppColors.lightInputFill.withValues(alpha: 0.7),
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: accentColor.withValues(alpha: 0.35),
+              color: accentColor.withValues(alpha: isDark ? 0.35 : 0.4),
               width: 1,
             ),
             boxShadow: [
               BoxShadow(
-                color: accentColor.withValues(alpha: 0.06),
+                color: accentColor.withValues(alpha: isDark ? 0.06 : 0.04),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               ),
@@ -1044,57 +1099,64 @@ class _DailySafeSpendSection extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
-                          color: accentColor.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: accentColor.withValues(alpha: 0.4),
-                            width: 0.75,
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: accentColor.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: accentColor.withValues(alpha: 0.4),
+                              width: 0.75,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 6,
+                                height: 6,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: accentColor,
+                                ),
+                              ),
+                              const SizedBox(width: 5),
+                              Text(
+                                'KASYA BA TODAY?',
+                                style: TextStyle(
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.8,
+                                  color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 6,
-                              height: 6,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: accentColor,
-                              ),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            'DAILY SAFE SPEND',
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.9,
+                              color: accentColor,
                             ),
-                            const SizedBox(width: 5),
-                            const Text(
-                              'KASYA BA TODAY?',
-                              style: TextStyle(
-                                fontSize: 9.5,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 0.8,
-                                color: AppColors.textDark,
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'DAILY SAFE SPEND',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.9,
-                          color: accentColor,
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   Tooltip(
                     message: 'View deterministic math breakdown',
                     child: Container(
@@ -1103,10 +1165,10 @@ class _DailySafeSpendSection extends StatelessWidget {
                         vertical: 3,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.06),
+                        color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.04),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
@@ -1114,14 +1176,14 @@ class _DailySafeSpendSection extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
-                              color: AppColors.textMuted,
+                              color: isDark ? AppColors.textMuted : AppColors.lightTextSecondary,
                             ),
                           ),
-                          SizedBox(width: 4),
+                          const SizedBox(width: 4),
                           Icon(
                             Icons.info_outline_rounded,
                             size: 13,
-                            color: AppColors.textMuted,
+                            color: isDark ? AppColors.textMuted : AppColors.lightTextSecondary,
                           ),
                         ],
                       ),
@@ -1150,12 +1212,12 @@ class _DailySafeSpendSection extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 4),
-                  const Text(
+                  Text(
                     '/ day',
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.textMuted,
+                      color: isDark ? AppColors.textMuted : AppColors.lightTextSecondary,
                     ),
                   ),
                 ],
@@ -1165,10 +1227,10 @@ class _DailySafeSpendSection extends StatelessWidget {
               // Days until payday caption
               Text(
                 'for the next ${calc.daysUntilPayday} days until $formattedDate payday',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: AppColors.textMuted,
+                  color: isDark ? AppColors.textMuted : AppColors.lightTextSecondary,
                 ),
               ),
               const SizedBox(height: 8),
@@ -1177,9 +1239,9 @@ class _DailySafeSpendSection extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.04),
+                  color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.03),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+                  border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.06)),
                 ),
                 child: Row(
                   children: [
@@ -1223,6 +1285,7 @@ void _showSafeSpendBreakdownSheet(
   BuildContext context,
   DailySafeSpendCalculation calc,
 ) {
+  final isDark = Theme.of(context).brightness == Brightness.dark;
   final hasSafeSpend = calc.dailySafeSpend > 0;
   final accentColor = hasSafeSpend ? AppColors.emerald500 : AppColors.gold500;
   final formattedPayday = DateFormat('MMMM d, yyyy').format(calc.nextPayday);
@@ -1242,9 +1305,11 @@ void _showSafeSpendBreakdownSheet(
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: AppColors.surface700.withValues(alpha: 0.5),
+            color: isDark
+                ? AppColors.surface700.withValues(alpha: 0.5)
+                : AppColors.lightInputFill,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.subtleBorder),
+            border: Border.all(color: AppColors.subtleBorderAdaptive(isDark)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1273,16 +1338,20 @@ void _showSafeSpendBreakdownSheet(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0F172A),
+                  color: isDark ? AppColors.surface800 : AppColors.lightCardSurface,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                  border: Border.all(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : AppColors.lightBorderHairline,
+                  ),
                 ),
-                child: const Text(
+                child: Text(
                   'Daily Safe Spend = Math.max(0, (Total Liquid Balance - Unpaid Bills Due Before Next Payday - Scheduled Goal Contributions) / Days Until Next Payday)',
                   style: TextStyle(
                     fontSize: 11,
                     fontFamily: 'monospace',
-                    color: Color(0xFFE2E8F0),
+                    color: isDark ? const Color(0xFFE2E8F0) : AppColors.lightTextPrimary,
                     height: 1.45,
                   ),
                 ),
@@ -1305,9 +1374,9 @@ void _showSafeSpendBreakdownSheet(
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: AppColors.surface800,
+            color: isDark ? AppColors.surface800 : AppColors.lightCardSurface,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.subtleBorder),
+            border: Border.all(color: AppColors.subtleBorderAdaptive(isDark)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1346,6 +1415,7 @@ void _showSafeSpendBreakdownSheet(
                 value: CurrencyFormatter.format(calc.totalLiquidBalance),
                 prefix: '+',
                 valueColor: AppColors.emerald400,
+                isDark: isDark,
               ),
               const SizedBox(height: 8),
               _buildDeterministicRow(
@@ -1357,6 +1427,7 @@ void _showSafeSpendBreakdownSheet(
                 valueColor: calc.unpaidBillsDue > 0
                     ? const Color(0xFFF87171)
                     : AppColors.textMuted,
+                isDark: isDark,
               ),
               const SizedBox(height: 8),
               _buildDeterministicRow(
@@ -1368,6 +1439,7 @@ void _showSafeSpendBreakdownSheet(
                 valueColor: calc.scheduledGoalContributions > 0
                     ? AppColors.gold400
                     : AppColors.textMuted,
+                isDark: isDark,
               ),
 
               // Itemized Goal Breakdown Cards
@@ -1376,9 +1448,15 @@ void _showSafeSpendBreakdownSheet(
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.035),
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.035)
+                        : AppColors.lightInputFill,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+                    border: Border.all(
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.06)
+                          : AppColors.lightBorderHairline,
+                    ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1397,7 +1475,11 @@ void _showSafeSpendBreakdownSheet(
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('🎯', style: TextStyle(fontSize: 12)),
+                            const Icon(
+                              Icons.track_changes_rounded,
+                              size: 14,
+                              color: AppColors.emerald500,
+                            ),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Column(
@@ -1405,10 +1487,12 @@ void _showSafeSpendBreakdownSheet(
                                 children: [
                                   Text(
                                     detail.title,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 11.5,
                                       fontWeight: FontWeight.w700,
-                                      color: AppColors.textDark,
+                                      color: isDark
+                                          ? AppColors.textDark
+                                          : AppColors.lightTextPrimary,
                                     ),
                                   ),
                                   const SizedBox(height: 1),
@@ -1443,22 +1527,29 @@ void _showSafeSpendBreakdownSheet(
                           ],
                         ),
                         if (detail != calc.goalDetails.last)
-                          const Divider(color: AppColors.subtleBorder, height: 12),
+                          Divider(
+                            color: AppColors.subtleBorderAdaptive(isDark),
+                            height: 12,
+                          ),
                       ],
                     ],
                   ),
                 ),
               ],
 
-              const Divider(color: AppColors.subtleBorder, height: 20),
+              Divider(
+                color: AppColors.subtleBorderAdaptive(isDark),
+                height: 20,
+              ),
               _buildDeterministicRow(
                 label: 'Safe Available Cash',
                 value: CurrencyFormatter.format(calc.numerator),
                 prefix: '=',
                 isTotal: true,
                 valueColor: calc.numerator > 0
-                    ? AppColors.textDark
+                    ? (isDark ? AppColors.textDark : AppColors.lightTextPrimary)
                     : const Color(0xFFF87171),
+                isDark: isDark,
               ),
             ],
           ),
@@ -1469,9 +1560,9 @@ void _showSafeSpendBreakdownSheet(
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: AppColors.surface800,
+            color: isDark ? AppColors.surface800 : AppColors.lightCardSurface,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.subtleBorder),
+            border: Border.all(color: AppColors.subtleBorderAdaptive(isDark)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1509,7 +1600,8 @@ void _showSafeSpendBreakdownSheet(
                 label: 'Next Configured Payday',
                 sublabel: 'Schedule: ${calc.paydaySchedule}',
                 value: formattedPayday,
-                valueColor: AppColors.textDark,
+                valueColor: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
+                isDark: isDark,
               ),
               const SizedBox(height: 8),
               _buildDeterministicRow(
@@ -1517,6 +1609,7 @@ void _showSafeSpendBreakdownSheet(
                 value: '÷ ${calc.daysUntilPayday} days',
                 valueColor: AppColors.info,
                 isTotal: true,
+                isDark: isDark,
               ),
             ],
           ),
@@ -1687,12 +1780,12 @@ void _showSafeSpendBreakdownSheet(
         FilledButton(
           onPressed: () => Navigator.of(context).pop(),
           style: FilledButton.styleFrom(
-            backgroundColor: AppColors.surface700,
-            foregroundColor: AppColors.textDark,
+            backgroundColor: isDark ? AppColors.surface700 : AppColors.lightInputFill,
+            foregroundColor: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
             minimumSize: const Size.fromHeight(48),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
-              side: const BorderSide(color: AppColors.subtleBorder),
+              side: BorderSide(color: AppColors.subtleBorderAdaptive(isDark)),
             ),
           ),
           child: const Text(
@@ -1712,8 +1805,11 @@ Widget _buildDeterministicRow({
   required String value,
   String? prefix,
   bool isTotal = false,
-  Color valueColor = AppColors.textDark,
+  Color? valueColor,
+  bool isDark = true,
 }) {
+  final effectiveValueColor =
+      valueColor ?? (isDark ? AppColors.textDark : AppColors.lightTextPrimary);
   return Row(
     crossAxisAlignment: CrossAxisAlignment.center,
     children: [
@@ -1726,16 +1822,18 @@ Widget _buildDeterministicRow({
               style: TextStyle(
                 fontSize: isTotal ? 13 : 12,
                 fontWeight: isTotal ? FontWeight.w700 : FontWeight.w500,
-                color: isTotal ? AppColors.textDark : AppColors.textMuted,
+                color: isTotal
+                    ? (isDark ? AppColors.textDark : AppColors.lightTextPrimary)
+                    : (isDark ? AppColors.textMuted : AppColors.lightTextSecondary),
               ),
             ),
             if (sublabel != null) ...[
               const SizedBox(height: 1),
               Text(
                 sublabel,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 10.5,
-                  color: AppColors.textMuted,
+                  color: isDark ? AppColors.textMuted : AppColors.lightTextSecondary,
                 ),
               ),
             ],
@@ -1748,7 +1846,7 @@ Widget _buildDeterministicRow({
           style: TextStyle(
             fontSize: isTotal ? 14 : 12,
             fontWeight: FontWeight.w700,
-            color: valueColor,
+            color: effectiveValueColor,
           ),
         ),
       ],
@@ -1757,7 +1855,7 @@ Widget _buildDeterministicRow({
         style: TextStyle(
           fontSize: isTotal ? 15 : 13,
           fontWeight: isTotal ? FontWeight.w800 : FontWeight.w700,
-          color: valueColor,
+          color: effectiveValueColor,
           fontFeatures: CurrencyFormatter.tabularFigures,
         ),
       ),
@@ -1772,6 +1870,7 @@ class _VisibilityToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final actionLabel = isVisible ? 'Hide balance' : 'Show balance';
     return Tooltip(
       message: actionLabel,
@@ -1795,10 +1894,10 @@ class _VisibilityToggle extends StatelessWidget {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.surface700,
+                    color: AppColors.inputSurface(isDark),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: const Color(0x40334155),
+                      color: AppColors.subtleBorderAdaptive(isDark),
                       width: 1,
                     ),
                   ),
@@ -1815,8 +1914,8 @@ class _VisibilityToggle extends StatelessWidget {
                       const SizedBox(width: 6),
                       Text(
                         isVisible ? 'Hide' : 'Show',
-                        style: const TextStyle(
-                          color: AppColors.textDark,
+                        style: TextStyle(
+                          color: AppColors.textPrimary(isDark),
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                         ),
@@ -1852,6 +1951,8 @@ class _FinancePill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Padding(
       padding: EdgeInsets.only(left: leftPadding ? 14 : 0),
       child: Row(
@@ -1861,7 +1962,7 @@ class _FinancePill extends StatelessWidget {
             height: 32,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: iconBg.withValues(alpha: 0.2),
+              color: iconBg.withValues(alpha: isDark ? 0.2 : 0.12),
             ),
             child: Icon(icon, size: 16, color: iconBg),
           ),
@@ -1871,16 +1972,16 @@ class _FinancePill extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: const TextStyle(
-                  color: AppColors.textMuted,
+                style: TextStyle(
+                  color: isDark ? AppColors.textMuted : AppColors.lightTextSecondary,
                   fontSize: 11,
                   fontWeight: FontWeight.w400,
                 ),
               ),
               Text(
                 amount,
-                style: const TextStyle(
-                  color: AppColors.textDark,
+                style: TextStyle(
+                  color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
                 ),
@@ -1898,60 +1999,73 @@ class _QuickActionBtn extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
   final bool isIncome;
+  final bool isTransfer;
 
   const _QuickActionBtn({
     required this.label,
     required this.icon,
     required this.onTap,
-    required this.isIncome,
+    this.isIncome = false,
+    this.isTransfer = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          height: 46,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            color: isIncome ? AppColors.emerald500 : AppColors.surface700,
-            border: isIncome
-                ? null
-                : Border.all(color: AppColors.subtleBorder, width: 1),
-            boxShadow: isIncome
-                ? [
-                    BoxShadow(
-                      color: AppColors.emerald500.withValues(alpha: 0.35),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ]
-                : null,
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 18,
-                color: isIncome ? Colors.black : AppColors.gold400,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
-                  color: isIncome ? Colors.black : AppColors.textDark,
-                  letterSpacing: 0.3,
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final btnRadius = BorderRadius.circular(12);
+
+    final Color bgColor;
+    final Color iconColor;
+    final Color textColor;
+
+    if (isIncome) {
+      bgColor = AppColors.emerald500;
+      iconColor = Colors.black;
+      textColor = Colors.black;
+    } else if (isTransfer) {
+      bgColor = isDark ? const Color(0xFF16232D) : const Color(0xFFE0F2FE);
+      iconColor = AppColors.transfer;
+      textColor = isDark ? AppColors.textDark : const Color(0xFF0369A1);
+    } else {
+      bgColor = isDark ? AppColors.surface700 : AppColors.lightInputFill;
+      iconColor = AppColors.expense;
+      textColor = isDark ? AppColors.textDark : AppColors.lightTextPrimary;
+    }
+
+    return PressableScale(
+      onTap: onTap,
+      child: Container(
+        height: 46,
+        decoration: BoxDecoration(
+          borderRadius: btnRadius,
+          color: bgColor,
+          border: isIncome
+              ? null
+              : Border.all(
+                  color: isDark ? AppColors.subtleBorder : AppColors.lightBorderHairline,
+                  width: 1,
                 ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 17,
+              color: iconColor,
+            ),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w800,
+                color: textColor,
+                letterSpacing: 0.2,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -2103,8 +2217,8 @@ class _ForecastCard extends StatelessWidget {
     return ModernCard(
       padding: const EdgeInsets.all(20),
       borderRadius: 20,
-      backgroundColor: AppColors.surfaceCard,
-      borderColor: AppColors.subtleBorder,
+      backgroundColor: isDark ? AppColors.surfaceCard : AppColors.lightCardSurface,
+      borderColor: isDark ? AppColors.subtleBorder : AppColors.lightBorderHairline,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -2173,12 +2287,12 @@ class _ForecastCard extends StatelessWidget {
                     const SizedBox(height: 3),
                     Text(
                       CurrencyFormatter.format(predictedMonthEnd),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
                         letterSpacing: -0.5,
-                        color: AppColors.textDark,
-                        fontFeatures: [FontFeature.tabularFigures()],
+                        color: AppColors.textPrimary(isDark),
+                        fontFeatures: const [FontFeature.tabularFigures()],
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -2201,31 +2315,31 @@ class _ForecastCard extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: AppColors.surface800,
+              color: isDark ? AppColors.surface800 : AppColors.lightInputFill,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: AppColors.subtleBorder,
+                color: isDark ? AppColors.subtleBorder : AppColors.lightBorderHairline,
                 width: 1,
               ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
+                Row(
                   children: [
                     Icon(
                       Icons.account_tree_outlined,
                       size: 14,
-                      color: AppColors.gold400,
+                      color: isDark ? AppColors.gold400 : AppColors.gold600,
                     ),
-                    SizedBox(width: 6),
+                    const SizedBox(width: 6),
                     Text(
                       'CASH FLOW CALCULATION',
                       style: TextStyle(
                         fontSize: 10.5,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 0.8,
-                        color: AppColors.gold400,
+                        color: isDark ? AppColors.gold400 : AppColors.gold600,
                       ),
                     ),
                   ],
@@ -2241,7 +2355,7 @@ class _ForecastCard extends StatelessWidget {
                         label: 'Current Cash',
                         subtitle: 'In Wallets',
                         amount: CurrencyFormatter.format(totalBalance),
-                        amountColor: AppColors.textDark,
+                        amountColor: AppColors.textPrimary(isDark),
                       ),
                     ),
                     const Padding(
@@ -2405,32 +2519,34 @@ class _ForecastCard extends StatelessWidget {
                     height: 110,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: AppColors.surface800.withValues(alpha: 0.5),
+                      color: isDark
+                          ? AppColors.surface800.withValues(alpha: 0.5)
+                          : AppColors.lightInputFill,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: AppColors.subtleBorder,
+                        color: isDark
+                            ? AppColors.subtleBorder
+                            : AppColors.lightBorderHairline,
                         width: 1,
                       ),
                     ),
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: const Row(
+                    child: const Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          Icons.show_chart_rounded,
-                          size: 18,
+                          Icons.insights_rounded,
+                          size: 24,
                           color: AppColors.textMuted,
                         ),
-                        SizedBox(width: 8),
-                        Flexible(
-                          child: Text(
-                            'Insufficient data to plot trend line (requires ≥ 2 points)',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textMuted,
-                              fontWeight: FontWeight.w500,
-                            ),
+                        SizedBox(height: 8),
+                        Text(
+                          'Track more days to reveal your balance trend',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textMuted,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
@@ -2608,13 +2724,15 @@ class _CashFlowStepTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.surface700.withValues(alpha: 0.5),
+        color: isDark ? AppColors.surface700.withValues(alpha: 0.5) : AppColors.lightCardSurface,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: AppColors.subtleBorder,
+          color: isDark ? AppColors.subtleBorder : AppColors.lightBorderHairline,
           width: 0.8,
         ),
       ),
@@ -2625,10 +2743,10 @@ class _CashFlowStepTile extends StatelessWidget {
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w700,
-              color: AppColors.textMuted,
+              color: isDark ? AppColors.textMuted : AppColors.lightTextSecondary,
             ),
           ),
           const SizedBox(height: 4),
@@ -2640,7 +2758,9 @@ class _CashFlowStepTile extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w800,
-                color: amountColor,
+                color: amountColor == AppColors.textDark
+                    ? (isDark ? AppColors.textDark : AppColors.lightTextPrimary)
+                    : amountColor,
                 fontFeatures: const [FontFeature.tabularFigures()],
               ),
             ),
@@ -2653,7 +2773,7 @@ class _CashFlowStepTile extends StatelessWidget {
             style: TextStyle(
               fontSize: 9,
               fontWeight: FontWeight.w500,
-              color: AppColors.textMuted.withValues(alpha: 0.7),
+              color: isDark ? AppColors.textMuted.withValues(alpha: 0.7) : AppColors.lightTextTertiary,
             ),
           ),
         ],
@@ -2669,13 +2789,11 @@ class _PlanningTeaser extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return ModernCard(
       onTap: onTap,
-      gradient: const LinearGradient(
-        colors: [Color(0xFF182234), Color(0xFF101722)],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      ),
+      backgroundColor: isDark ? AppColors.surfaceCard : AppColors.lightCardSurface,
+      borderColor: AppColors.subtleBorderAdaptive(isDark),
       padding: const EdgeInsets.all(16),
       child: Row(
         children: [
@@ -2683,8 +2801,12 @@ class _PlanningTeaser extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: AppColors.gold500.withValues(alpha: 0.16),
+              color: AppColors.gold500.withValues(alpha: isDark ? 0.16 : 0.12),
               borderRadius: BorderRadius.circular(13),
+              border: Border.all(
+                color: AppColors.gold500.withValues(alpha: isDark ? 0.3 : 0.25),
+                width: 1,
+              ),
             ),
             child: const Icon(
               Icons.auto_graph_rounded,
@@ -2692,22 +2814,22 @@ class _PlanningTeaser extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Plan before you spend',
                   style: TextStyle(
-                    color: AppColors.textDark,
+                    color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text(
                   'See your 30-day runway and test a decision in Scenario Lab.',
                   style: TextStyle(
-                    color: AppColors.textMuted,
+                    color: isDark ? AppColors.textMuted : AppColors.lightTextSecondary,
                     fontSize: 12,
                     height: 1.3,
                   ),
@@ -2864,11 +2986,11 @@ class _SpendingSection extends StatelessWidget {
                           ),
                           Text(
                             CurrencyFormatter.format(total),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w800,
-                              color: AppColors.textDark,
-                              fontFeatures: [FontFeature.tabularFigures()],
+                              color: AppColors.textPrimary(isDark),
+                              fontFeatures: const [FontFeature.tabularFigures()],
                             ),
                           ),
                         ],
@@ -2895,20 +3017,20 @@ class _SpendingSection extends StatelessWidget {
                         Expanded(
                           child: Text(
                             cats[i].categoryName,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
-                              color: AppColors.textDark,
+                              color: AppColors.textPrimary(isDark),
                             ),
                           ),
                         ),
                         Text(
                           CurrencyFormatter.format(cats[i].total),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
-                            color: AppColors.textDark,
-                            fontFeatures: [FontFeature.tabularFigures()],
+                            color: AppColors.textPrimary(isDark),
+                            fontFeatures: const [FontFeature.tabularFigures()],
                           ),
                         ),
                       ],
@@ -2943,13 +3065,13 @@ class _TransactionList extends StatelessWidget {
   Widget build(BuildContext context) {
     return ModernCard(
       padding: const EdgeInsets.symmetric(vertical: 8),
-      borderColor: AppColors.subtleBorder,
+      borderColor: isDark ? AppColors.subtleBorder : AppColors.lightBorderHairline,
       child: Column(
         children: [
           for (int i = 0; i < items.length; i++) ...[
             _TransactionTile(item: items[i], isDark: isDark, theme: theme),
             if (i < items.length - 1)
-              const Divider(height: 1, indent: 68, color: AppColors.subtleBorder),
+              Divider(height: 1, indent: 68, color: isDark ? AppColors.subtleBorder : AppColors.lightBorderHairline),
           ],
         ],
       ),
@@ -2982,48 +3104,57 @@ class _TransactionTile extends StatelessWidget {
     final primaryTitle = item.title.isNotEmpty ? item.title : item.categoryName;
     final subtitleText = '${item.categoryName} • $dateStr';
 
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      leading: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          color: categoryColor.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: categoryColor.withValues(alpha: 0.3),
-            width: 1,
+    final primaryTextColor = isDark ? AppColors.textDark : AppColors.textLight;
+    final secondaryTextColor = isDark ? AppColors.textMuted : AppColors.textMutedL;
+
+    return PressableScale(
+      onTap: () {
+        AppHaptics.lightImpact();
+        context.push('/transactions');
+      },
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        leading: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: categoryColor.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: categoryColor.withValues(alpha: 0.3),
+              width: 1,
+            ),
+          ),
+          child: Icon(categoryIcon, color: categoryColor, size: 20),
+        ),
+        title: Text(
+          primaryTitle,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 14,
+            color: primaryTextColor,
           ),
         ),
-        child: Icon(categoryIcon, color: categoryColor, size: 20),
-      ),
-      title: Text(
-        primaryTitle,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
-          fontWeight: FontWeight.w700,
-          fontSize: 14,
-          color: AppColors.textDark,
+        subtitle: Text(
+          subtitleText,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: secondaryTextColor,
+          ),
         ),
-      ),
-      subtitle: Text(
-        subtitleText,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-          color: AppColors.textMuted,
-        ),
-      ),
-      trailing: Text(
-        CurrencyFormatter.formatSigned(item.amount, isExpense: isExpense),
-        style: TextStyle(
-          fontWeight: FontWeight.w800,
-          fontSize: 15,
-          color: amountColor,
-          fontFeatures: const [FontFeature.tabularFigures()],
+        trailing: Text(
+          CurrencyFormatter.formatSigned(item.amount, isExpense: isExpense),
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 15,
+            color: amountColor,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
         ),
       ),
     );
@@ -3047,7 +3178,7 @@ class _GoalsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return ModernCard(
       padding: const EdgeInsets.all(16),
-      borderColor: AppColors.subtleBorder,
+      borderColor: isDark ? AppColors.subtleBorder : AppColors.lightBorderHairline,
       child: Column(
         children: [
           for (int i = 0; i < goals.length; i++) ...[
@@ -3070,51 +3201,59 @@ class _GoalRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final pct = (goal.progress * 100).clamp(0, 100).toStringAsFixed(0);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                goal.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                  color: AppColors.textDark,
+    final primaryTextColor = isDark ? AppColors.textDark : AppColors.textLight;
+
+    return PressableScale(
+      onTap: () {
+        AppHaptics.lightImpact();
+        context.push('/goals');
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  goal.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    color: primaryTextColor,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text(
-                '${CurrencyFormatter.format(goal.currentAmount)} / ${CurrencyFormatter.format(goal.targetAmount)} ($pct%)',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.end,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.emerald500,
-                  fontFeatures: [FontFeature.tabularFigures()],
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  '${CurrencyFormatter.format(goal.currentAmount)} / ${CurrencyFormatter.format(goal.targetAmount)} ($pct%)',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.end,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.emerald500,
+                    fontFeatures: [FontFeature.tabularFigures()],
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(6),
-          child: LinearProgressIndicator(
-            value: goal.progress.clamp(0.0, 1.0),
-            minHeight: 6,
-            backgroundColor: const Color(0xFF182234),
-            color: AppColors.emerald500,
+            ],
           ),
-        ),
-      ],
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              value: goal.progress.clamp(0.0, 1.0),
+              minHeight: 6,
+              backgroundColor: isDark ? const Color(0xFF27272A) : AppColors.lightInputFill,
+              color: AppColors.emerald500,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -3136,55 +3275,65 @@ class _BillsList extends StatelessWidget {
   Widget build(BuildContext context) {
     return ModernCard(
       padding: const EdgeInsets.symmetric(vertical: 8),
-      borderColor: AppColors.subtleBorder,
+      borderColor: isDark ? AppColors.subtleBorder : AppColors.lightBorderHairline,
       child: Column(
         children: [
           for (int i = 0; i < bills.length; i++) ...[
-            ListTile(
-              leading: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: AppColors.gold500.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: AppColors.gold500.withValues(alpha: 0.3),
-                    width: 1,
+            PressableScale(
+              onTap: () {
+                AppHaptics.lightImpact();
+                context.push('/bills');
+              },
+              child: ListTile(
+                leading: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: AppColors.gold500.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.gold500.withValues(alpha: 0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.receipt_rounded,
+                    color: AppColors.gold400,
+                    size: 20,
                   ),
                 ),
-                child: const Icon(
-                  Icons.receipt_rounded,
-                  color: AppColors.gold400,
-                  size: 20,
+                title: Text(
+                  bills[i].name,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    color: isDark ? AppColors.textDark : AppColors.textLight,
+                  ),
                 ),
-              ),
-              title: Text(
-                bills[i].name,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                  color: AppColors.textDark,
+                subtitle: Text(
+                  'Due: ${bills[i].dueDate.toIso8601String().split('T').first}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDark ? AppColors.textMuted : AppColors.textMutedL,
+                  ),
                 ),
-              ),
-              subtitle: Text(
-                'Due: ${bills[i].dueDate.toIso8601String().split('T').first}',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textMuted,
-                ),
-              ),
-              trailing: Text(
-                CurrencyFormatter.format(bills[i].amount),
-                style: const TextStyle(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 15,
-                  color: AppColors.textDark,
-                  fontFeatures: [FontFeature.tabularFigures()],
+                trailing: Text(
+                  CurrencyFormatter.format(bills[i].amount),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 15,
+                    color: isDark ? AppColors.textDark : AppColors.textLight,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
                 ),
               ),
             ),
             if (i < bills.length - 1)
-              const Divider(height: 1, indent: 68, color: AppColors.subtleBorder),
+              Divider(
+                height: 1,
+                indent: 68,
+                color: isDark ? AppColors.subtleBorder : AppColors.lightBorderHairline,
+              ),
           ],
         ],
       ),
@@ -3203,19 +3352,25 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.3,
-            color: AppColors.textDark,
+        Expanded(
+          child: Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.3,
+              color: AppColors.textPrimary(isDark),
+            ),
           ),
         ),
-        if (actionLabel != null && onAction != null)
+        if (actionLabel != null && onAction != null) ...[
+          const SizedBox(width: 8),
           TextButton(
             onPressed: onAction,
             style: TextButton.styleFrom(
@@ -3231,17 +3386,18 @@ class _SectionHeader extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.gold400,
+                    color: AppColors.emerald400,
                   ),
                 ),
                 const Icon(
                   Icons.chevron_right_rounded,
                   size: 18,
-                  color: AppColors.gold400,
+                  color: AppColors.emerald400,
                 ),
               ],
             ),
           ),
+        ],
       ],
     );
   }
@@ -3289,6 +3445,8 @@ class _SkeletonBoneState extends State<_SkeletonBone>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final baseColor = isDark ? AppColors.surface700 : AppColors.lightInputFill;
     return AnimatedBuilder(
       animation: _animation,
       builder: (context, child) {
@@ -3296,7 +3454,11 @@ class _SkeletonBoneState extends State<_SkeletonBone>
           width: widget.width,
           height: widget.height,
           decoration: BoxDecoration(
-            color: AppColors.surface700.withValues(alpha: _animation.value),
+            color: baseColor.withValues(
+              alpha: isDark
+                  ? _animation.value
+                  : (_animation.value * 0.5 + 0.5),
+            ),
             borderRadius: BorderRadius.circular(widget.borderRadius),
           ),
         );
@@ -3313,15 +3475,17 @@ class _BalanceCardSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surfaceCard,
+        color: isDark ? AppColors.surfaceCard : AppColors.lightCardSurface,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: const Color(0x33334155),
+          color: isDark ? const Color(0x33334155) : AppColors.lightBorderHairline,
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.5),
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.5)
+                : const Color(0x0A000000),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -3361,13 +3525,16 @@ class _BalanceCapsuleSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surface800.withValues(alpha: 0.6),
+        color: isDark
+            ? AppColors.surface800.withValues(alpha: 0.6)
+            : AppColors.lightInputFill,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0x22334155),
+          color: isDark ? const Color(0x22334155) : AppColors.lightBorderHairline,
           width: 1,
         ),
       ),
@@ -3433,13 +3600,14 @@ class _StatCardSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surfaceCard,
+        color: isDark ? AppColors.surfaceCard : AppColors.lightCardSurface,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: const Color(0x33334155),
+          color: isDark ? const Color(0x33334155) : AppColors.lightBorderHairline,
           width: 1,
         ),
       ),
@@ -3462,11 +3630,12 @@ class _ForecastCardSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return ModernCard(
       padding: const EdgeInsets.all(20),
       borderRadius: 20,
-      backgroundColor: AppColors.surfaceCard,
-      borderColor: const Color(0x33334155),
+      backgroundColor: isDark ? AppColors.surfaceCard : AppColors.lightCardSurface,
+      borderColor: isDark ? const Color(0x33334155) : AppColors.lightBorderHairline,
       child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -3637,6 +3806,7 @@ class _QuickStartChecklistCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final step1Done = totalBalance > 0 || income > 0;
     final step2Done = salaryAmount != null && salaryAmount! > 0;
     final step3Done = activeGoalsCount > 0 || activeBillsCount > 0;
@@ -3646,19 +3816,27 @@ class _QuickStartChecklistCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface800,
+        color: isDark ? AppColors.surface800 : AppColors.lightCardSurface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: AppColors.emerald500.withValues(alpha: 0.3),
+          color: AppColors.emerald500.withValues(alpha: isDark ? 0.3 : 0.4),
           width: 1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.4),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        boxShadow: isDark
+            ? [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.4),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ]
+            : const [
+                BoxShadow(
+                  color: Color(0x0A000000),
+                  blurRadius: 12,
+                  offset: Offset(0, 3),
+                ),
+              ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -3670,14 +3848,14 @@ class _QuickStartChecklistCard extends StatelessWidget {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: AppColors.emerald500.withValues(alpha: 0.15),
+                  color: AppColors.emerald500.withValues(alpha: isDark ? 0.15 : 0.12),
                   shape: BoxShape.circle,
                   border: Border.all(
                     color: AppColors.emerald500.withValues(alpha: 0.35),
                   ),
                 ),
                 child: const Icon(
-                  Icons.auto_awesome_rounded,
+                  Icons.checklist_rounded,
                   size: 16,
                   color: AppColors.emerald400,
                 ),
@@ -3699,10 +3877,10 @@ class _QuickStartChecklistCard extends StatelessWidget {
                     const SizedBox(height: 1),
                     Text(
                       '$completedCount of 3 completed • Set up your finances',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textDark,
+                        color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
                       ),
                     ),
                   ],
@@ -3711,7 +3889,7 @@ class _QuickStartChecklistCard extends StatelessWidget {
               IconButton(
                 onPressed: onDismiss,
                 icon: const Icon(Icons.close_rounded, size: 18),
-                color: AppColors.textMuted,
+                color: isDark ? AppColors.textMuted : AppColors.lightTextSecondary,
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
                 tooltip: 'Dismiss guide',
@@ -3725,7 +3903,7 @@ class _QuickStartChecklistCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: completedCount / 3.0,
-              backgroundColor: Colors.white.withValues(alpha: 0.08),
+              backgroundColor: isDark ? Colors.white.withValues(alpha: 0.08) : AppColors.lightInputFill,
               valueColor:
                   const AlwaysStoppedAnimation<Color>(AppColors.emerald400),
               minHeight: 4,
@@ -3735,6 +3913,8 @@ class _QuickStartChecklistCard extends StatelessWidget {
 
           // Step 1: Log Balance
           _buildChecklistStep(
+            context: context,
+            isDark: isDark,
             title: 'Log your starting balance or salary',
             subtitle: step1Done
                 ? 'Recorded: ${CurrencyFormatter.format(totalBalance > 0 ? totalBalance : income)}'
@@ -3747,6 +3927,8 @@ class _QuickStartChecklistCard extends StatelessWidget {
 
           // Step 2: Payday & Salary Settings
           _buildChecklistStep(
+            context: context,
+            isDark: isDark,
             title: 'Configure salary & payday schedule',
             subtitle: step2Done
                 ? '${CurrencyFormatter.format(salaryAmount!)}/mo • ${paydaySchedule ?? "15th & 30th"}'
@@ -3759,6 +3941,8 @@ class _QuickStartChecklistCard extends StatelessWidget {
 
           // Step 3: Bills & Goals
           _buildChecklistStep(
+            context: context,
+            isDark: isDark,
             title: 'Add your upcoming bills & goals',
             subtitle: step3Done
                 ? '$activeGoalsCount goal${activeGoalsCount == 1 ? '' : 's'}, $activeBillsCount bill${activeBillsCount == 1 ? '' : 's'} active'
@@ -3773,6 +3957,8 @@ class _QuickStartChecklistCard extends StatelessWidget {
   }
 
   Widget _buildChecklistStep({
+    required BuildContext context,
+    required bool isDark,
     required String title,
     required String subtitle,
     required bool isCompleted,
@@ -3786,11 +3972,11 @@ class _QuickStartChecklistCard extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
           color: isCompleted
-              ? Colors.white.withValues(alpha: 0.02)
-              : AppColors.surface700.withValues(alpha: 0.4),
+              ? (isDark ? Colors.white.withValues(alpha: 0.02) : Colors.black.withValues(alpha: 0.02))
+              : (isDark ? AppColors.surface700.withValues(alpha: 0.4) : AppColors.lightInputFill),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isCompleted ? Colors.transparent : AppColors.subtleBorder,
+            color: isCompleted ? Colors.transparent : (isDark ? AppColors.subtleBorder : AppColors.lightBorderHairline),
           ),
         ),
         child: Row(
@@ -3800,7 +3986,7 @@ class _QuickStartChecklistCard extends StatelessWidget {
                   ? Icons.check_circle_rounded
                   : Icons.radio_button_unchecked_rounded,
               size: 18,
-              color: isCompleted ? AppColors.emerald400 : AppColors.textMuted,
+              color: isCompleted ? AppColors.emerald400 : (isDark ? AppColors.textMuted : AppColors.lightTextSecondary),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -3812,7 +3998,7 @@ class _QuickStartChecklistCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.textDark,
+                      color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
                       decoration:
                           isCompleted ? TextDecoration.lineThrough : null,
                     ),
@@ -3820,9 +4006,9 @@ class _QuickStartChecklistCard extends StatelessWidget {
                   const SizedBox(height: 1),
                   Text(
                     subtitle,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 10.5,
-                      color: AppColors.textMuted,
+                      color: isDark ? AppColors.textMuted : AppColors.lightTextSecondary,
                     ),
                   ),
                 ],
@@ -3881,6 +4067,7 @@ class _DeficitAlertCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final formattedPayday = DateFormat('MMM d').format(nextPayday);
     return Container(
       padding: const EdgeInsets.all(16),
@@ -3968,8 +4155,10 @@ class _DeficitAlertCard extends StatelessWidget {
                     ),
                   ),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.textDark,
-                    side: const BorderSide(color: AppColors.subtleBorder),
+                    foregroundColor: AppColors.textPrimary(isDark),
+                    side: BorderSide(
+                      color: AppColors.subtleBorderAdaptive(isDark),
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),

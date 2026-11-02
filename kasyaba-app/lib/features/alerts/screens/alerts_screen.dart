@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
+import '../../../core/utils/currency_formatter.dart';
 import '../../../shared/widgets/modern_card.dart';
 
 class AlertsScreen extends ConsumerWidget {
@@ -66,7 +67,7 @@ class AlertsScreen extends ConsumerWidget {
           ref.invalidate(recoveryAnalysisProvider);
         },
         child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
           children: [
             // ── Dynamic Health Score Header Banner ─────────────────────────
             dashboardAsync.when(
@@ -185,8 +186,8 @@ class AlertsScreen extends ConsumerWidget {
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
                               color: isDark
-                                  ? Colors.white70
-                                  : const Color(0xFF334155),
+                                  ? AppColors.textMuted
+                                  : AppColors.lightTextSecondary,
                               height: 1.4,
                             ),
                           ),
@@ -243,7 +244,7 @@ class AlertsScreen extends ConsumerWidget {
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
-                                      '₱${analysis.recommendedDailySpendLimit.toStringAsFixed(0)} / day',
+                                      '${CurrencyFormatter.format(analysis.recommendedDailySpendLimit)} / day',
                                       style: const TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w800,
@@ -491,7 +492,7 @@ class _RootCauseTile extends StatelessWidget {
                   cause.description,
                   style: TextStyle(
                     fontSize: 12,
-                    color: isDark ? Colors.white70 : const Color(0xFF475569),
+                    color: isDark ? AppColors.textMuted : AppColors.lightTextSecondary,
                     height: 1.3,
                   ),
                 ),
@@ -515,10 +516,10 @@ class _ActionStepTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+        color: isDark ? AppColors.surface700 : AppColors.lightInputFill,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+          color: AppColors.subtleBorderAdaptive(isDark),
         ),
       ),
       child: Row(
@@ -552,7 +553,7 @@ class _ActionStepTile extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : const Color(0xFF0F172A),
+                    color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -561,8 +562,8 @@ class _ActionStepTile extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 12,
                     color: isDark
-                        ? const Color(0xFF94A3B8)
-                        : const Color(0xFF64748B),
+                        ? AppColors.textMuted
+                        : AppColors.lightTextSecondary,
                     height: 1.3,
                   ),
                 ),

@@ -7,6 +7,8 @@ import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../shared/widgets/modern_card.dart';
 import '../../../app/theme/app_theme.dart';
+import '../../../app/theme/app_motion.dart';
+import '../../../shared/widgets/pressable_scale.dart';
 import '../../../core/utils/category_icon_helper.dart';
 import '../../../core/utils/currency_formatter.dart';
 
@@ -1151,10 +1153,10 @@ class _TypeSwitcher extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.surface700 : AppColors.lightCard2,
-        borderRadius: BorderRadius.circular(18),
+        color: isDark ? AppColors.surface700 : AppColors.lightInputFill,
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDark ? AppColors.surface600 : AppColors.lightBorder,
+          color: isDark ? AppColors.subtleBorder : AppColors.lightBorderHairline,
           width: 1,
         ),
       ),
@@ -1180,7 +1182,7 @@ class _TypeSwitcher extends StatelessWidget {
             label: 'Transfer',
             icon: Icons.swap_horiz_rounded,
             isSelected: mode == TransactionTypeMode.transfer,
-            activeColor: const Color(0xFF38BDF8),
+            activeColor: AppColors.info,
             isDark: isDark,
             onTap: () => onModeChanged(TransactionTypeMode.transfer),
           ),
@@ -1214,7 +1216,7 @@ class _TransactionTypeBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: color.withValues(alpha: 0.35)),
       ),
       child: Row(
@@ -1255,38 +1257,33 @@ class _TypeTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textColor = isSelected
-        ? (activeColor == const Color(0xFF38BDF8)
-            ? const Color(0xFF0F172A)
-            : Colors.white)
-        : (isDark ? AppColors.textMuted : AppColors.textMutedL);
+        ? Colors.white
+        : (isDark ? AppColors.textMuted : AppColors.lightTextSecondary);
 
     return Expanded(
       child: Semantics(
         button: true,
         selected: isSelected,
         label: label,
-        onTap: onTap,
+        onTap: () {
+          AppHaptics.selectionClick();
+          onTap();
+        },
         excludeSemantics: true,
-        child: GestureDetector(
-          onTap: onTap,
+        child: PressableScale(
+          onTap: () {
+            AppHaptics.selectionClick();
+            onTap();
+          },
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 220),
+            duration: const Duration(milliseconds: 180),
             curve: Curves.easeOutCubic,
             alignment: Alignment.center,
-            constraints: const BoxConstraints(minHeight: 46),
-            padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 4),
+            constraints: const BoxConstraints(minHeight: 44),
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
             decoration: BoxDecoration(
               color: isSelected ? activeColor : Colors.transparent,
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: isSelected
-                  ? [
-                      BoxShadow(
-                        color: activeColor.withValues(alpha: 0.35),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ]
-                  : [],
+              borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -1341,37 +1338,15 @@ class _AmountCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currencySymbolColor = switch (mode) {
-      TransactionTypeMode.expense => const Color(0xFFF87171),
-      TransactionTypeMode.income => const Color(0xFF10B981),
-      TransactionTypeMode.transfer => const Color(0xFF38BDF8),
-    };
-
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppTheme.cardRadius),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isDark
-              ? [typeColor.withValues(alpha: 0.12), AppColors.surface800]
-              : [
-                  typeColor.withValues(alpha: 0.06),
-                  typeColor.withValues(alpha: 0.03),
-                ],
-        ),
+        color: isDark ? AppColors.surface800 : AppColors.lightCard,
         border: Border.all(
-          color: typeColor.withValues(alpha: isDark ? 0.25 : 0.15),
-          width: 1.5,
+          color: isDark ? AppColors.subtleBorder : AppColors.lightBorder,
+          width: 1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: typeColor.withValues(alpha: 0.08),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1394,8 +1369,8 @@ class _AmountCard extends StatelessWidget {
                 fontSize: 38,
                 fontWeight: FontWeight.w900,
                 color: isDark
-                    ? const Color(0x73FFFFFF)
-                    : AppColors.textMutedL.withValues(alpha: 0.5),
+                    ? AppColors.textMuted.withValues(alpha: 0.4)
+                    : AppColors.lightTextSecondary.withValues(alpha: 0.4),
                 letterSpacing: -1.0,
                 fontFeatures: CurrencyFormatter.tabularFigures,
               ),
@@ -1403,7 +1378,7 @@ class _AmountCard extends StatelessWidget {
               prefixStyle: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.w800,
-                color: currencySymbolColor,
+                color: isDark ? AppColors.textMuted : AppColors.lightTextSecondary,
                 fontFeatures: CurrencyFormatter.tabularFigures,
               ),
               border: InputBorder.none,
@@ -1694,64 +1669,66 @@ class _CategoryGrid extends StatelessWidget {
           button: true,
           selected: isSelected,
           label: catName,
-          onTap: () => onSelect(cat['id']!),
+          onTap: () {
+            AppHaptics.selectionClick();
+            onSelect(cat['id']!);
+          },
           excludeSemantics: true,
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () => onSelect(cat['id']!),
-              borderRadius: BorderRadius.circular(12),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                alignment: Alignment.center,
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                decoration: BoxDecoration(
+          child: PressableScale(
+            onTap: () {
+              AppHaptics.selectionClick();
+              onSelect(cat['id']!);
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              alignment: Alignment.center,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? AppColors.expense.withValues(
+                        alpha: isDark ? 0.18 : 0.10,
+                      )
+                    : (isDark ? AppColors.surface700 : AppColors.lightInputFill),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
                   color: isSelected
                       ? AppColors.expense.withValues(
-                          alpha: isDark ? 0.18 : 0.10,
+                          alpha: isDark ? 0.40 : 0.30,
                         )
-                      : (isDark ? AppColors.surface700 : AppColors.lightCard2),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: isSelected
-                        ? AppColors.expense.withValues(
-                            alpha: isDark ? 0.40 : 0.30,
-                          )
-                        : (isDark
-                              ? AppColors.surface600
-                              : AppColors.lightBorder),
-                    width: isSelected ? 1.5 : 1,
-                  ),
+                      : (isDark
+                            ? AppColors.subtleBorder
+                            : AppColors.lightBorderHairline),
+                  width: isSelected ? 1.5 : 1,
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      catIcon,
-                      size: 15,
-                      color: isSelected ? AppColors.expense : catColor,
-                    ),
-                    const SizedBox(width: 6),
-                    Flexible(
-                      child: Text(
-                        catName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: isSelected
-                              ? FontWeight.w700
-                              : FontWeight.w500,
-                          color: isSelected
-                              ? AppColors.expense
-                              : (isDark
-                                    ? AppColors.textDark
-                                    : AppColors.textLight),
-                        ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    catIcon,
+                    size: 15,
+                    color: isSelected ? AppColors.expense : catColor,
+                  ),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      catName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: isSelected
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                        color: isSelected
+                            ? AppColors.expense
+                            : (isDark
+                                  ? AppColors.textDark
+                                  : AppColors.textLight),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -2285,28 +2262,28 @@ class _SaveButton extends StatelessWidget {
         '${isEditing ? "Update" : "Save"} Transfer',
     };
 
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppTheme.buttonRadius),
-        gradient: isSubmitting
-            ? null
-            : LinearGradient(
-                colors: gradientColors,
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-              ),
-        boxShadow: isSubmitting
-            ? []
-            : [
-                BoxShadow(
-                  color: typeColor.withValues(alpha: 0.35),
-                  blurRadius: 16,
-                  offset: const Offset(0, 4),
+    return PressableScale(
+      onTap: isSubmitting ? null : () {
+        AppHaptics.mediumImpact();
+        onPressed();
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(AppTheme.buttonRadius),
+          gradient: isSubmitting
+              ? null
+              : LinearGradient(
+                  colors: gradientColors,
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
                 ),
-              ],
-      ),
-      child: ElevatedButton.icon(
-        onPressed: isSubmitting ? null : onPressed,
+          boxShadow: const [],
+        ),
+        child: ElevatedButton.icon(
+          onPressed: isSubmitting ? null : () {
+            AppHaptics.mediumImpact();
+            onPressed();
+          },
         style: ElevatedButton.styleFrom(
           backgroundColor: isSubmitting
               ? AppColors.surface600
@@ -2338,6 +2315,6 @@ class _SaveButton extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ));
   }
 }

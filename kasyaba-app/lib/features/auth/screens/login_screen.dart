@@ -71,26 +71,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   }
 
   void _showForgotPasswordHelp(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surface800,
+        backgroundColor: isDark ? AppColors.surface800 : AppColors.lightCardSurface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(18),
-          side: const BorderSide(color: Color(0x14FFFFFF)),
+          side: BorderSide(
+            color: isDark ? const Color(0x14FFFFFF) : AppColors.lightBorderHairline,
+          ),
         ),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(
+            const Icon(
               Icons.lock_reset_rounded,
               color: AppColors.gold400,
               size: 22,
             ),
-            SizedBox(width: 10),
+            const SizedBox(width: 10),
             Text(
               'Reset Password',
               style: TextStyle(
-                color: AppColors.textDark,
+                color: AppColors.textPrimary(isDark),
                 fontWeight: FontWeight.w800,
                 fontSize: 17,
               ),
@@ -125,15 +128,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final size = MediaQuery.sizeOf(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: AppColors.obsidian,
+      backgroundColor: isDark ? AppColors.obsidian : AppColors.lightScaffold,
       body: Stack(
         children: [
           // ── Background with grid & emerald aura ───────────
           AuthBackground(
             rotateAnimation: _bgRotate,
-            isDark: true,
+            isDark: isDark,
             size: size,
           ),
 
@@ -160,7 +164,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                           const SizedBox(height: 24),
 
                           // ── Screen Title ──────────────────
-                          const Center(
+                          Center(
                             child: Column(
                               children: [
                                 Text(
@@ -170,7 +174,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                     fontWeight: FontWeight.w900,
                                     fontSize: 26,
                                     letterSpacing: -0.6,
-                                    color: AppColors.textDark,
+                                    color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
                                   ),
                                 ),
                                 SizedBox(height: 6),
