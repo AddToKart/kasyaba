@@ -107,6 +107,15 @@ class _KasyaBaAffordabilitySheetModalState
     final interestRate =
         double.tryParse(_interestRateController.text.trim()) ?? 0.0;
 
+    final monthlySalary = userProfile?.salaryAmount != null &&
+            userProfile!.salaryAmount! > 0
+        ? userProfile.salaryAmount!
+        : 45000.0;
+    final workHours = calculateWorkHoursEquivalent(
+      itemPrice: rawAmount > 0 ? rawAmount : 50000.0,
+      monthlySalary: monthlySalary,
+    );
+
     InstallmentComparison? installmentComp;
     if (rawAmount > 0) {
       installmentComp = calculateInstallmentComparison(
@@ -507,19 +516,33 @@ class _KasyaBaAffordabilitySheetModalState
                 ),
               ],
 
-              // ── Simulation Result Card (Nodes 103:158 & 103:321) ──
-              if (_result != null) ...[
-                const SizedBox(height: 16),
-                _SimulationResultCard(
-                  result: _result!,
-                  mode: _mode,
-                  installmentComp: installmentComp,
-                  onViewMathBreakdown: () {
-                    Navigator.of(context).pop();
-                    showSafeSpendBreakdownSheet(context, safeSpendCalc);
-                  },
-                ),
-              ],
+              // ── Formal Simulation Result Section (Image 2) ──────
+              AnimatedSize(
+                duration: const Duration(milliseconds: 320),
+                curve: Curves.easeOutCubic,
+                alignment: Alignment.topCenter,
+                child: _result != null
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const SizedBox(height: 18),
+                          _SimulationResultCard(
+                            result: _result!,
+                            mode: _mode,
+                            rawAmount: rawAmount,
+                            workHours: workHours,
+                            safeSpendCalc: safeSpendCalc,
+                            installmentComp: installmentComp,
+                            onViewMathBreakdown: () {
+                              Navigator.of(context).pop();
+                              showSafeSpendBreakdownSheet(
+                                  context, safeSpendCalc);
+                            },
+                          ),
+                        ],
+                      )
+                    : const SizedBox.shrink(),
+              ),
             ],
           ),
         ),
@@ -646,16 +669,22 @@ class _SlidingSegmentedSwitcher extends StatelessWidget {
   }
 }
 
-/// ── Result Card (Pay in Full & Installment) ──────────────────────────────
+/// ── Result Section (Formal View Matching Image 2) ────────────────────────
 class _SimulationResultCard extends StatelessWidget {
   final PurchaseCheckResult result;
   final _PaymentMode mode;
+  final double rawAmount;
+  final WorkHoursEquivalent workHours;
+  final DailySafeSpendCalculation safeSpendCalc;
   final InstallmentComparison? installmentComp;
   final VoidCallback onViewMathBreakdown;
 
   const _SimulationResultCard({
     required this.result,
     required this.mode,
+    required this.rawAmount,
+    required this.workHours,
+    required this.safeSpendCalc,
     required this.installmentComp,
     required this.onViewMathBreakdown,
   });
@@ -666,54 +695,74 @@ class _SimulationResultCard extends StatelessWidget {
     final accentColor =
         isAffordable ? DashboardTokens.bermuda : DashboardTokens.apricot;
 
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: DashboardTokens.bigStone,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(
-          color: accentColor.withValues(alpha: 0.4),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
+    final safeSpendReduction = safeSpendCalc.daysUntilPayday > 0
+        ? (rawAmount / safeSpendCalc.daysUntilPayday)
+        : rawAmount;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // ── Card 1: Safely affordable / Insufficient Funds Status ──
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: DashboardTokens.bigStone,
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(
+              color: accentColor.withValues(alpha: 0.35),
+              width: 1.0,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: accentColor.withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  isAffordable
-                      ? Icons.check_circle_rounded
-                      : Icons.warning_amber_rounded,
+              Text(
+                result.statusTitle,
+                style: GoogleFonts.bricolageGrotesque(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
                   color: accentColor,
-                  size: 22,
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
+              const SizedBox(height: 6),
+              Text(
+                result.statusMessage,
+                style: GoogleFonts.dmSans(
+                  fontSize: 13,
+                  color: DashboardTokens.periwinkleGraySubtitle,
+                  height: 1.35,
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Recessed Life-Energy Work Hours Box
+              Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: DashboardTokens.ebony.withValues(alpha: 0.65),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: DashboardTokens.poloBlue22.withValues(alpha: 0.6),
+                  ),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      result.statusTitle,
+                      '${workHours.workHours.toStringAsFixed(1)} work hours · ${workHours.workDays.toStringAsFixed(1)} workdays',
                       style: GoogleFonts.dmSans(
-                        fontSize: 16,
+                        fontSize: 14.5,
                         fontWeight: FontWeight.bold,
-                        color: accentColor,
+                        color: DashboardTokens.periwinkleGray,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 4),
                     Text(
-                      result.statusMessage,
+                      'Based on ${CurrencyFormatter.format(workHours.salaryAmount ?? 45000)} a month, ${CurrencyFormatter.format(workHours.hourlyWage > 0 ? workHours.hourlyWage : 255.68)} per hour, 176 work hours a month.',
                       style: GoogleFonts.dmSans(
-                        fontSize: 12.5,
+                        fontSize: 12,
                         color: DashboardTokens.periwinkleGraySubtitle,
                         height: 1.35,
                       ),
@@ -723,73 +772,120 @@ class _SimulationResultCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 14),
-          const Divider(color: DashboardTokens.poloBlue22, height: 1),
-          const SizedBox(height: 14),
+        ),
+        const SizedBox(height: 22),
 
-          // Pay in Full Metrics
-          if (mode == _PaymentMode.payInFull) ...[
-            _MetricRow(
-              label: 'Cash after upcoming bills',
-              value: CurrencyFormatter.format(result.cashAfterBills),
-              valueColor: DashboardTokens.periwinkleGray,
-            ),
-            const SizedBox(height: 8),
-            _MetricRow(
-              label: 'Post-purchase liquid balance',
-              value: CurrencyFormatter.format(result.postPurchaseBalance),
-              valueColor: result.postPurchaseBalance > 0
-                  ? DashboardTokens.bermuda
-                  : DashboardTokens.apricot,
-            ),
-          ] else if (installmentComp != null) ...[
-            // Installment Metrics (Node 103:321)
-            _MetricRow(
-              label: 'Monthly payment (${installmentComp!.tenureMonths} mos)',
-              value:
-                  '${CurrencyFormatter.format(installmentComp!.monthlyInstallment)} / mo',
-              valueColor: DashboardTokens.periwinkleGray,
-            ),
-            const SizedBox(height: 8),
-            _MetricRow(
-              label: 'Cash preserved today',
-              value:
-                  '+${CurrencyFormatter.format(installmentComp!.cashPreservedToday)}',
-              valueColor: DashboardTokens.bermuda,
-            ),
-            const SizedBox(height: 8),
-            _MetricRow(
-              label: 'Daily safe spend reduction',
-              value:
-                  '-${CurrencyFormatter.format(installmentComp!.installmentDailySafeSpendImpact)} / day',
-              valueColor: DashboardTokens.poloBlue,
-            ),
-          ],
+        // ── Section Header: Payment details ────────────────────────
+        Text(
+          'Payment details',
+          style: GoogleFonts.bricolageGrotesque(
+            color: DashboardTokens.periwinkleGray,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 12),
 
-          const SizedBox(height: 16),
-
-          // Math Breakdown Link Button (Node 79:104)
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton.icon(
-              onPressed: onViewMathBreakdown,
-              icon: const Icon(
-                Icons.calculate_outlined,
-                size: 16,
-                color: DashboardTokens.periwinkleGray,
-              ),
-              label: Text(
-                'View Math Breakdown',
-                style: GoogleFonts.dmSans(
-                  color: DashboardTokens.periwinkleGray,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
+        // ── Card 2: Payment details Formal Card ────────────────────
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: DashboardTokens.bigStone,
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: DashboardTokens.poloBlue22),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Align(
+                alignment: Alignment.topRight,
+                child: Text(
+                  mode == _PaymentMode.payInFull
+                      ? 'PAY IN FULL'
+                      : 'INSTALLMENT (${installmentComp?.tenureMonths ?? 3}M)',
+                  style: GoogleFonts.dmSans(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.0,
+                    color: DashboardTokens.periwinkleGraySubtitle,
+                  ),
                 ),
               ),
-            ),
+              const SizedBox(height: 14),
+              _MetricRow(
+                label: 'Paid today',
+                value: mode == _PaymentMode.payInFull
+                    ? '-${CurrencyFormatter.format(rawAmount)}'
+                    : '-${CurrencyFormatter.format(installmentComp?.monthlyInstallment ?? (rawAmount / 3))}',
+                valueColor: DashboardTokens.apricot,
+              ),
+              const SizedBox(height: 14),
+              _MetricRow(
+                label: 'Cash left',
+                value: CurrencyFormatter.format(
+                  mode == _PaymentMode.payInFull
+                      ? result.postPurchaseBalance
+                      : (installmentComp?.postCashBalance ??
+                          result.postPurchaseBalance),
+                ),
+                valueColor: DashboardTokens.periwinkleGray,
+              ),
+              const SizedBox(height: 14),
+              _MetricRow(
+                label: 'Safe per day',
+                value: mode == _PaymentMode.payInFull
+                    ? '-${CurrencyFormatter.format(safeSpendReduction)}'
+                    : '-${CurrencyFormatter.format(installmentComp?.installmentDailySafeSpendImpact ?? 0)}',
+                valueColor: DashboardTokens.apricot,
+              ),
+              const SizedBox(height: 14),
+              _MetricRow(
+                label: 'Interest',
+                value: (mode == _PaymentMode.payInFull ||
+                        (installmentComp?.totalInterest ?? 0) == 0)
+                    ? '₱0'
+                    : CurrencyFormatter.format(installmentComp!.totalInterest),
+                valueColor: (mode == _PaymentMode.payInFull ||
+                        (installmentComp?.totalInterest ?? 0) == 0)
+                    ? DashboardTokens.bermuda
+                    : DashboardTokens.apricot,
+              ),
+              const SizedBox(height: 16),
+
+              // View Math Breakdown Link Button
+              Align(
+                alignment: Alignment.centerRight,
+                child: GestureDetector(
+                  onTap: onViewMathBreakdown,
+                  behavior: HitTestBehavior.opaque,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.calculate_outlined,
+                          size: 16,
+                          color: DashboardTokens.periwinkleGray,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'View Math Breakdown',
+                          style: GoogleFonts.dmSans(
+                            color: DashboardTokens.periwinkleGray,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -813,14 +909,14 @@ class _MetricRow extends StatelessWidget {
         Text(
           label,
           style: GoogleFonts.dmSans(
-            fontSize: 13,
+            fontSize: 14,
             color: DashboardTokens.periwinkleGraySubtitle,
           ),
         ),
         Text(
           value,
           style: GoogleFonts.dmSans(
-            fontSize: 13,
+            fontSize: 14.5,
             fontWeight: FontWeight.bold,
             color: valueColor,
             fontFeatures: CurrencyFormatter.tabularFigures,
