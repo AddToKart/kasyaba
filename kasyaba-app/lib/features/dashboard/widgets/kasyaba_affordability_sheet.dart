@@ -21,9 +21,7 @@ void showKasyaBaAffordabilitySheet(BuildContext context) {
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
     barrierColor: Colors.black.withValues(alpha: 0.75),
-    constraints: BoxConstraints(
-      maxHeight: screenHeight - topPadding - 32,
-    ),
+    constraints: BoxConstraints(maxHeight: screenHeight - topPadding - 32),
     builder: (ctx) => const _KasyaBaAffordabilitySheetModal(),
   );
 }
@@ -113,8 +111,8 @@ class _KasyaBaAffordabilitySheetModalState
     final interestRate =
         double.tryParse(_interestRateController.text.trim()) ?? 0.0;
 
-    final monthlySalary = userProfile?.salaryAmount != null &&
-            userProfile!.salaryAmount! > 0
+    final monthlySalary =
+        userProfile?.salaryAmount != null && userProfile!.salaryAmount! > 0
         ? userProfile.salaryAmount!
         : 45000.0;
     final workHours = calculateWorkHoursEquivalent(
@@ -139,15 +137,14 @@ class _KasyaBaAffordabilitySheetModalState
     final maxAllowedHeight = screenHeight - topPadding - 32;
 
     // Minimal, refined clearance so action buttons and simulation results sit cleanly
-    // just above the floating dock with balanced spacing (not too much, not too little).
-    const dockClearance = 48.0;
-    final effectiveBottomPadding =
-        bottomInset > 0 ? (bottomInset + 20.0) : dockClearance;
+    // just above the floating dock with balanced spacing (not too much, not too little: ~18dp).
+    const dockClearance = 86.0;
+    final effectiveBottomPadding = bottomInset > 0
+        ? (bottomInset + 20.0)
+        : dockClearance;
 
     return ConstrainedBox(
-      constraints: BoxConstraints(
-        maxHeight: maxAllowedHeight,
-      ),
+      constraints: BoxConstraints(maxHeight: maxAllowedHeight),
       child: Container(
         clipBehavior: Clip.antiAlias,
         decoration: const BoxDecoration(
@@ -204,378 +201,402 @@ class _KasyaBaAffordabilitySheetModalState
                     ),
                     const SizedBox(height: 20),
 
-              // ── Card Container with Inputs & Mode Switch ─────────
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: DashboardTokens.bigStone,
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(color: DashboardTokens.poloBlue22),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // ITEM / PURCHASE NAME Label & Round Pill Input (Node 11:808 Style)
-                    Text(
-                      'ITEM / PURCHASE NAME',
-                      style: GoogleFonts.dmSans(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1.0,
-                        color: DashboardTokens.periwinkleGraySubtitle,
+                    // ── Card Container with Inputs & Mode Switch ─────────
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: DashboardTokens.bigStone,
+                        borderRadius: BorderRadius.circular(22),
+                        border: Border.all(color: DashboardTokens.poloBlue22),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      height: 54,
-                      child: TextField(
-                        controller: _titleController,
-                        style: GoogleFonts.dmSans(
-                          color: DashboardTokens.periwinkleGray,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        decoration: InputDecoration(
-                          isDense: true,
-                          hintText: 'e.g. Laptop',
-                          hintStyle: GoogleFonts.dmSans(
-                            color: DashboardTokens.periwinkleGraySubtitle
-                                .withValues(alpha: 0.45),
-                            fontSize: 16,
-                            fontWeight: FontWeight.w400,
-                          ),
-                          filled: true,
-                          fillColor:
-                              DashboardTokens.ebony.withValues(alpha: 0.55),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 22,
-                            vertical: 16,
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(27),
-                            borderSide: const BorderSide(
-                              color: DashboardTokens.poloBlue22,
-                              width: 1.0,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // ITEM / PURCHASE NAME Label & Round Pill Input (Node 11:808 Style)
+                          Text(
+                            'ITEM / PURCHASE NAME',
+                            style: GoogleFonts.dmSans(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1.0,
+                              color: DashboardTokens.periwinkleGraySubtitle,
                             ),
                           ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(27),
-                            borderSide: const BorderSide(
-                              color: DashboardTokens.poloBlue,
-                              width: 1.5,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // ITEM PRICE (₱) Label & Round Pill Input (Node 11:808 Style)
-                    Text(
-                      'ITEM PRICE (₱)',
-                      style: GoogleFonts.dmSans(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1.0,
-                        color: DashboardTokens.periwinkleGraySubtitle,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      height: 54,
-                      child: TextField(
-                        controller: _amountController,
-                        keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true),
-                        onChanged: (_) => setState(() {}),
-                        style: GoogleFonts.dmSans(
-                          color: DashboardTokens.periwinkleGray,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        decoration: InputDecoration(
-                          isDense: true,
-                          prefixText: '₱  ',
-                          prefixStyle: GoogleFonts.dmSans(
-                            color: DashboardTokens.periwinkleGray,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          hintText: '50,000',
-                          hintStyle: GoogleFonts.dmSans(
-                            color: DashboardTokens.periwinkleGraySubtitle
-                                .withValues(alpha: 0.45),
-                            fontSize: 16,
-                            fontWeight: FontWeight.w400,
-                          ),
-                          filled: true,
-                          fillColor:
-                              DashboardTokens.ebony.withValues(alpha: 0.55),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 22,
-                            vertical: 16,
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(27),
-                            borderSide: const BorderSide(
-                              color: DashboardTokens.poloBlue22,
-                              width: 1.0,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(27),
-                            borderSide: const BorderSide(
-                              color: DashboardTokens.poloBlue,
-                              width: 1.5,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // ── Sliding Segmented Switcher (Smooth Gliding Pill) ──
-                    _SlidingSegmentedSwitcher(
-                      mode: _mode,
-                      onModeChanged: (newMode) {
-                        setState(() => _mode = newMode);
-                      },
-                    ),
-
-                    // ── Animated Expansion for Installment Options ──
-                    ClipRRect(
-                      child: AnimatedSize(
-                        duration: const Duration(milliseconds: 260),
-                        curve: Curves.easeOutCubic,
-                        alignment: Alignment.topCenter,
-                        child: _mode == _PaymentMode.installment
-                            ? Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const SizedBox(height: 18),
-                                  Text(
-                                    'INSTALLMENT TENURE',
-                                    style: GoogleFonts.dmSans(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      letterSpacing: 1.0,
-                                      color: DashboardTokens
-                                          .periwinkleGraySubtitle,
-                                    ),
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            height: 54,
+                            child: TextField(
+                              controller: _titleController,
+                              style: GoogleFonts.dmSans(
+                                color: DashboardTokens.periwinkleGray,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              decoration: InputDecoration(
+                                isDense: true,
+                                hintText: 'e.g. Laptop',
+                                hintStyle: GoogleFonts.dmSans(
+                                  color: DashboardTokens.periwinkleGraySubtitle
+                                      .withValues(alpha: 0.45),
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                                filled: true,
+                                fillColor: DashboardTokens.ebony.withValues(
+                                  alpha: 0.55,
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 22,
+                                  vertical: 16,
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(27),
+                                  borderSide: const BorderSide(
+                                    color: DashboardTokens.poloBlue22,
+                                    width: 1.0,
                                   ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: [3, 6, 12, 24].map((tenure) {
-                                      final isSelected =
-                                          _tenureMonths == tenure;
-                                      return Expanded(
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 3),
-                                          child: GestureDetector(
-                                            onTap: () {
-                                              AppHaptics.selectionClick();
-                                              setState(() =>
-                                                  _tenureMonths = tenure);
-                                            },
-                                            child: AnimatedContainer(
-                                              duration: const Duration(
-                                                  milliseconds: 180),
-                                              curve: Curves.easeOutCubic,
-                                              height: 42,
-                                              alignment: Alignment.center,
-                                              decoration: BoxDecoration(
-                                                color: isSelected
-                                                    ? DashboardTokens
-                                                        .periwinkleGray
-                                                    : DashboardTokens.ebony
-                                                        .withValues(
-                                                            alpha: 0.55),
-                                                borderRadius:
-                                                    BorderRadius.circular(21),
-                                                border: Border.all(
-                                                  color: isSelected
-                                                      ? DashboardTokens
-                                                          .periwinkleGray
-                                                      : DashboardTokens
-                                                          .poloBlue22,
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(27),
+                                  borderSide: const BorderSide(
+                                    color: DashboardTokens.poloBlue,
+                                    width: 1.5,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+
+                          // ITEM PRICE (₱) Label & Round Pill Input (Node 11:808 Style)
+                          Text(
+                            'ITEM PRICE (₱)',
+                            style: GoogleFonts.dmSans(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1.0,
+                              color: DashboardTokens.periwinkleGraySubtitle,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            height: 54,
+                            child: TextField(
+                              controller: _amountController,
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                              onChanged: (_) => setState(() {}),
+                              style: GoogleFonts.dmSans(
+                                color: DashboardTokens.periwinkleGray,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              decoration: InputDecoration(
+                                isDense: true,
+                                prefixText: '₱  ',
+                                prefixStyle: GoogleFonts.dmSans(
+                                  color: DashboardTokens.periwinkleGray,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                hintText: '50,000',
+                                hintStyle: GoogleFonts.dmSans(
+                                  color: DashboardTokens.periwinkleGraySubtitle
+                                      .withValues(alpha: 0.45),
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                                filled: true,
+                                fillColor: DashboardTokens.ebony.withValues(
+                                  alpha: 0.55,
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 22,
+                                  vertical: 16,
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(27),
+                                  borderSide: const BorderSide(
+                                    color: DashboardTokens.poloBlue22,
+                                    width: 1.0,
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(27),
+                                  borderSide: const BorderSide(
+                                    color: DashboardTokens.poloBlue,
+                                    width: 1.5,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+
+                          // ── Sliding Segmented Switcher (Smooth Gliding Pill) ──
+                          _SlidingSegmentedSwitcher(
+                            mode: _mode,
+                            onModeChanged: (newMode) {
+                              setState(() => _mode = newMode);
+                            },
+                          ),
+
+                          // ── Animated Expansion for Installment Options ──
+                          ClipRRect(
+                            child: AnimatedSize(
+                              duration: const Duration(milliseconds: 260),
+                              curve: Curves.easeOutCubic,
+                              alignment: Alignment.topCenter,
+                              child: _mode == _PaymentMode.installment
+                                  ? Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const SizedBox(height: 18),
+                                        Text(
+                                          'INSTALLMENT TENURE',
+                                          style: GoogleFonts.dmSans(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w700,
+                                            letterSpacing: 1.0,
+                                            color: DashboardTokens
+                                                .periwinkleGraySubtitle,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Row(
+                                          children: [3, 6, 12, 24].map((
+                                            tenure,
+                                          ) {
+                                            final isSelected =
+                                                _tenureMonths == tenure;
+                                            return Expanded(
+                                              child: Padding(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 3,
+                                                    ),
+                                                child: GestureDetector(
+                                                  onTap: () {
+                                                    AppHaptics.selectionClick();
+                                                    setState(
+                                                      () => _tenureMonths =
+                                                          tenure,
+                                                    );
+                                                  },
+                                                  child: AnimatedContainer(
+                                                    duration: const Duration(
+                                                      milliseconds: 180,
+                                                    ),
+                                                    curve: Curves.easeOutCubic,
+                                                    height: 42,
+                                                    alignment: Alignment.center,
+                                                    decoration: BoxDecoration(
+                                                      color: isSelected
+                                                          ? DashboardTokens
+                                                                .periwinkleGray
+                                                          : DashboardTokens
+                                                                .ebony
+                                                                .withValues(
+                                                                  alpha: 0.55,
+                                                                ),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            21,
+                                                          ),
+                                                      border: Border.all(
+                                                        color: isSelected
+                                                            ? DashboardTokens
+                                                                  .periwinkleGray
+                                                            : DashboardTokens
+                                                                  .poloBlue22,
+                                                      ),
+                                                    ),
+                                                    child: Text(
+                                                      '${tenure}m',
+                                                      style: GoogleFonts.dmSans(
+                                                        color: isSelected
+                                                            ? DashboardTokens
+                                                                  .ebony
+                                                            : DashboardTokens
+                                                                  .periwinkleGraySubtitle,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        fontSize: 13,
+                                                      ),
+                                                    ),
+                                                  ),
                                                 ),
                                               ),
-                                              child: Text(
-                                                '${tenure}m',
-                                                style: GoogleFonts.dmSans(
-                                                  color: isSelected
-                                                      ? DashboardTokens.ebony
-                                                      : DashboardTokens
-                                                          .periwinkleGraySubtitle,
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 13,
+                                            );
+                                          }).toList(),
+                                        ),
+                                        const SizedBox(height: 16),
+                                        Text(
+                                          'MONTHLY INTEREST RATE',
+                                          style: GoogleFonts.dmSans(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w700,
+                                            letterSpacing: 1.0,
+                                            color: DashboardTokens
+                                                .periwinkleGraySubtitle,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        SizedBox(
+                                          height: 54,
+                                          child: TextField(
+                                            controller: _interestRateController,
+                                            keyboardType:
+                                                const TextInputType.numberWithOptions(
+                                                  decimal: true,
+                                                ),
+                                            onChanged: (_) => setState(() {}),
+                                            style: GoogleFonts.dmSans(
+                                              color: DashboardTokens
+                                                  .periwinkleGray,
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                            decoration: InputDecoration(
+                                              isDense: true,
+                                              hintText: '0.0 (0% for 0% BNPL)',
+                                              hintStyle: GoogleFonts.dmSans(
+                                                color: DashboardTokens
+                                                    .periwinkleGraySubtitle
+                                                    .withValues(alpha: 0.45),
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.w400,
+                                              ),
+                                              suffixText: '% / mo',
+                                              suffixStyle: GoogleFonts.dmSans(
+                                                color: DashboardTokens
+                                                    .periwinkleGraySubtitle,
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                              filled: true,
+                                              fillColor: DashboardTokens.ebony
+                                                  .withValues(alpha: 0.55),
+                                              contentPadding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 22,
+                                                    vertical: 16,
+                                                  ),
+                                              enabledBorder: OutlineInputBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(27),
+                                                borderSide: const BorderSide(
+                                                  color: DashboardTokens
+                                                      .poloBlue22,
+                                                  width: 1.0,
+                                                ),
+                                              ),
+                                              focusedBorder: OutlineInputBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(27),
+                                                borderSide: const BorderSide(
+                                                  color:
+                                                      DashboardTokens.poloBlue,
+                                                  width: 1.5,
                                                 ),
                                               ),
                                             ),
                                           ),
                                         ),
-                                      );
-                                    }).toList(),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    'MONTHLY INTEREST RATE',
-                                    style: GoogleFonts.dmSans(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      letterSpacing: 1.0,
-                                      color: DashboardTokens
-                                          .periwinkleGraySubtitle,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  SizedBox(
-                                    height: 54,
-                                    child: TextField(
-                                      controller: _interestRateController,
-                                      keyboardType:
-                                          const TextInputType.numberWithOptions(
-                                              decimal: true),
-                                      onChanged: (_) => setState(() {}),
-                                      style: GoogleFonts.dmSans(
-                                        color: DashboardTokens.periwinkleGray,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                      decoration: InputDecoration(
-                                        isDense: true,
-                                        hintText: '0.0 (0% for 0% BNPL)',
-                                        hintStyle: GoogleFonts.dmSans(
-                                          color: DashboardTokens
-                                              .periwinkleGraySubtitle
-                                              .withValues(alpha: 0.45),
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w400,
-                                        ),
-                                        suffixText: '% / mo',
-                                        suffixStyle: GoogleFonts.dmSans(
-                                          color: DashboardTokens
-                                              .periwinkleGraySubtitle,
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                        filled: true,
-                                        fillColor: DashboardTokens.ebony
-                                            .withValues(alpha: 0.55),
-                                        contentPadding:
-                                            const EdgeInsets.symmetric(
-                                          horizontal: 22,
-                                          vertical: 16,
-                                        ),
-                                        enabledBorder: OutlineInputBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(27),
-                                          borderSide: const BorderSide(
-                                            color: DashboardTokens.poloBlue22,
-                                            width: 1.0,
-                                          ),
-                                        ),
-                                        focusedBorder: OutlineInputBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(27),
-                                          borderSide: const BorderSide(
-                                            color: DashboardTokens.poloBlue,
-                                            width: 1.5,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              )
-                            : const SizedBox.shrink(),
+                                      ],
+                                    )
+                                  : const SizedBox.shrink(),
+                            ),
+                          ),
+                        ],
                       ),
+                    ),
+                    const SizedBox(height: 18),
+
+                    // ── Action Button (Below Card, Full Width Pill) ────────
+                    SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: FilledButton(
+                        onPressed: _isLoading ? null : _evaluate,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: DashboardTokens.periwinkleGray,
+                          foregroundColor: DashboardTokens.ebony,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(28),
+                          ),
+                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  color: DashboardTokens.ebony,
+                                ),
+                              )
+                            : Text(
+                                'Evaluate affordability',
+                                style: GoogleFonts.dmSans(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                      ),
+                    ),
+
+                    if (_errorMessage != null) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        _errorMessage!,
+                        style: GoogleFonts.dmSans(
+                          color: DashboardTokens.apricot,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+
+                    // ── Formal Simulation Result Section (Image 2) ──────
+                    AnimatedSize(
+                      duration: const Duration(milliseconds: 320),
+                      curve: Curves.easeOutCubic,
+                      alignment: Alignment.topCenter,
+                      child: _result != null
+                          ? Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                const SizedBox(height: 18),
+                                _SimulationResultCard(
+                                  result: _result!,
+                                  mode: _mode,
+                                  rawAmount: rawAmount,
+                                  workHours: workHours,
+                                  safeSpendCalc: safeSpendCalc,
+                                  installmentComp: installmentComp,
+                                  onViewMathBreakdown: () {
+                                    Navigator.of(context).pop();
+                                    showSafeSpendBreakdownSheet(
+                                      context,
+                                      safeSpendCalc,
+                                    );
+                                  },
+                                ),
+                              ],
+                            )
+                          : const SizedBox.shrink(),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 18),
-
-              // ── Action Button (Below Card, Full Width Pill) ────────
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: FilledButton(
-                  onPressed: _isLoading ? null : _evaluate,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: DashboardTokens.periwinkleGray,
-                    foregroundColor: DashboardTokens.ebony,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(28),
-                    ),
-                  ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            color: DashboardTokens.ebony,
-                          ),
-                        )
-                      : Text(
-                          'Evaluate affordability',
-                          style: GoogleFonts.dmSans(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                ),
-              ),
-
-              if (_errorMessage != null) ...[
-                const SizedBox(height: 12),
-                Text(
-                  _errorMessage!,
-                  style: GoogleFonts.dmSans(
-                    color: DashboardTokens.apricot,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-
-              // ── Formal Simulation Result Section (Image 2) ──────
-              AnimatedSize(
-                duration: const Duration(milliseconds: 320),
-                curve: Curves.easeOutCubic,
-                alignment: Alignment.topCenter,
-                child: _result != null
-                    ? Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          const SizedBox(height: 18),
-                          _SimulationResultCard(
-                            result: _result!,
-                            mode: _mode,
-                            rawAmount: rawAmount,
-                            workHours: workHours,
-                            safeSpendCalc: safeSpendCalc,
-                            installmentComp: installmentComp,
-                            onViewMathBreakdown: () {
-                              Navigator.of(context).pop();
-                              showSafeSpendBreakdownSheet(
-                                  context, safeSpendCalc);
-                            },
-                          ),
-                        ],
-                      )
-                    : const SizedBox.shrink(),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
-    ],
-  ),
-),
-);
+    );
   }
 }
 
@@ -720,8 +741,9 @@ class _SimulationResultCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isAffordable = result.verdict.toUpperCase() == 'AFFORDABLE';
-    final accentColor =
-        isAffordable ? DashboardTokens.bermuda : DashboardTokens.apricot;
+    final accentColor = isAffordable
+        ? DashboardTokens.bermuda
+        : DashboardTokens.apricot;
 
     final safeSpendReduction = safeSpendCalc.daysUntilPayday > 0
         ? (rawAmount / safeSpendCalc.daysUntilPayday)
@@ -736,10 +758,7 @@ class _SimulationResultCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: DashboardTokens.bigStone,
             borderRadius: BorderRadius.circular(22),
-            border: Border.all(
-              color: DashboardTokens.poloBlue22,
-              width: 1.0,
-            ),
+            border: Border.all(color: DashboardTokens.poloBlue22, width: 1.0),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -766,8 +785,10 @@ class _SimulationResultCard extends StatelessWidget {
               // Recessed Life-Energy Work Hours Box
               Container(
                 width: double.infinity,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFF101E31),
                   borderRadius: BorderRadius.circular(16),
@@ -851,7 +872,7 @@ class _SimulationResultCard extends StatelessWidget {
                   mode == _PaymentMode.payInFull
                       ? result.postPurchaseBalance
                       : (installmentComp?.postCashBalance ??
-                          result.postPurchaseBalance),
+                            result.postPurchaseBalance),
                 ),
                 valueColor: DashboardTokens.periwinkleGray,
               ),
@@ -870,7 +891,8 @@ class _SimulationResultCard extends StatelessWidget {
                   value: (installmentComp?.totalInterest ?? 0) == 0
                       ? '₱0'
                       : CurrencyFormatter.format(
-                          installmentComp!.totalInterest),
+                          installmentComp!.totalInterest,
+                        ),
                   valueColor: (installmentComp?.totalInterest ?? 0) == 0
                       ? DashboardTokens.bermuda
                       : DashboardTokens.apricot,
