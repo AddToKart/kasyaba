@@ -6,7 +6,7 @@ import '../../../app/theme/app_theme.dart';
 ///  Auth Design System — Luxury Dark Fintech Auth Widgets
 /// ─────────────────────────────────────────────────────────────
 
-// ── Background with prominent deep navy night glow and dual radar arcs ──
+// ── Background with deep navy night gradient (Radar rings removed per request) ──
 class AuthBackground extends StatelessWidget {
   final Animation<double>? rotateAnimation;
   final bool isDark;
@@ -29,70 +29,35 @@ class AuthBackground extends StatelessWidget {
       );
     }
 
-    final topCenter = Offset(size.width * 0.82, size.height * 0.15);
-    final bottomCenter = Offset(size.width * 0.10, size.height * 0.86);
-
     return Container(
       width: size.width,
       height: size.height,
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
           colors: [
-            Color(0xFF102339), // Prominent steel blue top
+            Color(0xFF162F4B), // Celestial steel blue top right
             Color(0xFF0C1929), // Rich navy center
-            Color(0xFF070F19), // Deep bottom base
+            Color(0xFF060E18), // Deep bottom base
           ],
           stops: [0.0, 0.45, 1.0],
         ),
       ),
       child: Stack(
         children: [
-          // ── 1. Top Right Large Vibrant Radial Glow ─────────
+          // Soft ambient celestial glow at top-right corner
           Positioned(
-            left: topCenter.dx - (size.width * 0.65),
-            top: topCenter.dy - (size.width * 0.65),
+            right: -size.width * 0.2,
+            top: -size.width * 0.2,
             child: Container(
-              width: size.width * 1.3,
-              height: size.width * 1.3,
+              width: size.width * 1.1,
+              height: size.width * 1.1,
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    Color(0x75285D94), // Bright visible cyan-navy light
-                    Color(0x3819406B),
-                    Colors.transparent,
-                  ],
-                  radius: 0.75,
-                ),
-              ),
-            ),
-          ),
-
-          // ── 2. Top Right Prominent Concentric Radar Rings ──
-          CustomPaint(
-            size: size,
-            painter: _RadarArcsPainter(
-              center: topCenter,
-              radii: const [54, 110, 170, 235, 305, 380, 460, 550, 650, 760],
-              strokeWidth: 1.25,
-              color: const Color(0x3D5A8AC0), // Crisp, clearly visible blue arcs
-            ),
-          ),
-
-          // ── 3. Bottom Left Soft Radial Glow ────────────────
-          Positioned(
-            left: bottomCenter.dx - (size.width * 0.45),
-            top: bottomCenter.dy - (size.width * 0.45),
-            child: Container(
-              width: size.width * 0.9,
-              height: size.width * 0.9,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    Color(0x381E4875),
+                    Color(0x40255585),
                     Colors.transparent,
                   ],
                   radius: 0.7,
@@ -100,52 +65,10 @@ class AuthBackground extends StatelessWidget {
               ),
             ),
           ),
-
-          // ── 4. Bottom Left Concentric Radar Rings ──────────
-          CustomPaint(
-            size: size,
-            painter: _RadarArcsPainter(
-              center: bottomCenter,
-              radii: const [50, 105, 165, 230, 300, 380],
-              strokeWidth: 1.25,
-              color: const Color(0x304875A3),
-            ),
-          ),
         ],
       ),
     );
   }
-}
-
-class _RadarArcsPainter extends CustomPainter {
-  final Offset center;
-  final List<double> radii;
-  final double strokeWidth;
-  final Color color;
-
-  _RadarArcsPainter({
-    required this.center,
-    required this.radii,
-    this.strokeWidth = 1.25,
-    required this.color,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..isAntiAlias = true;
-
-    for (final r in radii) {
-      canvas.drawCircle(center, r, paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _RadarArcsPainter oldDelegate) =>
-      oldDelegate.center != center || oldDelegate.color != color;
 }
 
 // ── Kasyaba 3-Pill Logo Mark (Full Capsule Radius) ──
@@ -230,9 +153,9 @@ class RunwaySplineHero extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
-        const height = 115.0;
-        final crestX = width * 0.72;
-        const crestY = 22.0;
+        const height = 125.0;
+        final crestX = width * 0.69;
+        const crestY = 50.0;
 
         return SizedBox(
           width: width,
@@ -240,7 +163,7 @@ class RunwaySplineHero extends StatelessWidget {
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-              // Curve, Gradient Fill under curve, dashed drop line, and glowing inflection node
+              // Curve, Prominent Gradient Fill under curve, dashed drop line, and glowing inflection node
               CustomPaint(
                 size: Size(width, height),
                 painter: _RunwaySplinePainter(
@@ -250,16 +173,17 @@ class RunwaySplineHero extends StatelessWidget {
               ),
 
               // Floating "Can I afford it?" capsule tooltip
+              // Positioned above the valley to the left of the peak node with zero overlap
               Positioned(
-                top: 0,
-                left: (crestX - 86).clamp(0.0, width - 145),
+                top: 6.0,
+                left: (width * 0.36).clamp(0.0, width - 135),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
-                    vertical: 7,
+                    vertical: 6.5,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0x990C1A2B),
+                    color: const Color(0xB80E1C2E),
                     borderRadius: BorderRadius.circular(999), // Full capsule
                     border: Border.all(
                       color: const Color(0x668EBCDE), // Crisp light blue border
@@ -308,46 +232,46 @@ class _RunwaySplinePainter extends CustomPainter {
 
     // ── 1. The Bold Spline Path ──────────────────────
     final path = Path();
-    path.moveTo(0, height * 0.62);
+    path.moveTo(0, height * 0.68);
 
     // Climb smoothly to first crest
     path.cubicTo(
-      width * 0.12,
-      height * 0.58,
-      width * 0.18,
-      height * 0.44,
-      width * 0.28,
-      height * 0.44,
+      width * 0.10,
+      height * 0.62,
+      width * 0.16,
+      height * 0.50,
+      width * 0.24,
+      height * 0.50,
     );
-    // Dip down into trough
+    // Dip down into valley
     path.cubicTo(
+      width * 0.32,
+      height * 0.50,
       width * 0.38,
-      height * 0.44,
-      width * 0.42,
-      height * 0.62,
-      width * 0.50,
-      height * 0.62,
+      height * 0.66,
+      width * 0.46,
+      height * 0.66,
     );
-    // Sharp steep rise to the main peak
+    // Steep sharp rise to the peak node
     path.cubicTo(
-      width * 0.58,
-      height * 0.62,
-      crestX - 18,
+      width * 0.54,
+      height * 0.66,
+      crestX - 22,
       crestY,
       crestX,
       crestY,
     );
-    // Crest smoothly and trail off
+    // Arch over the peak like a hill towards the right edge
     path.cubicTo(
       crestX + 22,
       crestY,
-      width * 0.88,
-      crestY - 8,
+      width * 0.85,
+      crestY - 14,
       width,
-      crestY - 2,
+      crestY - 8,
     );
 
-    // ── 2. Semi-Transparent Gradient Volume Under Curve ──
+    // ── 2. Prominent Fading White Gradient Under Curve ──
     final fillPath = Path.from(path);
     fillPath.lineTo(width, height);
     fillPath.lineTo(0, height);
@@ -358,11 +282,12 @@ class _RunwaySplinePainter extends CustomPainter {
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
-          Color(0x35FFFFFF), // White luminous edge
-          Color(0x157CAFE0), // Subtle soft blue fill
-          Color(0x00000000), // Transparent fade
+          Color(0x55FFFFFF), // Very prominent milky white at curve
+          Color(0x2280B5E8), // Soft blue luminous mid
+          Color(0x060D1E30), // Fades down smoothly
+          Color(0x00000000),
         ],
-        stops: [0.0, 0.45, 1.0],
+        stops: [0.0, 0.35, 0.78, 1.0],
       ).createShader(Rect.fromLTWH(0, 0, width, height))
       ..style = PaintingStyle.fill;
 
@@ -372,7 +297,7 @@ class _RunwaySplinePainter extends CustomPainter {
     final strokePaint = Paint()
       ..color = Colors.white
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.4 // Bold, thick, sharp!
+      ..strokeWidth = 3.2
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round
       ..isAntiAlias = true;
@@ -381,12 +306,12 @@ class _RunwaySplinePainter extends CustomPainter {
 
     // ── 4. Vertical Dashed Drop Line from Peak ───────
     final dashPaint = Paint()
-      ..color = const Color(0x75FFFFFF)
-      ..strokeWidth = 1.6;
+      ..color = const Color(0x80FFFFFF)
+      ..strokeWidth = 1.5;
 
     const dashLength = 4.0;
     const dashSpace = 4.0;
-    double currentY = crestY + 12;
+    double currentY = crestY + 11;
     final bottomY = height;
 
     while (currentY < bottomY) {
@@ -406,7 +331,7 @@ class _RunwaySplinePainter extends CustomPainter {
       ..strokeWidth = 2.4
       ..isAntiAlias = true;
     final haloFillPaint = Paint()
-      ..color = const Color(0xFF0C1B2C)
+      ..color = const Color(0xFF13283E)
       ..style = PaintingStyle.fill;
 
     canvas.drawCircle(peak, 8.5, haloFillPaint);
@@ -424,7 +349,7 @@ class _RunwaySplinePainter extends CustomPainter {
       oldDelegate.crestX != crestX || oldDelegate.crestY != crestY;
 }
 
-// ── Super-Rounded Glassmorphic Form Card (34px Radius) ──
+// ── Super-Rounded Glassmorphic Form Card (28px Radius) ──
 class AuthFormCard extends StatelessWidget {
   final Widget child;
 
@@ -437,26 +362,26 @@ class AuthFormCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return ClipRRect(
-      borderRadius: BorderRadius.circular(34), // Very round like Figma
+      borderRadius: BorderRadius.circular(28),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 26),
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
         decoration: BoxDecoration(
           color: isDark
-              ? const Color(0xD90D1B2D) // Translucent deep navy
+              ? const Color(0xCC0E1A29) // Translucent deep navy
               : AppColors.lightCardSurface,
-          borderRadius: BorderRadius.circular(34), // Very round like Figma
+          borderRadius: BorderRadius.circular(28),
           border: Border.all(
             color: isDark
-                ? const Color(0x40416791) // Crisp soft blue border
+                ? const Color(0x3344688E) // Crisp soft blue border
                 : AppColors.lightBorderHairline,
-            width: 1.2,
+            width: 1.0,
           ),
           boxShadow: [
             if (isDark)
               const BoxShadow(
-                color: Color(0x55000000),
-                blurRadius: 28,
-                offset: Offset(0, 12),
+                color: Color(0x40000000),
+                blurRadius: 20,
+                offset: Offset(0, 8),
               ),
           ],
         ),

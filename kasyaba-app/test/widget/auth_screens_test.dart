@@ -42,6 +42,7 @@ void main() {
     expect(find.text('Calculated on your device. Your numbers stay yours.'), findsOneWidget);
 
     // Test Forgot Password dialog
+    await tester.ensureVisible(find.text('Forgot password?'));
     await tester.tap(find.text('Forgot password?'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));

@@ -149,92 +149,94 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                   horizontal: 22,
                   vertical: 20,
                 ),
-                child: FadeTransition(
-                  opacity: _fadeIn,
-                  child: SlideTransition(
-                    position: _slideUp,
-                    child: ReactiveForm(
-                      formGroup: formGroup,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          // ── Top Brand Header Lockup ────────
-                          const Align(
-                            alignment: Alignment.centerLeft,
-                            child: AuthBrandHeader(),
-                          ),
-                          const SizedBox(height: 14),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 380),
+                  child: FadeTransition(
+                    opacity: _fadeIn,
+                    child: SlideTransition(
+                      position: _slideUp,
+                      child: ReactiveForm(
+                        formGroup: formGroup,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // ── Top Brand Header Lockup ────────
+                            const Align(
+                              alignment: Alignment.centerLeft,
+                              child: AuthBrandHeader(),
+                            ),
+                            const SizedBox(height: 14),
 
-                          // ── Runway Spline Graphic & Tooltip ─
-                          const RunwaySplineHero(
-                            tooltipText: 'Can I afford it?',
-                          ),
-                          const SizedBox(height: 18),
+                            // ── Runway Spline Graphic & Tooltip ─
+                            const RunwaySplineHero(
+                              tooltipText: 'Can I afford it?',
+                            ),
+                            const SizedBox(height: 18),
 
-                          // ── Screen Title & Subtitle ────────
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Welcome back.',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 34,
-                                  letterSpacing: -0.7,
-                                  color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              const Text(
-                                'Pick up where your runway left off.',
-                                style: TextStyle(
-                                  fontSize: 14.5,
-                                  color: Color(0xFF86A0BD),
-                                  height: 1.4,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 24),
-
-                          // ── Glassmorphic Form Card (Very Round) ──
-                          AuthFormCard(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                            // ── Screen Title & Subtitle ────────
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                if (authState.error != null) ...[
-                                  AuthErrorBanner(
-                                    message: authState.error!,
+                                Text(
+                                  'Welcome back.',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 34,
+                                    letterSpacing: -0.7,
+                                    color: isDark ? Colors.white : AppColors.lightTextPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                const Text(
+                                  'Pick up where your runway left off.',
+                                  style: TextStyle(
+                                    fontSize: 14.5,
+                                    color: Color(0xFF86A0BD),
+                                    height: 1.4,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
+
+                            // ── Glassmorphic Form Card (Very Round) ──
+                            AuthFormCard(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  if (authState.error != null) ...[
+                                    AuthErrorBanner(
+                                      message: authState.error!,
+                                    ),
+                                    const SizedBox(height: 16),
+                                  ],
+
+                                  // EMAIL Field
+                                  AuthReactiveField(
+                                    formControlName: 'email',
+                                    label: 'Email',
+                                    hintText: 'name@example.com',
+                                    keyboardType: TextInputType.emailAddress,
+                                    textInputAction: TextInputAction.next,
+                                    validationMessages: {
+                                      ValidationMessage.required: (_) =>
+                                          'Email is required',
+                                      ValidationMessage.email: (_) =>
+                                          'Enter a valid email address',
+                                    },
                                   ),
                                   const SizedBox(height: 16),
-                                ],
 
-                                // EMAIL Field
-                                AuthReactiveField(
-                                  formControlName: 'email',
-                                  label: 'Email',
-                                  hintText: 'name@example.com',
-                                  keyboardType: TextInputType.emailAddress,
-                                  textInputAction: TextInputAction.next,
-                                  validationMessages: {
-                                    ValidationMessage.required: (_) =>
-                                        'Email is required',
-                                    ValidationMessage.email: (_) =>
-                                        'Enter a valid email address',
-                                  },
-                                ),
-                                const SizedBox(height: 16),
-
-                                // PASSWORD Field (Clean, no eye icon as in Figma)
-                                AuthReactiveField(
-                                  formControlName: 'password',
-                                  label: 'Password',
-                                  hintText: '••••••••',
-                                  obscureText: true,
-                                  textInputAction: TextInputAction.done,
-                                  onSubmitted: _handleLogin,
-                                  validationMessages: {
-                                    ValidationMessage.required: (_) =>
+                                  // PASSWORD Field (Clean, no eye icon as in Figma)
+                                  AuthReactiveField(
+                                    formControlName: 'password',
+                                    label: 'Password',
+                                    hintText: '••••••••',
+                                    obscureText: true,
+                                    textInputAction: TextInputAction.done,
+                                    onSubmitted: _handleLogin,
+                                    validationMessages: {
+                                      ValidationMessage.required: (_) =>
                                         'Password is required',
                                   },
                                 ),
@@ -324,6 +326,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
               ),
             ),
           ),
+        ),
         ],
       ),
     );
