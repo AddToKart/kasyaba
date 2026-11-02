@@ -72,6 +72,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const TransactionsScreen(),
           ),
           GoRoute(
+            path: '/planning',
+            builder: (context, state) => const PlanningScreen(),
+          ),
+          GoRoute(
             path: '/goals',
             builder: (context, state) => const GoalsScreen(),
           ),
@@ -118,10 +122,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/accounts',
         builder: (context, state) => const AccountsScreen(),
-      ),
-      GoRoute(
-        path: '/planning',
-        builder: (context, state) => const PlanningScreen(),
       ),
     ],
   );
