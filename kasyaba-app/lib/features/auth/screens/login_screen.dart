@@ -165,13 +165,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                               alignment: Alignment.centerLeft,
                               child: AuthBrandHeader(),
                             ),
-                            const SizedBox(height: 14),
+                            const SizedBox(height: 10),
 
                             // ── Runway Spline Graphic & Tooltip ─
                             const RunwaySplineHero(
                               tooltipText: 'Can I afford it?',
                             ),
-                            const SizedBox(height: 18),
+                            const SizedBox(height: 14),
 
                             // ── Screen Title & Subtitle ────────
                             Column(

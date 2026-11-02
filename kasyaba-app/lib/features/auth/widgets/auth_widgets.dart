@@ -140,7 +140,7 @@ class AuthBrandHeader extends StatelessWidget {
   }
 }
 
-// ── Runway Hero Spline with Prominent White Curve, Glowing Gradient Fill, and Inflection Node ──
+// ── Runway Hero Spline (Compact, Gentle Wave matching Figma Crop) ──
 class RunwaySplineHero extends StatelessWidget {
   final String tooltipText;
   const RunwaySplineHero({
@@ -153,9 +153,9 @@ class RunwaySplineHero extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
-        const height = 125.0;
-        final crestX = width * 0.69;
-        const crestY = 50.0;
+        const height = 80.0;
+        final crestX = width * 0.70;
+        const crestY = 40.0;
 
         return SizedBox(
           width: width,
@@ -173,27 +173,27 @@ class RunwaySplineHero extends StatelessWidget {
               ),
 
               // Floating "Can I afford it?" capsule tooltip
-              // Positioned above the valley to the left of the peak node with zero overlap
+              // Perfectly positioned hovering above the gentle valley to the left of the peak node
               Positioned(
-                top: 6.0,
-                left: (width * 0.36).clamp(0.0, width - 135),
+                top: 2.0,
+                left: (crestX - 110).clamp(0.0, width - 130),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 6.5,
+                    horizontal: 14,
+                    vertical: 5.0,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xB80E1C2E),
+                    color: const Color(0x8010263D),
                     borderRadius: BorderRadius.circular(999), // Full capsule
                     border: Border.all(
-                      color: const Color(0x668EBCDE), // Crisp light blue border
-                      width: 1.2,
+                      color: const Color(0x558EBCDE), // Crisp soft blue outline
+                      width: 1.0,
                     ),
                     boxShadow: const [
                       BoxShadow(
                         color: Color(0x33000000),
-                        blurRadius: 10,
-                        offset: Offset(0, 3),
+                        blurRadius: 8,
+                        offset: Offset(0, 2),
                       ),
                     ],
                   ),
@@ -201,7 +201,7 @@ class RunwaySplineHero extends StatelessWidget {
                     tooltipText,
                     style: const TextStyle(
                       color: Color(0xFFE2EEF8),
-                      fontSize: 12,
+                      fontSize: 11.5,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 0.1,
                     ),
@@ -230,45 +230,33 @@ class _RunwaySplinePainter extends CustomPainter {
     final width = size.width;
     final height = size.height;
 
-    // ── 1. The Bold Spline Path ──────────────────────
+    // ── 1. The Spline Path (Gentle, elegant wave matching Figma) ──
     final path = Path();
-    path.moveTo(0, height * 0.68);
+    path.moveTo(0, 56.0);
 
-    // Climb smoothly to first crest
+    // Gentle rise to first crest
     path.cubicTo(
-      width * 0.10,
-      height * 0.62,
-      width * 0.16,
-      height * 0.50,
-      width * 0.24,
-      height * 0.50,
+      width * 0.12, 54.0,
+      width * 0.18, 42.0,
+      width * 0.28, 42.0,
     );
-    // Dip down into valley
+    // Shallow gentle dip into valley
     path.cubicTo(
-      width * 0.32,
-      height * 0.50,
-      width * 0.38,
-      height * 0.66,
-      width * 0.46,
-      height * 0.66,
+      width * 0.38, 42.0,
+      width * 0.42, 50.0,
+      width * 0.52, 50.0,
     );
-    // Steep sharp rise to the peak node
+    // Smooth upward climb to inflection node
     path.cubicTo(
-      width * 0.54,
-      height * 0.66,
-      crestX - 22,
-      crestY,
-      crestX,
-      crestY,
+      width * 0.60, 50.0,
+      crestX - 16, crestY,
+      crestX, crestY,
     );
-    // Arch over the peak like a hill towards the right edge
+    // Continue rising smoothly over summit and trailing to right edge
     path.cubicTo(
-      crestX + 22,
-      crestY,
-      width * 0.85,
-      crestY - 14,
-      width,
-      crestY - 8,
+      crestX + 18, crestY - 8,
+      width * 0.86, 20.0,
+      width, 24.0,
     );
 
     // ── 2. Prominent Fading White Gradient Under Curve ──
@@ -282,36 +270,35 @@ class _RunwaySplinePainter extends CustomPainter {
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
-          Color(0x55FFFFFF), // Very prominent milky white at curve
-          Color(0x2280B5E8), // Soft blue luminous mid
-          Color(0x060D1E30), // Fades down smoothly
-          Color(0x00000000),
+          Color(0x3EFFFFFF), // Prominent milky white at curve
+          Color(0x187CB0E4), // Soft blue luminous mid
+          Color(0x00000000), // Fades to zero
         ],
-        stops: [0.0, 0.35, 0.78, 1.0],
+        stops: [0.0, 0.45, 1.0],
       ).createShader(Rect.fromLTWH(0, 0, width, height))
       ..style = PaintingStyle.fill;
 
     canvas.drawPath(fillPath, fillPaint);
 
-    // ── 3. Solid Sharp White Stroke ──────────────────
+    // ── 3. Crisp White Stroke ────────────────────────
     final strokePaint = Paint()
       ..color = Colors.white
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.2
+      ..strokeWidth = 3.0
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round
       ..isAntiAlias = true;
 
     canvas.drawPath(path, strokePaint);
 
-    // ── 4. Vertical Dashed Drop Line from Peak ───────
+    // ── 4. Vertical Dashed Drop Line from Node ───────
     final dashPaint = Paint()
-      ..color = const Color(0x80FFFFFF)
-      ..strokeWidth = 1.5;
+      ..color = const Color(0x60FFFFFF)
+      ..strokeWidth = 1.2;
 
-    const dashLength = 4.0;
-    const dashSpace = 4.0;
-    double currentY = crestY + 11;
+    const dashLength = 3.5;
+    const dashSpace = 3.5;
+    double currentY = crestY + 12;
     final bottomY = height;
 
     while (currentY < bottomY) {
@@ -323,25 +310,23 @@ class _RunwaySplinePainter extends CustomPainter {
       currentY += dashLength + dashSpace;
     }
 
-    // ── 5. Prominent Inflection Peak Node ────────────
+    // ── 5. Exact Inflection Node (Thin Halo Ring + Ice-Blue Solid Dot) ──
     final peak = Offset(crestX, crestY);
+
+    // Outer thin halo ring
     final haloPaint = Paint()
-      ..color = Colors.white
+      ..color = const Color(0x75A5CBEE)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.4
+      ..strokeWidth = 1.1
       ..isAntiAlias = true;
-    final haloFillPaint = Paint()
-      ..color = const Color(0xFF13283E)
-      ..style = PaintingStyle.fill;
+    canvas.drawCircle(peak, 11.0, haloPaint);
 
-    canvas.drawCircle(peak, 8.5, haloFillPaint);
-    canvas.drawCircle(peak, 8.5, haloPaint);
-
+    // Inner solid ice-blue circular dot
     final dotPaint = Paint()
-      ..color = Colors.white
+      ..color = const Color(0xFFCDE3F7)
       ..style = PaintingStyle.fill
       ..isAntiAlias = true;
-    canvas.drawCircle(peak, 3.8, dotPaint);
+    canvas.drawCircle(peak, 5.0, dotPaint);
   }
 
   @override
