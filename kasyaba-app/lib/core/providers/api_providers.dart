@@ -1546,7 +1546,7 @@ extension AlertItemRead on AlertItem {
 final alertsProvider = FutureProvider<List<AlertItem>>((ref) async {
   final dio = ref.watch(dioProvider);
   try {
-    final res = await dio.get('/alerts', queryParameters: {'status': 'unread'});
+    final res = await dio.get('/alerts');
     final data = res.data['data'] as List<dynamic>;
     return data
         .map((e) => AlertItem.fromJson(e as Map<String, dynamic>))
