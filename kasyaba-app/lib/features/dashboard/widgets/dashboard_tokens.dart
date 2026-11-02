@@ -24,6 +24,13 @@ class DashboardTokens {
   static const Color bermuda15 = Color(0x267FD8B5); // rgba(127, 216, 181, 0.15) (bills covered badge fill)
   static const Color apricot = Color(0xFFF2928A); // #F2928A (budget used alert, bill due dot)
 
+  // Forecasting (Node 85:110) Tokens
+  static const Color cornflowerBlue = Color(0xFF6E5BFF); // #6E5BFF (Free allocation bar & dot)
+  static const Color java = Color(0xFF19C3B4); // #19C3B4 (Goals allocation bar & dot)
+  static const Color casablanca = Color(0xFFF5B942); // #F5B942 (Bills allocation bar & dot)
+  static const Color baliHai = Color(0xFF8E97B6); // #8E97B6 (Legend & subtitle text)
+  static const Color zircon = Color(0xFFF1F4FF); // #F1F4FF (Planned transactions heading)
+
   // Gradients
   static const RadialGradient canvasGradient = RadialGradient(
     center: Alignment(0.8, -1.0), // circle at 90% 0%
