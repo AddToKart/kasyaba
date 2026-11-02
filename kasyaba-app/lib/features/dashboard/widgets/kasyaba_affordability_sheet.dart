@@ -181,101 +181,124 @@ class _KasyaBaAffordabilitySheetModalState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Item / purchase name label & underline input
+                    // ITEM / PURCHASE NAME Label & Round Pill Input (Node 11:808 Style)
                     Text(
-                      'Item / purchase name',
+                      'ITEM / PURCHASE NAME',
                       style: GoogleFonts.dmSans(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.0,
                         color: DashboardTokens.periwinkleGraySubtitle,
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    TextField(
-                      controller: _titleController,
-                      style: GoogleFonts.dmSans(
-                        color: DashboardTokens.periwinkleGray,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      height: 54,
+                      child: TextField(
+                        controller: _titleController,
+                        style: GoogleFonts.dmSans(
+                          color: DashboardTokens.periwinkleGray,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        decoration: InputDecoration(
+                          isDense: true,
+                          hintText: 'e.g. Laptop',
+                          hintStyle: GoogleFonts.dmSans(
+                            color: DashboardTokens.periwinkleGraySubtitle
+                                .withValues(alpha: 0.45),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w400,
+                          ),
+                          filled: true,
+                          fillColor:
+                              DashboardTokens.ebony.withValues(alpha: 0.55),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 22,
+                            vertical: 16,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(27),
+                            borderSide: const BorderSide(
+                              color: DashboardTokens.poloBlue22,
+                              width: 1.0,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(27),
+                            borderSide: const BorderSide(
+                              color: DashboardTokens.poloBlue,
+                              width: 1.5,
+                            ),
+                          ),
+                        ),
                       ),
-                      decoration: InputDecoration(
-                        hintText: 'Laptop',
-                        hintStyle: GoogleFonts.dmSans(
-                          color: DashboardTokens.periwinkleGraySubtitle
-                              .withValues(alpha: 0.4),
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
+                    ),
+                    const SizedBox(height: 16),
+
+                    // ITEM PRICE (₱) Label & Round Pill Input (Node 11:808 Style)
+                    Text(
+                      'ITEM PRICE (₱)',
+                      style: GoogleFonts.dmSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.0,
+                        color: DashboardTokens.periwinkleGraySubtitle,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      height: 54,
+                      child: TextField(
+                        controller: _amountController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
+                        onChanged: (_) => setState(() {}),
+                        style: GoogleFonts.dmSans(
+                          color: DashboardTokens.periwinkleGray,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
                         ),
-                        isDense: true,
-                        contentPadding: const EdgeInsets.only(bottom: 8),
-                        border: const UnderlineInputBorder(
-                          borderSide:
-                              BorderSide(color: DashboardTokens.poloBlue22),
-                        ),
-                        enabledBorder: const UnderlineInputBorder(
-                          borderSide:
-                              BorderSide(color: DashboardTokens.poloBlue22),
-                        ),
-                        focusedBorder: const UnderlineInputBorder(
-                          borderSide: BorderSide(
+                        decoration: InputDecoration(
+                          isDense: true,
+                          prefixText: '₱  ',
+                          prefixStyle: GoogleFonts.dmSans(
                             color: DashboardTokens.periwinkleGray,
-                            width: 1.5,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          hintText: '50,000',
+                          hintStyle: GoogleFonts.dmSans(
+                            color: DashboardTokens.periwinkleGraySubtitle
+                                .withValues(alpha: 0.45),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w400,
+                          ),
+                          filled: true,
+                          fillColor:
+                              DashboardTokens.ebony.withValues(alpha: 0.55),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 22,
+                            vertical: 16,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(27),
+                            borderSide: const BorderSide(
+                              color: DashboardTokens.poloBlue22,
+                              width: 1.0,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(27),
+                            borderSide: const BorderSide(
+                              color: DashboardTokens.poloBlue,
+                              width: 1.5,
+                            ),
                           ),
                         ),
                       ),
                     ),
                     const SizedBox(height: 20),
-
-                    // Item price (₱) label & prominent amount input
-                    Text(
-                      'Item price (₱)',
-                      style: GoogleFonts.dmSans(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: DashboardTokens.periwinkleGraySubtitle,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Text(
-                          '₱ ',
-                          style: GoogleFonts.bricolageGrotesque(
-                            color: DashboardTokens.periwinkleGray,
-                            fontSize: 36,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Expanded(
-                          child: TextField(
-                            controller: _amountController,
-                            keyboardType:
-                                const TextInputType.numberWithOptions(
-                                    decimal: true),
-                            onChanged: (_) => setState(() {}),
-                            style: GoogleFonts.bricolageGrotesque(
-                              color: DashboardTokens.periwinkleGray,
-                              fontSize: 36,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            decoration: InputDecoration(
-                              hintText: '50,000',
-                              hintStyle: GoogleFonts.bricolageGrotesque(
-                                color: DashboardTokens.periwinkleGraySubtitle
-                                    .withValues(alpha: 0.35),
-                                fontSize: 36,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              border: InputBorder.none,
-                              isDense: true,
-                              contentPadding: EdgeInsets.zero,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 22),
 
                     // Segmented Mode Selector inside Card
                     Container(
@@ -318,10 +341,11 @@ class _KasyaBaAffordabilitySheetModalState
                     if (_mode == _PaymentMode.installment) ...[
                       const SizedBox(height: 18),
                       Text(
-                        'Installment tenure',
+                        'INSTALLMENT TENURE',
                         style: GoogleFonts.dmSans(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.0,
                           color: DashboardTokens.periwinkleGraySubtitle,
                         ),
                       ),
@@ -346,7 +370,8 @@ class _KasyaBaAffordabilitySheetModalState
                                   decoration: BoxDecoration(
                                     color: isSelected
                                         ? DashboardTokens.periwinkleGray
-                                        : DashboardTokens.ebony,
+                                        : DashboardTokens.ebony
+                                            .withValues(alpha: 0.55),
                                     borderRadius: BorderRadius.circular(21),
                                     border: Border.all(
                                       color: isSelected
@@ -373,55 +398,64 @@ class _KasyaBaAffordabilitySheetModalState
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Monthly interest rate',
+                        'MONTHLY INTEREST RATE',
                         style: GoogleFonts.dmSans(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.0,
                           color: DashboardTokens.periwinkleGraySubtitle,
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Container(
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: DashboardTokens.ebony,
-                          borderRadius: BorderRadius.circular(24),
-                          border:
-                              Border.all(color: DashboardTokens.poloBlue22),
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        alignment: Alignment.centerLeft,
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: TextField(
-                                controller: _interestRateController,
-                                keyboardType:
-                                    const TextInputType.numberWithOptions(
-                                        decimal: true),
-                                onChanged: (_) => setState(() {}),
-                                style: GoogleFonts.dmSans(
-                                  color: DashboardTokens.periwinkleGray,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                decoration: const InputDecoration(
-                                  hintText: '0.0 (0% for 0% BNPL)',
-                                  border: InputBorder.none,
-                                  isDense: true,
-                                  contentPadding: EdgeInsets.zero,
-                                ),
+                      SizedBox(
+                        height: 54,
+                        child: TextField(
+                          controller: _interestRateController,
+                          keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true),
+                          onChanged: (_) => setState(() {}),
+                          style: GoogleFonts.dmSans(
+                            color: DashboardTokens.periwinkleGray,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          decoration: InputDecoration(
+                            isDense: true,
+                            hintText: '0.0 (0% for 0% BNPL)',
+                            hintStyle: GoogleFonts.dmSans(
+                              color: DashboardTokens.periwinkleGraySubtitle
+                                  .withValues(alpha: 0.45),
+                              fontSize: 15,
+                              fontWeight: FontWeight.w400,
+                            ),
+                            suffixText: '% / mo',
+                            suffixStyle: GoogleFonts.dmSans(
+                              color: DashboardTokens.periwinkleGraySubtitle,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            filled: true,
+                            fillColor:
+                                DashboardTokens.ebony.withValues(alpha: 0.55),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 22,
+                              vertical: 16,
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(27),
+                              borderSide: const BorderSide(
+                                color: DashboardTokens.poloBlue22,
+                                width: 1.0,
                               ),
                             ),
-                            Text(
-                              '% / mo',
-                              style: GoogleFonts.dmSans(
-                                color: DashboardTokens.periwinkleGraySubtitle,
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(27),
+                              borderSide: const BorderSide(
+                                color: DashboardTokens.poloBlue,
+                                width: 1.5,
                               ),
                             ),
-                          ],
+                          ),
                         ),
                       ),
                     ],
