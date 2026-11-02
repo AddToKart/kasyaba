@@ -125,5 +125,19 @@ void main() {
     expect(find.text('Evaluate affordability'), findsNWidgets(2));
     expect(find.text('Pay in full'), findsOneWidget);
     expect(find.text('Installment'), findsOneWidget);
+
+    // Tap Installment tab -> smooth sliding animation reveals installment tenure & rate
+    await tester.tap(find.text('Installment'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('INSTALLMENT TENURE'), findsOneWidget);
+    expect(find.text('MONTHLY INTEREST RATE'), findsOneWidget);
+    expect(find.text('3m'), findsOneWidget);
+
+    // Tap Pay in full -> smooth sliding animation contracts back
+    await tester.tap(find.text('Pay in full'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('INSTALLMENT TENURE'), findsNothing);
   });
 }

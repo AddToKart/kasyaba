@@ -300,165 +300,164 @@ class _KasyaBaAffordabilitySheetModalState
                     ),
                     const SizedBox(height: 20),
 
-                    // Segmented Mode Selector inside Card
-                    Container(
-                      height: 52,
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: DashboardTokens.ebony,
-                        borderRadius: BorderRadius.circular(26),
-                        border: Border.all(color: DashboardTokens.poloBlue22),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: _ModeTabButton(
-                              title: 'Pay in full',
-                              isSelected: _mode == _PaymentMode.payInFull,
-                              onTap: () {
-                                AppHaptics.selectionClick();
-                                setState(() => _mode = _PaymentMode.payInFull);
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: _ModeTabButton(
-                              title: 'Installment',
-                              isSelected: _mode == _PaymentMode.installment,
-                              onTap: () {
-                                AppHaptics.selectionClick();
-                                setState(
-                                    () => _mode = _PaymentMode.installment);
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
+                    // ── Sliding Segmented Switcher (Smooth Gliding Pill) ──
+                    _SlidingSegmentedSwitcher(
+                      mode: _mode,
+                      onModeChanged: (newMode) {
+                        setState(() => _mode = newMode);
+                      },
                     ),
 
-                    // Installment Options (if installment selected)
-                    if (_mode == _PaymentMode.installment) ...[
-                      const SizedBox(height: 18),
-                      Text(
-                        'INSTALLMENT TENURE',
-                        style: GoogleFonts.dmSans(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1.0,
-                          color: DashboardTokens.periwinkleGraySubtitle,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [3, 6, 12, 24].map((tenure) {
-                          final isSelected = _tenureMonths == tenure;
-                          return Expanded(
-                            child: Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 3),
-                              child: GestureDetector(
-                                onTap: () {
-                                  AppHaptics.selectionClick();
-                                  setState(() => _tenureMonths = tenure);
-                                },
-                                child: AnimatedContainer(
-                                  duration:
-                                      const Duration(milliseconds: 150),
-                                  height: 42,
-                                  alignment: Alignment.center,
-                                  decoration: BoxDecoration(
-                                    color: isSelected
-                                        ? DashboardTokens.periwinkleGray
-                                        : DashboardTokens.ebony
-                                            .withValues(alpha: 0.55),
-                                    borderRadius: BorderRadius.circular(21),
-                                    border: Border.all(
-                                      color: isSelected
-                                          ? DashboardTokens.periwinkleGray
-                                          : DashboardTokens.poloBlue22,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    '${tenure}m',
+                    // ── Animated Expansion for Installment Options ──
+                    ClipRRect(
+                      child: AnimatedSize(
+                        duration: const Duration(milliseconds: 260),
+                        curve: Curves.easeOutCubic,
+                        alignment: Alignment.topCenter,
+                        child: _mode == _PaymentMode.installment
+                            ? Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const SizedBox(height: 18),
+                                  Text(
+                                    'INSTALLMENT TENURE',
                                     style: GoogleFonts.dmSans(
-                                      color: isSelected
-                                          ? DashboardTokens.ebony
-                                          : DashboardTokens
-                                              .periwinkleGraySubtitle,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 13,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 1.0,
+                                      color: DashboardTokens
+                                          .periwinkleGraySubtitle,
                                     ),
                                   ),
-                                ),
-                              ),
-                            ),
-                          );
-                        }).toList(),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [3, 6, 12, 24].map((tenure) {
+                                      final isSelected =
+                                          _tenureMonths == tenure;
+                                      return Expanded(
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 3),
+                                          child: GestureDetector(
+                                            onTap: () {
+                                              AppHaptics.selectionClick();
+                                              setState(() =>
+                                                  _tenureMonths = tenure);
+                                            },
+                                            child: AnimatedContainer(
+                                              duration: const Duration(
+                                                  milliseconds: 180),
+                                              curve: Curves.easeOutCubic,
+                                              height: 42,
+                                              alignment: Alignment.center,
+                                              decoration: BoxDecoration(
+                                                color: isSelected
+                                                    ? DashboardTokens
+                                                        .periwinkleGray
+                                                    : DashboardTokens.ebony
+                                                        .withValues(
+                                                            alpha: 0.55),
+                                                borderRadius:
+                                                    BorderRadius.circular(21),
+                                                border: Border.all(
+                                                  color: isSelected
+                                                      ? DashboardTokens
+                                                          .periwinkleGray
+                                                      : DashboardTokens
+                                                          .poloBlue22,
+                                                ),
+                                              ),
+                                              child: Text(
+                                                '${tenure}m',
+                                                style: GoogleFonts.dmSans(
+                                                  color: isSelected
+                                                      ? DashboardTokens.ebony
+                                                      : DashboardTokens
+                                                          .periwinkleGraySubtitle,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 13,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'MONTHLY INTEREST RATE',
+                                    style: GoogleFonts.dmSans(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 1.0,
+                                      color: DashboardTokens
+                                          .periwinkleGraySubtitle,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  SizedBox(
+                                    height: 54,
+                                    child: TextField(
+                                      controller: _interestRateController,
+                                      keyboardType:
+                                          const TextInputType.numberWithOptions(
+                                              decimal: true),
+                                      onChanged: (_) => setState(() {}),
+                                      style: GoogleFonts.dmSans(
+                                        color: DashboardTokens.periwinkleGray,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                      decoration: InputDecoration(
+                                        isDense: true,
+                                        hintText: '0.0 (0% for 0% BNPL)',
+                                        hintStyle: GoogleFonts.dmSans(
+                                          color: DashboardTokens
+                                              .periwinkleGraySubtitle
+                                              .withValues(alpha: 0.45),
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w400,
+                                        ),
+                                        suffixText: '% / mo',
+                                        suffixStyle: GoogleFonts.dmSans(
+                                          color: DashboardTokens
+                                              .periwinkleGraySubtitle,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        filled: true,
+                                        fillColor: DashboardTokens.ebony
+                                            .withValues(alpha: 0.55),
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                          horizontal: 22,
+                                          vertical: 16,
+                                        ),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(27),
+                                          borderSide: const BorderSide(
+                                            color: DashboardTokens.poloBlue22,
+                                            width: 1.0,
+                                          ),
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(27),
+                                          borderSide: const BorderSide(
+                                            color: DashboardTokens.poloBlue,
+                                            width: 1.5,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : const SizedBox.shrink(),
                       ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'MONTHLY INTEREST RATE',
-                        style: GoogleFonts.dmSans(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1.0,
-                          color: DashboardTokens.periwinkleGraySubtitle,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      SizedBox(
-                        height: 54,
-                        child: TextField(
-                          controller: _interestRateController,
-                          keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true),
-                          onChanged: (_) => setState(() {}),
-                          style: GoogleFonts.dmSans(
-                            color: DashboardTokens.periwinkleGray,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          decoration: InputDecoration(
-                            isDense: true,
-                            hintText: '0.0 (0% for 0% BNPL)',
-                            hintStyle: GoogleFonts.dmSans(
-                              color: DashboardTokens.periwinkleGraySubtitle
-                                  .withValues(alpha: 0.45),
-                              fontSize: 15,
-                              fontWeight: FontWeight.w400,
-                            ),
-                            suffixText: '% / mo',
-                            suffixStyle: GoogleFonts.dmSans(
-                              color: DashboardTokens.periwinkleGraySubtitle,
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            filled: true,
-                            fillColor:
-                                DashboardTokens.ebony.withValues(alpha: 0.55),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 22,
-                              vertical: 16,
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(27),
-                              borderSide: const BorderSide(
-                                color: DashboardTokens.poloBlue22,
-                                width: 1.0,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(27),
-                              borderSide: const BorderSide(
-                                color: DashboardTokens.poloBlue,
-                                width: 1.5,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ],
                 ),
               ),
@@ -527,44 +526,119 @@ class _KasyaBaAffordabilitySheetModalState
   }
 }
 
-/// ── Mode Tab Button ─────────────────────────────────────────────────────
-class _ModeTabButton extends StatelessWidget {
-  final String title;
-  final bool isSelected;
-  final VoidCallback onTap;
+/// ── Sliding Segmented Switcher (Smooth Moving Pill Indicator) ───────────
+class _SlidingSegmentedSwitcher extends StatelessWidget {
+  final _PaymentMode mode;
+  final ValueChanged<_PaymentMode> onModeChanged;
 
-  const _ModeTabButton({
-    required this.title,
-    required this.isSelected,
-    required this.onTap,
+  const _SlidingSegmentedSwitcher({
+    required this.mode,
+    required this.onModeChanged,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOutCubic,
-        height: 44,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: isSelected
-              ? DashboardTokens.periwinkleGray
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(22),
-        ),
-        child: Text(
-          title,
-          style: GoogleFonts.dmSans(
-            color: isSelected
-                ? DashboardTokens.ebony
-                : DashboardTokens.periwinkleGraySubtitle,
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
-          ),
-        ),
+    final isPayInFull = mode == _PaymentMode.payInFull;
+
+    return Container(
+      height: 52,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: DashboardTokens.ebony,
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: DashboardTokens.poloBlue22),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final pillWidth = constraints.maxWidth / 2;
+
+          return Stack(
+            children: [
+              // Animated Smooth Gliding Background Pill
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeOutCubic,
+                left: isPayInFull ? 0 : pillWidth,
+                top: 0,
+                bottom: 0,
+                width: pillWidth,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: DashboardTokens.periwinkleGray,
+                    borderRadius: BorderRadius.circular(22),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.35),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Interactive Option Tab Labels
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {
+                        if (mode != _PaymentMode.payInFull) {
+                          AppHaptics.selectionClick();
+                          onModeChanged(_PaymentMode.payInFull);
+                        }
+                      },
+                      child: Container(
+                        alignment: Alignment.center,
+                        height: double.infinity,
+                        child: AnimatedDefaultTextStyle(
+                          duration: const Duration(milliseconds: 200),
+                          curve: Curves.easeOut,
+                          style: GoogleFonts.dmSans(
+                            color: isPayInFull
+                                ? DashboardTokens.ebony
+                                : DashboardTokens.periwinkleGraySubtitle,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                          child: const Text('Pay in full'),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {
+                        if (mode != _PaymentMode.installment) {
+                          AppHaptics.selectionClick();
+                          onModeChanged(_PaymentMode.installment);
+                        }
+                      },
+                      child: Container(
+                        alignment: Alignment.center,
+                        height: double.infinity,
+                        child: AnimatedDefaultTextStyle(
+                          duration: const Duration(milliseconds: 200),
+                          curve: Curves.easeOut,
+                          style: GoogleFonts.dmSans(
+                            color: !isPayInFull
+                                ? DashboardTokens.ebony
+                                : DashboardTokens.periwinkleGraySubtitle,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                          child: const Text('Installment'),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          );
+        },
       ),
     );
   }
