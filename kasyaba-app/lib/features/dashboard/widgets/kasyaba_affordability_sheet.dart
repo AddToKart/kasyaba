@@ -137,8 +137,8 @@ class _KasyaBaAffordabilitySheetModalState
     final maxAllowedHeight = screenHeight - topPadding - 32;
 
     // Minimal, refined clearance so action buttons and simulation results sit cleanly
-    // just above the floating dock with balanced spacing (not too much, not too little: ~18dp).
-    const dockClearance = 86.0;
+    // just above the floating dock with balanced spacing (~16dp breathing room).
+    const dockClearance = 98.0;
     final effectiveBottomPadding = bottomInset > 0
         ? (bottomInset + 20.0)
         : dockClearance;
