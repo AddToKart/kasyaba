@@ -514,8 +514,10 @@ class _KasyaBaAffordabilitySheetModalState
                   result: _result!,
                   mode: _mode,
                   installmentComp: installmentComp,
-                  onViewMathBreakdown: () =>
-                      showSafeSpendBreakdownSheet(context, safeSpendCalc),
+                  onViewMathBreakdown: () {
+                    Navigator.of(context).pop();
+                    showSafeSpendBreakdownSheet(context, safeSpendCalc);
+                  },
                 ),
               ],
             ],

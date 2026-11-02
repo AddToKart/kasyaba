@@ -10,6 +10,8 @@ import '../../features/transactions/screens/add_transaction_screen.dart';
 import '../../features/transactions/screens/add_transfer_screen.dart';
 import '../../features/accounts/screens/accounts_screen.dart';
 import '../../features/planning/screens/planning_screen.dart';
+import '../../features/planning/screens/math_breakdown_screen.dart';
+import '../../core/utils/deterministic_math.dart';
 import '../../features/budgets/screens/budgets_screen.dart';
 import '../../features/savings/screens/goals_screen.dart';
 import '../../features/bills/screens/bills_screen.dart';
@@ -74,6 +76,13 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/planning',
             builder: (context, state) => const PlanningScreen(),
+          ),
+          GoRoute(
+            path: '/planning/breakdown',
+            builder: (context, state) {
+              final extraCalc = state.extra as DailySafeSpendCalculation?;
+              return MathBreakdownScreen(calculation: extraCalc);
+            },
           ),
           GoRoute(
             path: '/goals',
