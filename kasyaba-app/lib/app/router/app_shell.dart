@@ -1,15 +1,15 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
-import '../../app/theme/app_theme.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_motion.dart';
+import '../../features/dashboard/widgets/dashboard_tokens.dart';
 
 /// ─────────────────────────────────────────────────────────────
-///  AppShell — Ultra Luxury Floating Navigation Dock
+///  AppShell — Floating Navigation Dock (Figma Node 106:2024)
 /// ─────────────────────────────────────────────────────────────
 
-/// A custom [FloatingActionButtonLocation] that positions the FAB safely above
-/// the floating luxury dock of [AppShell].
 class FloatingDockFabLocation extends FloatingActionButtonLocation {
   final double? bottomPadding;
   final double gap;
@@ -23,8 +23,8 @@ class FloatingDockFabLocation extends FloatingActionButtonLocation {
   Offset getOffset(ScaffoldPrelayoutGeometry scaffoldGeometry) {
     final double rawBottom = bottomPadding ?? scaffoldGeometry.minInsets.bottom;
     final double dockBottomMargin =
-        rawBottom > 0 ? rawBottom : (bottomPadding != null ? 12.0 : 24.0);
-    final double dockTotalHeight = 64.0 + dockBottomMargin;
+        rawBottom > 0 ? rawBottom : (bottomPadding != null ? 12.0 : 20.0);
+    final double dockTotalHeight = 68.0 + dockBottomMargin;
 
     final double fabX = scaffoldGeometry.scaffoldSize.width -
         scaffoldGeometry.floatingActionButtonSize.width -
@@ -45,11 +45,11 @@ class AppShell extends StatelessWidget {
 
   int _getSelectedIndex() {
     if (location.startsWith('/transactions')) return 1;
-    if (location.startsWith('/goals')) return 2;
-    if (location.startsWith('/bills')) return 3;
+    if (location.startsWith('/planning') || location.startsWith('/bills')) return 2;
+    if (location.startsWith('/goals')) return 3;
     if (location.startsWith('/settings')) return 4;
     if (location.startsWith('/dashboard')) return 0;
-    return -1;
+    return 0;
   }
 
   void _onDestinationSelected(BuildContext context, int index) {
@@ -59,9 +59,9 @@ class AppShell extends StatelessWidget {
       case 1:
         context.go('/transactions');
       case 2:
-        context.go('/goals');
+        context.go('/planning');
       case 3:
-        context.go('/bills');
+        context.go('/goals');
       case 4:
         context.go('/settings');
     }
@@ -70,15 +70,12 @@ class AppShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final selectedIndex = _getSelectedIndex();
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       extendBody: true,
       body: child,
       bottomNavigationBar: _LuxuryFloatingDock(
         selectedIndex: selectedIndex,
-        isDark: isDark,
         onDestinationSelected: (i) => _onDestinationSelected(context, i),
       ),
     );
@@ -87,39 +84,37 @@ class AppShell extends StatelessWidget {
 
 class _LuxuryFloatingDock extends StatelessWidget {
   final int selectedIndex;
-  final bool isDark;
   final ValueChanged<int> onDestinationSelected;
 
   const _LuxuryFloatingDock({
     required this.selectedIndex,
-    required this.isDark,
     required this.onDestinationSelected,
   });
 
   static const _destinations = [
     _NavDestination(
-      icon: Icons.grid_view_outlined,
-      activeIcon: Icons.grid_view_rounded,
-      label: 'Dashboard',
+      svgAsset: 'assets/images/nav_home.svg',
+      fallbackIcon: Icons.home_rounded,
+      label: 'Home',
     ),
     _NavDestination(
-      icon: Icons.swap_horiz_outlined,
-      activeIcon: Icons.swap_horiz_rounded,
-      label: 'Transactions',
+      svgAsset: 'assets/images/nav_activity.svg',
+      fallbackIcon: Icons.swap_horiz_rounded,
+      label: 'Activity',
     ),
     _NavDestination(
-      icon: Icons.track_changes_outlined,
-      activeIcon: Icons.track_changes_rounded,
+      svgAsset: 'assets/images/nav_forecast.svg',
+      fallbackIcon: Icons.insights_rounded,
+      label: 'Forecasting',
+    ),
+    _NavDestination(
+      svgAsset: 'assets/images/nav_goals.svg',
+      fallbackIcon: Icons.track_changes_rounded,
       label: 'Goals',
     ),
     _NavDestination(
-      icon: Icons.receipt_long_outlined,
-      activeIcon: Icons.receipt_long_rounded,
-      label: 'Bills',
-    ),
-    _NavDestination(
-      icon: Icons.person_outline_rounded,
-      activeIcon: Icons.person_rounded,
+      svgAsset: 'assets/images/nav_profile.svg',
+      fallbackIcon: Icons.person_rounded,
       label: 'Profile',
     ),
   ];
@@ -128,53 +123,52 @@ class _LuxuryFloatingDock extends StatelessWidget {
   Widget build(BuildContext context) {
     final bottomPadding = MediaQuery.paddingOf(context).bottom;
 
-    return Container(
-      margin: EdgeInsets.fromLTRB(
-        16,
-        0,
-        16,
-        bottomPadding > 0 ? bottomPadding : 12,
-      ),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: isDark
-                ? Colors.black.withValues(alpha: 0.5)
-                : const Color(0x18000000),
-            blurRadius: isDark ? 16 : 24,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: Container(
-            height: 64,
-            decoration: BoxDecoration(
-              color: isDark
-                  ? const Color(0xE0121215)
-                  : const Color(0xEBFFFFFF),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                color: isDark ? AppColors.subtleBorder : AppColors.lightBorderHairline,
-                width: 1,
-              ),
+    return Center(
+      heightFactor: 1.0,
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 362),
+        margin: EdgeInsets.fromLTRB(
+          14,
+          0,
+          14,
+          bottomPadding > 0 ? bottomPadding : 16,
+        ),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(34),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.5),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
             ),
-            child: Row(
-              children: [
-                for (int i = 0; i < _destinations.length; i++)
-                  Expanded(
-                    child: _NavItem(
-                      destination: _destinations[i],
-                      isSelected: selectedIndex == i,
-                      isDark: isDark,
-                      onTap: () => onDestinationSelected(i),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(34),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 7, sigmaY: 7),
+            child: Container(
+              height: 68,
+              decoration: BoxDecoration(
+                color: DashboardTokens.ebony85,
+                borderRadius: BorderRadius.circular(34),
+                border: Border.all(
+                  color: DashboardTokens.poloBlue30,
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  for (int i = 0; i < _destinations.length; i++)
+                    Expanded(
+                      child: _NavItem(
+                        destination: _destinations[i],
+                        isSelected: selectedIndex == i,
+                        onTap: () => onDestinationSelected(i),
+                      ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -184,12 +178,13 @@ class _LuxuryFloatingDock extends StatelessWidget {
 }
 
 class _NavDestination {
-  final IconData icon;
-  final IconData activeIcon;
+  final String svgAsset;
+  final IconData fallbackIcon;
   final String label;
+
   const _NavDestination({
-    required this.icon,
-    required this.activeIcon,
+    required this.svgAsset,
+    required this.fallbackIcon,
     required this.label,
   });
 }
@@ -197,20 +192,19 @@ class _NavDestination {
 class _NavItem extends StatelessWidget {
   final _NavDestination destination;
   final bool isSelected;
-  final bool isDark;
   final VoidCallback onTap;
 
   const _NavItem({
     required this.destination,
     required this.isSelected,
-    required this.isDark,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final activeColor = isDark ? AppColors.emerald400 : AppColors.emerald600;
-    final inactiveColor = isDark ? AppColors.textMuted : AppColors.lightTextSecondary;
+    final color = isSelected
+        ? DashboardTokens.periwinkleGray
+        : DashboardTokens.periwinkleGraySubtitle.withValues(alpha: 0.7);
 
     return Material(
       color: Colors.transparent,
@@ -219,40 +213,24 @@ class _NavItem extends StatelessWidget {
           AppHaptics.selectionClick();
           onTap();
         },
-        splashColor: activeColor.withValues(alpha: 0.08),
+        splashColor: DashboardTokens.periwinkleGray.withValues(alpha: 0.08),
         highlightColor: Colors.transparent,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            AnimatedScale(
-              scale: isSelected ? 1.1 : 1.0,
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeOutCubic,
-              child: Icon(
-                isSelected ? destination.activeIcon : destination.icon,
-                size: 21,
-                color: isSelected ? activeColor : inactiveColor,
-              ),
+            SvgPicture.asset(
+              destination.svgAsset,
+              width: 20,
+              height: 20,
+              colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
             ),
-            const SizedBox(height: 3),
+            const SizedBox(height: 4),
             Text(
               destination.label,
-              style: TextStyle(
-                color: isSelected ? activeColor : inactiveColor,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                fontSize: 10.5,
-                letterSpacing: 0.1,
-              ),
-            ),
-            const SizedBox(height: 2),
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeOutCubic,
-              width: isSelected ? 12 : 0,
-              height: 2.5,
-              decoration: BoxDecoration(
-                color: isSelected ? activeColor : Colors.transparent,
-                borderRadius: BorderRadius.circular(99),
+              style: GoogleFonts.dmSans(
+                color: color,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
               ),
             ),
           ],

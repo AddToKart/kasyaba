@@ -13,26 +13,54 @@ class AuthFigmaTokens {
 
   // Color Fills & Strokes
   static const Color ebony = Color(0xFF0A1220); // Base canvas & button text
-  static const Color ebony55 = Color(0x8C0A1220); // rgba(10, 18, 32, 0.55) - Input fields
-  static const Color cello55 = Color(0x8C1E3A56); // rgba(30, 58, 86, 0.55) - Form card & Tooltip
-  static const Color poloBlue28 = Color(0x478FB2CE); // rgba(143, 178, 206, 0.28) - Card / Tooltip border
-  static const Color poloBlue35 = Color(0x598FB2CE); // rgba(143, 178, 206, 0.35) - Input border
-  static const Color poloBlue = Color(0xFF8FB2CE); // Labels, subtitles, link text, logo bar 2
-  static const Color periwinkleGray = Color(0xFFC9DCEA); // Primary button, headings, logo bar 1
-  static const Color kashmirBlue = Color(0xFF4F7596); // Logo bar 3, Create account underline
+  static const Color ebony55 = Color(
+    0x8C0A1220,
+  ); // rgba(10, 18, 32, 0.55) - Input fields
+  static const Color cello55 = Color(
+    0x8C1E3A56,
+  ); // rgba(30, 58, 86, 0.55) - Form card & Tooltip
+  static const Color poloBlue28 = Color(
+    0x478FB2CE,
+  ); // rgba(143, 178, 206, 0.28) - Card / Tooltip border
+  static const Color poloBlue35 = Color(
+    0x598FB2CE,
+  ); // rgba(143, 178, 206, 0.35) - Input border
+  static const Color poloBlue = Color(
+    0xFF8FB2CE,
+  ); // Labels, subtitles, link text, logo bar 2
+  static const Color periwinkleGray = Color(
+    0xFFC9DCEA,
+  ); // Primary button, headings, logo bar 1
+  static const Color kashmirBlue = Color(
+    0xFF4F7596,
+  ); // Logo bar 3, Create account underline
   static const Color boulder = Color(0xFF757575); // Input placeholder
   static const Color white = Color(0xFFFFFFFF);
 
   // Radial Gradients
-  static const Color radialGlow1 = Color(0xCC4F7596); // rgba(79, 117, 150, 0.8) at 85% 8%
-  static const Color radialGlow2 = Color(0xFF1E3A56); // rgba(30, 58, 86, 1.0) at 0% 100%
-  static const Color radialGlow3 = Color(0xAB1E3A56); // rgba(30, 58, 86, 0.67) at 100% 75%
+  static const Color radialGlow1 = Color(
+    0xCC4F7596,
+  ); // rgba(79, 117, 150, 0.8) at 85% 8%
+  static const Color radialGlow2 = Color(
+    0xFF1E3A56,
+  ); // rgba(30, 58, 86, 1.0) at 0% 100%
+  static const Color radialGlow3 = Color(
+    0xAB1E3A56,
+  ); // rgba(30, 58, 86, 0.67) at 100% 75%
 
   // Forgot Password (Node 11:3028) Tokens
-  static const Color bigStone = Color(0xFF16293F); // Base input & back button fill on Forgot Pass
-  static const Color poloBlue22 = Color(0x388FB2CE); // rgba(143, 178, 206, 0.22) - Border on Forgot Pass
-  static const Color periwinkleGraySubtitle = Color(0xFFB4CDE0); // Subtitle and label on Forgot Pass
-  static const Color radialForgotPass = Color(0xAB4F7596); // rgba(79, 117, 150, 0.67) at 90% 0%
+  static const Color bigStone = Color(
+    0xFF16293F,
+  ); // Base input & back button fill on Forgot Pass
+  static const Color poloBlue22 = Color(
+    0x388FB2CE,
+  ); // rgba(143, 178, 206, 0.22) - Border on Forgot Pass
+  static const Color periwinkleGraySubtitle = Color(
+    0xFFB4CDE0,
+  ); // Subtitle and label on Forgot Pass
+  static const Color radialForgotPass = Color(
+    0xAB4F7596,
+  ); // rgba(79, 117, 150, 0.67) at 90% 0%
 }
 
 // ── Squircle Back Button (Node 11:3033 & 11:743) ──
@@ -57,9 +85,11 @@ class AuthBackButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg = backgroundColor ??
+    final bg =
+        backgroundColor ??
         (isDark ? AuthFigmaTokens.bigStone : AppColors.lightCardSurface);
-    final border = borderColor ??
+    final border =
+        borderColor ??
         (isDark ? AuthFigmaTokens.poloBlue22 : AppColors.lightBorderHairline);
 
     Widget content = Container(
@@ -69,10 +99,7 @@ class AuthBackButton extends StatelessWidget {
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(radius),
-        border: Border.all(
-          color: border,
-          width: 1.0,
-        ),
+        border: Border.all(color: border, width: 1.0),
       ),
       child: SvgPicture.asset(
         'assets/images/back_chevron.svg',
@@ -160,7 +187,9 @@ class _AuthCapsuleInlineFieldState extends State<AuthCapsuleInlineField> {
         border: Border.all(
           color: _isFocused
               ? (isDark ? AuthFigmaTokens.poloBlue : AppColors.emerald500)
-              : (isDark ? AuthFigmaTokens.poloBlue22 : AppColors.lightBorderHairline),
+              : (isDark
+                    ? AuthFigmaTokens.poloBlue22
+                    : AppColors.lightBorderHairline),
           width: _isFocused ? 1.5 : 1.0,
         ),
       ),
@@ -271,19 +300,14 @@ class AuthBackground extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           // Base solid fill #0A1220
-          Container(
-            color: AuthFigmaTokens.ebony,
-          ),
+          Container(color: AuthFigmaTokens.ebony),
           // Radial Gradient 1: circle at 85% 8%, rgba(79, 117, 150, 0.8) 0% to rgba(79, 117, 150, 0) 70%
           Container(
             decoration: const BoxDecoration(
               gradient: RadialGradient(
                 center: Alignment(0.70, -0.84),
                 radius: 0.70,
-                colors: [
-                  AuthFigmaTokens.radialGlow1,
-                  Color(0x004F7596),
-                ],
+                colors: [AuthFigmaTokens.radialGlow1, Color(0x004F7596)],
                 stops: [0.0, 1.0],
               ),
             ),
@@ -294,10 +318,7 @@ class AuthBackground extends StatelessWidget {
               gradient: RadialGradient(
                 center: Alignment(-1.0, 1.0),
                 radius: 0.70,
-                colors: [
-                  AuthFigmaTokens.radialGlow2,
-                  Color(0x001E3A56),
-                ],
+                colors: [AuthFigmaTokens.radialGlow2, Color(0x001E3A56)],
                 stops: [0.0, 1.0],
               ),
             ),
@@ -308,10 +329,7 @@ class AuthBackground extends StatelessWidget {
               gradient: RadialGradient(
                 center: Alignment(1.0, 0.50),
                 radius: 0.70,
-                colors: [
-                  AuthFigmaTokens.radialGlow3,
-                  Color(0x001E3A56),
-                ],
+                colors: [AuthFigmaTokens.radialGlow3, Color(0x001E3A56)],
                 stops: [0.0, 1.0],
               ),
             ),
@@ -356,19 +374,14 @@ class AuthForgotPassBackground extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           // Base solid fill #0A1220
-          Container(
-            color: AuthFigmaTokens.ebony,
-          ),
+          Container(color: AuthFigmaTokens.ebony),
           // Radial Gradient: circle at 90% 0%, rgba(79, 117, 150, 0.67) 0% to 0% at 70%
           Container(
             decoration: const BoxDecoration(
               gradient: RadialGradient(
                 center: Alignment(0.80, -1.0),
                 radius: 0.70,
-                colors: [
-                  AuthFigmaTokens.radialForgotPass,
-                  Color(0x004F7596),
-                ],
+                colors: [AuthFigmaTokens.radialForgotPass, Color(0x004F7596)],
                 stops: [0.0, 1.0],
               ),
             ),
@@ -443,7 +456,9 @@ class AuthBrandHeader extends StatelessWidget {
         Text(
           'Kasyaba',
           style: GoogleFonts.bricolageGrotesque(
-            color: isDark ? AuthFigmaTokens.periwinkleGray : AppColors.lightTextPrimary,
+            color: isDark
+                ? AuthFigmaTokens.periwinkleGray
+                : AppColors.lightTextPrimary,
             fontSize: 26,
             fontWeight: FontWeight.w700,
           ),
@@ -456,10 +471,7 @@ class AuthBrandHeader extends StatelessWidget {
 // ── Runway Hero Spline (Node 11:785-11:790) ──
 class RunwaySplineHero extends StatelessWidget {
   final String tooltipText;
-  const RunwaySplineHero({
-    super.key,
-    this.tooltipText = 'Can I afford it?',
-  });
+  const RunwaySplineHero({super.key, this.tooltipText = 'Can I afford it?'});
 
   @override
   Widget build(BuildContext context) {
@@ -521,10 +533,7 @@ class RunwaySplineHero extends StatelessWidget {
 class AuthFormCard extends StatelessWidget {
   final Widget child;
 
-  const AuthFormCard({
-    super.key,
-    required this.child,
-  });
+  const AuthFormCard({super.key, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -542,10 +551,14 @@ class AuthFormCard extends StatelessWidget {
             bottom: 21,
           ),
           decoration: BoxDecoration(
-            color: isDark ? AuthFigmaTokens.cello55 : AppColors.lightCardSurface,
+            color: isDark
+                ? AuthFigmaTokens.cello55
+                : AppColors.lightCardSurface,
             borderRadius: BorderRadius.circular(32),
             border: Border.all(
-              color: isDark ? AuthFigmaTokens.poloBlue28 : AppColors.lightBorderHairline,
+              color: isDark
+                  ? AuthFigmaTokens.poloBlue28
+                  : AppColors.lightBorderHairline,
               width: 1.0,
             ),
           ),
@@ -612,8 +625,12 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final unfocusedIconColor = isDark ? AuthFigmaTokens.poloBlue : const Color(0xFF64748B);
-    final focusedIconColor = isDark ? AuthFigmaTokens.periwinkleGray : AppColors.emerald500;
+    final unfocusedIconColor = isDark
+        ? AuthFigmaTokens.poloBlue
+        : const Color(0xFF64748B);
+    final focusedIconColor = isDark
+        ? AuthFigmaTokens.periwinkleGray
+        : AppColors.emerald500;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -622,7 +639,9 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
         Text(
           widget.label.toUpperCase(),
           style: GoogleFonts.dmSans(
-            color: isDark ? AuthFigmaTokens.poloBlue : AppColors.lightTextSecondary,
+            color: isDark
+                ? AuthFigmaTokens.poloBlue
+                : AppColors.lightTextSecondary,
             fontSize: 11,
             fontWeight: FontWeight.w700,
             letterSpacing: 1.0,
@@ -643,7 +662,9 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
                 ? (_) => widget.onSubmitted!()
                 : null,
             style: GoogleFonts.dmSans(
-              color: isDark ? AuthFigmaTokens.periwinkleGray : AppColors.lightTextPrimary,
+              color: isDark
+                  ? AuthFigmaTokens.periwinkleGray
+                  : AppColors.lightTextPrimary,
               fontSize: 16,
               fontWeight: FontWeight.w500,
             ),
@@ -651,12 +672,16 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
               isDense: true,
               hintText: widget.hintText,
               hintStyle: GoogleFonts.dmSans(
-                color: isDark ? AuthFigmaTokens.boulder : const Color(0xFF94A3B8),
+                color: isDark
+                    ? AuthFigmaTokens.boulder
+                    : const Color(0xFF94A3B8),
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
               ),
               filled: true,
-              fillColor: isDark ? AuthFigmaTokens.ebony55 : AppColors.lightInputFill,
+              fillColor: isDark
+                  ? AuthFigmaTokens.ebony55
+                  : AppColors.lightInputFill,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 22,
                 vertical: 15.5,
@@ -672,7 +697,9 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(27),
                 borderSide: BorderSide(
-                  color: isDark ? AuthFigmaTokens.poloBlue35 : AppColors.lightBorderHairline,
+                  color: isDark
+                      ? AuthFigmaTokens.poloBlue35
+                      : AppColors.lightBorderHairline,
                   width: 1.0,
                 ),
               ),
@@ -731,7 +758,9 @@ class AuthPrimaryPillButton extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: AuthFigmaTokens.periwinkleGray,
           foregroundColor: AuthFigmaTokens.ebony,
-          disabledBackgroundColor: AuthFigmaTokens.poloBlue.withValues(alpha: 0.5),
+          disabledBackgroundColor: AuthFigmaTokens.poloBlue.withValues(
+            alpha: 0.5,
+          ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(28),
           ),
@@ -899,10 +928,7 @@ class PasswordStrengthBar extends StatelessWidget {
             ),
             const Text(
               'Min. 8 characters',
-              style: TextStyle(
-                color: Color(0xFF64748B),
-                fontSize: 10,
-              ),
+              style: TextStyle(color: Color(0xFF64748B), fontSize: 10),
             ),
           ],
         ),
@@ -931,9 +957,7 @@ class PasswordMatchIndicator extends StatelessWidget {
       child: Row(
         children: [
           Icon(
-            isMatching
-                ? Icons.check_circle_rounded
-                : Icons.cancel_outlined,
+            isMatching ? Icons.check_circle_rounded : Icons.cancel_outlined,
             size: 14,
             color: isMatching ? AppColors.emerald400 : AppColors.expense,
           ),
@@ -956,10 +980,7 @@ class PasswordMatchIndicator extends StatelessWidget {
 class AuthErrorBanner extends StatelessWidget {
   final String message;
 
-  const AuthErrorBanner({
-    super.key,
-    required this.message,
-  });
+  const AuthErrorBanner({super.key, required this.message});
 
   @override
   Widget build(BuildContext context) {
