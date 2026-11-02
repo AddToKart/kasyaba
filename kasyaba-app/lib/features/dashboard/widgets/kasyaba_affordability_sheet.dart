@@ -195,7 +195,7 @@ class _KasyaBaAffordabilitySheetModalState
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: DashboardTokens.bigStone,
-                  borderRadius: BorderRadius.circular(28),
+                  borderRadius: BorderRadius.circular(22),
                   border: Border.all(color: DashboardTokens.poloBlue22),
                 ),
                 child: Column(
@@ -715,12 +715,12 @@ class _SimulationResultCard extends StatelessWidget {
       children: [
         // ── Card 1: Safely affordable / Insufficient Funds Status ──
         Container(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
             color: DashboardTokens.bigStone,
-            borderRadius: BorderRadius.circular(28),
+            borderRadius: BorderRadius.circular(22),
             border: Border.all(
-              color: accentColor.withValues(alpha: 0.35),
+              color: DashboardTokens.poloBlue22,
               width: 1.0,
             ),
           ),
@@ -752,11 +752,8 @@ class _SimulationResultCard extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 decoration: BoxDecoration(
-                  color: DashboardTokens.ebony.withValues(alpha: 0.65),
+                  color: const Color(0xFF101E31),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: DashboardTokens.poloBlue22.withValues(alpha: 0.6),
-                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -771,7 +768,7 @@ class _SimulationResultCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Based on ${CurrencyFormatter.format(workHours.salaryAmount ?? 45000)} a month, ${CurrencyFormatter.format(workHours.hourlyWage > 0 ? workHours.hourlyWage : 255.68)} per hour, 176 work hours a month.',
+                      'Based on ${CurrencyFormatter.format(workHours.salaryAmount ?? 45000, decimalDigits: 0)} a month, ${CurrencyFormatter.format(workHours.hourlyWage > 0 ? workHours.hourlyWage : 255.68)} per hour, 176 work hours a month.',
                       style: GoogleFonts.dmSans(
                         fontSize: 12,
                         color: DashboardTokens.periwinkleGraySubtitle,
@@ -799,10 +796,10 @@ class _SimulationResultCard extends StatelessWidget {
 
         // ── Card 2: Payment details Formal Card ────────────────────
         Container(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
             color: DashboardTokens.bigStone,
-            borderRadius: BorderRadius.circular(28),
+            borderRadius: BorderRadius.circular(22),
             border: Border.all(color: DashboardTokens.poloBlue22),
           ),
           child: Column(
