@@ -73,7 +73,7 @@ class AuthBackButton extends StatelessWidget {
   }
 }
 
-// ── Capsule Inline Field (Node 11:3041-3045, height: 60, r=28, fill: Big Stone #16293F) ──
+// ── Capsule Inline Field (Node 11:3041-3045, height: 56, r=28, fill: Big Stone #16293F) ──
 class AuthCapsuleInlineField extends StatefulWidget {
   final String formControlName;
   final String label;
@@ -126,7 +126,7 @@ class _AuthCapsuleInlineFieldState extends State<AuthCapsuleInlineField> {
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
-      height: 60,
+      height: 56,
       padding: const EdgeInsets.symmetric(horizontal: 21),
       decoration: BoxDecoration(
         color: isDark ? AuthFigmaTokens.bigStone : AppColors.lightInputFill,
@@ -141,51 +141,72 @@ class _AuthCapsuleInlineFieldState extends State<AuthCapsuleInlineField> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Fixed width prefix label (Node 11:3042, w: 96)
+          // Fixed width prefix label (Node 11:3042, w: 72)
           SizedBox(
-            width: 80,
+            width: 72,
             child: Text(
               widget.label,
               style: GoogleFonts.dmSans(
-                color: isDark ? AuthFigmaTokens.periwinkleGraySubtitle : AppColors.lightTextSecondary,
+                color: isDark
+                    ? AuthFigmaTokens.periwinkleGraySubtitle
+                    : AppColors.lightTextSecondary,
                 fontSize: 14,
                 fontWeight: FontWeight.w400,
               ),
             ),
           ),
-          // Text Input Field (Node 11:3044-3045, fill, DM Sans Bold 16 #C9DCEA)
+          // Text Input Field without background discoloration (Node 11:3044-3045)
           Expanded(
-            child: ReactiveTextField<dynamic>(
-              formControlName: widget.formControlName,
-              focusNode: _focusNode,
-              keyboardType: widget.keyboardType,
-              textInputAction: widget.textInputAction,
-              onSubmitted: widget.onSubmitted != null
-                  ? (_) => widget.onSubmitted!()
-                  : null,
-              style: GoogleFonts.dmSans(
-                color: isDark ? AuthFigmaTokens.periwinkleGray : AppColors.lightTextPrimary,
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
+            child: Theme(
+              data: Theme.of(context).copyWith(
+                inputDecorationTheme: const InputDecorationTheme(
+                  filled: false,
+                  fillColor: Colors.transparent,
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  errorBorder: InputBorder.none,
+                  focusedErrorBorder: InputBorder.none,
+                  contentPadding: EdgeInsets.zero,
+                ),
               ),
-              decoration: InputDecoration(
-                isDense: true,
-                hintText: widget.hintText,
-                hintStyle: GoogleFonts.dmSans(
+              child: ReactiveTextField<dynamic>(
+                formControlName: widget.formControlName,
+                focusNode: _focusNode,
+                keyboardType: widget.keyboardType,
+                textInputAction: widget.textInputAction,
+                onSubmitted: widget.onSubmitted != null
+                    ? (_) => widget.onSubmitted!()
+                    : null,
+                style: GoogleFonts.dmSans(
                   color: isDark
-                      ? AuthFigmaTokens.periwinkleGray.withValues(alpha: 0.45)
-                      : const Color(0xFF94A3B8),
+                      ? AuthFigmaTokens.periwinkleGray
+                      : AppColors.lightTextPrimary,
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                 ),
-                contentPadding: EdgeInsets.zero,
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                errorBorder: InputBorder.none,
-                focusedErrorBorder: InputBorder.none,
+                decoration: InputDecoration(
+                  isDense: true,
+                  filled: false,
+                  fillColor: Colors.transparent,
+                  hoverColor: Colors.transparent,
+                  hintText: widget.hintText,
+                  hintStyle: GoogleFonts.dmSans(
+                    color: isDark
+                        ? AuthFigmaTokens.periwinkleGray.withValues(alpha: 0.45)
+                        : const Color(0xFF94A3B8),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  contentPadding: EdgeInsets.zero,
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  errorBorder: InputBorder.none,
+                  focusedErrorBorder: InputBorder.none,
+                ),
+                validationMessages: widget.validationMessages,
               ),
-              validationMessages: widget.validationMessages,
             ),
           ),
         ],

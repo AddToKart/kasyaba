@@ -72,28 +72,24 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
             isDark: isDark,
           ),
 
-          // ── Scrollable Content with Bottom-Pinned Button ──
+          // ── Main Layout: Top Form Content + Bottom Pinned Action Button ──
           SafeArea(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return SingleChildScrollView(
-                  physics: const ClampingScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 16,
-                  ),
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minHeight: constraints.maxHeight - 32,
-                      maxWidth: 350,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    physics: const ClampingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 16,
                     ),
                     child: Center(
-                      child: SizedBox(
-                        width: 350,
-                        child: IntrinsicHeight(
-                          child: ReactiveForm(
-                            formGroup: formGroup,
-                            child: Column(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 350),
+                        child: ReactiveForm(
+                          formGroup: formGroup,
+                          child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               // ── Back Button (Node 11:3032-3034, 50x50, r=24) ──
@@ -103,7 +99,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                                   onPressed: _handleBack,
                                 ),
                               ),
-                              const SizedBox(height: 14),
+                              const SizedBox(height: 24),
 
                               // ── Header Title (Node 11:3038) ──
                               Text(
@@ -121,7 +117,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
 
                               // ── Subtitle (Node 11:3040) ──
                               Text(
-                                'Enter the email you signed up with. We will send you a\nlink to choose a new password.',
+                                'Enter the email you signed up with. We will send you a link to choose a new password.',
                                 style: GoogleFonts.dmSans(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w400,
@@ -131,7 +127,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                                       : AppColors.lightTextSecondary,
                                 ),
                               ),
-                              const SizedBox(height: 14),
+                              const SizedBox(height: 24),
 
                               if (authState.error != null) ...[
                                 AuthErrorBanner(message: authState.error!),
@@ -177,7 +173,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                                 const SizedBox(height: 14),
                               ],
 
-                              // ── Email Input Capsule Card (Node 11:3041-3045, height: 60, r=28) ──
+                              // ── Email Input Capsule Card (Node 11:3041-3045, height: 56, r=28) ──
                               AuthCapsuleInlineField(
                                 formControlName: 'email',
                                 label: 'Email',
@@ -192,7 +188,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                                       'Enter a valid email address',
                                 },
                               ),
-                              const SizedBox(height: 14),
+                              const SizedBox(height: 16),
 
                               // ── Remembered it? Sign in (Node 11:3046-3049) ──
                               Row(
@@ -236,51 +232,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                                   ),
                                 ],
                               ),
-
-                              // Bottom spacer pushing the button towards y: 765
-                              const Spacer(),
-                              const SizedBox(height: 24),
-
-                              // ── Send reset link Button (Node 11:3050-3052, height: 56, r=28) ──
-                              SizedBox(
-                                height: 56,
-                                width: double.infinity,
-                                child: ElevatedButton(
-                                  onPressed: authState.isLoading
-                                      ? null
-                                      : _handleSendResetLink,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor:
-                                        AuthFigmaTokens.periwinkleGray,
-                                    foregroundColor: AuthFigmaTokens.ebony,
-                                    disabledBackgroundColor: AuthFigmaTokens
-                                        .poloBlue
-                                        .withValues(alpha: 0.5),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(28),
-                                    ),
-                                    elevation: 0,
-                                  ),
-                                  child: authState.isLoading
-                                      ? const SizedBox(
-                                          height: 22,
-                                          width: 22,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2.4,
-                                            color: AuthFigmaTokens.ebony,
-                                          ),
-                                        )
-                                      : Text(
-                                          'Send reset link',
-                                          style: GoogleFonts.dmSans(
-                                            color: AuthFigmaTokens.ebony,
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                        ),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
+                              const SizedBox(height: 16),
                             ],
                           ),
                         ),
@@ -288,8 +240,53 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                     ),
                   ),
                 ),
-              );
-              },
+
+                // ── Send reset link Button Pinned to Bottom (Node 11:3050-3052, height: 56, r=28) ──
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 350),
+                      child: SizedBox(
+                        height: 56,
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: authState.isLoading
+                              ? null
+                              : _handleSendResetLink,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AuthFigmaTokens.periwinkleGray,
+                            foregroundColor: AuthFigmaTokens.ebony,
+                            disabledBackgroundColor: AuthFigmaTokens.poloBlue
+                                .withValues(alpha: 0.5),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(28),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: authState.isLoading
+                              ? const SizedBox(
+                                  height: 22,
+                                  width: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.4,
+                                    color: AuthFigmaTokens.ebony,
+                                  ),
+                                )
+                              : Text(
+                                  'Send reset link',
+                                  style: GoogleFonts.dmSans(
+                                    color: AuthFigmaTokens.ebony,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
