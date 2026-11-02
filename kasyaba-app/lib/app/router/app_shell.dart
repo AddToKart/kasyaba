@@ -105,7 +105,7 @@ class _LuxuryFloatingDock extends StatelessWidget {
     _NavDestination(
       svgAsset: 'assets/images/nav_forecast.svg',
       fallbackIcon: Icons.insights_rounded,
-      label: 'Forecasting',
+      label: 'Forecast',
     ),
     _NavDestination(
       svgAsset: 'assets/images/nav_goals.svg',

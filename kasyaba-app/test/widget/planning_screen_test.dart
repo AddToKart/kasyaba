@@ -121,10 +121,9 @@ void main() {
     await tester.tap(testButton);
     await tester.pumpAndSettle();
 
-    // Modal sheet appears with Pay in full & Installment tabs
-    expect(find.text('KasyaBa? Purchase Simulator'), findsOneWidget);
+    // Modal sheet appears with Evaluate affordability title, tabs, and action button
+    expect(find.text('Evaluate affordability'), findsNWidgets(2));
     expect(find.text('Pay in full'), findsOneWidget);
     expect(find.text('Installment'), findsOneWidget);
-    expect(find.text('Forecast Pay in Full'), findsOneWidget);
   });
 }
