@@ -658,7 +658,29 @@ export async function generateAlertsFromSnapshot(userId: string): Promise<void> 
 
   // --- Health Score Alert ---
   const healthGrade = currentSnapshot.healthGrade;
-  if (healthGrade === 'Needs Attention' || healthGrade === 'Fair') {
+  const hasFinancialActivity =
+    toDecimalOrZero(currentSnapshot.incomeMonthToDate).gt(0) ||
+    toDecimalOrZero(currentSnapshot.expensesMonthToDate).gt(0) ||
+    toDecimalOrZero(currentSnapshot.actualBalance).gt(0);
+
+  if (!hasFinancialActivity) {
+    // New account with no transactions or balance yet: clear premature health warnings
+    await alertService.resolveAlertsByKey(userId, `${userId}:health_score:`);
+
+    // Surface the onboarding notification matching Figma Node 13:6204
+    const welcomeKey = `${userId}:welcome`;
+    await alertService.createAlert({
+      userId,
+      snapshotId: currentSnapshot.id,
+      type: 'info',
+      severity: 'info',
+      title: 'Welcome to Kasyaba',
+      message: 'Add your salary and payday to see your forecast.',
+      reasonData: { isNewUser: true },
+      effectiveDate: now,
+      deduplicationKey: welcomeKey,
+    });
+  } else if (healthGrade === 'Needs Attention' || healthGrade === 'Fair') {
     const key = `${userId}:health_score:${currentYearMonth}`;
     await alertService.createAlert({
       userId,
