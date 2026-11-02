@@ -75,35 +75,35 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: isDark ? AppColors.surface800 : AppColors.lightCardSurface,
+        backgroundColor: isDark ? const Color(0xFF0F1E30) : AppColors.lightCardSurface,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(20),
           side: BorderSide(
-            color: isDark ? const Color(0x14FFFFFF) : AppColors.lightBorderHairline,
+            color: isDark ? const Color(0x3344688E) : AppColors.lightBorderHairline,
           ),
         ),
         title: Row(
           children: [
             const Icon(
               Icons.lock_reset_rounded,
-              color: AppColors.gold400,
+              color: Color(0xFF90BDE8),
               size: 22,
             ),
             const SizedBox(width: 10),
             Text(
               'Reset Password',
               style: TextStyle(
-                color: AppColors.textPrimary(isDark),
-                fontWeight: FontWeight.w800,
+                color: isDark ? Colors.white : AppColors.lightTextPrimary,
+                fontWeight: FontWeight.w700,
                 fontSize: 17,
               ),
             ),
           ],
         ),
         content: const Text(
-          'For your privacy and security, password resets are processed via your verified email address or master recovery key. Contact support or your administrator to request a reset token.',
+          'Enter the email you signed up with. We will send you a link to choose a new password.',
           style: TextStyle(
-            color: AppColors.textMuted,
+            color: Color(0xFF8BA5C3),
             fontSize: 13,
             height: 1.5,
           ),
@@ -114,7 +114,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             child: const Text(
               'Understood',
               style: TextStyle(
-                color: AppColors.emerald400,
+                color: Color(0xFFD8E7F6),
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -131,10 +131,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.obsidian : AppColors.lightScaffold,
+      backgroundColor: isDark ? const Color(0xFF070C14) : AppColors.lightScaffold,
       body: Stack(
         children: [
-          // ── Background with grid & emerald aura ───────────
+          // ── Background with deep navy radar arcs ──────────
           AuthBackground(
             rotateAnimation: _bgRotate,
             isDark: isDark,
@@ -148,7 +148,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                 physics: const ClampingScrollPhysics(),
                 padding: const EdgeInsets.symmetric(
                   horizontal: 22,
-                  vertical: 24,
+                  vertical: 20,
                 ),
                 child: FadeTransition(
                   opacity: _fadeIn,
@@ -159,37 +159,44 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          // ── Upgraded Brand Header Lockup ──
-                          const AuthBrandHeader(),
-                          const SizedBox(height: 24),
-
-                          // ── Screen Title ──────────────────
-                          Center(
-                            child: Column(
-                              children: [
-                                Text(
-                                  'Welcome Back',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 26,
-                                    letterSpacing: -0.6,
-                                    color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
-                                  ),
-                                ),
-                                SizedBox(height: 6),
-                                Text(
-                                  'Sign in to access your financial runway',
-                                  style: TextStyle(
-                                    fontSize: 13.5,
-                                    color: AppColors.textMuted,
-                                    height: 1.4,
-                                  ),
-                                ),
-                              ],
-                            ),
+                          // ── Top Brand Header Lockup ────────
+                          const Align(
+                            alignment: Alignment.centerLeft,
+                            child: AuthBrandHeader(),
                           ),
-                          const SizedBox(height: 28),
+                          const SizedBox(height: 12),
+
+                          // ── Runway Spline Graphic & Tooltip ─
+                          const RunwaySplineHero(
+                            tooltipText: 'Can I afford it?',
+                          ),
+                          const SizedBox(height: 16),
+
+                          // ── Screen Title & Subtitle ────────
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Welcome back.',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 30,
+                                  letterSpacing: -0.6,
+                                  color: isDark ? Colors.white : AppColors.lightTextPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              const Text(
+                                'Pick up where your runway left off.',
+                                style: TextStyle(
+                                  fontSize: 13.5,
+                                  color: Color(0xFF849BB5),
+                                  height: 1.4,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 22),
 
                           // ── Glassmorphic Form Card ────────
                           AuthFormCard(
@@ -200,15 +207,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                   AuthErrorBanner(
                                     message: authState.error!,
                                   ),
-                                  const SizedBox(height: 18),
+                                  const SizedBox(height: 16),
                                 ],
 
-                                // Explicit label + envelope icon
+                                // EMAIL Field
                                 AuthReactiveField(
                                   formControlName: 'email',
-                                  label: 'Email Address',
+                                  label: 'Email',
                                   hintText: 'name@example.com',
-                                  prefixIcon: Icons.mail_outline_rounded,
                                   keyboardType: TextInputType.emailAddress,
                                   textInputAction: TextInputAction.next,
                                   validationMessages: {
@@ -220,12 +226,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                 ),
                                 const SizedBox(height: 16),
 
-                                // Explicit label + lock icon
+                                // PASSWORD Field
                                 AuthReactiveField(
                                   formControlName: 'password',
                                   label: 'Password',
                                   hintText: '••••••••',
-                                  prefixIcon: Icons.lock_outline_rounded,
                                   obscureText: _obscurePassword,
                                   textInputAction: TextInputAction.done,
                                   onSubmitted: _handleLogin,
@@ -239,7 +244,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                           : Icons.visibility_outlined,
                                       size: 19,
                                     ),
-                                    color: const Color(0xFF64748B),
+                                    color: const Color(0xFF5B7591),
                                     onPressed: () => setState(
                                       () =>
                                           _obscurePassword = !_obscurePassword,
@@ -250,9 +255,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                         'Password is required',
                                   },
                                 ),
-                                const SizedBox(height: 10),
+                                const SizedBox(height: 8),
 
-                                // Right-aligned "Forgot Password?" link
+                                // Right-aligned "Forgot password?" link
                                 Align(
                                   alignment: Alignment.centerRight,
                                   child: TextButton(
@@ -260,7 +265,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                         _showForgotPasswordHelp(context),
                                     style: TextButton.styleFrom(
                                       padding: const EdgeInsets.symmetric(
-                                        horizontal: 4,
+                                        horizontal: 2,
                                         vertical: 2,
                                       ),
                                       minimumSize: Size.zero,
@@ -268,64 +273,65 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                           MaterialTapTargetSize.shrinkWrap,
                                     ),
                                     child: const Text(
-                                      'Forgot Password?',
+                                      'Forgot password?',
                                       style: TextStyle(
-                                        color: Color(0xFF94A3B8),
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF8BA5C3),
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.w500,
                                       ),
                                     ),
                                   ),
                                 ),
                                 const SizedBox(height: 18),
 
-                                // Primary Sign In button (12px radius)
-                                AuthGradientButton(
+                                // High-contrast soft ice-blue pill button
+                                AuthPrimaryPillButton(
                                   isLoading: authState.isLoading,
                                   onPressed: _handleLogin,
-                                  label: 'Sign In',
+                                  label: 'Sign in',
                                 ),
                               ],
                             ),
                           ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 22),
 
                           // ── Register Navigation Link ──────
                           Center(
-                            child: TextButton(
-                              onPressed: () => context.go('/register'),
-                              style: TextButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 8,
-                                ),
-                              ),
-                              child: RichText(
-                                text: const TextSpan(
-                                  children: [
-                                    TextSpan(
-                                      text: "Don't have an account?  ",
-                                      style: TextStyle(
-                                        color: Color(0xFF94A3B8),
-                                        fontSize: 13.5,
+                            child: GestureDetector(
+                              onTap: () => context.go('/register'),
+                              behavior: HitTestBehavior.opaque,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 4),
+                                child: RichText(
+                                  text: const TextSpan(
+                                    children: [
+                                      TextSpan(
+                                        text: 'New to Kasyaba? ',
+                                        style: TextStyle(
+                                          color: Color(0xFF7E98B5),
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w400,
+                                        ),
                                       ),
-                                    ),
-                                    TextSpan(
-                                      text: 'Create one',
-                                      style: TextStyle(
-                                        color: AppColors.emerald400,
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 13.5,
+                                      TextSpan(
+                                        text: 'Create account',
+                                        style: TextStyle(
+                                          color: Color(0xFFE0EDFA),
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 13,
+                                          decoration: TextDecoration.underline,
+                                          decorationColor: Color(0xFFE0EDFA),
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 14),
 
-                          // ── Bottom Trust Footer ───────────
+                          // ── Bottom Reassurance Footnote ───
                           const AuthTrustFooter(),
                         ],
                       ),

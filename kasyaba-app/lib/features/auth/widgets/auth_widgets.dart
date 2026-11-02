@@ -6,69 +6,244 @@ import '../../../app/theme/app_theme.dart';
 ///  Auth Design System — Luxury Dark Fintech Auth Widgets
 /// ─────────────────────────────────────────────────────────────
 
-// ── Background with soft radial emerald glow and subtle grid ──
+// ── Background with deep navy night gradient and concentric radar arcs ──
 class AuthBackground extends StatelessWidget {
-  final Animation<double> rotateAnimation;
+  final Animation<double>? rotateAnimation;
   final bool isDark;
   final Size size;
 
   const AuthBackground({
     super.key,
-    required this.rotateAnimation,
+    this.rotateAnimation,
     required this.isDark,
     required this.size,
   });
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: rotateAnimation,
-      builder: (_, _) {
-        return Container(
-          width: size.width,
-          height: size.height,
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.obsidian : AppColors.lightScaffold,
+    final center = Offset(size.width * 0.78, size.height * 0.18);
+    return Container(
+      width: size.width,
+      height: size.height,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+          colors: isDark
+              ? const [
+                  Color(0xFF13253B), // Soft ambient indigo navy top right
+                  Color(0xFF0C1725), // Mid slate navy
+                  Color(0xFF060B12), // Deep obsidian bottom left
+                ]
+              : const [
+                  Color(0xFFF1F5F9),
+                  Color(0xFFE2E8F0),
+                  Color(0xFFCBD5E1),
+                ],
+          stops: const [0.0, 0.45, 1.0],
+        ),
+      ),
+      child: Stack(
+        children: [
+          // Ambient radial glow behind the top right radar center
+          Positioned(
+            left: center.dx - 220,
+            top: center.dy - 220,
+            child: Container(
+              width: 440,
+              height: 440,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    Color(0x381E4878),
+                    Colors.transparent,
+                  ],
+                  radius: 0.7,
+                ),
+              ),
+            ),
           ),
-          child: Stack(
-            children: [
-              // Subtle background grid
-              _GridOverlay(size: size),
+          // Concentric radar arcs
+          CustomPaint(
+            size: size,
+            painter: _RadarArcsPainter(
+              center: center,
+              radiusStep: 58.0,
+              count: 10,
+              color: isDark
+                  ? const Color(0x221F4A6E)
+                  : const Color(0x2894A3B8),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
-              // Soft radial emerald glow positioned behind header
-              Positioned(
-                top: -40,
-                left: (size.width - 340) / 2,
-                child: Container(
-                  width: 340,
-                  height: 300,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        Color.fromRGBO(16, 185, 129, 0.14),
-                        Colors.transparent,
-                      ],
-                      radius: 0.8,
-                    ),
-                  ),
+class _RadarArcsPainter extends CustomPainter {
+  final Offset center;
+  final double radiusStep;
+  final int count;
+  final Color color;
+
+  _RadarArcsPainter({
+    required this.center,
+    this.radiusStep = 58.0,
+    this.count = 10,
+    required this.color,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+
+    for (int i = 1; i <= count; i++) {
+      canvas.drawCircle(center, i * radiusStep, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _RadarArcsPainter oldDelegate) =>
+      oldDelegate.center != center || oldDelegate.color != color;
+}
+
+// ── Kasyaba 3-Pill Logo Mark ──
+class KasyabaLogoMark extends StatelessWidget {
+  final double scale;
+  const KasyabaLogoMark({super.key, this.scale = 1.0});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 24 * scale,
+          height: 4.5 * scale,
+          decoration: BoxDecoration(
+            color: const Color(0xFF90BDE8),
+            borderRadius: BorderRadius.circular(3),
+          ),
+        ),
+        SizedBox(height: 3.5 * scale),
+        Container(
+          width: 17 * scale,
+          height: 4.5 * scale,
+          decoration: BoxDecoration(
+            color: const Color(0xFF5A91C8),
+            borderRadius: BorderRadius.circular(3),
+          ),
+        ),
+        SizedBox(height: 3.5 * scale),
+        Container(
+          width: 11 * scale,
+          height: 4.5 * scale,
+          decoration: BoxDecoration(
+            color: const Color(0xFF386A9E),
+            borderRadius: BorderRadius.circular(3),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Cohesive Brand Lockup Header ──
+class AuthBrandHeader extends StatelessWidget {
+  const AuthBrandHeader({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        const KasyabaLogoMark(),
+        const SizedBox(width: 10),
+        Text(
+          'Kasyaba',
+          style: TextStyle(
+            color: isDark ? Colors.white : AppColors.lightTextPrimary,
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.3,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Runway Hero Spline with Inflection Node and "Can I afford it?" Tooltip ──
+class RunwaySplineHero extends StatelessWidget {
+  final String tooltipText;
+  const RunwaySplineHero({
+    super.key,
+    this.tooltipText = 'Can I afford it?',
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        const height = 98.0;
+        final crestX = width * 0.70;
+        const crestY = 28.0;
+
+        return SizedBox(
+          width: width,
+          height: height,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              // Curve, dashed drop line, and glowing inflection node
+              CustomPaint(
+                size: Size(width, height),
+                painter: _RunwaySplinePainter(
+                  crestX: crestX,
+                  crestY: crestY,
                 ),
               ),
 
-              // Subtle champagne gold orb lower-left
+              // Floating "Can I afford it?" pill tooltip
               Positioned(
-                bottom: -size.height * 0.1,
-                left: -size.width * 0.2,
+                top: 0,
+                left: (crestX - 60).clamp(0.0, width - 130),
                 child: Container(
-                  width: size.width * 0.6,
-                  height: size.width * 0.6,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 5.5,
+                  ),
                   decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        AppColors.gold400.withValues(alpha: 0.06),
-                        Colors.transparent,
-                      ],
+                    color: const Color(0x660E1C2E),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: const Color(0x388FBCE6),
+                      width: 1.0,
+                    ),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x22000000),
+                        blurRadius: 8,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Text(
+                    tooltipText,
+                    style: const TextStyle(
+                      color: Color(0xFFD6E4F0),
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 0.1,
                     ),
                   ),
                 ),
@@ -81,171 +256,97 @@ class AuthBackground extends StatelessWidget {
   }
 }
 
-class _GridOverlay extends StatelessWidget {
-  final Size size;
-  const _GridOverlay({required this.size});
+class _RunwaySplinePainter extends CustomPainter {
+  final double crestX;
+  final double crestY;
 
-  @override
-  Widget build(BuildContext context) =>
-      CustomPaint(size: size, painter: _GridPainter());
-}
+  _RunwaySplinePainter({
+    required this.crestX,
+    required this.crestY,
+  });
 
-class _GridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0x0FFFFFFF) // subtle grid line
-      ..strokeWidth = 0.5;
-    const step = 44.0;
-    for (double x = 0; x < size.width; x += step) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-    for (double y = 0; y < size.height; y += step) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
-    }
-  }
+    final width = size.width;
+    final height = size.height;
 
-  @override
-  bool shouldRepaint(_GridPainter old) => false;
-}
-
-// ── Cohesive Brand Lockup Header ──
-class AuthBrandHeader extends StatelessWidget {
-  const AuthBrandHeader({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Sleek differentiator pill badge above brand
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-          decoration: BoxDecoration(
-            color: const Color(0x330F172A),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: AppColors.emerald500.withValues(alpha: 0.28),
-              width: 1,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.emerald500.withValues(alpha: 0.08),
-                blurRadius: 10,
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 6,
-                height: 6,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.emerald400,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.emerald400.withValues(alpha: 0.6),
-                      blurRadius: 5,
-                      spreadRadius: 1,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 7),
-              const Text(
-                '100% Deterministic • Zero AI • Private',
-                style: TextStyle(
-                  color: AppColors.emerald400,
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.6,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        // Brand Lockup: Geometric Emblem + Bold Wordmark
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Custom Geometric Emblem
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(13),
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF18181B), Color(0xFF121215)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                border: Border.all(
-                  color: AppColors.emerald500.withValues(alpha: 0.45),
-                  width: 1.2,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.emerald500.withValues(alpha: 0.25),
-                    blurRadius: 16,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Transform.rotate(
-                    angle: 0.785398, // 45 degrees diamond
-                    child: Container(
-                      width: 18,
-                      height: 18,
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: const Color(0x66D4AF37), // hairline gold
-                          width: 1,
-                        ),
-                        borderRadius: BorderRadius.circular(3),
-                      ),
-                    ),
-                  ),
-                  const Icon(
-                    Icons.account_balance_wallet_rounded,
-                    color: AppColors.emerald400,
-                    size: 20,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-
-            // Bold KASYABA wordmark
-            Builder(
-              builder: (ctx) {
-                final isDark = Theme.of(ctx).brightness == Brightness.dark;
-                return Text(
-                  'KASYABA',
-                  style: TextStyle(
-                    color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 26,
-                    letterSpacing: 2.4,
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
-      ],
+    // 1. Spline curve
+    final path = Path();
+    path.moveTo(0, height * 0.68);
+    // Undulate gently then swoops up
+    path.cubicTo(
+      width * 0.22,
+      height * 0.50,
+      width * 0.38,
+      height * 0.78,
+      width * 0.52,
+      height * 0.58,
     );
+    // Smooth rise to crest
+    path.cubicTo(
+      width * 0.62,
+      height * 0.40,
+      crestX - 12,
+      crestY,
+      crestX,
+      crestY,
+    );
+    // Smooth trail off
+    path.cubicTo(
+      crestX + 22,
+      crestY,
+      width * 0.90,
+      crestY + 12,
+      width,
+      crestY + 8,
+    );
+
+    final curvePaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.92)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.2
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawPath(path, curvePaint);
+
+    // 2. Vertical dashed line dropping down from crest
+    final dashPaint = Paint()
+      ..color = const Color(0x40FFFFFF)
+      ..strokeWidth = 1.2;
+
+    const dashLength = 3.5;
+    const dashSpace = 3.5;
+    double currentY = crestY + 9;
+    final bottomY = height;
+
+    while (currentY < bottomY) {
+      canvas.drawLine(
+        Offset(crestX, currentY),
+        Offset(crestX, (currentY + dashLength).clamp(crestY, bottomY)),
+        dashPaint,
+      );
+      currentY += dashLength + dashSpace;
+    }
+
+    // 3. Crest node (outer halo ring + inner dot)
+    final haloPaint = Paint()
+      ..color = const Color(0x66FFFFFF)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+    canvas.drawCircle(Offset(crestX, crestY), 6.5, haloPaint);
+
+    final dotPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(Offset(crestX, crestY), 2.8, dotPaint);
   }
+
+  @override
+  bool shouldRepaint(covariant _RunwaySplinePainter oldDelegate) =>
+      oldDelegate.crestX != crestX || oldDelegate.crestY != crestY;
 }
 
-// ── Glassmorphic Form Card (rgba(15, 23, 42, 0.75) with blur: 12px) ──
+// ── Glassmorphic Form Card ──
 class AuthFormCard extends StatelessWidget {
   final Widget child;
 
@@ -258,17 +359,28 @@ class AuthFormCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(22),
       child: Container(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.surface800 : AppColors.lightCardSurface,
-          borderRadius: BorderRadius.circular(16),
+          color: isDark
+              ? const Color(0xCC0E1A2B) // Translucent deep navy
+              : AppColors.lightCardSurface,
+          borderRadius: BorderRadius.circular(22),
           border: Border.all(
-            color: AppColors.subtleBorderAdaptive(isDark),
-            width: 1,
+            color: isDark
+                ? const Color(0x3344688E) // Subtle navy etched border
+                : AppColors.lightBorderHairline,
+            width: 1.0,
           ),
-          boxShadow: const [],
+          boxShadow: [
+            if (isDark)
+              const BoxShadow(
+                color: Color(0x40000000),
+                blurRadius: 20,
+                offset: Offset(0, 8),
+              ),
+          ],
         ),
         child: child,
       ),
@@ -281,7 +393,7 @@ class AuthReactiveField extends StatefulWidget {
   final String formControlName;
   final String label;
   final String hintText;
-  final IconData prefixIcon;
+  final IconData? prefixIcon;
   final bool obscureText;
   final Widget? suffixIcon;
   final TextInputType? keyboardType;
@@ -294,7 +406,7 @@ class AuthReactiveField extends StatefulWidget {
     required this.formControlName,
     required this.label,
     required this.hintText,
-    required this.prefixIcon,
+    this.prefixIcon,
     this.obscureText = false,
     this.suffixIcon,
     this.keyboardType,
@@ -332,8 +444,8 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    const unfocusedIconColor = Color(0xFF64748B); // Muted slate
-    const focusedIconColor = AppColors.emerald500; // #10B981
+    final unfocusedIconColor = isDark ? const Color(0xFF5B7591) : const Color(0xFF64748B);
+    final focusedIconColor = isDark ? const Color(0xFF90BDE8) : AppColors.emerald500;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -341,11 +453,11 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
         // Explicit, crisp typography label
         Text(
           widget.label.toUpperCase(),
-          style: const TextStyle(
-            color: Color(0xFF94A3B8),
+          style: TextStyle(
+            color: isDark ? const Color(0xFF7E98B5) : AppColors.lightTextSecondary,
             fontSize: 11,
             fontWeight: FontWeight.w700,
-            letterSpacing: 0.8,
+            letterSpacing: 1.1,
           ),
         ),
         const SizedBox(height: 8),
@@ -353,7 +465,7 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
         AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(14),
             boxShadow: const [],
           ),
           child: ReactiveTextField<dynamic>(
@@ -366,51 +478,53 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
                 ? (_) => widget.onSubmitted!()
                 : null,
             style: TextStyle(
-              color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
-              fontSize: 14,
+              color: isDark ? Colors.white : AppColors.lightTextPrimary,
+              fontSize: 14.5,
               fontWeight: FontWeight.w500,
             ),
             decoration: InputDecoration(
               hintText: widget.hintText,
-              hintStyle: const TextStyle(
-                color: Color(0xFF475569),
+              hintStyle: TextStyle(
+                color: isDark ? const Color(0xFF475E76) : const Color(0xFF94A3B8),
                 fontSize: 14,
               ),
               filled: true,
-              fillColor: isDark ? AppColors.surface700 : AppColors.lightInputFill,
+              fillColor: isDark ? const Color(0xFF09121D) : AppColors.lightInputFill,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
                 vertical: 14,
               ),
-              prefixIcon: Icon(
-                widget.prefixIcon,
-                color: _isFocused ? focusedIconColor : unfocusedIconColor,
-                size: 20,
-              ),
+              prefixIcon: widget.prefixIcon != null
+                  ? Icon(
+                      widget.prefixIcon,
+                      color: _isFocused ? focusedIconColor : unfocusedIconColor,
+                      size: 20,
+                    )
+                  : null,
               suffixIcon: widget.suffixIcon,
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(14),
                 borderSide: BorderSide(
-                  color: isDark ? const Color(0x14FFFFFF) : AppColors.lightBorderHairline,
+                  color: isDark ? const Color(0x333A526E) : AppColors.lightBorderHairline,
                   width: 1,
                 ),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(
-                  color: focusedIconColor, // #10B981
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(
+                  color: isDark ? const Color(0xFF6B9ED4) : focusedIconColor,
                   width: 1.2,
                 ),
               ),
               errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(14),
                 borderSide: const BorderSide(
                   color: AppColors.expense,
                   width: 1,
                 ),
               ),
               focusedErrorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(14),
                 borderSide: const BorderSide(
                   color: AppColors.expense,
                   width: 1.2,
@@ -421,6 +535,55 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
           ),
         ),
       ],
+    );
+  }
+}
+
+// ── Primary High-Contrast Pill Button (Carbon copy of Figma) ──
+class AuthPrimaryPillButton extends StatelessWidget {
+  final bool isLoading;
+  final VoidCallback onPressed;
+  final String label;
+
+  const AuthPrimaryPillButton({
+    super.key,
+    required this.isLoading,
+    required this.onPressed,
+    required this.label,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton(
+      onPressed: isLoading ? null : onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFFD8E7F6),
+        foregroundColor: const Color(0xFF0B1624),
+        disabledBackgroundColor: const Color(0xFF8BA5C3),
+        minimumSize: const Size.fromHeight(50),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(28),
+        ),
+        elevation: 0,
+      ),
+      child: isLoading
+          ? const SizedBox(
+              height: 20,
+              width: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.2,
+                color: Color(0xFF0B1624),
+              ),
+            )
+          : Text(
+              label,
+              style: const TextStyle(
+                color: Color(0xFF0B1624),
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.2,
+              ),
+            ),
     );
   }
 }
@@ -496,39 +659,21 @@ class AuthGradientButton extends StatelessWidget {
   }
 }
 
-// ── Bottom Trust Footer ──
+// ── Bottom Reassurance Footnote (Carbon copy of Figma) ──
 class AuthTrustFooter extends StatelessWidget {
   const AuthTrustFooter({super.key});
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.surface800 : AppColors.lightCardSurface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.subtleBorderAdaptive(isDark)),
-      ),
-      child: const Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.shield_outlined,
-            size: 13,
-            color: AppColors.emerald500,
-          ),
-          SizedBox(width: 6),
-          Text(
-            '100% Deterministic • Zero AI',
-            style: TextStyle(
-              color: AppColors.textMuted,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.3,
-            ),
-          ),
-        ],
+    return Text(
+      'Calculated on your device. Your numbers stay yours.',
+      textAlign: TextAlign.center,
+      style: TextStyle(
+        color: isDark ? const Color(0xFF5B7591) : AppColors.lightTextSecondary,
+        fontSize: 11.5,
+        fontWeight: FontWeight.w400,
+        letterSpacing: 0.1,
       ),
     );
   }

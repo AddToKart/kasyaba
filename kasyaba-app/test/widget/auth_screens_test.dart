@@ -18,31 +18,31 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 1000));
 
-    // Brand lockup and differentiator badge
-    expect(find.text('KASYABA'), findsOneWidget);
-    expect(find.text('100% Deterministic • Zero AI • Private'), findsOneWidget);
+    // Brand lockup and runway badge
+    expect(find.text('Kasyaba'), findsOneWidget);
+    expect(find.text('Can I afford it?'), findsOneWidget);
 
     // Title and subtitle
-    expect(find.text('Welcome Back'), findsOneWidget);
-    expect(find.text('Sign in to access your financial runway'), findsOneWidget);
+    expect(find.text('Welcome back.'), findsOneWidget);
+    expect(find.text('Pick up where your runway left off.'), findsOneWidget);
 
     // Explicit typography labels
-    expect(find.text('EMAIL ADDRESS'), findsOneWidget);
+    expect(find.text('EMAIL'), findsOneWidget);
     expect(find.text('PASSWORD'), findsOneWidget);
 
     // Forgot password link
-    expect(find.text('Forgot Password?'), findsOneWidget);
+    expect(find.text('Forgot password?'), findsOneWidget);
 
-    // Primary Sign In button
-    expect(find.text('Sign In'), findsOneWidget);
+    // Primary Sign in button
+    expect(find.text('Sign in'), findsOneWidget);
     expect(find.text('OR'), findsNothing);
     expect(find.text('Continue with Demo Account'), findsNothing);
 
-    // Bottom trust footer
-    expect(find.text('100% Deterministic • Zero AI'), findsOneWidget);
+    // Bottom reassurance footnote
+    expect(find.text('Calculated on your device. Your numbers stay yours.'), findsOneWidget);
 
     // Test Forgot Password dialog
-    await tester.tap(find.text('Forgot Password?'));
+    await tester.tap(find.text('Forgot password?'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
@@ -70,8 +70,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 1000));
 
     // Brand lockup and header
-    expect(find.text('KASYABA'), findsOneWidget);
-    expect(find.text('100% Deterministic • Zero AI • Private'), findsOneWidget);
+    expect(find.text('Kasyaba'), findsOneWidget);
     expect(find.text('Create Account'), findsNWidgets(2));
 
     // Explicit labels
@@ -81,7 +80,7 @@ void main() {
     expect(find.text('CONFIRM PASSWORD'), findsOneWidget);
 
     // Trust footer and terms note
-    expect(find.text('100% Deterministic • Zero AI'), findsOneWidget);
+    expect(find.text('Calculated on your device. Your numbers stay yours.'), findsOneWidget);
     expect(find.textContaining('Terms of Service and Privacy Policy'), findsOneWidget);
 
     // Enter a password to trigger strength indicator
