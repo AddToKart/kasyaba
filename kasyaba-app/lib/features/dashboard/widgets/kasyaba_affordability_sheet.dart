@@ -13,11 +13,17 @@ import 'kasyaba_safe_spend_breakdown_sheet.dart';
 ///  KasyaBa? Purchase Simulator Modal (Nodes 85:1409, 103:158, 103:321)
 /// ─────────────────────────────────────────────────────────────
 void showKasyaBaAffordabilitySheet(BuildContext context) {
+  final topPadding = MediaQuery.paddingOf(context).top;
+  final screenHeight = MediaQuery.sizeOf(context).height;
+
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
     barrierColor: Colors.black.withValues(alpha: 0.75),
+    constraints: BoxConstraints(
+      maxHeight: screenHeight - topPadding - 32,
+    ),
     builder: (ctx) => const _KasyaBaAffordabilitySheetModal(),
   );
 }
@@ -127,19 +133,24 @@ class _KasyaBaAffordabilitySheetModalState
       );
     }
 
+    final topPadding = MediaQuery.paddingOf(context).top;
+    final screenHeight = MediaQuery.sizeOf(context).height;
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    final maxAllowedHeight = screenHeight - topPadding - 32;
 
-    return Container(
-      decoration: const BoxDecoration(
-        color: DashboardTokens.ebony,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-        border: Border(
-          top: BorderSide(color: DashboardTokens.poloBlue22, width: 1.0),
-        ),
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: maxAllowedHeight,
       ),
-      padding: EdgeInsets.fromLTRB(20, 12, 20, bottomInset + 24),
-      child: SafeArea(
-        top: false,
+      child: Container(
+        decoration: const BoxDecoration(
+          color: DashboardTokens.ebony,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+          border: Border(
+            top: BorderSide(color: DashboardTokens.poloBlue22, width: 1.0),
+          ),
+        ),
+        padding: EdgeInsets.fromLTRB(20, 12, 20, bottomInset + 24),
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -838,18 +849,19 @@ class _SimulationResultCard extends StatelessWidget {
                     : '-${CurrencyFormatter.format(installmentComp?.installmentDailySafeSpendImpact ?? 0)}',
                 valueColor: DashboardTokens.apricot,
               ),
-              const SizedBox(height: 14),
-              _MetricRow(
-                label: 'Interest',
-                value: (mode == _PaymentMode.payInFull ||
-                        (installmentComp?.totalInterest ?? 0) == 0)
-                    ? '₱0'
-                    : CurrencyFormatter.format(installmentComp!.totalInterest),
-                valueColor: (mode == _PaymentMode.payInFull ||
-                        (installmentComp?.totalInterest ?? 0) == 0)
-                    ? DashboardTokens.bermuda
-                    : DashboardTokens.apricot,
-              ),
+              if (mode == _PaymentMode.installment) ...[
+                const SizedBox(height: 14),
+                _MetricRow(
+                  label: 'Interest',
+                  value: (installmentComp?.totalInterest ?? 0) == 0
+                      ? '₱0'
+                      : CurrencyFormatter.format(
+                          installmentComp!.totalInterest),
+                  valueColor: (installmentComp?.totalInterest ?? 0) == 0
+                      ? DashboardTokens.bermuda
+                      : DashboardTokens.apricot,
+                ),
+              ],
               const SizedBox(height: 16),
 
               // View Math Breakdown Link Button
