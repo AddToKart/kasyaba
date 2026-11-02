@@ -133,3 +133,4 @@ class _QuickStatCard extends StatelessWidget {
     );
   }
 }
+

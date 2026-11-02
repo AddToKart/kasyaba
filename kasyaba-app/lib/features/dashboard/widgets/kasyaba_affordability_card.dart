@@ -74,3 +74,4 @@ class KasyaBaAffordabilityCard extends StatelessWidget {
     );
   }
 }
+

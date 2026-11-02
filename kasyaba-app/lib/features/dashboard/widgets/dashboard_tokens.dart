@@ -35,3 +35,4 @@ class DashboardTokens {
     stops: [0.0, 0.7],
   );
 }
+

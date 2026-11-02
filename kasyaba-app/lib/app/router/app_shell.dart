@@ -48,7 +48,7 @@ class AppShell extends StatelessWidget {
     if (location.startsWith('/planning') || location.startsWith('/bills')) return 2;
     if (location.startsWith('/goals')) return 3;
     if (location.startsWith('/settings')) return 4;
-    if (location.startsWith('/dashboard')) return 0;
+    if (location.startsWith('/dashboard') || location == '/') return 0;
     return 0;
   }
 
@@ -149,6 +149,7 @@ class _LuxuryFloatingDock extends StatelessWidget {
             filter: ImageFilter.blur(sigmaX: 7, sigmaY: 7),
             child: Container(
               height: 68,
+              padding: const EdgeInsets.all(7),
               decoration: BoxDecoration(
                 color: DashboardTokens.ebony85,
                 borderRadius: BorderRadius.circular(34),
@@ -159,14 +160,15 @@ class _LuxuryFloatingDock extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  for (int i = 0; i < _destinations.length; i++)
-                    Expanded(
-                      child: _NavItem(
-                        destination: _destinations[i],
-                        isSelected: selectedIndex == i,
-                        onTap: () => onDestinationSelected(i),
-                      ),
+                  for (int i = 0; i < _destinations.length; i++) ...[
+                    _NavItem(
+                      destination: _destinations[i],
+                      isSelected: selectedIndex == i,
+                      onTap: () => onDestinationSelected(i),
                     ),
+                    if (i < _destinations.length - 1)
+                      const SizedBox(width: 4),
+                  ],
                 ],
               ),
             ),
@@ -202,38 +204,58 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isSelected
-        ? DashboardTokens.periwinkleGray
-        : DashboardTokens.periwinkleGraySubtitle.withValues(alpha: 0.7);
+    final fgColor = isSelected
+        ? DashboardTokens.ebony
+        : DashboardTokens.periwinkleGraySubtitle;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
+    return Expanded(
+      child: GestureDetector(
         onTap: () {
           AppHaptics.selectionClick();
           onTap();
         },
-        splashColor: DashboardTokens.periwinkleGray.withValues(alpha: 0.08),
-        highlightColor: Colors.transparent,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SvgPicture.asset(
-              destination.svgAsset,
-              width: 20,
-              height: 20,
-              colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              destination.label,
-              style: GoogleFonts.dmSans(
-                color: color,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+          height: 54,
+          decoration: BoxDecoration(
+            color: isSelected
+                ? DashboardTokens.periwinkleGray
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(27),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 6),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SvgPicture.asset(
+                destination.svgAsset,
+                width: 20,
+                height: 20,
+                colorFilter: ColorFilter.mode(fgColor, BlendMode.srcIn),
               ),
-            ),
-          ],
+              const SizedBox(height: 3),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    destination.label,
+                    maxLines: 1,
+                    softWrap: false,
+                    style: GoogleFonts.dmSans(
+                      color: fgColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
