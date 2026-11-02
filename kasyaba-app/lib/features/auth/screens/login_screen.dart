@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:reactive_forms/reactive_forms.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/auth/auth_provider.dart';
@@ -74,35 +75,41 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF0F1E30) : AppColors.lightCardSurface,
+        backgroundColor:
+            isDark ? AuthFigmaTokens.cello55 : AppColors.lightCardSurface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
           side: BorderSide(
-            color: isDark ? const Color(0x3344688E) : AppColors.lightBorderHairline,
+            color: isDark
+                ? AuthFigmaTokens.poloBlue28
+                : AppColors.lightBorderHairline,
           ),
         ),
         title: Row(
           children: [
             const Icon(
               Icons.lock_reset_rounded,
-              color: Color(0xFF90BDE8),
+              color: AuthFigmaTokens.poloBlue,
               size: 22,
             ),
             const SizedBox(width: 10),
             Text(
               'Reset Password',
-              style: TextStyle(
-                color: isDark ? Colors.white : AppColors.lightTextPrimary,
+              style: GoogleFonts.bricolageGrotesque(
+                color: isDark
+                    ? AuthFigmaTokens.periwinkleGray
+                    : AppColors.lightTextPrimary,
                 fontWeight: FontWeight.w700,
-                fontSize: 17,
+                fontSize: 18,
               ),
             ),
           ],
         ),
-        content: const Text(
+        content: Text(
           'Enter the email you signed up with. We will send you a link to choose a new password.',
-          style: TextStyle(
-            color: Color(0xFF8BA5C3),
+          style: GoogleFonts.dmSans(
+            color:
+                isDark ? AuthFigmaTokens.poloBlue : AppColors.lightTextSecondary,
             fontSize: 13,
             height: 1.5,
           ),
@@ -110,10 +117,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text(
+            child: Text(
               'Understood',
-              style: TextStyle(
-                color: Color(0xFFD8E7F6),
+              style: GoogleFonts.dmSans(
+                color: isDark
+                    ? AuthFigmaTokens.periwinkleGray
+                    : AppColors.emerald500,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -130,10 +139,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF070F19) : AppColors.lightScaffold,
+      backgroundColor: isDark ? AuthFigmaTokens.ebony : AppColors.lightScaffold,
       body: Stack(
         children: [
-          // ── Background with prominent deep navy glow & radar arcs ──
+          // ── Background with exact Figma radial gradients & radar rings (Node 11:782-784) ──
           AuthBackground(
             rotateAnimation: _bgRotate,
             isDark: isDark,
@@ -146,11 +155,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
               child: SingleChildScrollView(
                 physics: const ClampingScrollPhysics(),
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 22,
-                  vertical: 20,
+                  horizontal: 24,
+                  vertical: 16,
                 ),
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 380),
+                  constraints: const BoxConstraints(maxWidth: 342),
                   child: FadeTransition(
                     opacity: _fadeIn,
                     child: SlideTransition(
@@ -160,46 +169,49 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            // ── Top Brand Header Lockup ────────
+                            // ── Top Brand Header Lockup (Node 11:791, 342x44) ──
+                            const SizedBox(height: 12),
                             const Align(
                               alignment: Alignment.centerLeft,
                               child: AuthBrandHeader(),
                             ),
-                            const SizedBox(height: 10),
+                            const SizedBox(height: 22),
 
-                            // ── Runway Spline Graphic & Tooltip ─
+                            // ── Runway Hero Spline + Tooltip (Node 11:785, 342x150) ──
                             const RunwaySplineHero(
                               tooltipText: 'Can I afford it?',
                             ),
-                            const SizedBox(height: 14),
+                            const SizedBox(height: 18),
 
-                            // ── Screen Title & Subtitle ────────
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Welcome back.',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 34,
-                                    letterSpacing: -0.7,
-                                    color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                const Text(
-                                  'Pick up where your runway left off.',
-                                  style: TextStyle(
-                                    fontSize: 14.5,
-                                    color: Color(0xFF86A0BD),
-                                    height: 1.4,
-                                  ),
-                                ),
-                              ],
+                            // ── Screen Title (Node 11:799) ──
+                            Text(
+                              'Welcome back.',
+                              style: GoogleFonts.bricolageGrotesque(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 32,
+                                height: 1.1,
+                                color: isDark
+                                    ? AuthFigmaTokens.periwinkleGray
+                                    : AppColors.lightTextPrimary,
+                              ),
                             ),
-                            const SizedBox(height: 24),
+                            const SizedBox(height: 8),
 
-                            // ── Glassmorphic Form Card (Very Round) ──
+                            // ── Subtitle (Node 11:803) ──
+                            Text(
+                              'Pick up where your runway left off.',
+                              style: GoogleFonts.dmSans(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w400,
+                                height: 1.45,
+                                color: isDark
+                                    ? AuthFigmaTokens.poloBlue
+                                    : AppColors.lightTextSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: 18),
+
+                            // ── Form Card (Node 11:806, 342px, r=32) ──
                             AuthFormCard(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -208,7 +220,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                     AuthErrorBanner(
                                       message: authState.error!,
                                     ),
-                                    const SizedBox(height: 16),
+                                    const SizedBox(height: 12),
                                   ],
 
                                   // EMAIL Field
@@ -225,9 +237,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                           'Enter a valid email address',
                                     },
                                   ),
-                                  const SizedBox(height: 16),
+                                  const SizedBox(height: 14),
 
-                                  // PASSWORD Field (Clean, no eye icon as in Figma)
+                                  // PASSWORD Field
                                   AuthReactiveField(
                                     formControlName: 'password',
                                     label: 'Password',
@@ -237,88 +249,102 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                     onSubmitted: _handleLogin,
                                     validationMessages: {
                                       ValidationMessage.required: (_) =>
-                                        'Password is required',
-                                  },
-                                ),
-                                const SizedBox(height: 10),
+                                          'Password is required',
+                                    },
+                                  ),
+                                  const SizedBox(height: 12),
 
-                                // Right-aligned "Forgot password?" link
-                                Align(
-                                  alignment: Alignment.centerRight,
-                                  child: TextButton(
-                                    onPressed: () =>
-                                        _showForgotPasswordHelp(context),
-                                    style: TextButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 2,
-                                        vertical: 2,
-                                      ),
-                                      minimumSize: Size.zero,
-                                      tapTargetSize:
-                                          MaterialTapTargetSize.shrinkWrap,
-                                    ),
-                                    child: const Text(
-                                      'Forgot password?',
-                                      style: TextStyle(
-                                        color: Color(0xFF85A5C7),
-                                        fontSize: 12.5,
-                                        fontWeight: FontWeight.w500,
+                                  // Right-aligned "Forgot password?" link (Node 11:820)
+                                  Align(
+                                    alignment: Alignment.centerRight,
+                                    child: GestureDetector(
+                                      onTap: () =>
+                                          _showForgotPasswordHelp(context),
+                                      behavior: HitTestBehavior.opaque,
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 2,
+                                        ),
+                                        child: Text(
+                                          'Forgot password?',
+                                          style: GoogleFonts.dmSans(
+                                            color: isDark
+                                                ? AuthFigmaTokens.poloBlue
+                                                : AppColors.lightTextSecondary,
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ),
-                                const SizedBox(height: 22),
+                                  const SizedBox(height: 12),
 
-                                // High-contrast soft ice-blue pill button
-                                AuthPrimaryPillButton(
-                                  isLoading: authState.isLoading,
-                                  onPressed: _handleLogin,
-                                  label: 'Sign in',
-                                ),
-                              ],
+                                  // Primary Pill Button (Node 11:822, 60px high, r=28)
+                                  AuthPrimaryPillButton(
+                                    isLoading: authState.isLoading,
+                                    onPressed: _handleLogin,
+                                    label: 'Sign in',
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 26),
+                            const SizedBox(height: 24),
 
-                          // ── Register Navigation Link ──────
-                          Center(
-                            child: GestureDetector(
-                              onTap: () => context.go('/register'),
-                              behavior: HitTestBehavior.opaque,
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 4),
-                                child: RichText(
-                                  text: const TextSpan(
-                                    children: [
-                                      TextSpan(
-                                        text: 'New to Kasyaba? ',
-                                        style: TextStyle(
-                                          color: Color(0xFF7E9EC2),
-                                          fontSize: 13.5,
-                                          fontWeight: FontWeight.w400,
+                            // ── Footer Navigation Link (Node 11:824-827) ──
+                            Center(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      'New to Kasyaba? ',
+                                      style: GoogleFonts.dmSans(
+                                        color: isDark
+                                            ? AuthFigmaTokens.poloBlue
+                                            : AppColors.lightTextSecondary,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w400,
+                                      ),
+                                    ),
+                                    GestureDetector(
+                                      onTap: () => context.go('/register'),
+                                      behavior: HitTestBehavior.opaque,
+                                      child: Container(
+                                        padding: const EdgeInsets.only(bottom: 2),
+                                        decoration: const BoxDecoration(
+                                          border: Border(
+                                            bottom: BorderSide(
+                                              color: AuthFigmaTokens.kashmirBlue,
+                                              width: 2.0,
+                                            ),
+                                          ),
+                                        ),
+                                        child: Text(
+                                          'Create account',
+                                          style: GoogleFonts.dmSans(
+                                            color: isDark
+                                                ? AuthFigmaTokens.periwinkleGray
+                                                : AppColors.lightTextPrimary,
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 14,
+                                          ),
                                         ),
                                       ),
-                                      TextSpan(
-                                        text: 'Create account',
-                                        style: TextStyle(
-                                          color: Color(0xFFE2EFF9),
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 13.5,
-                                          decoration: TextDecoration.underline,
-                                          decorationColor: Color(0xFFE2EFF9),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 14),
+                            const SizedBox(height: 14),
 
-                          // ── Bottom Reassurance Footnote ───
-                          const AuthTrustFooter(),
-                        ],
+                            // ── Bottom Reassurance Footnote (Node 11:828-830) ──
+                            const AuthTrustFooter(),
+                            const SizedBox(height: 16),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -326,7 +352,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
               ),
             ),
           ),
-        ),
         ],
       ),
     );

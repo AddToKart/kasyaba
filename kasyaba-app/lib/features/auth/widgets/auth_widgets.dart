@@ -1,12 +1,35 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:reactive_forms/reactive_forms.dart';
 import '../../../app/theme/app_theme.dart';
 
 /// ─────────────────────────────────────────────────────────────
-///  Auth Design System — Luxury Dark Fintech Auth Widgets
+///  Auth Design System — Figma Pixel-Perfect Tokens (Node 11:779)
 /// ─────────────────────────────────────────────────────────────
+class AuthFigmaTokens {
+  AuthFigmaTokens._();
 
-// ── Background with deep navy night gradient (Radar rings removed per request) ──
+  // Color Fills & Strokes
+  static const Color ebony = Color(0xFF0A1220); // Base canvas & button text
+  static const Color ebony55 = Color(0x8C0A1220); // rgba(10, 18, 32, 0.55) - Input fields
+  static const Color cello55 = Color(0x8C1E3A56); // rgba(30, 58, 86, 0.55) - Form card & Tooltip
+  static const Color poloBlue28 = Color(0x478FB2CE); // rgba(143, 178, 206, 0.28) - Card / Tooltip border
+  static const Color poloBlue35 = Color(0x598FB2CE); // rgba(143, 178, 206, 0.35) - Input border
+  static const Color poloBlue = Color(0xFF8FB2CE); // Labels, subtitles, link text, logo bar 2
+  static const Color periwinkleGray = Color(0xFFC9DCEA); // Primary button, headings, logo bar 1
+  static const Color kashmirBlue = Color(0xFF4F7596); // Logo bar 3, Create account underline
+  static const Color boulder = Color(0xFF757575); // Input placeholder
+  static const Color white = Color(0xFFFFFFFF);
+
+  // Radial Gradients
+  static const Color radialGlow1 = Color(0xCC4F7596); // rgba(79, 117, 150, 0.8) at 85% 8%
+  static const Color radialGlow2 = Color(0xFF1E3A56); // rgba(30, 58, 86, 1.0) at 0% 100%
+  static const Color radialGlow3 = Color(0xAB1E3A56); // rgba(30, 58, 86, 0.67) at 100% 75%
+}
+
+// ── Background with deep navy radial gradients and vector radar overlay ──
 class AuthBackground extends StatelessWidget {
   final Animation<double>? rotateAnimation;
   final bool isDark;
@@ -29,41 +52,63 @@ class AuthBackground extends StatelessWidget {
       );
     }
 
-    return Container(
+    return SizedBox(
       width: size.width,
       height: size.height,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topRight,
-          end: Alignment.bottomLeft,
-          colors: [
-            Color(0xFF162F4B), // Celestial steel blue top right
-            Color(0xFF0C1929), // Rich navy center
-            Color(0xFF060E18), // Deep bottom base
-          ],
-          stops: [0.0, 0.45, 1.0],
-        ),
-      ),
       child: Stack(
+        fit: StackFit.expand,
         children: [
-          // Soft ambient celestial glow at top-right corner
-          Positioned(
-            right: -size.width * 0.2,
-            top: -size.width * 0.2,
-            child: Container(
-              width: size.width * 1.1,
-              height: size.width * 1.1,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    Color(0x40255585),
-                    Colors.transparent,
-                  ],
-                  radius: 0.7,
-                ),
+          // Base solid fill #0A1220
+          Container(
+            color: AuthFigmaTokens.ebony,
+          ),
+          // Radial Gradient 1: circle at 85% 8%, rgba(79, 117, 150, 0.8) 0% to rgba(79, 117, 150, 0) 70%
+          Container(
+            decoration: const BoxDecoration(
+              gradient: RadialGradient(
+                center: Alignment(0.70, -0.84),
+                radius: 0.70,
+                colors: [
+                  AuthFigmaTokens.radialGlow1,
+                  Color(0x004F7596),
+                ],
+                stops: [0.0, 1.0],
               ),
             ),
+          ),
+          // Radial Gradient 2: circle at 0% 100%, rgba(30, 58, 86, 1) 0% to rgba(30, 58, 86, 0) 70%
+          Container(
+            decoration: const BoxDecoration(
+              gradient: RadialGradient(
+                center: Alignment(-1.0, 1.0),
+                radius: 0.70,
+                colors: [
+                  AuthFigmaTokens.radialGlow2,
+                  Color(0x001E3A56),
+                ],
+                stops: [0.0, 1.0],
+              ),
+            ),
+          ),
+          // Radial Gradient 3: circle at 100% 75%, rgba(30, 58, 86, 0.67) 0% to rgba(30, 58, 86, 0) 70%
+          Container(
+            decoration: const BoxDecoration(
+              gradient: RadialGradient(
+                center: Alignment(1.0, 0.50),
+                radius: 0.70,
+                colors: [
+                  AuthFigmaTokens.radialGlow3,
+                  Color(0x001E3A56),
+                ],
+                stops: [0.0, 1.0],
+              ),
+            ),
+          ),
+          // Vector radar background rings (Node 11:784)
+          SvgPicture.asset(
+            'assets/images/background_radar.svg',
+            fit: BoxFit.cover,
+            alignment: Alignment.center,
           ),
         ],
       ),
@@ -71,7 +116,7 @@ class AuthBackground extends StatelessWidget {
   }
 }
 
-// ── Kasyaba 3-Pill Logo Mark (Full Capsule Radius) ──
+// ── Kasyaba 3-Pill Logo Mark (Node 11:793-11:796) ──
 class KasyabaLogoMark extends StatelessWidget {
   final double scale;
   const KasyabaLogoMark({super.key, this.scale = 1.0});
@@ -83,29 +128,29 @@ class KasyabaLogoMark extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 28 * scale,
-          height: 5.5 * scale,
+          width: 34 * scale,
+          height: 12 * scale,
           decoration: BoxDecoration(
-            color: const Color(0xFF99C5F0),
-            borderRadius: BorderRadius.circular(999),
+            color: AuthFigmaTokens.periwinkleGray,
+            borderRadius: BorderRadius.circular(6 * scale),
           ),
         ),
         SizedBox(height: 4 * scale),
         Container(
-          width: 20 * scale,
-          height: 5.5 * scale,
+          width: 26 * scale,
+          height: 12 * scale,
           decoration: BoxDecoration(
-            color: const Color(0xFF6098CF),
-            borderRadius: BorderRadius.circular(999),
+            color: AuthFigmaTokens.poloBlue,
+            borderRadius: BorderRadius.circular(6 * scale),
           ),
         ),
         SizedBox(height: 4 * scale),
         Container(
-          width: 13 * scale,
-          height: 5.5 * scale,
+          width: 18 * scale,
+          height: 12 * scale,
           decoration: BoxDecoration(
-            color: const Color(0xFF3D6E9E),
-            borderRadius: BorderRadius.circular(999),
+            color: AuthFigmaTokens.kashmirBlue,
+            borderRadius: BorderRadius.circular(6 * scale),
           ),
         ),
       ],
@@ -113,7 +158,7 @@ class KasyabaLogoMark extends StatelessWidget {
   }
 }
 
-// ── Cohesive Brand Lockup Header ──
+// ── Cohesive Brand Lockup Header (Node 11:791-11:798) ──
 class AuthBrandHeader extends StatelessWidget {
   const AuthBrandHeader({super.key});
 
@@ -128,11 +173,10 @@ class AuthBrandHeader extends StatelessWidget {
         const SizedBox(width: 12),
         Text(
           'Kasyaba',
-          style: TextStyle(
-            color: isDark ? Colors.white : AppColors.lightTextPrimary,
-            fontSize: 24,
+          style: GoogleFonts.bricolageGrotesque(
+            color: isDark ? AuthFigmaTokens.periwinkleGray : AppColors.lightTextPrimary,
+            fontSize: 26,
             fontWeight: FontWeight.w700,
-            letterSpacing: -0.4,
           ),
         ),
       ],
@@ -140,7 +184,7 @@ class AuthBrandHeader extends StatelessWidget {
   }
 }
 
-// ── Runway Hero Spline (Compact, Gentle Wave matching Figma Crop) ──
+// ── Runway Hero Spline (Node 11:785-11:790) ──
 class RunwaySplineHero extends StatelessWidget {
   final String tooltipText;
   const RunwaySplineHero({
@@ -150,191 +194,61 @@ class RunwaySplineHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.maxWidth;
-        const height = 80.0;
-        final crestX = width * 0.70;
-        const crestY = 40.0;
-
-        return SizedBox(
-          width: width,
-          height: height,
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              // Curve, Prominent Gradient Fill under curve, dashed drop line, and glowing inflection node
-              CustomPaint(
-                size: Size(width, height),
-                painter: _RunwaySplinePainter(
-                  crestX: crestX,
-                  crestY: crestY,
-                ),
-              ),
-
-              // Floating "Can I afford it?" capsule tooltip
-              // Perfectly positioned hovering above the gentle valley to the left of the peak node
-              Positioned(
-                top: 2.0,
-                left: (crestX - 110).clamp(0.0, width - 130),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 5.0,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0x8010263D),
-                    borderRadius: BorderRadius.circular(999), // Full capsule
-                    border: Border.all(
-                      color: const Color(0x558EBCDE), // Crisp soft blue outline
-                      width: 1.0,
+    return Center(
+      child: SizedBox(
+        width: 342,
+        height: 150,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            // Exact vector chart path + gradient + node + dashed drop line
+            SvgPicture.asset(
+              'assets/images/chart_vector.svg',
+              width: 342,
+              height: 150,
+              fit: BoxFit.fill,
+            ),
+            // Floating "Can I afford it?" tooltip pill at exact Figma position (x: 112, y: 0)
+            Positioned(
+              left: 112,
+              top: 0,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 7, sigmaY: 7),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 17,
+                      vertical: 10,
                     ),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x33000000),
-                        blurRadius: 8,
-                        offset: Offset(0, 2),
+                    decoration: BoxDecoration(
+                      color: AuthFigmaTokens.cello55,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: AuthFigmaTokens.poloBlue28,
+                        width: 1.0,
                       ),
-                    ],
-                  ),
-                  child: Text(
-                    tooltipText,
-                    style: const TextStyle(
-                      color: Color(0xFFE2EEF8),
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.1,
+                    ),
+                    child: Text(
+                      tooltipText,
+                      style: GoogleFonts.dmSans(
+                        color: AuthFigmaTokens.periwinkleGray,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ],
-          ),
-        );
-      },
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
 
-class _RunwaySplinePainter extends CustomPainter {
-  final double crestX;
-  final double crestY;
-
-  _RunwaySplinePainter({
-    required this.crestX,
-    required this.crestY,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final width = size.width;
-    final height = size.height;
-
-    // ── 1. The Spline Path (Gentle, elegant wave matching Figma) ──
-    final path = Path();
-    path.moveTo(0, 56.0);
-
-    // Gentle rise to first crest
-    path.cubicTo(
-      width * 0.12, 54.0,
-      width * 0.18, 42.0,
-      width * 0.28, 42.0,
-    );
-    // Shallow gentle dip into valley
-    path.cubicTo(
-      width * 0.38, 42.0,
-      width * 0.42, 50.0,
-      width * 0.52, 50.0,
-    );
-    // Smooth upward climb to inflection node
-    path.cubicTo(
-      width * 0.60, 50.0,
-      crestX - 16, crestY,
-      crestX, crestY,
-    );
-    // Continue rising smoothly over summit and trailing to right edge
-    path.cubicTo(
-      crestX + 18, crestY - 8,
-      width * 0.86, 20.0,
-      width, 24.0,
-    );
-
-    // ── 2. Prominent Fading White Gradient Under Curve ──
-    final fillPath = Path.from(path);
-    fillPath.lineTo(width, height);
-    fillPath.lineTo(0, height);
-    fillPath.close();
-
-    final fillPaint = Paint()
-      ..shader = const LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          Color(0x3EFFFFFF), // Prominent milky white at curve
-          Color(0x187CB0E4), // Soft blue luminous mid
-          Color(0x00000000), // Fades to zero
-        ],
-        stops: [0.0, 0.45, 1.0],
-      ).createShader(Rect.fromLTWH(0, 0, width, height))
-      ..style = PaintingStyle.fill;
-
-    canvas.drawPath(fillPath, fillPaint);
-
-    // ── 3. Crisp White Stroke ────────────────────────
-    final strokePaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.0
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..isAntiAlias = true;
-
-    canvas.drawPath(path, strokePaint);
-
-    // ── 4. Vertical Dashed Drop Line from Node ───────
-    final dashPaint = Paint()
-      ..color = const Color(0x60FFFFFF)
-      ..strokeWidth = 1.2;
-
-    const dashLength = 3.5;
-    const dashSpace = 3.5;
-    double currentY = crestY + 12;
-    final bottomY = height;
-
-    while (currentY < bottomY) {
-      canvas.drawLine(
-        Offset(crestX, currentY),
-        Offset(crestX, (currentY + dashLength).clamp(crestY, bottomY)),
-        dashPaint,
-      );
-      currentY += dashLength + dashSpace;
-    }
-
-    // ── 5. Exact Inflection Node (Thin Halo Ring + Ice-Blue Solid Dot) ──
-    final peak = Offset(crestX, crestY);
-
-    // Outer thin halo ring
-    final haloPaint = Paint()
-      ..color = const Color(0x75A5CBEE)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.1
-      ..isAntiAlias = true;
-    canvas.drawCircle(peak, 11.0, haloPaint);
-
-    // Inner solid ice-blue circular dot
-    final dotPaint = Paint()
-      ..color = const Color(0xFFCDE3F7)
-      ..style = PaintingStyle.fill
-      ..isAntiAlias = true;
-    canvas.drawCircle(peak, 5.0, dotPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _RunwaySplinePainter oldDelegate) =>
-      oldDelegate.crestX != crestX || oldDelegate.crestY != crestY;
-}
-
-// ── Super-Rounded Glassmorphic Form Card (28px Radius) ──
+// ── Form Card (Node 11:807, 342px, r=32, p=23,19,21) ──
 class AuthFormCard extends StatelessWidget {
   final Widget child;
 
@@ -347,36 +261,33 @@ class AuthFormCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return ClipRRect(
-      borderRadius: BorderRadius.circular(28),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
-        decoration: BoxDecoration(
-          color: isDark
-              ? const Color(0xCC0E1A29) // Translucent deep navy
-              : AppColors.lightCardSurface,
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(
-            color: isDark
-                ? const Color(0x3344688E) // Crisp soft blue border
-                : AppColors.lightBorderHairline,
-            width: 1.0,
+      borderRadius: BorderRadius.circular(32),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 7, sigmaY: 7),
+        child: Container(
+          width: 342,
+          padding: const EdgeInsets.only(
+            top: 23,
+            left: 19,
+            right: 19,
+            bottom: 21,
           ),
-          boxShadow: [
-            if (isDark)
-              const BoxShadow(
-                color: Color(0x40000000),
-                blurRadius: 20,
-                offset: Offset(0, 8),
-              ),
-          ],
+          decoration: BoxDecoration(
+            color: isDark ? AuthFigmaTokens.cello55 : AppColors.lightCardSurface,
+            borderRadius: BorderRadius.circular(32),
+            border: Border.all(
+              color: isDark ? AuthFigmaTokens.poloBlue28 : AppColors.lightBorderHairline,
+              width: 1.0,
+            ),
+          ),
+          child: child,
         ),
-        child: child,
       ),
     );
   }
 }
 
-// ── Explicit Label + Focus-Reactive Input Field ──
+// ── Explicit Label + Focus-Reactive Input Field (Node 11:808-813 & 11:814-819) ──
 class AuthReactiveField extends StatefulWidget {
   final String formControlName;
   final String label;
@@ -432,30 +343,27 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final unfocusedIconColor = isDark ? const Color(0xFF5B7591) : const Color(0xFF64748B);
-    final focusedIconColor = isDark ? const Color(0xFF90BDE8) : AppColors.emerald500;
+    final unfocusedIconColor = isDark ? AuthFigmaTokens.poloBlue : const Color(0xFF64748B);
+    final focusedIconColor = isDark ? AuthFigmaTokens.periwinkleGray : AppColors.emerald500;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Explicit, crisp typography label
+        // Label in UPPERCASE (Node 11:810, 11:816)
         Text(
           widget.label.toUpperCase(),
-          style: TextStyle(
-            color: isDark ? const Color(0xFF7E9EC2) : AppColors.lightTextSecondary,
-            fontSize: 11.5,
+          style: GoogleFonts.dmSans(
+            color: isDark ? AuthFigmaTokens.poloBlue : AppColors.lightTextSecondary,
+            fontSize: 11,
             fontWeight: FontWeight.w700,
-            letterSpacing: 1.2,
+            letterSpacing: 1.0,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 7),
 
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: const [],
-          ),
+        // Input container (height: 54, r: 27)
+        SizedBox(
+          height: 54,
           child: ReactiveTextField<dynamic>(
             formControlName: widget.formControlName,
             focusNode: _focusNode,
@@ -465,22 +373,24 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
             onSubmitted: widget.onSubmitted != null
                 ? (_) => widget.onSubmitted!()
                 : null,
-            style: TextStyle(
-              color: isDark ? Colors.white : AppColors.lightTextPrimary,
-              fontSize: 15,
+            style: GoogleFonts.dmSans(
+              color: isDark ? AuthFigmaTokens.periwinkleGray : AppColors.lightTextPrimary,
+              fontSize: 16,
               fontWeight: FontWeight.w500,
             ),
             decoration: InputDecoration(
+              isDense: true,
               hintText: widget.hintText,
-              hintStyle: TextStyle(
-                color: isDark ? const Color(0xFF4C6A8A) : const Color(0xFF94A3B8),
-                fontSize: 14.5,
+              hintStyle: GoogleFonts.dmSans(
+                color: isDark ? AuthFigmaTokens.boulder : const Color(0xFF94A3B8),
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
               ),
               filled: true,
-              fillColor: isDark ? const Color(0xFF07111D) : AppColors.lightInputFill,
+              fillColor: isDark ? AuthFigmaTokens.ebony55 : AppColors.lightInputFill,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 22,
-                vertical: 17,
+                vertical: 15.5,
               ),
               prefixIcon: widget.prefixIcon != null
                   ? Icon(
@@ -491,31 +401,31 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
                   : null,
               suffixIcon: widget.suffixIcon,
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(27),
                 borderSide: BorderSide(
-                  color: isDark ? const Color(0x383F6288) : AppColors.lightBorderHairline,
+                  color: isDark ? AuthFigmaTokens.poloBlue35 : AppColors.lightBorderHairline,
                   width: 1.0,
                 ),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(27),
                 borderSide: BorderSide(
-                  color: isDark ? const Color(0xFF7CB2E8) : focusedIconColor,
-                  width: 1.4,
+                  color: isDark ? AuthFigmaTokens.poloBlue : focusedIconColor,
+                  width: 1.5,
                 ),
               ),
               errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(27),
                 borderSide: const BorderSide(
                   color: AppColors.expense,
-                  width: 1,
+                  width: 1.0,
                 ),
               ),
               focusedErrorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(27),
                 borderSide: const BorderSide(
                   color: AppColors.expense,
-                  width: 1.2,
+                  width: 1.5,
                 ),
               ),
             ),
@@ -527,7 +437,7 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
   }
 }
 
-// ── Primary High-Contrast Pill Button (Carbon copy of Figma) ──
+// ── Primary Pill Button (Node 11:822-823, height: 60, r: 28, Periwinkle Gray) ──
 class AuthPrimaryPillButton extends StatelessWidget {
   final bool isLoading;
   final VoidCallback onPressed;
@@ -542,41 +452,43 @@ class AuthPrimaryPillButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ElevatedButton(
-      onPressed: isLoading ? null : onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFFD3E4F4),
-        foregroundColor: const Color(0xFF091422),
-        disabledBackgroundColor: const Color(0xFF8BA5C3),
-        minimumSize: const Size.fromHeight(54),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(999), // Full capsule pill
+    return SizedBox(
+      height: 60,
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: isLoading ? null : onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AuthFigmaTokens.periwinkleGray,
+          foregroundColor: AuthFigmaTokens.ebony,
+          disabledBackgroundColor: AuthFigmaTokens.poloBlue.withValues(alpha: 0.5),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
+          ),
+          elevation: 0,
         ),
-        elevation: 0,
+        child: isLoading
+            ? const SizedBox(
+                height: 22,
+                width: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.4,
+                  color: AuthFigmaTokens.ebony,
+                ),
+              )
+            : Text(
+                label,
+                style: GoogleFonts.dmSans(
+                  color: AuthFigmaTokens.ebony,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
       ),
-      child: isLoading
-          ? const SizedBox(
-              height: 20,
-              width: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2.2,
-                color: Color(0xFF091422),
-              ),
-            )
-          : Text(
-              label,
-              style: const TextStyle(
-                color: Color(0xFF091422),
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.2,
-              ),
-            ),
     );
   }
 }
 
-// ── Primary Luxury Gradient Button (12px Radius) ──
+// ── Primary Luxury Gradient Button (10px Radius) ──
 class AuthGradientButton extends StatelessWidget {
   final bool isLoading;
   final VoidCallback onPressed;
@@ -647,7 +559,7 @@ class AuthGradientButton extends StatelessWidget {
   }
 }
 
-// ── Bottom Reassurance Footnote (Carbon copy of Figma) ──
+// ── Bottom Reassurance Footnote (Node 11:828-830) ──
 class AuthTrustFooter extends StatelessWidget {
   const AuthTrustFooter({super.key});
 
@@ -657,11 +569,10 @@ class AuthTrustFooter extends StatelessWidget {
     return Text(
       'Calculated on your device. Your numbers stay yours.',
       textAlign: TextAlign.center,
-      style: TextStyle(
-        color: isDark ? const Color(0xFF5B7591) : AppColors.lightTextSecondary,
-        fontSize: 11.5,
+      style: GoogleFonts.dmSans(
+        color: isDark ? AuthFigmaTokens.poloBlue : AppColors.lightTextSecondary,
+        fontSize: 12,
         fontWeight: FontWeight.w400,
-        letterSpacing: 0.1,
       ),
     );
   }
