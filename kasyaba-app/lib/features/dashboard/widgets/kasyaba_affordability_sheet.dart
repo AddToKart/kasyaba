@@ -134,16 +134,15 @@ class _KasyaBaAffordabilitySheetModalState
     }
 
     final topPadding = MediaQuery.paddingOf(context).top;
-    final bottomPadding = MediaQuery.paddingOf(context).bottom;
     final screenHeight = MediaQuery.sizeOf(context).height;
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     final maxAllowedHeight = screenHeight - topPadding - 32;
 
-    // Floating navigation dock height is 68 + bottom margin (bottomPadding or 16).
-    // Ensure all content, action buttons, and forecast results scroll well above the dock.
-    final navDockHeight = 68.0 + (bottomPadding > 0 ? bottomPadding : 16.0) + 24.0;
+    // Minimal, refined clearance so action buttons and simulation results sit cleanly
+    // just above the floating dock with balanced spacing (not too much, not too little).
+    const dockClearance = 48.0;
     final effectiveBottomPadding =
-        bottomInset > 0 ? (bottomInset + 24.0) : navDockHeight;
+        bottomInset > 0 ? (bottomInset + 20.0) : dockClearance;
 
     return ConstrainedBox(
       constraints: BoxConstraints(
