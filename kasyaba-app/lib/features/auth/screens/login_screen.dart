@@ -21,7 +21,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     ),
     'password': FormControl<String>(validators: [Validators.required]),
   });
-  bool _obscurePassword = true;
 
   late final AnimationController _bgController;
   late final AnimationController _entryController;
@@ -131,10 +130,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF070C14) : AppColors.lightScaffold,
+      backgroundColor: isDark ? const Color(0xFF070F19) : AppColors.lightScaffold,
       body: Stack(
         children: [
-          // ── Background with deep navy radar arcs ──────────
+          // ── Background with prominent deep navy glow & radar arcs ──
           AuthBackground(
             rotateAnimation: _bgRotate,
             isDark: isDark,
@@ -164,13 +163,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                             alignment: Alignment.centerLeft,
                             child: AuthBrandHeader(),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 14),
 
                           // ── Runway Spline Graphic & Tooltip ─
                           const RunwaySplineHero(
                             tooltipText: 'Can I afford it?',
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 18),
 
                           // ── Screen Title & Subtitle ────────
                           Column(
@@ -179,9 +178,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                               Text(
                                 'Welcome back.',
                                 style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 30,
-                                  letterSpacing: -0.6,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 34,
+                                  letterSpacing: -0.7,
                                   color: isDark ? Colors.white : AppColors.lightTextPrimary,
                                 ),
                               ),
@@ -189,16 +188,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                               const Text(
                                 'Pick up where your runway left off.',
                                 style: TextStyle(
-                                  fontSize: 13.5,
-                                  color: Color(0xFF849BB5),
+                                  fontSize: 14.5,
+                                  color: Color(0xFF86A0BD),
                                   height: 1.4,
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 22),
+                          const SizedBox(height: 24),
 
-                          // ── Glassmorphic Form Card ────────
+                          // ── Glassmorphic Form Card (Very Round) ──
                           AuthFormCard(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -226,36 +225,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                 ),
                                 const SizedBox(height: 16),
 
-                                // PASSWORD Field
+                                // PASSWORD Field (Clean, no eye icon as in Figma)
                                 AuthReactiveField(
                                   formControlName: 'password',
                                   label: 'Password',
                                   hintText: '••••••••',
-                                  obscureText: _obscurePassword,
+                                  obscureText: true,
                                   textInputAction: TextInputAction.done,
                                   onSubmitted: _handleLogin,
-                                  suffixIcon: IconButton(
-                                    tooltip: _obscurePassword
-                                        ? 'Show password'
-                                        : 'Hide password',
-                                    icon: Icon(
-                                      _obscurePassword
-                                          ? Icons.visibility_off_outlined
-                                          : Icons.visibility_outlined,
-                                      size: 19,
-                                    ),
-                                    color: const Color(0xFF5B7591),
-                                    onPressed: () => setState(
-                                      () =>
-                                          _obscurePassword = !_obscurePassword,
-                                    ),
-                                  ),
                                   validationMessages: {
                                     ValidationMessage.required: (_) =>
                                         'Password is required',
                                   },
                                 ),
-                                const SizedBox(height: 8),
+                                const SizedBox(height: 10),
 
                                 // Right-aligned "Forgot password?" link
                                 Align(
@@ -275,14 +258,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                     child: const Text(
                                       'Forgot password?',
                                       style: TextStyle(
-                                        color: Color(0xFF8BA5C3),
+                                        color: Color(0xFF85A5C7),
                                         fontSize: 12.5,
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
                                   ),
                                 ),
-                                const SizedBox(height: 18),
+                                const SizedBox(height: 22),
 
                                 // High-contrast soft ice-blue pill button
                                 AuthPrimaryPillButton(
@@ -293,7 +276,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                               ],
                             ),
                           ),
-                          const SizedBox(height: 22),
+                          const SizedBox(height: 26),
 
                           // ── Register Navigation Link ──────
                           Center(
@@ -308,19 +291,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                       TextSpan(
                                         text: 'New to Kasyaba? ',
                                         style: TextStyle(
-                                          color: Color(0xFF7E98B5),
-                                          fontSize: 13,
+                                          color: Color(0xFF7E9EC2),
+                                          fontSize: 13.5,
                                           fontWeight: FontWeight.w400,
                                         ),
                                       ),
                                       TextSpan(
                                         text: 'Create account',
                                         style: TextStyle(
-                                          color: Color(0xFFE0EDFA),
+                                          color: Color(0xFFE2EFF9),
                                           fontWeight: FontWeight.w700,
-                                          fontSize: 13,
+                                          fontSize: 13.5,
                                           decoration: TextDecoration.underline,
-                                          decorationColor: Color(0xFFE0EDFA),
+                                          decorationColor: Color(0xFFE2EFF9),
                                         ),
                                       ),
                                     ],

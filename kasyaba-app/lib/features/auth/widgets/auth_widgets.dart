@@ -6,7 +6,7 @@ import '../../../app/theme/app_theme.dart';
 ///  Auth Design System — Luxury Dark Fintech Auth Widgets
 /// ─────────────────────────────────────────────────────────────
 
-// ── Background with deep navy night gradient and concentric radar arcs ──
+// ── Background with prominent deep navy night glow and dual radar arcs ──
 class AuthBackground extends StatelessWidget {
   final Animation<double>? rotateAnimation;
   final bool isDark;
@@ -21,42 +21,78 @@ class AuthBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final center = Offset(size.width * 0.78, size.height * 0.18);
+    if (!isDark) {
+      return Container(
+        width: size.width,
+        height: size.height,
+        color: AppColors.lightScaffold,
+      );
+    }
+
+    final topCenter = Offset(size.width * 0.82, size.height * 0.15);
+    final bottomCenter = Offset(size.width * 0.10, size.height * 0.86);
+
     return Container(
       width: size.width,
       height: size.height,
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         gradient: LinearGradient(
-          begin: Alignment.topRight,
-          end: Alignment.bottomLeft,
-          colors: isDark
-              ? const [
-                  Color(0xFF13253B), // Soft ambient indigo navy top right
-                  Color(0xFF0C1725), // Mid slate navy
-                  Color(0xFF060B12), // Deep obsidian bottom left
-                ]
-              : const [
-                  Color(0xFFF1F5F9),
-                  Color(0xFFE2E8F0),
-                  Color(0xFFCBD5E1),
-                ],
-          stops: const [0.0, 0.45, 1.0],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFF102339), // Prominent steel blue top
+            Color(0xFF0C1929), // Rich navy center
+            Color(0xFF070F19), // Deep bottom base
+          ],
+          stops: [0.0, 0.45, 1.0],
         ),
       ),
       child: Stack(
         children: [
-          // Ambient radial glow behind the top right radar center
+          // ── 1. Top Right Large Vibrant Radial Glow ─────────
           Positioned(
-            left: center.dx - 220,
-            top: center.dy - 220,
+            left: topCenter.dx - (size.width * 0.65),
+            top: topCenter.dy - (size.width * 0.65),
             child: Container(
-              width: 440,
-              height: 440,
+              width: size.width * 1.3,
+              height: size.width * 1.3,
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    Color(0x381E4878),
+                    Color(0x75285D94), // Bright visible cyan-navy light
+                    Color(0x3819406B),
+                    Colors.transparent,
+                  ],
+                  radius: 0.75,
+                ),
+              ),
+            ),
+          ),
+
+          // ── 2. Top Right Prominent Concentric Radar Rings ──
+          CustomPaint(
+            size: size,
+            painter: _RadarArcsPainter(
+              center: topCenter,
+              radii: const [54, 110, 170, 235, 305, 380, 460, 550, 650, 760],
+              strokeWidth: 1.25,
+              color: const Color(0x3D5A8AC0), // Crisp, clearly visible blue arcs
+            ),
+          ),
+
+          // ── 3. Bottom Left Soft Radial Glow ────────────────
+          Positioned(
+            left: bottomCenter.dx - (size.width * 0.45),
+            top: bottomCenter.dy - (size.width * 0.45),
+            child: Container(
+              width: size.width * 0.9,
+              height: size.width * 0.9,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    Color(0x381E4875),
                     Colors.transparent,
                   ],
                   radius: 0.7,
@@ -64,16 +100,15 @@ class AuthBackground extends StatelessWidget {
               ),
             ),
           ),
-          // Concentric radar arcs
+
+          // ── 4. Bottom Left Concentric Radar Rings ──────────
           CustomPaint(
             size: size,
             painter: _RadarArcsPainter(
-              center: center,
-              radiusStep: 58.0,
-              count: 10,
-              color: isDark
-                  ? const Color(0x221F4A6E)
-                  : const Color(0x2894A3B8),
+              center: bottomCenter,
+              radii: const [50, 105, 165, 230, 300, 380],
+              strokeWidth: 1.25,
+              color: const Color(0x304875A3),
             ),
           ),
         ],
@@ -84,14 +119,14 @@ class AuthBackground extends StatelessWidget {
 
 class _RadarArcsPainter extends CustomPainter {
   final Offset center;
-  final double radiusStep;
-  final int count;
+  final List<double> radii;
+  final double strokeWidth;
   final Color color;
 
   _RadarArcsPainter({
     required this.center,
-    this.radiusStep = 58.0,
-    this.count = 10,
+    required this.radii,
+    this.strokeWidth = 1.25,
     required this.color,
   });
 
@@ -100,10 +135,11 @@ class _RadarArcsPainter extends CustomPainter {
     final paint = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.0;
+      ..strokeWidth = strokeWidth
+      ..isAntiAlias = true;
 
-    for (int i = 1; i <= count; i++) {
-      canvas.drawCircle(center, i * radiusStep, paint);
+    for (final r in radii) {
+      canvas.drawCircle(center, r, paint);
     }
   }
 
@@ -112,7 +148,7 @@ class _RadarArcsPainter extends CustomPainter {
       oldDelegate.center != center || oldDelegate.color != color;
 }
 
-// ── Kasyaba 3-Pill Logo Mark ──
+// ── Kasyaba 3-Pill Logo Mark (Full Capsule Radius) ──
 class KasyabaLogoMark extends StatelessWidget {
   final double scale;
   const KasyabaLogoMark({super.key, this.scale = 1.0});
@@ -124,29 +160,29 @@ class KasyabaLogoMark extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 24 * scale,
-          height: 4.5 * scale,
+          width: 28 * scale,
+          height: 5.5 * scale,
           decoration: BoxDecoration(
-            color: const Color(0xFF90BDE8),
-            borderRadius: BorderRadius.circular(3),
+            color: const Color(0xFF99C5F0),
+            borderRadius: BorderRadius.circular(999),
           ),
         ),
-        SizedBox(height: 3.5 * scale),
+        SizedBox(height: 4 * scale),
         Container(
-          width: 17 * scale,
-          height: 4.5 * scale,
+          width: 20 * scale,
+          height: 5.5 * scale,
           decoration: BoxDecoration(
-            color: const Color(0xFF5A91C8),
-            borderRadius: BorderRadius.circular(3),
+            color: const Color(0xFF6098CF),
+            borderRadius: BorderRadius.circular(999),
           ),
         ),
-        SizedBox(height: 3.5 * scale),
+        SizedBox(height: 4 * scale),
         Container(
-          width: 11 * scale,
-          height: 4.5 * scale,
+          width: 13 * scale,
+          height: 5.5 * scale,
           decoration: BoxDecoration(
-            color: const Color(0xFF386A9E),
-            borderRadius: BorderRadius.circular(3),
+            color: const Color(0xFF3D6E9E),
+            borderRadius: BorderRadius.circular(999),
           ),
         ),
       ],
@@ -166,14 +202,14 @@ class AuthBrandHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         const KasyabaLogoMark(),
-        const SizedBox(width: 10),
+        const SizedBox(width: 12),
         Text(
           'Kasyaba',
           style: TextStyle(
             color: isDark ? Colors.white : AppColors.lightTextPrimary,
-            fontSize: 22,
+            fontSize: 24,
             fontWeight: FontWeight.w700,
-            letterSpacing: -0.3,
+            letterSpacing: -0.4,
           ),
         ),
       ],
@@ -181,7 +217,7 @@ class AuthBrandHeader extends StatelessWidget {
   }
 }
 
-// ── Runway Hero Spline with Inflection Node and "Can I afford it?" Tooltip ──
+// ── Runway Hero Spline with Prominent White Curve, Glowing Gradient Fill, and Inflection Node ──
 class RunwaySplineHero extends StatelessWidget {
   final String tooltipText;
   const RunwaySplineHero({
@@ -194,9 +230,9 @@ class RunwaySplineHero extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
-        const height = 98.0;
-        final crestX = width * 0.70;
-        const crestY = 28.0;
+        const height = 115.0;
+        final crestX = width * 0.72;
+        const crestY = 22.0;
 
         return SizedBox(
           width: width,
@@ -204,7 +240,7 @@ class RunwaySplineHero extends StatelessWidget {
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-              // Curve, dashed drop line, and glowing inflection node
+              // Curve, Gradient Fill under curve, dashed drop line, and glowing inflection node
               CustomPaint(
                 size: Size(width, height),
                 painter: _RunwaySplinePainter(
@@ -213,36 +249,36 @@ class RunwaySplineHero extends StatelessWidget {
                 ),
               ),
 
-              // Floating "Can I afford it?" pill tooltip
+              // Floating "Can I afford it?" capsule tooltip
               Positioned(
                 top: 0,
-                left: (crestX - 60).clamp(0.0, width - 130),
+                left: (crestX - 86).clamp(0.0, width - 145),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 5.5,
+                    horizontal: 16,
+                    vertical: 7,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0x660E1C2E),
-                    borderRadius: BorderRadius.circular(20),
+                    color: const Color(0x990C1A2B),
+                    borderRadius: BorderRadius.circular(999), // Full capsule
                     border: Border.all(
-                      color: const Color(0x388FBCE6),
-                      width: 1.0,
+                      color: const Color(0x668EBCDE), // Crisp light blue border
+                      width: 1.2,
                     ),
                     boxShadow: const [
                       BoxShadow(
-                        color: Color(0x22000000),
-                        blurRadius: 8,
-                        offset: Offset(0, 2),
+                        color: Color(0x33000000),
+                        blurRadius: 10,
+                        offset: Offset(0, 3),
                       ),
                     ],
                   ),
                   child: Text(
                     tooltipText,
                     style: const TextStyle(
-                      color: Color(0xFFD6E4F0),
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w500,
+                      color: Color(0xFFE2EEF8),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
                       letterSpacing: 0.1,
                     ),
                   ),
@@ -270,53 +306,87 @@ class _RunwaySplinePainter extends CustomPainter {
     final width = size.width;
     final height = size.height;
 
-    // 1. Spline curve
+    // ── 1. The Bold Spline Path ──────────────────────
     final path = Path();
-    path.moveTo(0, height * 0.68);
-    // Undulate gently then swoops up
+    path.moveTo(0, height * 0.62);
+
+    // Climb smoothly to first crest
     path.cubicTo(
-      width * 0.22,
-      height * 0.50,
-      width * 0.38,
-      height * 0.78,
-      width * 0.52,
+      width * 0.12,
       height * 0.58,
+      width * 0.18,
+      height * 0.44,
+      width * 0.28,
+      height * 0.44,
     );
-    // Smooth rise to crest
+    // Dip down into trough
     path.cubicTo(
-      width * 0.62,
-      height * 0.40,
-      crestX - 12,
+      width * 0.38,
+      height * 0.44,
+      width * 0.42,
+      height * 0.62,
+      width * 0.50,
+      height * 0.62,
+    );
+    // Sharp steep rise to the main peak
+    path.cubicTo(
+      width * 0.58,
+      height * 0.62,
+      crestX - 18,
       crestY,
       crestX,
       crestY,
     );
-    // Smooth trail off
+    // Crest smoothly and trail off
     path.cubicTo(
       crestX + 22,
       crestY,
-      width * 0.90,
-      crestY + 12,
+      width * 0.88,
+      crestY - 8,
       width,
-      crestY + 8,
+      crestY - 2,
     );
 
-    final curvePaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.92)
+    // ── 2. Semi-Transparent Gradient Volume Under Curve ──
+    final fillPath = Path.from(path);
+    fillPath.lineTo(width, height);
+    fillPath.lineTo(0, height);
+    fillPath.close();
+
+    final fillPaint = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Color(0x35FFFFFF), // White luminous edge
+          Color(0x157CAFE0), // Subtle soft blue fill
+          Color(0x00000000), // Transparent fade
+        ],
+        stops: [0.0, 0.45, 1.0],
+      ).createShader(Rect.fromLTWH(0, 0, width, height))
+      ..style = PaintingStyle.fill;
+
+    canvas.drawPath(fillPath, fillPaint);
+
+    // ── 3. Solid Sharp White Stroke ──────────────────
+    final strokePaint = Paint()
+      ..color = Colors.white
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.2
-      ..strokeCap = StrokeCap.round;
+      ..strokeWidth = 3.4 // Bold, thick, sharp!
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..isAntiAlias = true;
 
-    canvas.drawPath(path, curvePaint);
+    canvas.drawPath(path, strokePaint);
 
-    // 2. Vertical dashed line dropping down from crest
+    // ── 4. Vertical Dashed Drop Line from Peak ───────
     final dashPaint = Paint()
-      ..color = const Color(0x40FFFFFF)
-      ..strokeWidth = 1.2;
+      ..color = const Color(0x75FFFFFF)
+      ..strokeWidth = 1.6;
 
-    const dashLength = 3.5;
-    const dashSpace = 3.5;
-    double currentY = crestY + 9;
+    const dashLength = 4.0;
+    const dashSpace = 4.0;
+    double currentY = crestY + 12;
     final bottomY = height;
 
     while (currentY < bottomY) {
@@ -328,17 +398,25 @@ class _RunwaySplinePainter extends CustomPainter {
       currentY += dashLength + dashSpace;
     }
 
-    // 3. Crest node (outer halo ring + inner dot)
+    // ── 5. Prominent Inflection Peak Node ────────────
+    final peak = Offset(crestX, crestY);
     final haloPaint = Paint()
-      ..color = const Color(0x66FFFFFF)
+      ..color = Colors.white
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5;
-    canvas.drawCircle(Offset(crestX, crestY), 6.5, haloPaint);
+      ..strokeWidth = 2.4
+      ..isAntiAlias = true;
+    final haloFillPaint = Paint()
+      ..color = const Color(0xFF0C1B2C)
+      ..style = PaintingStyle.fill;
+
+    canvas.drawCircle(peak, 8.5, haloFillPaint);
+    canvas.drawCircle(peak, 8.5, haloPaint);
 
     final dotPaint = Paint()
       ..color = Colors.white
-      ..style = PaintingStyle.fill;
-    canvas.drawCircle(Offset(crestX, crestY), 2.8, dotPaint);
+      ..style = PaintingStyle.fill
+      ..isAntiAlias = true;
+    canvas.drawCircle(peak, 3.8, dotPaint);
   }
 
   @override
@@ -346,7 +424,7 @@ class _RunwaySplinePainter extends CustomPainter {
       oldDelegate.crestX != crestX || oldDelegate.crestY != crestY;
 }
 
-// ── Glassmorphic Form Card ──
+// ── Super-Rounded Glassmorphic Form Card (34px Radius) ──
 class AuthFormCard extends StatelessWidget {
   final Widget child;
 
@@ -359,26 +437,26 @@ class AuthFormCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return ClipRRect(
-      borderRadius: BorderRadius.circular(22),
+      borderRadius: BorderRadius.circular(34), // Very round like Figma
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 26),
         decoration: BoxDecoration(
           color: isDark
-              ? const Color(0xCC0E1A2B) // Translucent deep navy
+              ? const Color(0xD90D1B2D) // Translucent deep navy
               : AppColors.lightCardSurface,
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(34), // Very round like Figma
           border: Border.all(
             color: isDark
-                ? const Color(0x3344688E) // Subtle navy etched border
+                ? const Color(0x40416791) // Crisp soft blue border
                 : AppColors.lightBorderHairline,
-            width: 1.0,
+            width: 1.2,
           ),
           boxShadow: [
             if (isDark)
               const BoxShadow(
-                color: Color(0x40000000),
-                blurRadius: 20,
-                offset: Offset(0, 8),
+                color: Color(0x55000000),
+                blurRadius: 28,
+                offset: Offset(0, 12),
               ),
           ],
         ),
@@ -454,10 +532,10 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
         Text(
           widget.label.toUpperCase(),
           style: TextStyle(
-            color: isDark ? const Color(0xFF7E98B5) : AppColors.lightTextSecondary,
-            fontSize: 11,
+            color: isDark ? const Color(0xFF7E9EC2) : AppColors.lightTextSecondary,
+            fontSize: 11.5,
             fontWeight: FontWeight.w700,
-            letterSpacing: 1.1,
+            letterSpacing: 1.2,
           ),
         ),
         const SizedBox(height: 8),
@@ -465,7 +543,7 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
         AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(24),
             boxShadow: const [],
           ),
           child: ReactiveTextField<dynamic>(
@@ -479,20 +557,20 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
                 : null,
             style: TextStyle(
               color: isDark ? Colors.white : AppColors.lightTextPrimary,
-              fontSize: 14.5,
+              fontSize: 15,
               fontWeight: FontWeight.w500,
             ),
             decoration: InputDecoration(
               hintText: widget.hintText,
               hintStyle: TextStyle(
-                color: isDark ? const Color(0xFF475E76) : const Color(0xFF94A3B8),
-                fontSize: 14,
+                color: isDark ? const Color(0xFF4C6A8A) : const Color(0xFF94A3B8),
+                fontSize: 14.5,
               ),
               filled: true,
-              fillColor: isDark ? const Color(0xFF09121D) : AppColors.lightInputFill,
+              fillColor: isDark ? const Color(0xFF07111D) : AppColors.lightInputFill,
               contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 14,
+                horizontal: 22,
+                vertical: 17,
               ),
               prefixIcon: widget.prefixIcon != null
                   ? Icon(
@@ -503,28 +581,28 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
                   : null,
               suffixIcon: widget.suffixIcon,
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(24),
                 borderSide: BorderSide(
-                  color: isDark ? const Color(0x333A526E) : AppColors.lightBorderHairline,
-                  width: 1,
+                  color: isDark ? const Color(0x383F6288) : AppColors.lightBorderHairline,
+                  width: 1.0,
                 ),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(24),
                 borderSide: BorderSide(
-                  color: isDark ? const Color(0xFF6B9ED4) : focusedIconColor,
-                  width: 1.2,
+                  color: isDark ? const Color(0xFF7CB2E8) : focusedIconColor,
+                  width: 1.4,
                 ),
               ),
               errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(24),
                 borderSide: const BorderSide(
                   color: AppColors.expense,
                   width: 1,
                 ),
               ),
               focusedErrorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(24),
                 borderSide: const BorderSide(
                   color: AppColors.expense,
                   width: 1.2,
@@ -557,12 +635,12 @@ class AuthPrimaryPillButton extends StatelessWidget {
     return ElevatedButton(
       onPressed: isLoading ? null : onPressed,
       style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFFD8E7F6),
-        foregroundColor: const Color(0xFF0B1624),
+        backgroundColor: const Color(0xFFD3E4F4),
+        foregroundColor: const Color(0xFF091422),
         disabledBackgroundColor: const Color(0xFF8BA5C3),
-        minimumSize: const Size.fromHeight(50),
+        minimumSize: const Size.fromHeight(54),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(28),
+          borderRadius: BorderRadius.circular(999), // Full capsule pill
         ),
         elevation: 0,
       ),
@@ -572,14 +650,14 @@ class AuthPrimaryPillButton extends StatelessWidget {
               width: 20,
               child: CircularProgressIndicator(
                 strokeWidth: 2.2,
-                color: Color(0xFF0B1624),
+                color: Color(0xFF091422),
               ),
             )
           : Text(
               label,
               style: const TextStyle(
-                color: Color(0xFF0B1624),
-                fontSize: 15,
+                color: Color(0xFF091422),
+                fontSize: 16,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.2,
               ),
