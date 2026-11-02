@@ -27,6 +27,171 @@ class AuthFigmaTokens {
   static const Color radialGlow1 = Color(0xCC4F7596); // rgba(79, 117, 150, 0.8) at 85% 8%
   static const Color radialGlow2 = Color(0xFF1E3A56); // rgba(30, 58, 86, 1.0) at 0% 100%
   static const Color radialGlow3 = Color(0xAB1E3A56); // rgba(30, 58, 86, 0.67) at 100% 75%
+
+  // Forgot Password (Node 11:3028) Tokens
+  static const Color bigStone = Color(0xFF16293F); // Base input & back button fill on Forgot Pass
+  static const Color poloBlue22 = Color(0x388FB2CE); // rgba(143, 178, 206, 0.22) - Border on Forgot Pass
+  static const Color periwinkleGraySubtitle = Color(0xFFB4CDE0); // Subtitle and label on Forgot Pass
+  static const Color radialForgotPass = Color(0xAB4F7596); // rgba(79, 117, 150, 0.67) at 90% 0%
+}
+
+// ── Squircle Back Button (Node 11:3033, 50x50, r=24, fill: Big Stone #16293F, border: Polo Blue 22%) ──
+class AuthBackButton extends StatelessWidget {
+  final VoidCallback onPressed;
+
+  const AuthBackButton({
+    super.key,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return GestureDetector(
+      onTap: onPressed,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        width: 50,
+        height: 50,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: isDark ? AuthFigmaTokens.bigStone : AppColors.lightCardSurface,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: isDark ? AuthFigmaTokens.poloBlue22 : AppColors.lightBorderHairline,
+            width: 1.0,
+          ),
+        ),
+        child: SvgPicture.asset(
+          'assets/images/back_chevron.svg',
+          width: 22,
+          height: 22,
+        ),
+      ),
+    );
+  }
+}
+
+// ── Capsule Inline Field (Node 11:3041-3045, height: 60, r=28, fill: Big Stone #16293F) ──
+class AuthCapsuleInlineField extends StatefulWidget {
+  final String formControlName;
+  final String label;
+  final String hintText;
+  final TextInputType? keyboardType;
+  final TextInputAction? textInputAction;
+  final Map<String, ValidationMessageFunction>? validationMessages;
+  final VoidCallback? onSubmitted;
+
+  const AuthCapsuleInlineField({
+    super.key,
+    required this.formControlName,
+    required this.label,
+    required this.hintText,
+    this.keyboardType,
+    this.textInputAction,
+    this.validationMessages,
+    this.onSubmitted,
+  });
+
+  @override
+  State<AuthCapsuleInlineField> createState() => _AuthCapsuleInlineFieldState();
+}
+
+class _AuthCapsuleInlineFieldState extends State<AuthCapsuleInlineField> {
+  final FocusNode _focusNode = FocusNode();
+  bool _isFocused = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode.addListener(() {
+      if (mounted) {
+        setState(() {
+          _isFocused = _focusNode.hasFocus;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      height: 60,
+      padding: const EdgeInsets.symmetric(horizontal: 21),
+      decoration: BoxDecoration(
+        color: isDark ? AuthFigmaTokens.bigStone : AppColors.lightInputFill,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: _isFocused
+              ? (isDark ? AuthFigmaTokens.poloBlue : AppColors.emerald500)
+              : (isDark ? AuthFigmaTokens.poloBlue22 : AppColors.lightBorderHairline),
+          width: _isFocused ? 1.5 : 1.0,
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Fixed width prefix label (Node 11:3042, w: 96)
+          SizedBox(
+            width: 80,
+            child: Text(
+              widget.label,
+              style: GoogleFonts.dmSans(
+                color: isDark ? AuthFigmaTokens.periwinkleGraySubtitle : AppColors.lightTextSecondary,
+                fontSize: 14,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          ),
+          // Text Input Field (Node 11:3044-3045, fill, DM Sans Bold 16 #C9DCEA)
+          Expanded(
+            child: ReactiveTextField<dynamic>(
+              formControlName: widget.formControlName,
+              focusNode: _focusNode,
+              keyboardType: widget.keyboardType,
+              textInputAction: widget.textInputAction,
+              onSubmitted: widget.onSubmitted != null
+                  ? (_) => widget.onSubmitted!()
+                  : null,
+              style: GoogleFonts.dmSans(
+                color: isDark ? AuthFigmaTokens.periwinkleGray : AppColors.lightTextPrimary,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+              ),
+              decoration: InputDecoration(
+                isDense: true,
+                hintText: widget.hintText,
+                hintStyle: GoogleFonts.dmSans(
+                  color: isDark
+                      ? AuthFigmaTokens.periwinkleGray.withValues(alpha: 0.45)
+                      : const Color(0xFF94A3B8),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+                contentPadding: EdgeInsets.zero,
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                errorBorder: InputBorder.none,
+                focusedErrorBorder: InputBorder.none,
+              ),
+              validationMessages: widget.validationMessages,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // ── Background with deep navy radial gradients and vector radar overlay ──
@@ -105,6 +270,63 @@ class AuthBackground extends StatelessWidget {
             ),
           ),
           // Vector radar background rings (Node 11:784)
+          SvgPicture.asset(
+            'assets/images/background_radar.svg',
+            fit: BoxFit.cover,
+            alignment: Alignment.center,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Background for Forgot Password Screen (Node 11:3031) ──
+class AuthForgotPassBackground extends StatelessWidget {
+  final Size size;
+  final bool isDark;
+
+  const AuthForgotPassBackground({
+    super.key,
+    required this.size,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (!isDark) {
+      return Container(
+        width: size.width,
+        height: size.height,
+        color: AppColors.lightScaffold,
+      );
+    }
+
+    return SizedBox(
+      width: size.width,
+      height: size.height,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Base solid fill #0A1220
+          Container(
+            color: AuthFigmaTokens.ebony,
+          ),
+          // Radial Gradient: circle at 90% 0%, rgba(79, 117, 150, 0.67) 0% to 0% at 70%
+          Container(
+            decoration: const BoxDecoration(
+              gradient: RadialGradient(
+                center: Alignment(0.80, -1.0),
+                radius: 0.70,
+                colors: [
+                  AuthFigmaTokens.radialForgotPass,
+                  Color(0x004F7596),
+                ],
+                stops: [0.0, 1.0],
+              ),
+            ),
+          ),
+          // Subtle radar background rings (Node 11:784)
           SvgPicture.asset(
             'assets/images/background_radar.svg',
             fit: BoxFit.cover,

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kasyaba/features/auth/screens/login_screen.dart';
 import 'package:kasyaba/features/auth/screens/register_screen.dart';
+import 'package:kasyaba/features/auth/screens/forgot_password_screen.dart';
 
 void main() {
   testWidgets('LoginScreen renders brand lockup, explicit labels, demo button, and trust footer',
@@ -99,5 +100,34 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.text('Passwords match'), findsOneWidget);
+  });
+
+  testWidgets('ForgotPasswordScreen renders exact Figma elements, back button, inline field, and action button',
+      (tester) async {
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(
+          home: ForgotPasswordScreen(),
+        ),
+      ),
+    );
+
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    // Title and Subtitle
+    expect(find.text('Reset your password'), findsOneWidget);
+    expect(find.textContaining('Enter the email you signed up with'), findsOneWidget);
+
+    // Inline capsule email field and label
+    expect(find.text('Email'), findsOneWidget);
+    expect(find.byType(TextField), findsOneWidget);
+
+    // Sign in link
+    expect(find.text('Remembered it? '), findsOneWidget);
+    expect(find.text('Sign in'), findsOneWidget);
+
+    // Primary Action Button
+    expect(find.text('Send reset link'), findsOneWidget);
   });
 }

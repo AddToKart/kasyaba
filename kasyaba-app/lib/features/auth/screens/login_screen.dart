@@ -70,6 +70,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     } catch (_) {}
   }
 
+  void _onForgotPasswordTapped(BuildContext context) {
+    if (GoRouter.maybeOf(context) != null) {
+      context.push('/forgot-password');
+    } else {
+      _showForgotPasswordHelp(context);
+    }
+  }
+
   void _showForgotPasswordHelp(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog<void>(
@@ -259,7 +267,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                     alignment: Alignment.centerRight,
                                     child: GestureDetector(
                                       onTap: () =>
-                                          _showForgotPasswordHelp(context),
+                                          _onForgotPasswordTapped(context),
                                       behavior: HitTestBehavior.opaque,
                                       child: Padding(
                                         padding: const EdgeInsets.symmetric(

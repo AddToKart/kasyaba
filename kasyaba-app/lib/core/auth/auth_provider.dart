@@ -293,6 +293,30 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  /// Sends a password reset link to the given [email].
+  Future<void> requestPasswordReset(String email) async {
+    final operation = ++_authOperation;
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      await _dio.post(
+        '/auth/forgot-password',
+        data: {'email': email},
+      );
+      if (!mounted || operation != _authOperation) return;
+      state = state.copyWith(isLoading: false);
+    } on DioException catch (e) {
+      if (!mounted || operation != _authOperation) return;
+      final error =
+          e.response?.data?['error']?['message'] ?? 'Failed to send reset link';
+      state = state.copyWith(isLoading: false, error: error);
+      rethrow;
+    } catch (_) {
+      if (!mounted || operation != _authOperation) return;
+      state = state.copyWith(isLoading: false, error: 'Failed to send reset link');
+      rethrow;
+    }
+  }
+
   /// Fetches a portable JSON export of the signed-in user's financial data.
   Future<Map<String, dynamic>> exportData() async {
     final response = await _dio.get('/auth/export');
