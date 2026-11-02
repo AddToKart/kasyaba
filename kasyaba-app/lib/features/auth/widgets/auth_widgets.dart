@@ -35,40 +35,66 @@ class AuthFigmaTokens {
   static const Color radialForgotPass = Color(0xAB4F7596); // rgba(79, 117, 150, 0.67) at 90% 0%
 }
 
-// ── Squircle Back Button (Node 11:3033, 50x50, r=24, fill: Big Stone #16293F, border: Polo Blue 22%) ──
+// ── Squircle Back Button (Node 11:3033 & 11:743) ──
 class AuthBackButton extends StatelessWidget {
   final VoidCallback onPressed;
+  final double size;
+  final double radius;
+  final Color? backgroundColor;
+  final Color? borderColor;
+  final bool hasBlur;
 
   const AuthBackButton({
     super.key,
     required this.onPressed,
+    this.size = 50,
+    this.radius = 24,
+    this.backgroundColor,
+    this.borderColor,
+    this.hasBlur = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = backgroundColor ??
+        (isDark ? AuthFigmaTokens.bigStone : AppColors.lightCardSurface);
+    final border = borderColor ??
+        (isDark ? AuthFigmaTokens.poloBlue22 : AppColors.lightBorderHairline);
+
+    Widget content = Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(radius),
+        border: Border.all(
+          color: border,
+          width: 1.0,
+        ),
+      ),
+      child: SvgPicture.asset(
+        'assets/images/back_chevron.svg',
+        width: 22,
+        height: 22,
+      ),
+    );
+
+    if (hasBlur) {
+      content = ClipRRect(
+        borderRadius: BorderRadius.circular(radius),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 7, sigmaY: 7),
+          child: content,
+        ),
+      );
+    }
 
     return GestureDetector(
       onTap: onPressed,
       behavior: HitTestBehavior.opaque,
-      child: Container(
-        width: 50,
-        height: 50,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: isDark ? AuthFigmaTokens.bigStone : AppColors.lightCardSurface,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: isDark ? AuthFigmaTokens.poloBlue22 : AppColors.lightBorderHairline,
-            width: 1.0,
-          ),
-        ),
-        child: SvgPicture.asset(
-          'assets/images/back_chevron.svg',
-          width: 22,
-          height: 22,
-        ),
-      ),
+      child: content,
     );
   }
 }
@@ -680,23 +706,25 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
   }
 }
 
-// ── Primary Pill Button (Node 11:822-823, height: 60, r: 28, Periwinkle Gray) ──
+// ── Primary Pill Button (Node 11:822-823, height: 60/56, r: 28, Periwinkle Gray) ──
 class AuthPrimaryPillButton extends StatelessWidget {
   final bool isLoading;
   final VoidCallback onPressed;
   final String label;
+  final double height;
 
   const AuthPrimaryPillButton({
     super.key,
     required this.isLoading,
     required this.onPressed,
     required this.label,
+    this.height = 60,
   });
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 60,
+      height: height,
       width: double.infinity,
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,

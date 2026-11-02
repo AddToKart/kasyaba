@@ -58,7 +58,7 @@ void main() {
     expect(find.text('Reset Password'), findsNothing);
   });
 
-  testWidgets('RegisterScreen renders brand lockup, password strength, and match indicator',
+  testWidgets('RegisterScreen renders exact Figma elements, step indicator, form card, and continue button',
       (tester) async {
     await tester.pumpWidget(
       const ProviderScope(
@@ -71,35 +71,31 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 1000));
 
-    // Brand lockup and header
-    expect(find.text('Kasyaba'), findsOneWidget);
-    expect(find.text('Create Account'), findsNWidgets(2));
+    // Top Navigation & Step Indicator
+    expect(find.text('STEP 1 OF 2'), findsOneWidget);
 
-    // Explicit labels
+    // Screen Title and Subtitle
+    expect(find.text('Create your account.'), findsOneWidget);
+    expect(find.text('Takes a minute. Then we tailor Kasyaba to you.'), findsOneWidget);
+
+    // Explicit field labels
     expect(find.text('FULL NAME'), findsOneWidget);
-    expect(find.text('EMAIL ADDRESS'), findsOneWidget);
+    expect(find.text('EMAIL'), findsOneWidget);
     expect(find.text('PASSWORD'), findsOneWidget);
-    expect(find.text('CONFIRM PASSWORD'), findsOneWidget);
 
-    // Trust footer and terms note
+    // Primary Continue button
+    expect(find.text('Continue'), findsOneWidget);
+
+    // Trust footer
     expect(find.text('Calculated on your device. Your numbers stay yours.'), findsOneWidget);
-    expect(find.textContaining('Terms of Service and Privacy Policy'), findsOneWidget);
 
-    // Enter a password to trigger strength indicator
-    final passwordFields = find.byType(TextField);
-    // passwordFields: [0: name, 1: email, 2: password, 3: confirmPassword]
-    await tester.enterText(passwordFields.at(2), 'Pass123!@#');
+    // Fill form and check validity
+    final fields = find.byType(TextField);
+    expect(fields, findsNWidgets(3));
+    await tester.enterText(fields.at(0), 'Juan Dela Cruz');
+    await tester.enterText(fields.at(1), 'juan@example.com');
+    await tester.enterText(fields.at(2), 'Password123!');
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
-
-    expect(find.textContaining('password'), findsWidgets);
-
-    // Enter matching confirm password
-    await tester.enterText(passwordFields.at(3), 'Pass123!@#');
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
-
-    expect(find.text('Passwords match'), findsOneWidget);
   });
 
   testWidgets('ForgotPasswordScreen renders exact Figma elements, back button, inline field, and action button',
