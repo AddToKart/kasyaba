@@ -668,42 +668,74 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                         color: DashboardTokens.periwinkleGray,
                       ),
                     ),
-                    GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () => context.push('/bills'),
-                      child: Container(
-                        height: 36,
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: DashboardTokens.poloBlue22,
-                            width: 1,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            SvgPicture.asset(
-                              'assets/images/activity_add.svg',
-                              width: 18,
-                              height: 18,
-                              colorFilter: const ColorFilter.mode(
-                                DashboardTokens.periwinkleGray,
-                                BlendMode.srcIn,
+                    Row(
+                      children: [
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () {
+                            AppHaptics.selectionClick();
+                            context.push('/bills');
+                          },
+                          child: Container(
+                            height: 36,
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: DashboardTokens.poloBlue22,
+                                width: 1,
                               ),
                             ),
-                            const SizedBox(width: 5),
-                            Text(
-                              'Add a bill',
+                            alignment: Alignment.center,
+                            child: Text(
+                              'View bills',
                               style: GoogleFonts.dmSans(
                                 fontSize: 13,
                                 fontWeight: FontWeight.bold,
                                 color: DashboardTokens.periwinkleGray,
                               ),
                             ),
-                          ],
+                          ),
                         ),
-                      ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () {
+                            AppHaptics.selectionClick();
+                            context.push('/bills/add');
+                          },
+                          child: Container(
+                            height: 36,
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            decoration: BoxDecoration(
+                              color: DashboardTokens.periwinkleGray,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              children: [
+                                SvgPicture.asset(
+                                  'assets/images/activity_add.svg',
+                                  width: 18,
+                                  height: 18,
+                                  colorFilter: const ColorFilter.mode(
+                                    DashboardTokens.ebony,
+                                    BlendMode.srcIn,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Add a bill',
+                                  style: GoogleFonts.dmSans(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: DashboardTokens.ebony,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),

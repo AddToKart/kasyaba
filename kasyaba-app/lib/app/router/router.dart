@@ -17,6 +17,7 @@ import '../../features/savings/screens/goals_screen.dart';
 import '../../features/savings/screens/create_goal_screen.dart';
 import '../../features/savings/screens/goal_detail_screen.dart';
 import '../../features/bills/screens/bills_screen.dart';
+import '../../features/bills/screens/add_bill_screen.dart';
 import '../../features/alerts/screens/alerts_screen.dart';
 import '../../features/settings/screens/settings_screen.dart';
 import '../../features/splash/screens/splash_screen.dart';
@@ -133,6 +134,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/accounts',
         builder: (context, state) => const AccountsScreen(),
+      ),
+      GoRoute(
+        path: '/bills/add',
+        builder: (context, state) =>
+            AddBillScreen(initialName: state.extra as String?),
       ),
       GoRoute(
         path: '/goals/new',
