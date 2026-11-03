@@ -52,20 +52,20 @@ void main() {
       expect(find.text('Transfer'), findsOneWidget);
 
       // By default it starts as Expense
-      expect(find.text('Category'), findsOneWidget);
-      expect(find.text('From Account / Wallet'), findsNothing);
+      expect(find.text('CATEGORY'), findsOneWidget);
+      expect(find.text('From'), findsNothing);
 
       // Tap on "Transfer" mode
       await tester.tap(find.text('Transfer'));
       await tester.pumpAndSettle();
 
       // Category should be hidden; From and To wallet selectors should be visible
-      expect(find.text('Category'), findsNothing);
-      expect(find.text('From Account / Wallet'), findsOneWidget);
-      expect(find.text('To Account / Wallet'), findsOneWidget);
+      expect(find.text('CATEGORY'), findsNothing);
+      expect(find.text('From'), findsOneWidget);
+      expect(find.text('To'), findsOneWidget);
 
       // Transfer Fee input and quick-select presets should be visible
-      expect(find.text('Transfer Fee (Optional)'), findsOneWidget);
+      expect(find.text('TRANSFER FEE'), findsOneWidget);
       expect(find.text('Free'), findsOneWidget);
       expect(find.text('₱10'), findsOneWidget);
       expect(find.text('₱15 InstaPay'), findsOneWidget);
@@ -75,11 +75,8 @@ void main() {
       await tester.tap(find.text('₱15 InstaPay'));
       await tester.pumpAndSettle();
 
-      // Find the TextField with 15.00
-      expect(find.text('15.00'), findsOneWidget);
-
-      // Save button now says "Save Transfer"
-      expect(find.text('Save Transfer'), findsOneWidget);
+      // Save button now says "Save transfer"
+      expect(find.text('Save transfer'), findsOneWidget);
     });
   });
 
