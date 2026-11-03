@@ -1903,6 +1903,9 @@ mixin _$BillItem {
   double get amount => throw _privateConstructorUsedError;
   DateTime get dueDate => throw _privateConstructorUsedError;
   String get status => throw _privateConstructorUsedError;
+  String? get categoryId => throw _privateConstructorUsedError;
+  String? get recurrence => throw _privateConstructorUsedError;
+  int get reminderLeadDays => throw _privateConstructorUsedError;
 
   /// Create a copy of BillItem
   /// with the given fields replaced by the non-null parameter values.
@@ -1922,6 +1925,9 @@ abstract class $BillItemCopyWith<$Res> {
     double amount,
     DateTime dueDate,
     String status,
+    String? categoryId,
+    String? recurrence,
+    int reminderLeadDays,
   });
 }
 
@@ -1945,6 +1951,9 @@ class _$BillItemCopyWithImpl<$Res, $Val extends BillItem>
     Object? amount = null,
     Object? dueDate = null,
     Object? status = null,
+    Object? categoryId = freezed,
+    Object? recurrence = freezed,
+    Object? reminderLeadDays = null,
   }) {
     return _then(
       _value.copyWith(
@@ -1968,6 +1977,18 @@ class _$BillItemCopyWithImpl<$Res, $Val extends BillItem>
                 ? _value.status
                 : status // ignore: cast_nullable_to_non_nullable
                       as String,
+            categoryId: freezed == categoryId
+                ? _value.categoryId
+                : categoryId // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            recurrence: freezed == recurrence
+                ? _value.recurrence
+                : recurrence // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            reminderLeadDays: null == reminderLeadDays
+                ? _value.reminderLeadDays
+                : reminderLeadDays // ignore: cast_nullable_to_non_nullable
+                      as int,
           )
           as $Val,
     );
@@ -1989,6 +2010,9 @@ abstract class _$$BillItemImplCopyWith<$Res>
     double amount,
     DateTime dueDate,
     String status,
+    String? categoryId,
+    String? recurrence,
+    int reminderLeadDays,
   });
 }
 
@@ -2011,6 +2035,9 @@ class __$$BillItemImplCopyWithImpl<$Res>
     Object? amount = null,
     Object? dueDate = null,
     Object? status = null,
+    Object? categoryId = freezed,
+    Object? recurrence = freezed,
+    Object? reminderLeadDays = null,
   }) {
     return _then(
       _$BillItemImpl(
@@ -2034,6 +2061,18 @@ class __$$BillItemImplCopyWithImpl<$Res>
             ? _value.status
             : status // ignore: cast_nullable_to_non_nullable
                   as String,
+        categoryId: freezed == categoryId
+            ? _value.categoryId
+            : categoryId // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        recurrence: freezed == recurrence
+            ? _value.recurrence
+            : recurrence // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        reminderLeadDays: null == reminderLeadDays
+            ? _value.reminderLeadDays
+            : reminderLeadDays // ignore: cast_nullable_to_non_nullable
+                  as int,
       ),
     );
   }
@@ -2048,6 +2087,9 @@ class _$BillItemImpl implements _BillItem {
     required this.amount,
     required this.dueDate,
     this.status = 'upcoming',
+    this.categoryId,
+    this.recurrence,
+    this.reminderLeadDays = 1,
   });
 
   @override
@@ -2061,10 +2103,17 @@ class _$BillItemImpl implements _BillItem {
   @override
   @JsonKey()
   final String status;
+  @override
+  final String? categoryId;
+  @override
+  final String? recurrence;
+  @override
+  @JsonKey()
+  final int reminderLeadDays;
 
   @override
   String toString() {
-    return 'BillItem(id: $id, name: $name, amount: $amount, dueDate: $dueDate, status: $status)';
+    return 'BillItem(id: $id, name: $name, amount: $amount, dueDate: $dueDate, status: $status, categoryId: $categoryId, recurrence: $recurrence, reminderLeadDays: $reminderLeadDays)';
   }
 
   @override
@@ -2076,12 +2125,27 @@ class _$BillItemImpl implements _BillItem {
             (identical(other.name, name) || other.name == name) &&
             (identical(other.amount, amount) || other.amount == amount) &&
             (identical(other.dueDate, dueDate) || other.dueDate == dueDate) &&
-            (identical(other.status, status) || other.status == status));
+            (identical(other.status, status) || other.status == status) &&
+            (identical(other.categoryId, categoryId) ||
+                other.categoryId == categoryId) &&
+            (identical(other.recurrence, recurrence) ||
+                other.recurrence == recurrence) &&
+            (identical(other.reminderLeadDays, reminderLeadDays) ||
+                other.reminderLeadDays == reminderLeadDays));
   }
 
   @override
-  int get hashCode =>
-      Object.hash(runtimeType, id, name, amount, dueDate, status);
+  int get hashCode => Object.hash(
+    runtimeType,
+    id,
+    name,
+    amount,
+    dueDate,
+    status,
+    categoryId,
+    recurrence,
+    reminderLeadDays,
+  );
 
   /// Create a copy of BillItem
   /// with the given fields replaced by the non-null parameter values.
@@ -2099,6 +2163,9 @@ abstract class _BillItem implements BillItem {
     required final double amount,
     required final DateTime dueDate,
     final String status,
+    final String? categoryId,
+    final String? recurrence,
+    final int reminderLeadDays,
   }) = _$BillItemImpl;
 
   @override
@@ -2111,6 +2178,12 @@ abstract class _BillItem implements BillItem {
   DateTime get dueDate;
   @override
   String get status;
+  @override
+  String? get categoryId;
+  @override
+  String? get recurrence;
+  @override
+  int get reminderLeadDays;
 
   /// Create a copy of BillItem
   /// with the given fields replaced by the non-null parameter values.

@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/api/api_client.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../../app/theme/kasyaba_tokens.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/category_icon_helper.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../dashboard/widgets/dashboard_tokens.dart';
+import '../../../shared/widgets/app_state_widgets.dart';
+import '../../../shared/widgets/kasyaba_toast.dart';
 import '../../../shared/widgets/motion_components.dart';
 
 final _uuidPattern = RegExp(
@@ -87,11 +90,10 @@ class BudgetsScreen extends ConsumerWidget {
                               ),
                             ),
                             const SizedBox(width: 14),
-                            const Expanded(
+                            Expanded(
                               child: Text(
                                 'Budgets',
-                                style: TextStyle(
-                                  fontFamily: 'Bricolage Grotesque',
+                                style: GoogleFonts.bricolageGrotesque(
                                   fontSize: 24,
                                   fontWeight: FontWeight.w700,
                                   color: DashboardTokens.periwinkleGray,
@@ -127,31 +129,21 @@ class BudgetsScreen extends ConsumerWidget {
                       FadeSlideEntrance.staggered(
                         index: 1,
                         child: budgetAsync.when(
-                          loading: () => Container(
-                            height: 160,
-                            decoration: BoxDecoration(
-                              color: DashboardTokens.cello60,
-                              borderRadius: BorderRadius.circular(28),
-                              border: Border.all(color: DashboardTokens.poloBlue30),
-                            ),
-                            child: const Center(
-                              child: CircularProgressIndicator(
-                                valueColor: AlwaysStoppedAnimation(DashboardTokens.periwinkleGray),
-                              ),
-                            ),
-                          ),
+                          loading: () => const KasyabaLoadingSkeleton(lines: 4),
                           error: (err, _) => Container(
                             padding: const EdgeInsets.all(20),
                             decoration: BoxDecoration(
                               color: DashboardTokens.bigStone,
                               borderRadius: BorderRadius.circular(28),
-                              border: Border.all(color: DashboardTokens.poloBlue22),
+                              border: Border.all(
+                                color: DashboardTokens.poloBlue22,
+                              ),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
-                                  children: const [
+                                  children: [
                                     Icon(
                                       Icons.error_outline_rounded,
                                       color: DashboardTokens.apricot,
@@ -160,8 +152,7 @@ class BudgetsScreen extends ConsumerWidget {
                                     SizedBox(width: 10),
                                     Text(
                                       'Could not load your budget',
-                                      style: TextStyle(
-                                        fontFamily: 'DM Sans',
+                                      style: GoogleFonts.dmSans(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w700,
                                         color: DashboardTokens.periwinkleGray,
@@ -172,27 +163,30 @@ class BudgetsScreen extends ConsumerWidget {
                                 const SizedBox(height: 8),
                                 Text(
                                   friendlyErrorMessage(err),
-                                  style: const TextStyle(
-                                    fontFamily: 'DM Sans',
+                                  style: GoogleFonts.dmSans(
                                     fontSize: 14,
-                                    color: DashboardTokens.periwinkleGraySubtitle,
+                                    color:
+                                        DashboardTokens.periwinkleGraySubtitle,
                                   ),
                                 ),
                                 const SizedBox(height: 12),
                                 Align(
                                   alignment: Alignment.centerRight,
                                   child: SpringTouch(
-                                    onTap: () => ref.invalidate(budgetStatusProvider),
+                                    onTap: () =>
+                                        ref.invalidate(budgetStatusProvider),
                                     child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 8,
+                                      ),
                                       decoration: BoxDecoration(
                                         color: DashboardTokens.periwinkleGray,
                                         borderRadius: BorderRadius.circular(16),
                                       ),
-                                      child: const Text(
+                                      child: Text(
                                         'Retry',
-                                        style: TextStyle(
-                                          fontFamily: 'DM Sans',
+                                        style: GoogleFonts.dmSans(
                                           fontWeight: FontWeight.w700,
                                           color: DashboardTokens.ebony,
                                         ),
@@ -215,7 +209,7 @@ class BudgetsScreen extends ConsumerWidget {
                               badgeColor = DashboardTokens.apricot;
                               progressColor = DashboardTokens.apricot;
                             } else if (pct >= 80) {
-                              badgeBg = const Color(0x26F5B942);
+                              badgeBg = KasyabaTokens.casablanca15;
                               badgeColor = DashboardTokens.casablanca;
                               progressColor = DashboardTokens.casablanca;
                             } else {
@@ -224,7 +218,8 @@ class BudgetsScreen extends ConsumerWidget {
                               progressColor = DashboardTokens.bermuda;
                             }
 
-                            final remaining = (status.totalBudget - status.totalSpent);
+                            final remaining =
+                                (status.totalBudget - status.totalSpent);
 
                             return Container(
                               padding: const EdgeInsets.all(19),
@@ -240,31 +235,36 @@ class BudgetsScreen extends ConsumerWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
-                                      const Expanded(
+                                      Expanded(
                                         child: Text(
                                           'Monthly Budget Overview',
-                                          style: TextStyle(
-                                            fontFamily: 'DM Sans',
+                                          style: GoogleFonts.dmSans(
                                             fontSize: 14,
                                             fontWeight: FontWeight.w500,
-                                            color: DashboardTokens.periwinkleGraySubtitle,
+                                            color: DashboardTokens
+                                                .periwinkleGraySubtitle,
                                           ),
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
                                       const SizedBox(width: 8),
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 4,
+                                        ),
                                         decoration: BoxDecoration(
                                           color: badgeBg,
-                                          borderRadius: BorderRadius.circular(12),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
                                         ),
                                         child: Text(
                                           pctLabel,
-                                          style: TextStyle(
-                                            fontFamily: 'DM Sans',
+                                          style: GoogleFonts.dmSans(
                                             fontSize: 12,
                                             fontWeight: FontWeight.w700,
                                             color: badgeColor,
@@ -278,26 +278,29 @@ class BudgetsScreen extends ConsumerWidget {
                                     alignment: Alignment.centerLeft,
                                     fit: BoxFit.scaleDown,
                                     child: Row(
-                                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.baseline,
                                       textBaseline: TextBaseline.alphabetic,
                                       children: [
                                         Text(
-                                          CurrencyFormatter.format(status.totalSpent),
-                                          style: const TextStyle(
-                                            fontFamily: 'Bricolage Grotesque',
+                                          CurrencyFormatter.format(
+                                            status.totalSpent,
+                                          ),
+                                          style: GoogleFonts.bricolageGrotesque(
                                             fontSize: 28,
                                             fontWeight: FontWeight.w700,
-                                            color: DashboardTokens.periwinkleGray,
+                                            color:
+                                                DashboardTokens.periwinkleGray,
                                             letterSpacing: -0.5,
                                           ),
                                         ),
                                         Text(
                                           ' / ${CurrencyFormatter.format(status.totalBudget)}',
-                                          style: const TextStyle(
-                                            fontFamily: 'DM Sans',
+                                          style: GoogleFonts.dmSans(
                                             fontSize: 16,
                                             fontWeight: FontWeight.w500,
-                                            color: DashboardTokens.periwinkleGraySubtitle,
+                                            color: DashboardTokens
+                                                .periwinkleGraySubtitle,
                                           ),
                                         ),
                                       ],
@@ -310,8 +313,11 @@ class BudgetsScreen extends ConsumerWidget {
                                     child: LinearProgressIndicator(
                                       value: (pct / 100).clamp(0.0, 1.0),
                                       minHeight: 8,
-                                      backgroundColor: DashboardTokens.poloBlue20,
-                                      valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+                                      backgroundColor:
+                                          DashboardTokens.poloBlue20,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        progressColor,
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(height: 10),
@@ -319,12 +325,12 @@ class BudgetsScreen extends ConsumerWidget {
                                     remaining >= 0
                                         ? '${CurrencyFormatter.format(remaining)} left to spend this month'
                                         : '${CurrencyFormatter.format(remaining.abs())} over budget this month',
-                                    style: TextStyle(
-                                      fontFamily: 'DM Sans',
+                                    style: GoogleFonts.dmSans(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w400,
                                       color: remaining >= 0
-                                          ? DashboardTokens.periwinkleGraySubtitle
+                                          ? DashboardTokens
+                                                .periwinkleGraySubtitle
                                           : DashboardTokens.apricot,
                                     ),
                                   ),
@@ -339,12 +345,14 @@ class BudgetsScreen extends ConsumerWidget {
                       // Section Header: CATEGORY BUDGETS
                       FadeSlideEntrance.staggered(
                         index: 2,
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: 4,
+                          ),
                           child: Text(
                             'CATEGORY BUDGETS',
-                            style: TextStyle(
-                              fontFamily: 'DM Sans',
+                            style: GoogleFonts.dmSans(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 1.0,
@@ -359,12 +367,18 @@ class BudgetsScreen extends ConsumerWidget {
                       FadeSlideEntrance.staggered(
                         index: 3,
                         child: budgetAsync.when(
-                          loading: () => const SizedBox.shrink(),
-                          error: (_, _) => const SizedBox.shrink(),
+                          loading: () => const KasyabaLoadingSkeleton(lines: 3),
+                          error: (err, _) => KasyabaErrorCard(
+                            message: friendlyErrorMessage(err),
+                            onRetry: () => ref.invalidate(budgetStatusProvider),
+                          ),
                           data: (status) {
                             if (status.budgets.isEmpty) {
                               return Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                  vertical: 32,
+                                ),
                                 decoration: BoxDecoration(
                                   color: DashboardTokens.bigStone,
                                   borderRadius: BorderRadius.circular(28),
@@ -391,40 +405,44 @@ class BudgetsScreen extends ConsumerWidget {
                                       ),
                                     ),
                                     const SizedBox(height: 16),
-                                    const Text(
+                                    Text(
                                       'No Category Budgets Set',
                                       textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontFamily: 'Bricolage Grotesque',
+                                      style: GoogleFonts.bricolageGrotesque(
                                         fontSize: 20,
                                         fontWeight: FontWeight.w700,
                                         color: DashboardTokens.periwinkleGray,
                                       ),
                                     ),
                                     const SizedBox(height: 6),
-                                    const Text(
+                                    Text(
                                       'Assign monthly spending limits to categories like Food, Utilities, or Shopping.',
                                       textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontFamily: 'DM Sans',
+                                      style: GoogleFonts.dmSans(
                                         fontSize: 14,
-                                        color: DashboardTokens.periwinkleGraySubtitle,
+                                        color: DashboardTokens
+                                            .periwinkleGraySubtitle,
                                         height: 1.45,
                                       ),
                                     ),
                                     const SizedBox(height: 20),
                                     SpringTouch(
-                                      onTap: () => _showCreateBudgetSheet(context),
+                                      onTap: () =>
+                                          _showCreateBudgetSheet(context),
                                       child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 24,
+                                          vertical: 12,
+                                        ),
                                         decoration: BoxDecoration(
                                           color: DashboardTokens.periwinkleGray,
-                                          borderRadius: BorderRadius.circular(26),
+                                          borderRadius: BorderRadius.circular(
+                                            26,
+                                          ),
                                         ),
-                                        child: const Text(
+                                        child: Text(
                                           'Set Category Budget',
-                                          style: TextStyle(
-                                            fontFamily: 'DM Sans',
+                                          style: GoogleFonts.dmSans(
                                             fontSize: 15,
                                             fontWeight: FontWeight.w700,
                                             color: DashboardTokens.ebony,
@@ -438,7 +456,10 @@ class BudgetsScreen extends ConsumerWidget {
                             }
 
                             return Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 19, vertical: 3),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 19,
+                                vertical: 3,
+                              ),
                               decoration: BoxDecoration(
                                 color: DashboardTokens.bigStone,
                                 borderRadius: BorderRadius.circular(28),
@@ -449,7 +470,11 @@ class BudgetsScreen extends ConsumerWidget {
                               ),
                               child: Column(
                                 children: [
-                                  for (int i = 0; i < status.budgets.length; i++) ...[
+                                  for (
+                                    int i = 0;
+                                    i < status.budgets.length;
+                                    i++
+                                  ) ...[
                                     if (i > 0)
                                       Container(
                                         height: 1,
@@ -459,9 +484,13 @@ class BudgetsScreen extends ConsumerWidget {
                                       context,
                                       ref,
                                       budget: status.budgets[i],
-                                      categoryName: status.budgets[i].categoryId == null
+                                      categoryName:
+                                          status.budgets[i].categoryId == null
                                           ? 'Overall Budget'
-                                          : categoryMap[status.budgets[i].categoryId] ?? 'Uncategorized',
+                                          : categoryMap[status
+                                                    .budgets[i]
+                                                    .categoryId] ??
+                                                'Uncategorized',
                                     ),
                                   ],
                                 ],
@@ -484,10 +513,9 @@ class BudgetsScreen extends ConsumerWidget {
                               borderRadius: BorderRadius.circular(28),
                             ),
                             alignment: Alignment.center,
-                            child: const Text(
+                            child: Text(
                               'New Budget',
-                              style: TextStyle(
-                                fontFamily: 'DM Sans',
+                              style: GoogleFonts.dmSans(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
                                 color: DashboardTokens.ebony,
@@ -521,7 +549,7 @@ class BudgetsScreen extends ConsumerWidget {
         badgeBg = DashboardTokens.apricot15;
       case 'warning':
         statusColor = DashboardTokens.casablanca;
-        badgeBg = const Color(0x26F5B942);
+        badgeBg = KasyabaTokens.casablanca15;
       case 'on_track':
       default:
         statusColor = DashboardTokens.bermuda;
@@ -562,8 +590,7 @@ class BudgetsScreen extends ConsumerWidget {
                   children: [
                     Text(
                       categoryName,
-                      style: const TextStyle(
-                        fontFamily: 'DM Sans',
+                      style: GoogleFonts.dmSans(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
                         color: DashboardTokens.periwinkleGray,
@@ -572,8 +599,7 @@ class BudgetsScreen extends ConsumerWidget {
                     const SizedBox(height: 2),
                     Text(
                       '${CurrencyFormatter.format(budget.spent)} / ${CurrencyFormatter.format(budget.amount)}',
-                      style: const TextStyle(
-                        fontFamily: 'DM Sans',
+                      style: GoogleFonts.dmSans(
                         fontSize: 13,
                         fontWeight: FontWeight.w400,
                         color: DashboardTokens.periwinkleGraySubtitle,
@@ -590,8 +616,7 @@ class BudgetsScreen extends ConsumerWidget {
                 ),
                 child: Text(
                   '${budget.percentUsed.toStringAsFixed(0)}%',
-                  style: TextStyle(
-                    fontFamily: 'DM Sans',
+                  style: GoogleFonts.dmSans(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                     color: statusColor,
@@ -618,7 +643,9 @@ class BudgetsScreen extends ConsumerWidget {
                       builder: (sheetCtx) => Container(
                         decoration: BoxDecoration(
                           color: DashboardTokens.ebony,
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(28),
+                          ),
                           border: Border.all(color: DashboardTokens.poloBlue22),
                         ),
                         padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
@@ -639,18 +666,16 @@ class BudgetsScreen extends ConsumerWidget {
                             const SizedBox(height: 18),
                             Text(
                               'Delete $categoryName budget?',
-                              style: const TextStyle(
-                                fontFamily: 'Bricolage Grotesque',
+                              style: GoogleFonts.bricolageGrotesque(
                                 fontSize: 22,
                                 fontWeight: FontWeight.w700,
                                 color: DashboardTokens.periwinkleGray,
                               ),
                             ),
                             const SizedBox(height: 8),
-                            const Text(
+                            Text(
                               'This will remove this monthly spending limit.',
-                              style: TextStyle(
-                                fontFamily: 'DM Sans',
+                              style: GoogleFonts.dmSans(
                                 fontSize: 14,
                                 color: DashboardTokens.periwinkleGraySubtitle,
                               ),
@@ -665,13 +690,14 @@ class BudgetsScreen extends ConsumerWidget {
                                       height: 52,
                                       decoration: BoxDecoration(
                                         borderRadius: BorderRadius.circular(26),
-                                        border: Border.all(color: DashboardTokens.kashmirBlue),
+                                        border: Border.all(
+                                          color: DashboardTokens.kashmirBlue,
+                                        ),
                                       ),
                                       alignment: Alignment.center,
-                                      child: const Text(
+                                      child: Text(
                                         'Cancel',
-                                        style: TextStyle(
-                                          fontFamily: 'DM Sans',
+                                        style: GoogleFonts.dmSans(
                                           fontSize: 15,
                                           fontWeight: FontWeight.w700,
                                           color: DashboardTokens.periwinkleGray,
@@ -691,10 +717,9 @@ class BudgetsScreen extends ConsumerWidget {
                                         borderRadius: BorderRadius.circular(26),
                                       ),
                                       alignment: Alignment.center,
-                                      child: const Text(
+                                      child: Text(
                                         'Delete',
-                                        style: TextStyle(
-                                          fontFamily: 'DM Sans',
+                                        style: GoogleFonts.dmSans(
                                           fontSize: 15,
                                           fontWeight: FontWeight.w700,
                                           color: DashboardTokens.ebony,
@@ -712,13 +737,18 @@ class BudgetsScreen extends ConsumerWidget {
 
                     if (confirmed == true && context.mounted) {
                       try {
-                        await ref.read(dioProvider).delete('/budgets/${budget.budgetId}');
-                        ref.invalidate(budgetStatusProvider);
-                        ref.invalidate(dashboardProvider);
+                        await ref
+                            .read(budgetRepositoryProvider)
+                            .deleteBudget(budget.budgetId);
                       } catch (e) {
                         if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Failed to delete budget: $e')),
+                          KasyabaToast.showError(
+                            context,
+                            friendlyErrorMessage(
+                              e,
+                              fallback:
+                                  'Unable to delete this budget. Please try again.',
+                            ),
                           );
                         }
                       }
@@ -726,16 +756,19 @@ class BudgetsScreen extends ConsumerWidget {
                   }
                 },
                 itemBuilder: (ctx) => [
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'delete',
                     child: Row(
                       children: [
-                        Icon(Icons.delete_outline_rounded, color: DashboardTokens.apricot, size: 18),
+                        Icon(
+                          Icons.delete_outline_rounded,
+                          color: DashboardTokens.apricot,
+                          size: 18,
+                        ),
                         SizedBox(width: 10),
                         Text(
                           'Delete budget',
-                          style: TextStyle(
-                            fontFamily: 'DM Sans',
+                          style: GoogleFonts.dmSans(
                             color: DashboardTokens.apricot,
                           ),
                         ),
@@ -786,10 +819,9 @@ class _CreateBudgetSheetState extends ConsumerState<_CreateBudgetSheet> {
     super.dispose();
   }
 
-  String get _startsOn {
+  DateTime get _startsOn {
     final now = DateTime.now();
-    return '${now.year.toString().padLeft(4, '0')}-'
-        '${now.month.toString().padLeft(2, '0')}-01';
+    return DateTime(now.year, now.month, 1);
   }
 
   Future<void> _submit() async {
@@ -800,36 +832,24 @@ class _CreateBudgetSheetState extends ConsumerState<_CreateBudgetSheet> {
 
     setState(() => _isSubmitting = true);
     try {
-      final data = <String, dynamic>{
-        'amount': amount.toStringAsFixed(2),
-        'startsOn': _startsOn,
-        'period': 'monthly',
-        'isActive': true,
-      };
-      final categoryId = _selectedCategoryId;
-      if (categoryId != null) data['categoryId'] = categoryId;
-
-      await ref.read(dioProvider).post('/budgets', data: data);
-      ref.invalidate(budgetStatusProvider);
-      ref.invalidate(dashboardProvider);
+      await ref
+          .read(budgetRepositoryProvider)
+          .createBudget(
+            amount: amount,
+            startsOn: _startsOn,
+            categoryId: _selectedCategoryId,
+          );
 
       if (!mounted) return;
+      KasyabaToast.showSuccess(context, 'Monthly budget created!');
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Monthly budget created!'),
-        ),
-      );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            friendlyErrorMessage(
-              error,
-              fallback: 'Unable to create this budget. Please try again.',
-            ),
-          ),
+      KasyabaToast.showError(
+        context,
+        friendlyErrorMessage(
+          error,
+          fallback: 'Unable to create this budget. Please try again.',
         ),
       );
     } finally {
@@ -849,10 +869,7 @@ class _CreateBudgetSheetState extends ConsumerState<_CreateBudgetSheet> {
       decoration: BoxDecoration(
         color: DashboardTokens.ebony,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        border: Border.all(
-          color: DashboardTokens.poloBlue22,
-          width: 1,
-        ),
+        border: Border.all(color: DashboardTokens.poloBlue22, width: 1),
       ),
       padding: EdgeInsets.fromLTRB(20, 20, 20, 24 + bottomInset),
       child: SingleChildScrollView(
@@ -876,20 +893,18 @@ class _CreateBudgetSheetState extends ConsumerState<_CreateBudgetSheet> {
               const SizedBox(height: 18),
 
               // Title & Subtitle
-              const Text(
+              Text(
                 'Create budget',
-                style: TextStyle(
-                  fontFamily: 'Bricolage Grotesque',
+                style: GoogleFonts.bricolageGrotesque(
                   fontSize: 22,
                   fontWeight: FontWeight.w700,
                   color: DashboardTokens.periwinkleGray,
                 ),
               ),
               const SizedBox(height: 4),
-              const Text(
+              Text(
                 'Set a monthly spending limit to protect your daily safe-to-spend.',
-                style: TextStyle(
-                  fontFamily: 'DM Sans',
+                style: GoogleFonts.dmSans(
                   fontSize: 14,
                   color: DashboardTokens.periwinkleGraySubtitle,
                 ),
@@ -900,12 +915,11 @@ class _CreateBudgetSheetState extends ConsumerState<_CreateBudgetSheet> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.only(left: 6, bottom: 8),
                     child: Text(
                       'Monthly Limit',
-                      style: TextStyle(
-                        fontFamily: 'DM Sans',
+                      style: GoogleFonts.dmSans(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                         color: DashboardTokens.periwinkleGraySubtitle,
@@ -925,10 +939,9 @@ class _CreateBudgetSheetState extends ConsumerState<_CreateBudgetSheet> {
                     ),
                     child: Row(
                       children: [
-                        const Text(
+                        Text(
                           '₱ ',
-                          style: TextStyle(
-                            fontFamily: 'DM Sans',
+                          style: GoogleFonts.dmSans(
                             fontSize: 17,
                             fontWeight: FontWeight.w700,
                             color: DashboardTokens.periwinkleGray,
@@ -938,20 +951,20 @@ class _CreateBudgetSheetState extends ConsumerState<_CreateBudgetSheet> {
                           child: TextFormField(
                             controller: _amountController,
                             autofocus: true,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
                             textInputAction: TextInputAction.done,
                             onFieldSubmitted: (_) => _submit(),
-                            style: const TextStyle(
-                              fontFamily: 'DM Sans',
+                            style: GoogleFonts.dmSans(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
                               color: DashboardTokens.periwinkleGray,
                             ),
                             cursorColor: DashboardTokens.periwinkleGray,
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               hintText: '10000.00',
-                              hintStyle: TextStyle(
-                                fontFamily: 'DM Sans',
+                              hintStyle: GoogleFonts.dmSans(
                                 fontSize: 16,
                                 color: DashboardTokens.poloBlue40,
                               ),
@@ -968,7 +981,9 @@ class _CreateBudgetSheetState extends ConsumerState<_CreateBudgetSheet> {
                               final value = v?.trim() ?? '';
                               if (value.isEmpty) return 'Enter a budget amount';
                               final parsed = double.tryParse(value);
-                              if (parsed == null || !parsed.isFinite || parsed <= 0) {
+                              if (parsed == null ||
+                                  !parsed.isFinite ||
+                                  parsed <= 0) {
                                 return 'Enter an amount greater than zero';
                               }
                               return null;
@@ -986,12 +1001,11 @@ class _CreateBudgetSheetState extends ConsumerState<_CreateBudgetSheet> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.only(left: 6, bottom: 8),
                     child: Text(
                       'Category',
-                      style: TextStyle(
-                        fontFamily: 'DM Sans',
+                      style: GoogleFonts.dmSans(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                         color: DashboardTokens.periwinkleGraySubtitle,
@@ -1018,8 +1032,7 @@ class _CreateBudgetSheetState extends ConsumerState<_CreateBudgetSheet> {
                           Icons.keyboard_arrow_down_rounded,
                           color: DashboardTokens.periwinkleGray,
                         ),
-                        style: const TextStyle(
-                          fontFamily: 'DM Sans',
+                        style: GoogleFonts.dmSans(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                           color: DashboardTokens.periwinkleGray,
@@ -1042,7 +1055,8 @@ class _CreateBudgetSheetState extends ConsumerState<_CreateBudgetSheet> {
                         ],
                         onChanged: _isSubmitting
                             ? null
-                            : (value) => setState(() => _selectedCategoryId = value),
+                            : (value) =>
+                                  setState(() => _selectedCategoryId = value),
                       ),
                     ),
                   ),
@@ -1066,13 +1080,14 @@ class _CreateBudgetSheetState extends ConsumerState<_CreateBudgetSheet> {
                           height: 22,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation(DashboardTokens.ebony),
+                            valueColor: AlwaysStoppedAnimation(
+                              DashboardTokens.ebony,
+                            ),
                           ),
                         )
-                      : const Text(
+                      : Text(
                           'Create Budget',
-                          style: TextStyle(
-                            fontFamily: 'DM Sans',
+                          style: GoogleFonts.dmSans(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
                             color: DashboardTokens.ebony,

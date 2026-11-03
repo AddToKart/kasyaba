@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../storage/secure_storage_service.dart';
 
 /// ─────────────────────────────────────────────────────────────
-///  Theme Mode Provider — Dual Lighting Architecture
-///  Supports Dark (Obsidian), Light (Porcelain), and System mode.
+///  Theme Mode Provider — frozen to dark for this cycle (D2).
+///  Public API kept unchanged so settings keeps compiling.
 /// ─────────────────────────────────────────────────────────────
 
 final themeModeProvider =
@@ -21,29 +21,16 @@ class ThemeModeNotifier extends StateNotifier<ThemeMode> {
     _loadThemeMode();
   }
 
-  Future<void> _loadThemeMode() async {
-    try {
-      final saved = await _storage.readRaw(_themeKey);
-      if (saved == 'light') {
-        state = ThemeMode.light;
-      } else if (saved == 'system') {
-        state = ThemeMode.system;
-      } else {
-        state = ThemeMode.dark;
-      }
-    } catch (_) {}
+  void _loadThemeMode() {
+    // Light/system are intentionally ignored while the navy dark theme is the
+    // only designed surface (D2).
+    state = ThemeMode.dark;
   }
 
   Future<void> setThemeMode(ThemeMode mode) async {
-    state = mode;
+    state = ThemeMode.dark;
     try {
-      final val = switch (mode) {
-        ThemeMode.light => 'light',
-        ThemeMode.system => 'system',
-        ThemeMode.dark => 'dark',
-      };
-      await _storage.writeRaw(_themeKey, val);
+      await _storage.writeRaw(_themeKey, 'dark');
     } catch (_) {}
   }
 }
-

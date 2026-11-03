@@ -11,11 +11,30 @@ import '../../../shared/widgets/motion_components.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/auth/auth_provider.dart';
 import '../../../core/database/cache_service.dart';
+import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/category_icon_helper.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../../../shared/widgets/app_state_widgets.dart';
+import '../../../shared/widgets/kasyaba_date_picker.dart';
 import '../../../shared/widgets/kasyaba_toast.dart';
 import '../../dashboard/widgets/dashboard_tokens.dart';
+
+String? _billRecurrenceLabel(String? recurrence) {
+  switch (recurrence?.toLowerCase()) {
+    case 'monthly':
+      return 'Monthly';
+    case 'weekly':
+      return 'Weekly';
+    case 'once':
+    case 'one-time':
+    case 'one_time':
+    case 'onetime':
+      return 'One-time';
+    default:
+      return null;
+  }
+}
 
 Future<void> _showTransactionActions(
   BuildContext context,
@@ -67,7 +86,8 @@ Future<void> _showTransactionActions(
               ),
               const SizedBox(height: 12),
               Text(
-                transaction.notes ?? 'This offline transaction could not be synced.',
+                transaction.notes ??
+                    'This offline transaction could not be synced.',
                 style: GoogleFonts.dmSans(
                   fontSize: 14,
                   color: DashboardTokens.periwinkleGraySubtitle,
@@ -76,7 +96,10 @@ Future<void> _showTransactionActions(
               const SizedBox(height: 16),
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.refresh_rounded, color: DashboardTokens.bermuda),
+                leading: const Icon(
+                  Icons.refresh_rounded,
+                  color: DashboardTokens.bermuda,
+                ),
                 title: Text(
                   'Retry Sync',
                   style: GoogleFonts.dmSans(
@@ -86,13 +109,18 @@ Future<void> _showTransactionActions(
                 ),
                 subtitle: Text(
                   'Re-queue this transaction for the next sync',
-                  style: GoogleFonts.dmSans(color: DashboardTokens.periwinkleGraySubtitle),
+                  style: GoogleFonts.dmSans(
+                    color: DashboardTokens.periwinkleGraySubtitle,
+                  ),
                 ),
                 onTap: () => Navigator.of(sheetContext).pop('retry'),
               ),
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.delete_outline_rounded, color: DashboardTokens.apricot),
+                leading: const Icon(
+                  Icons.delete_outline_rounded,
+                  color: DashboardTokens.apricot,
+                ),
                 title: Text(
                   'Delete Queued Entry',
                   style: GoogleFonts.dmSans(
@@ -102,7 +130,9 @@ Future<void> _showTransactionActions(
                 ),
                 subtitle: Text(
                   'Discard this transaction from local storage',
-                  style: GoogleFonts.dmSans(color: DashboardTokens.periwinkleGraySubtitle),
+                  style: GoogleFonts.dmSans(
+                    color: DashboardTokens.periwinkleGraySubtitle,
+                  ),
                 ),
                 onTap: () => Navigator.of(sheetContext).pop('delete'),
               ),
@@ -118,7 +148,11 @@ Future<void> _showTransactionActions(
       final userId = ref.read(authProvider).userId;
       if (userId != null) {
         final dio = ref.read(dioProvider);
-        unawaited(cacheService.syncPendingTransactions(dio, userId).catchError((_) => 0));
+        unawaited(
+          cacheService
+              .syncPendingTransactions(dio, userId)
+              .catchError((_) => 0),
+        );
       }
       ref.invalidate(paginatedTransactionsProvider);
       ref.invalidate(dashboardProvider);
@@ -171,7 +205,10 @@ Future<void> _showTransactionActions(
         children: [
           if (!transaction.isTransfer)
             ListTile(
-              leading: const Icon(Icons.edit_rounded, color: DashboardTokens.periwinkleGray),
+              leading: const Icon(
+                Icons.edit_rounded,
+                color: DashboardTokens.periwinkleGray,
+              ),
               title: Text(
                 'Edit transaction',
                 style: GoogleFonts.dmSans(
@@ -182,7 +219,10 @@ Future<void> _showTransactionActions(
               onTap: () => Navigator.of(sheetContext).pop('edit'),
             ),
           ListTile(
-            leading: const Icon(Icons.delete_outline_rounded, color: DashboardTokens.apricot),
+            leading: const Icon(
+              Icons.delete_outline_rounded,
+              color: DashboardTokens.apricot,
+            ),
             title: Text(
               transaction.isTransfer ? 'Delete transfer' : 'Delete transaction',
               style: GoogleFonts.dmSans(
@@ -218,22 +258,31 @@ Future<void> _showTransactionActions(
         transaction.isTransfer
             ? 'This will restore the money to the source account and remove it from the destination account.'
             : 'This will remove it from your balances and reports.',
-        style: GoogleFonts.dmSans(color: DashboardTokens.periwinkleGraySubtitle),
+        style: GoogleFonts.dmSans(
+          color: DashboardTokens.periwinkleGraySubtitle,
+        ),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(dialogContext).pop(false),
           child: Text(
             'Cancel',
-            style: GoogleFonts.dmSans(color: DashboardTokens.periwinkleGraySubtitle),
+            style: GoogleFonts.dmSans(
+              color: DashboardTokens.periwinkleGraySubtitle,
+            ),
           ),
         ),
         FilledButton(
           onPressed: () => Navigator.of(dialogContext).pop(true),
-          style: FilledButton.styleFrom(backgroundColor: DashboardTokens.apricot),
+          style: FilledButton.styleFrom(
+            backgroundColor: DashboardTokens.apricot,
+          ),
           child: Text(
             'Delete',
-            style: GoogleFonts.dmSans(color: DashboardTokens.ebony, fontWeight: FontWeight.bold),
+            style: GoogleFonts.dmSans(
+              color: DashboardTokens.ebony,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       ],
@@ -245,9 +294,12 @@ Future<void> _showTransactionActions(
     await ref.read(transactionMutatorProvider).deleteTransaction(transaction);
     if (!context.mounted) return;
     KasyabaToast.showSuccess(context, 'Transaction deleted.');
-  } catch (_) {
+  } catch (e) {
     if (!context.mounted) return;
-    KasyabaToast.showError(context, 'Could not delete the transaction.');
+    KasyabaToast.showError(
+      context,
+      friendlyErrorMessage(e, fallback: 'Could not delete the transaction.'),
+    );
   }
 }
 
@@ -265,12 +317,20 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   String _activeFilter = 'All'; // 'All', 'Expenses', 'Income'
   bool _isSearchOpen = false;
   final TextEditingController _searchController = TextEditingController();
-  DateTime _currentMonth = DateTime(DateTime.now().year, DateTime.now().month, 1);
+  DateTime _currentMonth = DateTime(
+    DateTime.now().year,
+    DateTime.now().month,
+    1,
+  );
   DateTime _selectedCalendarDay = DateTime.now();
 
   @override
   void initState() {
     super.initState();
+    final filterFrom = ref.read(transactionFilterProvider).fromDate;
+    if (filterFrom != null) {
+      _currentMonth = DateTime(filterFrom.year, filterFrom.month, 1);
+    }
     _searchController.addListener(_onSearchChanged);
   }
 
@@ -295,23 +355,20 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       initialDatePickerMode: DatePickerMode.year,
       builder: (ctx, child) {
         if (child == null) return const SizedBox.shrink();
-        return Theme(
-          data: Theme.of(ctx).copyWith(
-            colorScheme: ColorScheme.dark(
-              primary: DashboardTokens.periwinkleGray,
-              onPrimary: DashboardTokens.ebony,
-              surface: DashboardTokens.bigStone,
-              onSurface: DashboardTokens.periwinkleGray,
-            ),
-          ),
-          child: child,
-        );
+        return Theme(data: kasyabaDatePickerTheme(ctx), child: child);
       },
     );
     if (picked != null && mounted) {
+      final month = DateTime(picked.year, picked.month, 1);
       setState(() {
-        _currentMonth = DateTime(picked.year, picked.month, 1);
+        _currentMonth = month;
       });
+      final filter = ref.read(transactionFilterProvider);
+      ref.read(transactionFilterProvider.notifier).state = filter.copyWith(
+        page: 1,
+        fromDate: month,
+        toDate: DateTime(picked.year, picked.month + 1, 0, 23, 59, 59),
+      );
     }
   }
 
@@ -343,18 +400,27 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         final title = t.title.toLowerCase();
         final cat = t.categoryName.toLowerCase();
         final notes = (t.notes ?? '').toLowerCase();
-        if (!title.contains(query) && !cat.contains(query) && !notes.contains(query)) {
+        if (!title.contains(query) &&
+            !cat.contains(query) &&
+            !notes.contains(query)) {
           return false;
         }
       }
       return true;
     }).toList();
 
-    // Calculate monthly totals from transactions in current month
+    // Totals are computed from the loaded page (50/page) and exclude planned
+    // or future-dated entries, matching the server's isPosted discipline.
+    final today = DateTime.now();
+    final todayStart = DateTime(today.year, today.month, today.day);
     double monthlyIncome = 0.0;
     double monthlySpent = 0.0;
     for (final t in transactions) {
-      if (t.date.year == _currentMonth.year && t.date.month == _currentMonth.month) {
+      if (t.date.year == _currentMonth.year &&
+          t.date.month == _currentMonth.month) {
+        final entryDay = DateTime(t.date.year, t.date.month, t.date.day);
+        final isPosted = t.status != 'planned' && !entryDay.isAfter(todayStart);
+        if (!isPosted) continue;
         if (t.isExpense) {
           monthlySpent += t.amount;
         } else if (!t.isTransfer) {
@@ -382,8 +448,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     // Upcoming bills logic
     final upcomingBills = bills.where((b) {
       return b.status.toLowerCase() != 'paid';
-    }).toList()
-      ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
+    }).toList()..sort((a, b) => a.dueDate.compareTo(b.dueDate));
 
     return Theme(
       data: Theme.of(context).copyWith(
@@ -497,7 +562,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                     hintText: 'Search transactions...',
                                     hintStyle: GoogleFonts.dmSans(
                                       fontSize: 15,
-                                      color: DashboardTokens.periwinkleGraySubtitle.withValues(alpha: 0.5),
+                                      color: DashboardTokens
+                                          .periwinkleGraySubtitle
+                                          .withValues(alpha: 0.5),
                                     ),
                                     border: InputBorder.none,
                                     enabledBorder: InputBorder.none,
@@ -513,7 +580,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                   onTap: () => _searchController.clear(),
                                   child: const Icon(
                                     Icons.close_rounded,
-                                    color: DashboardTokens.periwinkleGraySubtitle,
+                                    color:
+                                        DashboardTokens.periwinkleGraySubtitle,
                                     size: 18,
                                   ),
                                 ),
@@ -609,7 +677,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                     'Income',
                                     style: GoogleFonts.dmSans(
                                       fontSize: 12,
-                                      color: DashboardTokens.periwinkleGraySubtitle,
+                                      color: DashboardTokens
+                                          .periwinkleGraySubtitle,
                                     ),
                                   ),
                                   const SizedBox(height: 2),
@@ -648,7 +717,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                     'Spent',
                                     style: GoogleFonts.dmSans(
                                       fontSize: 12,
-                                      color: DashboardTokens.periwinkleGraySubtitle,
+                                      color: DashboardTokens
+                                          .periwinkleGraySubtitle,
                                     ),
                                   ),
                                   const SizedBox(height: 2),
@@ -698,7 +768,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                 },
                                 child: Container(
                                   height: 36,
-                                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                  ),
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(20),
                                     border: Border.all(
@@ -726,7 +798,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                 },
                                 child: Container(
                                   height: 36,
-                                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: DashboardTokens.periwinkleGray,
                                     borderRadius: BorderRadius.circular(20),
@@ -783,7 +857,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                   weekRangeLabel,
                                   style: GoogleFonts.dmSans(
                                     fontSize: 12,
-                                    color: DashboardTokens.periwinkleGraySubtitle,
+                                    color:
+                                        DashboardTokens.periwinkleGraySubtitle,
                                   ),
                                 ),
                                 GestureDetector(
@@ -805,22 +880,35 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                             // 7-Day Week Calendar Strip (Node 82:539)
                             Row(
                               children: weekDays.map((day) {
-                                final dayLetters = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+                                final dayLetters = [
+                                  'S',
+                                  'M',
+                                  'T',
+                                  'W',
+                                  'T',
+                                  'F',
+                                  'S',
+                                ];
                                 final dayLetter = dayLetters[day.weekday % 7];
-                                final isSelected = day.year == _selectedCalendarDay.year &&
+                                final isSelected =
+                                    day.year == _selectedCalendarDay.year &&
                                     day.month == _selectedCalendarDay.month &&
                                     day.day == _selectedCalendarDay.day;
-                                final hasBill = bills.any((b) =>
-                                    b.dueDate.year == day.year &&
-                                    b.dueDate.month == day.month &&
-                                    b.dueDate.day == day.day);
+                                final hasBill = bills.any(
+                                  (b) =>
+                                      b.dueDate.year == day.year &&
+                                      b.dueDate.month == day.month &&
+                                      b.dueDate.day == day.day,
+                                );
 
                                 return Expanded(
                                   child: GestureDetector(
                                     behavior: HitTestBehavior.opaque,
                                     onTap: () {
                                       AppHaptics.selectionClick();
-                                      setState(() => _selectedCalendarDay = day);
+                                      setState(
+                                        () => _selectedCalendarDay = day,
+                                      );
                                     },
                                     child: Container(
                                       height: 57,
@@ -831,7 +919,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                         borderRadius: BorderRadius.circular(22),
                                       ),
                                       child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
                                         children: [
                                           Text(
                                             dayLetter,
@@ -839,7 +928,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                               fontSize: 12,
                                               color: isSelected
                                                   ? DashboardTokens.ebony
-                                                  : DashboardTokens.periwinkleGraySubtitle,
+                                                  : DashboardTokens
+                                                        .periwinkleGraySubtitle,
                                             ),
                                           ),
                                           const SizedBox(height: 2),
@@ -850,7 +940,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                               fontWeight: FontWeight.bold,
                                               color: isSelected
                                                   ? DashboardTokens.ebony
-                                                  : DashboardTokens.periwinkleGray,
+                                                  : DashboardTokens
+                                                        .periwinkleGray,
                                             ),
                                           ),
                                           const SizedBox(height: 2),
@@ -863,7 +954,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                                 color: isSelected
                                                     ? DashboardTokens.ebony
                                                     : DashboardTokens.apricot,
-                                                borderRadius: BorderRadius.circular(2),
+                                                borderRadius:
+                                                    BorderRadius.circular(2),
                                               ),
                                             )
                                           else
@@ -885,16 +977,30 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                             const SizedBox(height: 12),
 
                             // Upcoming Bill Item (Node 82:574)
-                            if (upcomingBills.isNotEmpty) ...[
+                            if (billsAsync.hasError && bills.isEmpty) ...[
+                              KasyabaErrorCard(
+                                message: friendlyErrorMessage(
+                                  billsAsync.error,
+                                  fallback: 'Could not load upcoming bills.',
+                                ),
+                                onRetry: () => ref.invalidate(billsProvider),
+                              ),
+                            ] else if (billsAsync.isLoading &&
+                                bills.isEmpty) ...[
+                              const KasyabaLoadingSkeleton(lines: 2),
+                            ] else if (upcomingBills.isNotEmpty) ...[
                               _buildBillItemRow(upcomingBills.first),
                             ] else ...[
                               Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8,
+                                ),
                                 child: Text(
                                   'No upcoming bills this week',
                                   style: GoogleFonts.dmSans(
                                     fontSize: 14,
-                                    color: DashboardTokens.periwinkleGraySubtitle,
+                                    color:
+                                        DashboardTokens.periwinkleGraySubtitle,
                                   ),
                                   textAlign: TextAlign.center,
                                 ),
@@ -930,7 +1036,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                             onTap: () => context.push('/transactions/add'),
                             child: Container(
                               height: 36,
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
                               decoration: BoxDecoration(
                                 color: DashboardTokens.periwinkleGray,
                                 borderRadius: BorderRadius.circular(20),
@@ -992,128 +1100,152 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      if (paginatedAsync.isLoading && transactions.isEmpty) ...[
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 40),
-                    child: Center(
-                      child: CircularProgressIndicator(
-                        color: DashboardTokens.periwinkleGray,
-                        strokeWidth: 2.5,
-                      ),
-                    ),
-                  ),
-                ] else if (sortedGroupKeys.isEmpty) ...[
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 40),
-                    child: Center(
-                      child: Text(
-                        _isSearchOpen && _searchController.text.isNotEmpty
-                            ? 'No transactions found matching "${_searchController.text}"'
-                            : 'No transactions recorded yet',
-                        style: GoogleFonts.dmSans(
-                          fontSize: 15,
-                          color: DashboardTokens.periwinkleGraySubtitle,
+                      if (paginatedAsync.hasError && transactions.isEmpty) ...[
+                        KasyabaErrorCard(
+                          message: friendlyErrorMessage(
+                            paginatedAsync.error,
+                            fallback: 'Could not load transactions.',
+                          ),
+                          onRetry: () =>
+                              ref.invalidate(paginatedTransactionsProvider),
                         ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ),
-                ] else ...[
-                  ...sortedGroupKeys.map((groupKey) {
-                    final groupItems = groupedTransactions[groupKey]!;
-                    final firstDate = groupItems.first.date;
-                    final groupHeaderDate = _formatGroupHeaderDate(firstDate);
-
-                    // Daily net sum
-                    double dailyNet = 0.0;
-                    for (final item in groupItems) {
-                      if (item.isExpense) {
-                        dailyNet -= item.amount;
-                      } else if (!item.isTransfer) {
-                        dailyNet += item.amount;
-                      }
-                    }
-
-                    final isNetPositive = dailyNet > 0;
-                    final isNetNegative = dailyNet < 0;
-                    final netSign = isNetPositive ? '+' : (isNetNegative ? '−' : '');
-                    final netFormatted = '$netSign${CurrencyFormatter.format(dailyNet.abs())}';
-
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 14),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          // Date & daily net row (Node 82:598)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 4,
-                              vertical: 4,
+                      ] else if (paginatedAsync.isLoading &&
+                          transactions.isEmpty) ...[
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 40),
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              color: DashboardTokens.periwinkleGray,
+                              strokeWidth: 2.5,
                             ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          ),
+                        ),
+                      ] else if (sortedGroupKeys.isEmpty) ...[
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 40),
+                          child: Center(
+                            child: Text(
+                              _isSearchOpen && _searchController.text.isNotEmpty
+                                  ? 'No transactions found matching "${_searchController.text}"'
+                                  : 'No transactions recorded yet',
+                              style: GoogleFonts.dmSans(
+                                fontSize: 15,
+                                color: DashboardTokens.periwinkleGraySubtitle,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                      ] else ...[
+                        ...sortedGroupKeys.map((groupKey) {
+                          final groupItems = groupedTransactions[groupKey]!;
+                          final firstDate = groupItems.first.date;
+                          final groupHeaderDate = _formatGroupHeaderDate(
+                            firstDate,
+                          );
+
+                          // Daily net sum
+                          double dailyNet = 0.0;
+                          for (final item in groupItems) {
+                            if (item.isExpense) {
+                              dailyNet -= item.amount;
+                            } else if (!item.isTransfer) {
+                              dailyNet += item.amount;
+                            }
+                          }
+
+                          final isNetPositive = dailyNet > 0;
+                          final isNetNegative = dailyNet < 0;
+                          final netSign = isNetPositive
+                              ? '+'
+                              : (isNetNegative ? '−' : '');
+                          final netFormatted =
+                              '$netSign${CurrencyFormatter.format(dailyNet.abs())}';
+
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 14),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                Text(
-                                  groupHeaderDate,
-                                  style: GoogleFonts.dmSans(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 1.0,
-                                    color: DashboardTokens.periwinkleGraySubtitle,
+                                // Date & daily net row (Node 82:598)
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                    vertical: 4,
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        groupHeaderDate,
+                                        style: GoogleFonts.dmSans(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          letterSpacing: 1.0,
+                                          color: DashboardTokens
+                                              .periwinkleGraySubtitle,
+                                        ),
+                                      ),
+                                      Text(
+                                        netFormatted,
+                                        style: GoogleFonts.dmSans(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.bold,
+                                          color: isNetPositive
+                                              ? DashboardTokens.bermuda
+                                              : (isNetNegative
+                                                    ? DashboardTokens
+                                                          .periwinkleGraySubtitle
+                                                    : DashboardTokens
+                                                          .periwinkleGraySubtitle),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                Text(
-                                  netFormatted,
-                                  style: GoogleFonts.dmSans(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.bold,
-                                    color: isNetPositive
-                                        ? DashboardTokens.bermuda
-                                        : (isNetNegative
-                                            ? DashboardTokens.periwinkleGraySubtitle
-                                            : DashboardTokens.periwinkleGraySubtitle),
+                                const SizedBox(height: 4),
+
+                                // Transactions Card Container (Node 82:601)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: DashboardTokens.bigStone,
+                                    borderRadius: BorderRadius.circular(28),
+                                    border: Border.all(
+                                      color: DashboardTokens.poloBlue22,
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: ListView.separated(
+                                    shrinkWrap: true,
+                                    physics:
+                                        const NeverScrollableScrollPhysics(),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 3,
+                                    ),
+                                    itemCount: groupItems.length,
+                                    separatorBuilder: (_, _) => Container(
+                                      height: 1,
+                                      color: DashboardTokens.poloBlue16,
+                                    ),
+                                    itemBuilder: (ctx, idx) {
+                                      final t = groupItems[idx];
+                                      return _buildTransactionItemRow(t);
+                                    },
                                   ),
                                 ),
                               ],
                             ),
-                          ),
-                          const SizedBox(height: 4),
-
-                          // Transactions Card Container (Node 82:601)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            decoration: BoxDecoration(
-                              color: DashboardTokens.bigStone,
-                              borderRadius: BorderRadius.circular(28),
-                              border: Border.all(
-                                color: DashboardTokens.poloBlue22,
-                                width: 1,
-                              ),
-                            ),
-                            child: ListView.separated(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              padding: const EdgeInsets.symmetric(vertical: 3),
-                              itemCount: groupItems.length,
-                              separatorBuilder: (_, _) => Container(
-                                height: 1,
-                                color: DashboardTokens.poloBlue16,
-                              ),
-                              itemBuilder: (ctx, idx) {
-                                final t = groupItems[idx];
-                                return _buildTransactionItemRow(t);
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }),
-                ],
+                          );
+                        }),
+                      ],
+                    ],
+                  ),
+                ),
               ],
-            ),
-          ),
-        ],
             ),
           ),
         ),
@@ -1121,11 +1253,13 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     );
   }
 
-
-
   // ── Bill Item Row (Node 82:574) ───────────────────────────────────────────
   Widget _buildBillItemRow(BillItem bill) {
     final dueFormatted = DateFormat('EEE, MMM d').format(bill.dueDate);
+    final recurrenceLabel = _billRecurrenceLabel(bill.recurrence);
+    final scheduleLabel = recurrenceLabel == null
+        ? dueFormatted
+        : '$dueFormatted · $recurrenceLabel';
     final daysUntil = bill.dueDate.difference(DateTime.now()).inDays;
     final statusText = daysUntil < 0
         ? 'Overdue by ${-daysUntil} days'
@@ -1152,7 +1286,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '$dueFormatted · Monthly',
+                    scheduleLabel,
                     style: GoogleFonts.dmSans(
                       fontSize: 12,
                       color: DashboardTokens.periwinkleGraySubtitle,
@@ -1196,7 +1330,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     final amountSign = isExpense ? '−' : (isTransfer ? '' : '+');
     final amountColor = isExpense
         ? DashboardTokens.apricot
-        : (isTransfer ? DashboardTokens.periwinkleGray : DashboardTokens.bermuda);
+        : (isTransfer
+              ? DashboardTokens.periwinkleGray
+              : DashboardTokens.bermuda);
 
     return SpringTouch(
       scaleDown: 0.98,
@@ -1213,10 +1349,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
               decoration: BoxDecoration(
                 color: DashboardTokens.ebony.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(23),
-                border: Border.all(
-                  color: DashboardTokens.poloBlue30,
-                  width: 1,
-                ),
+                border: Border.all(color: DashboardTokens.poloBlue30, width: 1),
               ),
               alignment: Alignment.center,
               child: Icon(
@@ -1274,7 +1407,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
 
   String _formatGroupHeaderDate(DateTime date) {
     final now = DateTime.now();
-    final isToday = date.year == now.year && date.month == now.month && date.day == now.day;
+    final isToday =
+        date.year == now.year && date.month == now.month && date.day == now.day;
     final formatted = DateFormat('MMM d').format(date).toUpperCase();
     return isToday ? 'TODAY · $formatted' : formatted;
   }

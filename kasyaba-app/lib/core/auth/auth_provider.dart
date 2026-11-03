@@ -254,45 +254,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<void> googleLogin(String idToken) async {
-    final operation = ++_authOperation;
-    state = state.copyWith(isLoading: true, error: null);
-    try {
-      final response = await _dio.post(
-        '/auth/google',
-        data: {'idToken': idToken},
-      );
-      final data = response.data['data'];
-      final user = data['user'] as Map<String, dynamic>?;
-      final email = (user?['email'] as String?) ?? '';
-      await _storage.saveTokens(
-        data['accessToken'],
-        data['refreshToken'],
-        userId: user?['id'] as String?,
-        email: email,
-        displayName: _extractDisplayName(user, email),
-      );
-      if (!mounted || operation != _authOperation) return;
-      state = AuthState(
-        isAuthenticated: true,
-        userId: user?['id'] as String?,
-        email: email,
-        displayName: _extractDisplayName(user, email),
-        hasPassword: (user?['hasPassword'] as bool?) ?? false,
-      );
-    } on DioException catch (e) {
-      if (!mounted || operation != _authOperation) return;
-      final error =
-          e.response?.data?['error']?['message'] ?? 'Google login failed';
-      state = state.copyWith(isLoading: false, error: error);
-      rethrow;
-    } catch (_) {
-      if (!mounted || operation != _authOperation) return;
-      state = state.copyWith(isLoading: false, error: 'Google login failed');
-      rethrow;
-    }
-  }
-
   /// Sends a password reset link to the given [email].
   Future<void> requestPasswordReset(String email) async {
     final operation = ++_authOperation;
@@ -404,10 +365,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
       }
       if (mounted) state = const AuthState();
     }
-  }
-
-  void clearError() {
-    state = state.copyWith(error: null);
   }
 }
 

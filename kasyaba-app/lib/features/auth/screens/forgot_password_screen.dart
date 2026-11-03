@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:reactive_forms/reactive_forms.dart';
 import '../../../app/theme/app_theme.dart';
+import '../../../app/theme/kasyaba_tokens.dart';
 import '../../../core/auth/auth_provider.dart';
 import '../widgets/auth_widgets.dart';
 
@@ -141,19 +142,19 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                                     vertical: 12,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: AppColors.emerald500
-                                        .withValues(alpha: 0.15),
+                                    color: KasyabaTokens.bermuda15,
                                     borderRadius: BorderRadius.circular(16),
                                     border: Border.all(
-                                      color: AppColors.emerald500
-                                          .withValues(alpha: 0.4),
+                                      color: KasyabaTokens.bermuda.withValues(
+                                        alpha: 0.4,
+                                      ),
                                     ),
                                   ),
                                   child: Row(
                                     children: [
                                       const Icon(
                                         Icons.check_circle_rounded,
-                                        color: AppColors.emerald400,
+                                        color: KasyabaTokens.bermuda,
                                         size: 20,
                                       ),
                                       const SizedBox(width: 10),
@@ -161,7 +162,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                                         child: Text(
                                           'Reset link sent! Please check your inbox.',
                                           style: GoogleFonts.dmSans(
-                                            color: AppColors.emerald400,
+                                            color: KasyabaTokens.bermuda,
                                             fontSize: 13,
                                             fontWeight: FontWeight.w600,
                                           ),

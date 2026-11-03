@@ -5,7 +5,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_motion.dart';
+import '../../../app/theme/kasyaba_tokens.dart';
 import '../../../core/providers/api_providers.dart';
+import '../../../core/providers/preference_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/deterministic_math.dart';
 import '../../dashboard/widgets/dashboard_tokens.dart';
@@ -24,18 +26,26 @@ class MathBreakdownScreen extends ConsumerWidget {
     final bills = ref.watch(billsProvider).valueOrNull ?? [];
     final goals = ref.watch(goalsProvider).valueOrNull ?? [];
     final dashboard = ref.watch(dashboardProvider).valueOrNull;
+    final accountBalances = ref.watch(accountBalancesProvider).valueOrNull;
+    final excludedAccountIds = ref.watch(excludedAccountsProvider);
 
-    final calc = calculation ??
+    final calc =
+        calculation ??
         calculateDailySafeSpend(
-          totalLiquidBalance: dashboard?.totalBalance ?? 0.0,
+          totalLiquidBalance: adjustedLiquidBalance(
+            dashboardTotalBalance: dashboard?.totalBalance ?? 0.0,
+            accountBalances: accountBalances,
+            excludedAccountIds: excludedAccountIds,
+          ),
           bills: bills,
           goals: goals,
           profile: userProfile,
         );
 
     final hasSafeSpend = calc.dailySafeSpend > 0;
-    final accentColor =
-        hasSafeSpend ? DashboardTokens.bermuda : DashboardTokens.apricot;
+    final accentColor = hasSafeSpend
+        ? DashboardTokens.bermuda
+        : DashboardTokens.apricot;
 
     return Scaffold(
       backgroundColor: DashboardTokens.ebony,
@@ -51,10 +61,7 @@ class MathBreakdownScreen extends ConsumerWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
-                  colors: [
-                    DashboardTokens.kashmirBlue.withValues(alpha: 0.35),
-                    Colors.transparent,
-                  ],
+                  colors: [KasyabaTokens.kashmirGlow35, Colors.transparent],
                 ),
               ),
             ),
@@ -143,8 +150,9 @@ class MathBreakdownScreen extends ConsumerWidget {
                                 width: double.infinity,
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: DashboardTokens.ebony
-                                      .withValues(alpha: 0.7),
+                                  color: DashboardTokens.ebony.withValues(
+                                    alpha: 0.7,
+                                  ),
                                   borderRadius: BorderRadius.circular(14),
                                   border: Border.all(
                                     color: DashboardTokens.poloBlue22
@@ -199,7 +207,8 @@ class MathBreakdownScreen extends ConsumerWidget {
                               _BreakdownMetricRow(
                                 label: 'Cash in wallets',
                                 value: CurrencyFormatter.format(
-                                    calc.totalLiquidBalance),
+                                  calc.totalLiquidBalance,
+                                ),
                                 valueColor: DashboardTokens.periwinkleGray,
                               ),
                               const SizedBox(height: 12),
@@ -297,8 +306,9 @@ class MathBreakdownScreen extends ConsumerWidget {
                                     ],
                                   ),
                                   Text(
-                                    DateFormat('MMMM d, yyyy')
-                                        .format(calc.nextPayday),
+                                    DateFormat(
+                                      'MMMM d, yyyy',
+                                    ).format(calc.nextPayday),
                                     style: GoogleFonts.dmSans(
                                       fontSize: 14,
                                       fontWeight: FontWeight.bold,
@@ -378,10 +388,7 @@ class _CardContainer extends StatelessWidget {
   final Widget child;
   final Color? borderColor;
 
-  const _CardContainer({
-    required this.child,
-    this.borderColor,
-  });
+  const _CardContainer({required this.child, this.borderColor});
 
   @override
   Widget build(BuildContext context) {

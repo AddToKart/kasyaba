@@ -10,8 +10,10 @@ import '../../../app/theme/app_motion.dart';
 import '../../../shared/widgets/motion_components.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
+import '../../../core/providers/preference_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/deterministic_math.dart';
+import '../../../shared/widgets/app_state_widgets.dart';
 import '../../dashboard/widgets/dashboard_tokens.dart';
 import '../../dashboard/widgets/kasyaba_affordability_sheet.dart';
 import '../../dashboard/widgets/kasyaba_safe_spend_breakdown_sheet.dart';
@@ -33,12 +35,22 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
   Widget build(BuildContext context) {
     final planningAsync = ref.watch(planningProvider);
     final dashboardAsync = ref.watch(dashboardProvider);
-    final userProfile = ref.watch(userProfileProvider).valueOrNull;
-    final bills = ref.watch(billsProvider).valueOrNull ?? [];
-    final goals = ref.watch(goalsProvider).valueOrNull ?? [];
+    final userProfileAsync = ref.watch(userProfileProvider);
+    final billsAsync = ref.watch(billsProvider);
+    final goalsAsync = ref.watch(goalsProvider);
+    final accountBalancesAsync = ref.watch(accountBalancesProvider);
+    final excludedAccountIds = ref.watch(excludedAccountsProvider);
 
-    final topPadding =
-        math.max(56.0, MediaQuery.of(context).padding.top + 16.0);
+    final userProfile = userProfileAsync.valueOrNull;
+    final bills = billsAsync.valueOrNull ?? [];
+    final goals = goalsAsync.valueOrNull ?? [];
+    final hasInputError =
+        billsAsync.hasError || goalsAsync.hasError || userProfileAsync.hasError;
+
+    final topPadding = math.max(
+      56.0,
+      MediaQuery.of(context).padding.top + 16.0,
+    );
 
     return Scaffold(
       backgroundColor: DashboardTokens.ebony,
@@ -66,7 +78,11 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                   final totalBalance =
                       dashboardAsync.valueOrNull?.totalBalance ?? 0.0;
                   final calc = calculateDailySafeSpend(
-                    totalLiquidBalance: totalBalance,
+                    totalLiquidBalance: adjustedLiquidBalance(
+                      dashboardTotalBalance: totalBalance,
+                      accountBalances: accountBalancesAsync.valueOrNull,
+                      excludedAccountIds: excludedAccountIds,
+                    ),
                     bills: bills,
                     goals: goals,
                     profile: userProfile,
@@ -84,8 +100,13 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                   onRetry: () => ref.invalidate(dashboardProvider),
                 ),
                 data: (dashboard) {
+                  final adjustedBalance = adjustedLiquidBalance(
+                    dashboardTotalBalance: dashboard.totalBalance,
+                    accountBalances: accountBalancesAsync.valueOrNull,
+                    excludedAccountIds: excludedAccountIds,
+                  );
                   final safeSpendCalc = calculateDailySafeSpend(
-                    totalLiquidBalance: dashboard.totalBalance,
+                    totalLiquidBalance: adjustedBalance,
                     bills: bills,
                     goals: goals,
                     profile: userProfile,
@@ -94,33 +115,46 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      FadeSlideEntrance.staggered(
-                        index: 0,
-                        child: _SafeSpendHeroCard(
-                          safeSpendCalc: safeSpendCalc,
-                          totalBalance: dashboard.totalBalance,
-                          onTestPurchaseTap: () {
-                            AppHaptics.selectionClick();
-                            showKasyaBaAffordabilitySheet(context);
+                      if (hasInputError) ...[
+                        KasyabaErrorCard(
+                          message:
+                              'Could not load your bills, goals, or profile. Safe-to-spend and allocation are hidden until all inputs load.',
+                          onRetry: () {
+                            ref.invalidate(billsProvider);
+                            ref.invalidate(goalsProvider);
+                            ref.invalidate(userProfileProvider);
                           },
                         ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // ── 3. Allocation Card (Node 92:57) ──────────────
-                      FadeSlideEntrance.staggered(
-                        index: 1,
-                        child: _AllocationCard(
-                          safeSpendCalc: safeSpendCalc,
-                          totalBalance: dashboard.totalBalance,
+                        const SizedBox(height: 16),
+                      ] else ...[
+                        FadeSlideEntrance.staggered(
+                          index: 0,
+                          child: _SafeSpendHeroCard(
+                            safeSpendCalc: safeSpendCalc,
+                            totalBalance: adjustedBalance,
+                            onTestPurchaseTap: () {
+                              AppHaptics.selectionClick();
+                              showKasyaBaAffordabilitySheet(context);
+                            },
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 16),
+                        const SizedBox(height: 20),
+
+                        // ── 3. Allocation Card (Node 92:57) ──────────────
+                        FadeSlideEntrance.staggered(
+                          index: 1,
+                          child: _AllocationCard(safeSpendCalc: safeSpendCalc),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
 
                       // ── 4. Assumptions Card (Node 92:106) ────────────
                       planningAsync.when(
-                        loading: () => const SizedBox.shrink(),
-                        error: (_, _) => const SizedBox.shrink(),
+                        loading: () => const KasyabaLoadingSkeleton(lines: 3),
+                        error: (err, _) => KasyabaErrorCard(
+                          message: friendlyErrorMessage(err),
+                          onRetry: () => ref.invalidate(planningProvider),
+                        ),
                         data: (overview) {
                           return FadeSlideEntrance.staggered(
                             index: 2,
@@ -198,10 +232,7 @@ class _ForecastingHeader extends StatelessWidget {
             decoration: BoxDecoration(
               color: DashboardTokens.bigStone,
               borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                color: DashboardTokens.poloBlue22,
-                width: 1,
-              ),
+              border: Border.all(color: DashboardTokens.poloBlue22, width: 1),
             ),
             child: SvgPicture.asset(
               'assets/images/forecast_icon.svg',
@@ -233,8 +264,7 @@ class _SafeSpendHeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final paydayDateStr =
-        DateFormat('MMM d').format(safeSpendCalc.nextPayday);
+    final paydayDateStr = DateFormat('MMM d').format(safeSpendCalc.nextPayday);
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(28),
@@ -245,10 +275,7 @@ class _SafeSpendHeroCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: DashboardTokens.cello60,
             borderRadius: BorderRadius.circular(28),
-            border: Border.all(
-              color: DashboardTokens.poloBlue30,
-              width: 1,
-            ),
+            border: Border.all(color: DashboardTokens.poloBlue30, width: 1),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -292,10 +319,7 @@ class _SafeSpendHeroCard extends StatelessWidget {
               const SizedBox(height: 14),
 
               // Divider
-              Container(
-                height: 1,
-                color: DashboardTokens.poloBlue22,
-              ),
+              Container(height: 1, color: DashboardTokens.poloBlue22),
               const SizedBox(height: 12),
 
               // Total balance row
@@ -357,12 +381,8 @@ class _SafeSpendHeroCard extends StatelessWidget {
 /// ── 3. Allocation Card (Node 92:57) ─────────────────────────────────────
 class _AllocationCard extends StatelessWidget {
   final DailySafeSpendCalculation safeSpendCalc;
-  final double totalBalance;
 
-  const _AllocationCard({
-    required this.safeSpendCalc,
-    required this.totalBalance,
-  });
+  const _AllocationCard({required this.safeSpendCalc});
 
   @override
   Widget build(BuildContext context) {
@@ -377,29 +397,16 @@ class _AllocationCard extends StatelessWidget {
     final billsCash = safeSpendCalc.unpaidBillsDue;
     final sum = freeCash + goalsCash + billsCash;
 
-    final int freePct;
-    final int goalsPct;
-    final int billsPct;
-
-    if (sum > 0) {
-      freePct = ((freeCash / sum) * 100).round();
-      goalsPct = ((goalsCash / sum) * 100).round();
-      billsPct = math.max(0, 100 - freePct - goalsPct);
-    } else {
-      // Figma defaults when empty: 25%, 31%, 44%
-      freePct = 25;
-      goalsPct = 31;
-      billsPct = 44;
-    }
+    final hasProportions = sum > 0;
+    final freePct = hasProportions ? ((freeCash / sum) * 100).round() : 0;
+    final goalsPct = hasProportions ? ((goalsCash / sum) * 100).round() : 0;
+    final billsPct = hasProportions ? math.max(0, 100 - freePct - goalsPct) : 0;
 
     return Container(
       decoration: BoxDecoration(
         color: DashboardTokens.bigStone,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(
-          color: DashboardTokens.poloBlue22,
-          width: 1,
-        ),
+        border: Border.all(color: DashboardTokens.poloBlue22, width: 1),
       ),
       padding: const EdgeInsets.all(19),
       child: Column(
@@ -417,67 +424,86 @@ class _AllocationCard extends StatelessWidget {
           ),
           const SizedBox(height: 14),
 
-          // Multi-Segment Bar (Height: 12, radius: 5, gap: 3)
-          ClipRRect(
-            borderRadius: BorderRadius.circular(5),
-            child: SizedBox(
-              height: 12,
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: math.max(1, freePct),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: DashboardTokens.cornflowerBlue,
-                        borderRadius: BorderRadius.circular(5),
+          if (hasProportions) ...[
+            // Multi-Segment Bar (Height: 12, radius: 5, gap: 3)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(5),
+              child: SizedBox(
+                height: 12,
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: math.max(1, freePct),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: DashboardTokens.cornflowerBlue,
+                          borderRadius: BorderRadius.circular(5),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 3),
-                  Expanded(
-                    flex: math.max(1, goalsPct),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: DashboardTokens.java,
-                        borderRadius: BorderRadius.circular(5),
+                    const SizedBox(width: 3),
+                    Expanded(
+                      flex: math.max(1, goalsPct),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: DashboardTokens.java,
+                          borderRadius: BorderRadius.circular(5),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 3),
-                  Expanded(
-                    flex: math.max(1, billsPct),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: DashboardTokens.casablanca,
-                        borderRadius: BorderRadius.circular(5),
+                    const SizedBox(width: 3),
+                    Expanded(
+                      flex: math.max(1, billsPct),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: DashboardTokens.casablanca,
+                          borderRadius: BorderRadius.circular(5),
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 14),
+            const SizedBox(height: 14),
 
-          // Legend Row
-          Row(
-            children: [
-              _LegendItem(
-                color: DashboardTokens.cornflowerBlue,
-                label: 'Free $freePct%',
+            // Legend Row
+            Row(
+              children: [
+                _LegendItem(
+                  color: DashboardTokens.cornflowerBlue,
+                  label: 'Free $freePct%',
+                ),
+                const SizedBox(width: 14),
+                _LegendItem(
+                  color: DashboardTokens.java,
+                  label: 'Goals $goalsPct%',
+                ),
+                const SizedBox(width: 14),
+                _LegendItem(
+                  color: DashboardTokens.casablanca,
+                  label: 'Bills $billsPct%',
+                ),
+              ],
+            ),
+          ] else
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: DashboardTokens.ebony.withValues(alpha: 0.45),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: DashboardTokens.poloBlue22),
               ),
-              const SizedBox(width: 14),
-              _LegendItem(
-                color: DashboardTokens.java,
-                label: 'Goals $goalsPct%',
+              child: Text(
+                'No allocation data yet. Add unpaid bills or active goals to see where your money goes.',
+                style: GoogleFonts.dmSans(
+                  color: DashboardTokens.periwinkleGraySubtitle,
+                  fontSize: 12.5,
+                  height: 1.4,
+                ),
               ),
-              const SizedBox(width: 14),
-              _LegendItem(
-                color: DashboardTokens.casablanca,
-                label: 'Bills $billsPct%',
-              ),
-            ],
-          ),
+            ),
         ],
       ),
     );
@@ -540,10 +566,7 @@ class _AssumptionsCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: DashboardTokens.bigStone,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(
-          color: DashboardTokens.poloBlue22,
-          width: 1,
-        ),
+        border: Border.all(color: DashboardTokens.poloBlue22, width: 1),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 19, vertical: 3),
       child: Column(
@@ -604,7 +627,8 @@ class _AssumptionsCard extends StatelessWidget {
             const Divider(color: DashboardTokens.poloBlue22, height: 1),
             const SizedBox(height: 10),
             for (final day in overview.days.where(
-                (d) => d.expenses > 0 || d.bills > 0 || d.income > 0)) ...[
+              (d) => d.expenses > 0 || d.bills > 0 || d.income > 0,
+            )) ...[
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 6),
                 child: Row(
@@ -621,8 +645,8 @@ class _AssumptionsCard extends StatelessWidget {
                       day.bills > 0
                           ? '-${CurrencyFormatter.format(day.bills)} (bills)'
                           : (day.income > 0
-                              ? '+${CurrencyFormatter.format(day.income)} (income)'
-                              : '-${CurrencyFormatter.format(day.expenses)}'),
+                                ? '+${CurrencyFormatter.format(day.income)} (income)'
+                                : '-${CurrencyFormatter.format(day.expenses)}'),
                       style: GoogleFonts.dmSans(
                         color: day.income > 0
                             ? DashboardTokens.bermuda
@@ -658,9 +682,7 @@ class _HeroLoadingState extends StatelessWidget {
         border: Border.all(color: DashboardTokens.poloBlue22),
       ),
       child: const Center(
-        child: CircularProgressIndicator(
-          color: DashboardTokens.periwinkleGray,
-        ),
+        child: CircularProgressIndicator(color: DashboardTokens.periwinkleGray),
       ),
     );
   }
@@ -695,8 +717,11 @@ class _ErrorCard extends StatelessWidget {
           const SizedBox(height: 12),
           TextButton.icon(
             onPressed: onRetry,
-            icon: const Icon(Icons.refresh,
-                size: 16, color: DashboardTokens.periwinkleGray),
+            icon: const Icon(
+              Icons.refresh,
+              size: 16,
+              color: DashboardTokens.periwinkleGray,
+            ),
             label: Text(
               'Retry',
               style: GoogleFonts.dmSans(

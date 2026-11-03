@@ -11,33 +11,6 @@ import '../../features/dashboard/widgets/dashboard_tokens.dart';
 ///  AppShell — Floating Navigation Dock (Figma Node 106:2024)
 /// ─────────────────────────────────────────────────────────────
 
-class FloatingDockFabLocation extends FloatingActionButtonLocation {
-  final double? bottomPadding;
-  final double gap;
-
-  const FloatingDockFabLocation({
-    this.bottomPadding,
-    this.gap = 20.0,
-  });
-
-  @override
-  Offset getOffset(ScaffoldPrelayoutGeometry scaffoldGeometry) {
-    final double rawBottom = bottomPadding ?? scaffoldGeometry.minInsets.bottom;
-    final double dockBottomMargin =
-        rawBottom > 0 ? rawBottom : (bottomPadding != null ? 12.0 : 20.0);
-    final double dockTotalHeight = 68.0 + dockBottomMargin;
-
-    final double fabX = scaffoldGeometry.scaffoldSize.width -
-        scaffoldGeometry.floatingActionButtonSize.width -
-        16.0;
-    final double fabY = scaffoldGeometry.scaffoldSize.height -
-        dockTotalHeight -
-        scaffoldGeometry.floatingActionButtonSize.height -
-        gap;
-    return Offset(fabX, fabY);
-  }
-}
-
 class AppShell extends StatelessWidget {
   final Widget child;
   final String location;
@@ -46,10 +19,20 @@ class AppShell extends StatelessWidget {
 
   int _getSelectedIndex() {
     if (location.startsWith('/transactions')) return 1;
-    if (location.startsWith('/planning') || location.startsWith('/bills')) return 2;
+    if (location.startsWith('/planning') || location.startsWith('/bills')) {
+      return 2;
+    }
     if (location.startsWith('/goals')) return 3;
-    if (location.startsWith('/settings')) return 4;
-    if (location.startsWith('/dashboard') || location == '/') return 0;
+    if (location.startsWith('/settings') || location.startsWith('/accounts')) {
+      return 4;
+    }
+    // /dashboard, /budgets and /alerts are all children of the Home tab.
+    if (location.startsWith('/dashboard') ||
+        location.startsWith('/budgets') ||
+        location.startsWith('/alerts') ||
+        location == '/') {
+      return 0;
+    }
     return 0;
   }
 

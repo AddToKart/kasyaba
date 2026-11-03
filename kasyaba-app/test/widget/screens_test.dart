@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kasyaba/features/splash/screens/splash_screen.dart';
-import 'package:kasyaba/shared/widgets/empty_state_view.dart';
+import 'package:kasyaba/shared/widgets/app_state_widgets.dart';
+import 'package:kasyaba/shared/widgets/pill_button.dart';
 
 void main() {
   testWidgets('splash screen shows the brand and a loader', (tester) async {
@@ -19,12 +20,15 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: EmptyStateView(
+          body: KasyabaEmptyState(
             title: 'No transactions yet',
             message: 'Add your first income or expense to get started.',
             icon: Icons.receipt_long_outlined,
-            actionLabel: 'Add transaction',
-            onAction: () => tapped = true,
+            action: PillButton(
+              label: 'Add transaction',
+              onPressed: () => tapped = true,
+              expand: false,
+            ),
           ),
         ),
       ),

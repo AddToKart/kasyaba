@@ -93,6 +93,15 @@ export async function listBills(userId: string, query: Record<string, any>) {
       orderBy: { dueDate: 'asc' },
       skip: (page - 1) * limit,
       take: limit,
+      include: {
+        template: {
+          select: {
+            recurrence: true,
+            categoryId: true,
+            reminderLeadDays: true,
+          },
+        },
+      },
     }),
   ]);
 

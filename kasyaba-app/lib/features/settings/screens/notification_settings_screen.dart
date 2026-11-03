@@ -1,60 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../dashboard/widgets/dashboard_tokens.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+import '../../../app/theme/kasyaba_tokens.dart';
+import '../../../core/notifications/notification_preferences.dart';
+import '../../../core/providers/api_providers.dart';
 import '../../../shared/widgets/figma_toggle_switch.dart';
+import '../../../shared/widgets/kasyaba_date_picker.dart';
 import '../../../shared/widgets/motion_components.dart';
 
-/// ─────────────────────────────────────────────────────────────
-///  1:1 Figma Notification Settings Screen (Node 42:6899)
-/// ─────────────────────────────────────────────────────────────
-class NotificationSettingsScreen extends ConsumerStatefulWidget {
+class NotificationSettingsScreen extends ConsumerWidget {
   const NotificationSettingsScreen({super.key});
-
-  @override
-  ConsumerState<NotificationSettingsScreen> createState() =>
-      _NotificationSettingsScreenState();
-}
-
-class _NotificationSettingsScreenState
-    extends ConsumerState<NotificationSettingsScreen> {
-  bool _billReminders = true;
-  int _remindDaysBefore = 3;
-  bool _budgetAlerts = true;
-  bool _paydayReminder = true;
-  bool _goalMilestones = false;
-  bool _weeklySummary = false;
-  TimeOfDay _reminderTime = const TimeOfDay(hour: 8, minute: 0);
-
-  Future<void> _pickReminderTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: _reminderTime,
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: DashboardTokens.periwinkleGray,
-              onPrimary: DashboardTokens.ebony,
-              surface: DashboardTokens.bigStone,
-              onSurface: DashboardTokens.periwinkleGray,
-            ),
-          ),
-          child: child ?? const SizedBox.shrink(),
-        );
-      },
-    );
-    if (picked != null) {
-      setState(() => _reminderTime = picked);
-    }
-  }
-
-  void _cycleDaysBefore() {
-    final options = [1, 2, 3, 5, 7];
-    final currentIndex = options.indexOf(_remindDaysBefore);
-    final nextIndex = (currentIndex + 1) % options.length;
-    setState(() => _remindDaysBefore = options[nextIndex]);
-  }
 
   String _formatTimeOfDay(TimeOfDay time) {
     final hour = time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod;
@@ -63,428 +20,328 @@ class _NotificationSettingsScreenState
     return '$hour:$minute $period';
   }
 
+  String _daysLabel(int days) {
+    return days == 1 ? '1 day before' : '$days days before';
+  }
+
+  Future<void> _pickReminderTime(
+    BuildContext context,
+    WidgetRef ref,
+    NotificationPreferences preferences,
+  ) async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: preferences.reminderTime,
+      builder: (ctx, child) => Theme(
+        data: kasyabaDatePickerTheme(ctx),
+        child: child ?? const SizedBox.shrink(),
+      ),
+    );
+    if (picked != null) {
+      ref
+          .read(notificationPreferencesProvider.notifier)
+          .setReminderTime(picked);
+    }
+  }
+
+  void _cycleDaysBefore(WidgetRef ref, int currentDays) {
+    const options = [1, 2, 3, 5, 7];
+    final currentIndex = options.indexOf(currentDays);
+    final nextIndex = (currentIndex + 1) % options.length;
+    ref
+        .read(notificationPreferencesProvider.notifier)
+        .setRemindDaysBefore(options[nextIndex]);
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final preferences = ref.watch(notificationPreferencesProvider);
+    final profileAsync = ref.watch(userProfileProvider);
+    final paydaySchedule = profileAsync.valueOrNull?.paydaySchedule;
+    final notifier = ref.read(notificationPreferencesProvider.notifier);
+
     return Scaffold(
-      backgroundColor: DashboardTokens.ebony,
+      backgroundColor: KasyabaTokens.ebony,
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: DashboardTokens.canvasGradient,
-        ),
+        decoration: const BoxDecoration(gradient: KasyabaTokens.canvasGradient),
         child: SafeArea(
           bottom: false,
-          child: Column(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
             children: [
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
+              FadeSlideEntrance.staggered(
+                index: 0,
+                child: Row(
                   children: [
-                    // Header row: 50x50 squircle back button + Title
-                    FadeSlideEntrance.staggered(
-                      index: 0,
-                      child: Row(
-                        children: [
-                          SpringTouch(
-                            onTap: () => context.pop(),
-                            child: Container(
-                              width: 50,
-                              height: 50,
-                              decoration: BoxDecoration(
-                                color: DashboardTokens.bigStone,
-                                borderRadius: BorderRadius.circular(24),
-                                border: Border.all(
-                                  color: DashboardTokens.poloBlue22,
-                                  width: 1,
-                                ),
-                              ),
-                              child: const Icon(
-                                Icons.chevron_left_rounded,
-                                color: DashboardTokens.periwinkleGray,
-                                size: 26,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          const Text(
-                            'Notifications',
-                            style: TextStyle(
-                              fontFamily: 'Bricolage Grotesque',
-                              fontSize: 24,
-                              fontWeight: FontWeight.w700,
-                              color: DashboardTokens.periwinkleGray,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Group 1 Card: Bill reminders, Budget alerts, Payday reminder
-                    FadeSlideEntrance.staggered(
-                      index: 1,
+                    SpringTouch(
+                      onTap: () => context.pop(),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 19, vertical: 3),
+                        width: 50,
+                        height: 50,
                         decoration: BoxDecoration(
-                          color: DashboardTokens.bigStone,
-                          borderRadius: BorderRadius.circular(28),
+                          color: KasyabaTokens.bigStone,
+                          borderRadius: BorderRadius.circular(24),
                           border: Border.all(
-                            color: DashboardTokens.poloBlue22,
+                            color: KasyabaTokens.poloBlue22,
                             width: 1,
                           ),
                         ),
-                        child: Column(
-                          children: [
-                            // Bill reminders
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: const [
-                                        Text(
-                                          'Bill reminders',
-                                          style: TextStyle(
-                                            fontFamily: 'DM Sans',
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w700,
-                                            color: DashboardTokens.periwinkleGray,
-                                          ),
-                                        ),
-                                        SizedBox(height: 2),
-                                        Text(
-                                          'Before each bill is due',
-                                          style: TextStyle(
-                                            fontFamily: 'DM Sans',
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w400,
-                                            color: DashboardTokens.periwinkleGraySubtitle,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  FigmaToggleSwitch(
-                                    value: _billReminders,
-                                    onChanged: (val) =>
-                                        setState(() => _billReminders = val),
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            // Remind me X days before (sub-row)
-                            if (_billReminders)
-                              SpringTouch(
-                                onTap: _cycleDaysBefore,
-                                child: Container(
-                                  width: double.infinity,
-                                  padding: const EdgeInsets.only(bottom: 12),
-                                  child: Row(
-                                    children: [
-                                      const Text(
-                                        'Remind me ',
-                                        style: TextStyle(
-                                          fontFamily: 'DM Sans',
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w400,
-                                          color: DashboardTokens.periwinkleGraySubtitle,
-                                        ),
-                                      ),
-                                      Text(
-                                        '$_remindDaysBefore days before',
-                                        style: const TextStyle(
-                                          fontFamily: 'DM Sans',
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w700,
-                                          color: DashboardTokens.periwinkleGray,
-                                          decoration: TextDecoration.underline,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-
-                            // Divider
-                            Container(
-                              height: 1,
-                              color: DashboardTokens.poloBlue16,
-                            ),
-
-                            // Budget alerts
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: const [
-                                        Text(
-                                          'Budget alerts',
-                                          style: TextStyle(
-                                            fontFamily: 'DM Sans',
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w700,
-                                            color: DashboardTokens.periwinkleGray,
-                                          ),
-                                        ),
-                                        SizedBox(height: 2),
-                                        Text(
-                                          'At 80% and when you go over',
-                                          style: TextStyle(
-                                            fontFamily: 'DM Sans',
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w400,
-                                            color: DashboardTokens.periwinkleGraySubtitle,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  FigmaToggleSwitch(
-                                    value: _budgetAlerts,
-                                    onChanged: (val) =>
-                                        setState(() => _budgetAlerts = val),
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            // Divider
-                            Container(
-                              height: 1,
-                              color: DashboardTokens.poloBlue16,
-                            ),
-
-                            // Payday reminder
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: const [
-                                        Text(
-                                          'Payday reminder',
-                                          style: TextStyle(
-                                            fontFamily: 'DM Sans',
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w700,
-                                            color: DashboardTokens.periwinkleGray,
-                                          ),
-                                        ),
-                                        SizedBox(height: 2),
-                                        Text(
-                                          'On the 15th and 30th',
-                                          style: TextStyle(
-                                            fontFamily: 'DM Sans',
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w400,
-                                            color: DashboardTokens.periwinkleGraySubtitle,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  FigmaToggleSwitch(
-                                    value: _paydayReminder,
-                                    onChanged: (val) =>
-                                        setState(() => _paydayReminder = val),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+                        child: const Icon(
+                          Icons.chevron_left_rounded,
+                          color: KasyabaTokens.periwinkleGray,
+                          size: 26,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 14),
-
-                    // Group 2 Card: Goal milestones, Weekly summary
-                    FadeSlideEntrance.staggered(
-                      index: 2,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 19, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: DashboardTokens.bigStone,
-                          borderRadius: BorderRadius.circular(28),
-                          border: Border.all(
-                            color: DashboardTokens.poloBlue22,
-                            width: 1,
-                          ),
-                        ),
-                        child: Column(
-                          children: [
-                            // Goal milestones
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: const [
-                                        Text(
-                                          'Goal milestones',
-                                          style: TextStyle(
-                                            fontFamily: 'DM Sans',
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w700,
-                                            color: DashboardTokens.periwinkleGray,
-                                          ),
-                                        ),
-                                        SizedBox(height: 2),
-                                        Text(
-                                          'When a goal reaches 25%, 50%, 75%',
-                                          style: TextStyle(
-                                            fontFamily: 'DM Sans',
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w400,
-                                            color: DashboardTokens.periwinkleGraySubtitle,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  FigmaToggleSwitch(
-                                    value: _goalMilestones,
-                                    onChanged: (val) =>
-                                        setState(() => _goalMilestones = val),
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            // Divider
-                            Container(
-                              height: 1,
-                              color: DashboardTokens.poloBlue16,
-                            ),
-
-                            // Weekly summary
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: const [
-                                        Text(
-                                          'Weekly summary',
-                                          style: TextStyle(
-                                            fontFamily: 'DM Sans',
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w700,
-                                            color: DashboardTokens.periwinkleGray,
-                                          ),
-                                        ),
-                                        SizedBox(height: 2),
-                                        Text(
-                                          'Every Sunday evening',
-                                          style: TextStyle(
-                                            fontFamily: 'DM Sans',
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w400,
-                                            color: DashboardTokens.periwinkleGraySubtitle,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  FigmaToggleSwitch(
-                                    value: _weeklySummary,
-                                    onChanged: (val) =>
-                                        setState(() => _weeklySummary = val),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-
-                    // Time Picker Row
-                    FadeSlideEntrance.staggered(
-                      index: 3,
-                      child: SpringTouch(
-                        onTap: _pickReminderTime,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 21, vertical: 18.5),
-                          decoration: BoxDecoration(
-                            color: DashboardTokens.bigStone,
-                            borderRadius: BorderRadius.circular(28),
-                            border: Border.all(
-                              color: DashboardTokens.poloBlue22,
-                              width: 1,
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              const SizedBox(
-                                width: 96,
-                                child: Text(
-                                  'Time',
-                                  style: TextStyle(
-                                    fontFamily: 'DM Sans',
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w400,
-                                    color: DashboardTokens.periwinkleGraySubtitle,
-                                  ),
-                                ),
-                              ),
-                              Expanded(
-                                child: Text(
-                                  _formatTimeOfDay(_reminderTime),
-                                  style: const TextStyle(
-                                    fontFamily: 'DM Sans',
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w700,
-                                    color: DashboardTokens.periwinkleGray,
-                                  ),
-                                ),
-                              ),
-                              const Icon(
-                                Icons.access_time_rounded,
-                                color: DashboardTokens.periwinkleGraySubtitle,
-                                size: 20,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Footnote
-                    FadeSlideEntrance.staggered(
-                      index: 4,
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 4),
-                        child: Text(
-                          'Reminders are scheduled on your device, so they work offline.',
-                          style: TextStyle(
-                            fontFamily: 'DM Sans',
-                            fontSize: 14,
-                            fontWeight: FontWeight.w400,
-                            color: DashboardTokens.periwinkleGraySubtitle,
-                            height: 1.45,
-                          ),
-                        ),
+                    const SizedBox(width: 14),
+                    Text(
+                      'Notifications',
+                      style: GoogleFonts.bricolageGrotesque(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                        color: KasyabaTokens.periwinkleGray,
                       ),
                     ),
                   ],
                 ),
               ),
+              const SizedBox(height: 20),
+              FadeSlideEntrance.staggered(
+                index: 1,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 19,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: KasyabaTokens.bigStone,
+                    borderRadius: BorderRadius.circular(
+                      KasyabaTokens.radiusCard,
+                    ),
+                    border: Border.all(
+                      color: KasyabaTokens.poloBlue22,
+                      width: 1,
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      _ToggleRow(
+                        title: 'Bill reminders',
+                        subtitle: 'Before each bill is due',
+                        value: preferences.billReminders,
+                        onChanged: notifier.setBillReminders,
+                      ),
+                      if (preferences.billReminders)
+                        SpringTouch(
+                          onTap: () => _cycleDaysBefore(
+                            ref,
+                            preferences.remindDaysBefore,
+                          ),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Row(
+                              children: [
+                                Text(
+                                  'Remind me ',
+                                  style: GoogleFonts.dmSans(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w400,
+                                    color: KasyabaTokens.periwinkleGraySubtitle,
+                                  ),
+                                ),
+                                Text(
+                                  _daysLabel(preferences.remindDaysBefore),
+                                  style: GoogleFonts.dmSans(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                    color: KasyabaTokens.periwinkleGray,
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      Container(height: 1, color: KasyabaTokens.poloBlue16),
+                      _ToggleRow(
+                        title: 'Budget alerts',
+                        subtitle: 'At 80% and when you go over',
+                        value: preferences.budgetAlerts,
+                        onChanged: notifier.setBudgetAlerts,
+                      ),
+                      Container(height: 1, color: KasyabaTokens.poloBlue16),
+                      _ToggleRow(
+                        title: 'Payday reminder',
+                        subtitle: paydaySchedule == null
+                            ? 'On your payday schedule'
+                            : 'On the $paydaySchedule',
+                        value: preferences.paydayReminder,
+                        onChanged: notifier.setPaydayReminder,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              FadeSlideEntrance.staggered(
+                index: 2,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 19,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: KasyabaTokens.bigStone,
+                    borderRadius: BorderRadius.circular(
+                      KasyabaTokens.radiusCard,
+                    ),
+                    border: Border.all(
+                      color: KasyabaTokens.poloBlue22,
+                      width: 1,
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      _ToggleRow(
+                        title: 'Goal milestones',
+                        subtitle: 'When a goal reaches 25%, 50%, 75%',
+                        value: preferences.goalMilestones,
+                        onChanged: notifier.setGoalMilestones,
+                      ),
+                      Container(height: 1, color: KasyabaTokens.poloBlue16),
+                      _ToggleRow(
+                        title: 'Weekly summary',
+                        subtitle: 'Every Sunday evening',
+                        value: preferences.weeklySummary,
+                        onChanged: notifier.setWeeklySummary,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              FadeSlideEntrance.staggered(
+                index: 3,
+                child: SpringTouch(
+                  onTap: () => _pickReminderTime(context, ref, preferences),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 21,
+                      vertical: 18.5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: KasyabaTokens.bigStone,
+                      borderRadius: BorderRadius.circular(
+                        KasyabaTokens.radiusCard,
+                      ),
+                      border: Border.all(
+                        color: KasyabaTokens.poloBlue22,
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 96,
+                          child: Text(
+                            'Time',
+                            style: GoogleFonts.dmSans(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w400,
+                              color: KasyabaTokens.periwinkleGraySubtitle,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            _formatTimeOfDay(preferences.reminderTime),
+                            style: GoogleFonts.dmSans(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: KasyabaTokens.periwinkleGray,
+                            ),
+                          ),
+                        ),
+                        const Icon(
+                          Icons.access_time_rounded,
+                          color: KasyabaTokens.periwinkleGraySubtitle,
+                          size: 20,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              FadeSlideEntrance.staggered(
+                index: 4,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Text(
+                    'Reminders are scheduled on your device, so they work offline.',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                      color: KasyabaTokens.periwinkleGraySubtitle,
+                      height: 1.45,
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _ToggleRow extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  const _ToggleRow({
+    required this.title,
+    required this.subtitle,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: GoogleFonts.dmSans(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: KasyabaTokens.periwinkleGray,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: GoogleFonts.dmSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w400,
+                    color: KasyabaTokens.periwinkleGraySubtitle,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          FigmaToggleSwitch(value: value, onChanged: onChanged),
+        ],
       ),
     );
   }

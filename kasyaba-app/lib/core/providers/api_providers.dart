@@ -820,10 +820,30 @@ final paginatedTransactionsProvider = FutureProvider<PaginatedTransactions>((
     final totalCount =
         (response.data['meta']?['total'] as num?)?.toInt() ?? items.length;
 
-    final combinedItems =
-        filter.page == 1 && filter.fromDate == null && filter.toDate == null
-            ? [...pendingEntries, ...items]
-            : items;
+    final filteredPendingEntries = filter.page == 1
+        ? pendingEntries.where((entry) {
+            final entryDay = DateTime(
+              entry.date.year,
+              entry.date.month,
+              entry.date.day,
+            );
+            if (filter.fromDate != null) {
+              final from = filter.fromDate!;
+              final fromDay = DateTime(from.year, from.month, from.day);
+              if (entryDay.isBefore(fromDay)) return false;
+            }
+            if (filter.toDate != null) {
+              final to = filter.toDate!;
+              final toDay = DateTime(to.year, to.month, to.day);
+              if (entryDay.isAfter(toDay)) return false;
+            }
+            return true;
+          }).toList()
+        : const <TransactionEntry>[];
+
+    final combinedItems = filter.page == 1
+        ? [...filteredPendingEntries, ...items]
+        : items;
 
     return PaginatedTransactions(
       items: combinedItems,
@@ -914,11 +934,14 @@ final goalsProvider = FutureProvider<List<SavingsGoal>>((ref) async {
 });
 
 final goalDetailProvider =
-    FutureProvider.family<Map<String, dynamic>, String>((ref, goalId) async {
-  final dio = ref.watch(dioProvider);
-  final res = await dio.get('/goals/$goalId');
-  return res.data['data'] as Map<String, dynamic>;
-});
+    FutureProvider.autoDispose.family<Map<String, dynamic>, String>((
+      ref,
+      goalId,
+    ) async {
+      final dio = ref.watch(dioProvider);
+      final res = await dio.get('/goals/$goalId');
+      return res.data['data'] as Map<String, dynamic>;
+    });
 
 // -----------------------------------------------------------------------------
 // Bills Model & Provider
@@ -931,9 +954,13 @@ class BillItem with _$BillItem {
     required double amount,
     required DateTime dueDate,
     @Default('upcoming') String status,
+    String? categoryId,
+    String? recurrence,
+    @Default(1) int reminderLeadDays,
   }) = _BillItem;
 
   factory BillItem.fromJson(Map<String, dynamic> json) {
+    final template = json['template'] as Map<String, dynamic>?;
     return _BillItem(
       id: json['id'] as String,
       name: json['name'] as String,
@@ -942,6 +969,14 @@ class BillItem with _$BillItem {
           DateTime.tryParse(json['dueDate']?.toString() ?? '') ??
           DateTime.now(),
       status: json['status']?.toString() ?? 'upcoming',
+      categoryId:
+          json['categoryId']?.toString() ?? template?['categoryId']?.toString(),
+      recurrence:
+          json['recurrence']?.toString() ?? template?['recurrence']?.toString(),
+      reminderLeadDays:
+          (json['reminderLeadDays'] as num?)?.toInt() ??
+          (template?['reminderLeadDays'] as num?)?.toInt() ??
+          1,
     );
   }
 }
@@ -1186,6 +1221,7 @@ class TransactionMutator {
     _ref.invalidate(accountBalancesProvider);
     _ref.invalidate(dashboardProvider);
     _ref.invalidate(planningProvider);
+    _ref.invalidate(alertsProvider);
   }
 
   Future<void> archiveAccount(String accountId) async {
@@ -1194,13 +1230,39 @@ class TransactionMutator {
     _ref.invalidate(accountBalancesProvider);
     _ref.invalidate(dashboardProvider);
     _ref.invalidate(planningProvider);
+    _ref.invalidate(alertsProvider);
+  }
+
+  Future<void> createBudget({
+    required double amount,
+    required DateTime startsOn,
+    String? categoryId,
+    DateTime? endsOn,
+    bool isActive = true,
+  }) async {
+    await _dio.post('/budgets', data: {
+      'amount': amount.toStringAsFixed(2),
+      'startsOn': _dateOnlyPayload(startsOn),
+      if (categoryId != null && categoryId.isNotEmpty) 'categoryId': categoryId,
+      if (endsOn != null) 'endsOn': _dateOnlyPayload(endsOn),
+      'isActive': isActive,
+    });
+    _ref.invalidate(budgetStatusProvider);
+    _ref.invalidate(dashboardProvider);
+    _ref.invalidate(alertsProvider);
+  }
+
+  Future<void> deleteBudget(String budgetId) async {
+    await _dio.delete('/budgets/$budgetId');
+    _ref.invalidate(budgetStatusProvider);
+    _ref.invalidate(dashboardProvider);
+    _ref.invalidate(alertsProvider);
   }
 
   void _afterTransactionMutation() {
     _ref.invalidate(dashboardProvider);
     _invalidateTransactionProviders();
     _ref.invalidate(alertsProvider);
-    _ref.invalidate(recoveryAnalysisProvider);
     _ref.invalidate(accountsProvider);
     _ref.invalidate(accountBalancesProvider);
     _ref.invalidate(planningProvider);
@@ -1258,7 +1320,7 @@ class TransactionMutator {
     _ref.invalidate(transactionsProvider);
   }
 
-  Future<void> addGoal({
+  Future<SavingsGoal?> addGoal({
     required String name,
     required double targetAmount,
     DateTime? targetDate,
@@ -1269,11 +1331,17 @@ class TransactionMutator {
       if (targetDate != null) 'targetDate': _dateOnlyPayload(targetDate),
     };
 
-    await _dio.post('/goals', data: data);
+    final response = await _dio.post('/goals', data: data);
+    final created = response.data['data'];
+    final SavingsGoal? createdGoal = created is Map<String, dynamic>
+        ? SavingsGoal.fromJson(created)
+        : null;
 
     _ref.invalidate(goalsProvider);
     _ref.invalidate(dashboardProvider);
     _ref.invalidate(planningProvider);
+    _ref.invalidate(alertsProvider);
+    return createdGoal;
   }
 
   Future<void> updateGoal({
@@ -1294,6 +1362,7 @@ class TransactionMutator {
     _ref.invalidate(dashboardProvider);
     _ref.invalidate(planningProvider);
     _ref.invalidate(goalDetailProvider(goalId));
+    _ref.invalidate(alertsProvider);
   }
 
   Future<void> deleteGoal(String goalId) async {
@@ -1302,6 +1371,8 @@ class TransactionMutator {
     _ref.invalidate(goalsProvider);
     _ref.invalidate(dashboardProvider);
     _ref.invalidate(planningProvider);
+    _ref.invalidate(goalDetailProvider(goalId));
+    _ref.invalidate(alertsProvider);
   }
 
   Future<void> addGoalContribution({
@@ -1329,6 +1400,8 @@ class TransactionMutator {
     _ref.invalidate(paginatedTransactionsProvider);
     _ref.invalidate(transactionsProvider);
     _ref.invalidate(planningProvider);
+    _ref.invalidate(goalDetailProvider(goalId));
+    _ref.invalidate(alertsProvider);
   }
 
   Future<void> addBill({
@@ -1336,12 +1409,16 @@ class TransactionMutator {
     required double amount,
     required DateTime startsOn,
     String recurrence = 'monthly',
+    String? categoryId,
+    int reminderLeadDays = 1,
   }) async {
     final data = {
       'name': name,
       'defaultAmount': amount.toStringAsFixed(2),
       'startsOn': _dateOnlyPayload(startsOn),
       'recurrence': recurrence,
+      if (categoryId != null && categoryId.isNotEmpty) 'categoryId': categoryId,
+      'reminderLeadDays': reminderLeadDays,
     };
 
     await _dio.post('/bill-templates', data: data);
@@ -1362,6 +1439,9 @@ class TransactionMutator {
     _ref.invalidate(accountBalancesProvider);
     _invalidateTransactionProviders();
     _ref.invalidate(planningProvider);
+    _ref.invalidate(budgetStatusProvider);
+    _ref.invalidate(goalsProvider);
+    _ref.invalidate(alertsProvider);
   }
 
   Future<void> markBillUnpaid(String billId) async {
@@ -1372,6 +1452,9 @@ class TransactionMutator {
     _ref.invalidate(accountBalancesProvider);
     _invalidateTransactionProviders();
     _ref.invalidate(planningProvider);
+    _ref.invalidate(budgetStatusProvider);
+    _ref.invalidate(goalsProvider);
+    _ref.invalidate(alertsProvider);
   }
 
   Future<void> updateProfile({
@@ -1391,6 +1474,8 @@ class TransactionMutator {
     await _dio.patch('/auth/me', data: data);
     _ref.invalidate(userProfileProvider);
     _ref.invalidate(dashboardProvider);
+    _ref.invalidate(planningProvider);
+    _ref.invalidate(alertsProvider);
   }
 
   Future<PurchaseCheckResult> evaluatePurchaseCheck({
@@ -1588,111 +1673,6 @@ final alertsProvider = FutureProvider<List<AlertItem>>((ref) async {
     return data
         .map((e) => AlertItem.fromJson(e as Map<String, dynamic>))
         .toList();
-  } catch (_) {
-    rethrow;
-  }
-});
-
-// -----------------------------------------------------------------------------
-// Financial Recovery Analysis Models & Provider
-// -----------------------------------------------------------------------------
-class RootCauseItem {
-  final String title;
-  final String description;
-  final String severity;
-
-  RootCauseItem({
-    required this.title,
-    required this.description,
-    required this.severity,
-  });
-
-  factory RootCauseItem.fromJson(Map<String, dynamic> json) => RootCauseItem(
-    title: json['title']?.toString() ?? '',
-    description: json['description']?.toString() ?? '',
-    severity: json['severity']?.toString() ?? 'info',
-  );
-}
-
-class ActionStepItem {
-  final int stepNumber;
-  final String title;
-  final String description;
-  final String icon;
-
-  ActionStepItem({
-    required this.stepNumber,
-    required this.title,
-    required this.description,
-    required this.icon,
-  });
-
-  factory ActionStepItem.fromJson(Map<String, dynamic> json) => ActionStepItem(
-    stepNumber: (json['stepNumber'] as num?)?.toInt() ?? 1,
-    title: json['title']?.toString() ?? '',
-    description: json['description']?.toString() ?? '',
-    icon: json['icon']?.toString() ?? 'check',
-  );
-}
-
-class RecoveryAnalysis {
-  final int healthScore;
-  final String healthGrade;
-  final String summaryMessage;
-  final List<RootCauseItem> rootCauses;
-  final double recommendedDailySpendLimit;
-  final int daysRemainingInMonth;
-  final double safeLiquidCash;
-  final String? estimatedRecoveryDate;
-  final List<ActionStepItem> actionSteps;
-
-  RecoveryAnalysis({
-    required this.healthScore,
-    required this.healthGrade,
-    required this.summaryMessage,
-    required this.rootCauses,
-    required this.recommendedDailySpendLimit,
-    required this.daysRemainingInMonth,
-    required this.safeLiquidCash,
-    this.estimatedRecoveryDate,
-    required this.actionSteps,
-  });
-
-  factory RecoveryAnalysis.fromJson(Map<String, dynamic> json) {
-    double parseNum(dynamic val) {
-      if (val == null) return 0.0;
-      if (val is num) return val.toDouble();
-      return double.tryParse(val.toString()) ?? 0.0;
-    }
-
-    return RecoveryAnalysis(
-      healthScore: (json['healthScore'] as num?)?.toInt() ?? 0,
-      healthGrade: json['healthGrade']?.toString() ?? 'Needs Attention',
-      summaryMessage: json['summaryMessage']?.toString() ?? '',
-      rootCauses:
-          (json['rootCauses'] as List<dynamic>?)
-              ?.map((e) => RootCauseItem.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          [],
-      recommendedDailySpendLimit: parseNum(json['recommendedDailySpendLimit']),
-      daysRemainingInMonth:
-          (json['daysRemainingInMonth'] as num?)?.toInt() ?? 1,
-      safeLiquidCash: parseNum(json['safeLiquidCash']),
-      estimatedRecoveryDate: json['estimatedRecoveryDate']?.toString(),
-      actionSteps:
-          (json['actionSteps'] as List<dynamic>?)
-              ?.map((e) => ActionStepItem.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          [],
-    );
-  }
-}
-
-final recoveryAnalysisProvider = FutureProvider<RecoveryAnalysis>((ref) async {
-  final dio = ref.watch(dioProvider);
-  try {
-    final res = await dio.get('/alerts/analysis');
-    return RecoveryAnalysis.fromJson(res.data['data'] as Map<String, dynamic>);
   } catch (_) {
     rethrow;
   }

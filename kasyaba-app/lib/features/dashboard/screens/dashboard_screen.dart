@@ -9,14 +9,17 @@ import '../../../core/auth/auth_provider.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../../../core/providers/preference_providers.dart';
 import '../../../core/utils/deterministic_math.dart';
-import '../../../shared/widgets/modern_bottom_sheet.dart';
+import '../../../shared/widgets/app_sheet.dart';
+import '../../../shared/widgets/app_state_widgets.dart';
 import '../widgets/dashboard_tokens.dart';
 import '../widgets/dashboard_header.dart';
 import '../widgets/hero_safe_spend_card.dart';
 import '../widgets/quick_stats_row.dart';
 import '../widgets/kasyaba_affordability_card.dart';
 import '../widgets/kasyaba_affordability_sheet.dart';
+import '../widgets/kasyaba_safe_spend_breakdown_sheet.dart';
 import '../widgets/month_end_forecast_card.dart';
 import '../widgets/spending_this_month_card.dart';
 import '../widgets/dashboard_more_card.dart';
@@ -32,7 +35,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   bool _isBalanceVisible = true;
   bool _isQuickStartDismissed = false;
 
-  void _showBufferHealthSheet(BuildContext context, DashboardData data, int runwayDays) {
+  void _showBufferHealthSheet(
+    BuildContext context,
+    DashboardData data,
+    int? runwayDays,
+    double liquidBalance,
+  ) {
     final now = DateTime.now();
     final dayOfMonth = now.day.clamp(1, 31);
     final expenses = data.expenses.toDouble();
@@ -88,139 +96,172 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       );
     }
 
-    ModernBottomSheet.show(
+    showKasyabaSheet(
       context: context,
-      title: 'Cash Buffer & Health',
-      subtitle: 'Deterministic calculation of your liquid runway and spending capacity.',
-      showDragHandle: true,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: DashboardTokens.bigStone,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: DashboardTokens.poloBlue22),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: healthColor(healthScore).withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: healthColor(healthScore).withValues(alpha: 0.4),
+      builder: (sheetContext) => AppSheet(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Cash Buffer & Health',
+                style: GoogleFonts.bricolageGrotesque(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: DashboardTokens.periwinkleGray,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Deterministic calculation of your liquid runway and spending capacity.',
+                style: GoogleFonts.dmSans(
+                  fontSize: 13,
+                  height: 1.35,
+                  color: DashboardTokens.periwinkleGraySubtitle,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: DashboardTokens.bigStone,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: DashboardTokens.poloBlue22),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: healthColor(healthScore).withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: healthColor(
+                            healthScore,
+                          ).withValues(alpha: 0.4),
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.shield_outlined,
+                        color: healthColor(healthScore),
+                        size: 26,
+                      ),
                     ),
-                  ),
-                  child: Icon(
-                    Icons.shield_outlined,
-                    color: healthColor(healthScore),
-                    size: 26,
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            runwayDays == null
+                                ? 'Unknown Days Buffer'
+                                : '${runwayDays >= 90 ? "90+" : runwayDays} Days Buffer',
+                            style: GoogleFonts.bricolageGrotesque(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: DashboardTokens.periwinkleGray,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            'Status: $healthScore',
+                            style: GoogleFonts.dmSans(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: healthColor(healthScore),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              buildHealthInfoRow(
+                label: 'Total Liquid Balance',
+                value: CurrencyFormatter.format(liquidBalance),
+                icon: Icons.account_balance_wallet_outlined,
+              ),
+              const SizedBox(height: 10),
+              buildHealthInfoRow(
+                label: 'Average Daily Spend',
+                value: dailyBurn > 0
+                    ? '${CurrencyFormatter.format(dailyBurn)} / day'
+                    : 'No spending history yet',
+                icon: Icons.local_fire_department_outlined,
+              ),
+              const SizedBox(height: 10),
+              buildHealthInfoRow(
+                label: 'Estimated Survival Buffer',
+                value: runwayDays == null
+                    ? 'Unknown without spending history'
+                    : '$runwayDays days without new income',
+                icon: Icons.timer_outlined,
+              ),
+              const SizedBox(height: 16),
+
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: DashboardTokens.ebony.withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: DashboardTokens.poloBlue22),
+                ),
+                child: Text(
+                  'Your cash buffer estimates how long your current liquid accounts can cover typical daily living costs. A buffer over 30 days is healthy, while over 90 days provides strong financial resilience.',
+                  style: GoogleFonts.dmSans(
+                    fontSize: 12,
+                    color: DashboardTokens.periwinkleGraySubtitle,
+                    height: 1.4,
                   ),
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${runwayDays >= 90 ? "90+" : runwayDays} Days Buffer',
-                        style: GoogleFonts.bricolageGrotesque(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: DashboardTokens.periwinkleGray,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        'Status: $healthScore',
-                        style: GoogleFonts.dmSans(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: healthColor(healthScore),
-                        ),
-                      ),
-                    ],
+              ),
+              const SizedBox(height: 18),
+
+              FilledButton.icon(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  context.go('/alerts');
+                },
+                icon: const Icon(Icons.notifications_outlined, size: 18),
+                label: const Text('View Financial Alerts'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: DashboardTokens.periwinkleGray,
+                  foregroundColor: DashboardTokens.ebony,
+                  textStyle: GoogleFonts.dmSans(fontWeight: FontWeight.bold),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
+                  minimumSize: const Size.fromHeight(48),
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          buildHealthInfoRow(
-            label: 'Total Liquid Balance',
-            value: CurrencyFormatter.format(data.totalBalance),
-            icon: Icons.account_balance_wallet_outlined,
-          ),
-          const SizedBox(height: 10),
-          buildHealthInfoRow(
-            label: 'Average Daily Spend',
-            value: dailyBurn > 0
-                ? '${CurrencyFormatter.format(dailyBurn)} / day'
-                : '₱0.00 / day',
-            icon: Icons.local_fire_department_outlined,
-          ),
-          const SizedBox(height: 10),
-          buildHealthInfoRow(
-            label: 'Estimated Survival Buffer',
-            value: '$runwayDays days without new income',
-            icon: Icons.timer_outlined,
-          ),
-          const SizedBox(height: 16),
-
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: DashboardTokens.ebony.withValues(alpha: 0.6),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: DashboardTokens.poloBlue22),
-            ),
-            child: Text(
-              'Your cash buffer estimates how long your current liquid accounts can cover typical daily living costs. A buffer over 30 days is healthy, while over 90 days provides strong financial resilience.',
-              style: GoogleFonts.dmSans(
-                fontSize: 12,
-                color: DashboardTokens.periwinkleGraySubtitle,
-                height: 1.4,
               ),
-            ),
+              const SizedBox(height: 8),
+            ],
           ),
-          const SizedBox(height: 18),
-
-          FilledButton.icon(
-            onPressed: () {
-              Navigator.of(context).pop();
-              context.go('/alerts');
-            },
-            icon: const Icon(Icons.notifications_outlined, size: 18),
-            label: const Text('View Financial Alerts'),
-            style: FilledButton.styleFrom(
-              backgroundColor: DashboardTokens.periwinkleGray,
-              foregroundColor: DashboardTokens.ebony,
-              textStyle: GoogleFonts.dmSans(fontWeight: FontWeight.bold),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              minimumSize: const Size.fromHeight(48),
-            ),
-          ),
-          const SizedBox(height: 8),
-        ],
+        ),
       ),
     );
   }
 
-  static int _calculateRunway(double balance, double expenses) {
-    if (balance <= 0) return 0;
+  /// Days of runway from the safe-to-spend pool (balance minus unpaid bills
+  /// and scheduled goal contributions) divided by the current daily burn.
+  /// Returns null when there is no spending history to derive a burn rate.
+  static int? _calculateRunway(
+    DailySafeSpendCalculation calc,
+    double expenses,
+  ) {
     final now = DateTime.now();
     final dayOfMonth = now.day.clamp(1, 31);
     final dailyBurn = expenses > 0 ? (expenses / dayOfMonth) : 0.0;
-    if (dailyBurn <= 0) return 90;
-    final days = (balance / dailyBurn).floor();
+    if (dailyBurn <= 0) return null;
+    final available = calc.numerator;
+    if (available <= 0) return 0;
+    final days = (available / dailyBurn).floor();
     return days.clamp(0, 999);
   }
 
@@ -234,23 +275,32 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final budgetStatusAsync = ref.watch(budgetStatusProvider);
     final userProfileAsync = ref.watch(userProfileProvider);
     final pendingSyncCount = ref.watch(pendingSyncCountProvider);
+    final accountBalancesAsync = ref.watch(accountBalancesProvider);
+    final excludedAccountIds = ref.watch(excludedAccountsProvider);
 
     final displayName = authState.displayName ?? 'User';
     final transactions = transactionsAsync.valueOrNull ?? const [];
     final dashboardData = dashboardAsync.valueOrNull;
-    final isBrandNewUser = transactions.isEmpty &&
-        (dashboardData == null || (dashboardData.income == 0 && dashboardData.expenses == 0));
+    final isBrandNewUser =
+        transactions.isEmpty &&
+        (dashboardData == null ||
+            (dashboardData.income == 0 && dashboardData.expenses == 0));
 
     final totalBalance = (dashboardData?.totalBalance ?? 0.0).toDouble();
+    final adjustedBalance = adjustedLiquidBalance(
+      dashboardTotalBalance: totalBalance,
+      accountBalances: accountBalancesAsync.valueOrNull,
+      excludedAccountIds: excludedAccountIds,
+    );
     final safeSpendCalc = calculateDailySafeSpend(
-      totalLiquidBalance: totalBalance,
+      totalLiquidBalance: adjustedBalance,
       bills: billsAsync.valueOrNull ?? const [],
       goals: goalsAsync.valueOrNull ?? const [],
       profile: userProfileAsync.valueOrNull,
     );
 
     final runwayDays = _calculateRunway(
-      totalBalance,
+      safeSpendCalc,
       (dashboardData?.expenses ?? 0.0).toDouble(),
     );
 
@@ -298,7 +348,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     const SizedBox(height: 14),
 
                     // ── Offline / Pending Sync Status Banner ──
-                    if ((dashboardData?.isFromCache ?? false) || pendingSyncCount > 0) ...[
+                    if ((dashboardData?.isFromCache ?? false) ||
+                        pendingSyncCount > 0) ...[
                       _OfflineSyncBanner(
                         isFromCache: dashboardData?.isFromCache ?? false,
                         pendingCount: pendingSyncCount,
@@ -310,13 +361,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     FadeSlideEntrance.staggered(
                       index: 0,
                       child: dashboardAsync.when(
-                        loading: () => const _DashboardCardSkeleton(height: 220),
+                        loading: () =>
+                            const _DashboardCardSkeleton(height: 220),
                         error: (e, _) => _DashboardErrorCard(
                           message: friendlyErrorMessage(e),
                           onRetry: () => ref.invalidate(dashboardProvider),
                         ),
                         data: (data) => HeroSafeSpendCard(
-                          totalBalance: (data.totalBalance as num).toDouble(),
+                          totalBalance: adjustedBalance,
                           safeSpendCalc: safeSpendCalc,
                           isVisible: _isBalanceVisible,
                           onToggleVisibility: () => setState(
@@ -326,7 +378,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               context.go('/transactions/add', extra: 'expense'),
                           onIncome: () =>
                               context.go('/transactions/add', extra: 'income'),
-                          onTapBreakdown: () => _showSafeSpendBreakdownSheet(
+                          onTapBreakdown: () => showSafeSpendBreakdownSheet(
                             context,
                             safeSpendCalc,
                           ),
@@ -336,30 +388,39 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     const SizedBox(height: 14),
 
                     // ── Quick Start Checklist (New Users) OR Deficit Alert (Existing Users) ──
-                    if (dashboardAsync.hasValue && isBrandNewUser && !_isQuickStartDismissed) ...[
+                    if (dashboardAsync.hasValue &&
+                        isBrandNewUser &&
+                        !_isQuickStartDismissed) ...[
                       FadeSlideEntrance.staggered(
                         index: 1,
                         child: _QuickStartChecklistCard(
                           totalBalance: totalBalance,
                           income: (dashboardData?.income ?? 0.0).toDouble(),
-                          salaryAmount: userProfileAsync.valueOrNull?.salaryAmount,
-                          paydaySchedule: userProfileAsync.valueOrNull?.paydaySchedule,
+                          salaryAmount:
+                              userProfileAsync.valueOrNull?.salaryAmount,
+                          paydaySchedule:
+                              userProfileAsync.valueOrNull?.paydaySchedule,
                           activeGoalsCount: goalsAsync.valueOrNull?.length ?? 0,
                           activeBillsCount: billsAsync.valueOrNull?.length ?? 0,
-                          onDismiss: () => setState(() => _isQuickStartDismissed = true),
-                          onAddBalance: () => context.go('/transactions/add', extra: 'income'),
+                          onDismiss: () =>
+                              setState(() => _isQuickStartDismissed = true),
+                          onAddBalance: () =>
+                              context.go('/transactions/add', extra: 'income'),
                           onConfigurePayday: () => context.go('/settings'),
                           onAddGoalOrBill: () => context.go('/goals'),
                         ),
                       ),
                       const SizedBox(height: 14),
-                    ] else if (!isBrandNewUser && safeSpendCalc.dailySafeSpend == 0.0 && safeSpendCalc.numerator < 0) ...[
+                    ] else if (!isBrandNewUser &&
+                        safeSpendCalc.dailySafeSpend == 0.0 &&
+                        safeSpendCalc.numerator < 0) ...[
                       FadeSlideEntrance.staggered(
                         index: 1,
                         child: _DeficitAlertCard(
                           deficitAmount: safeSpendCalc.numerator.abs(),
                           nextPayday: safeSpendCalc.nextPayday,
-                          onAddIncome: () => context.go('/transactions/add', extra: 'income'),
+                          onAddIncome: () =>
+                              context.go('/transactions/add', extra: 'income'),
                           onAdjustGoals: () => context.go('/goals'),
                         ),
                       ),
@@ -371,15 +432,24 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       index: 2,
                       child: dashboardAsync.when(
                         loading: () => const _DashboardCardSkeleton(height: 72),
-                        error: (_, _) => const SizedBox.shrink(),
+                        error: (e, _) => KasyabaErrorCard(
+                          message: friendlyErrorMessage(e),
+                          onRetry: () => ref.invalidate(dashboardProvider),
+                        ),
                         data: (data) => QuickStatsRow(
                           savings: (data.savings as num).toDouble(),
-                          budgetPercent: (budgetStatusAsync.valueOrNull?.overallPercent ??
-                                  (data.budgetUsedPercent as num).toDouble()),
+                          budgetPercent:
+                              (budgetStatusAsync.valueOrNull?.overallPercent ??
+                              (data.budgetUsedPercent as num).toDouble()),
                           runwayDays: runwayDays,
                           onSavedTap: () => context.go('/goals'),
                           onBudgetTap: () => context.go('/budgets'),
-                          onBufferTap: () => _showBufferHealthSheet(context, data, runwayDays),
+                          onBufferTap: () => _showBufferHealthSheet(
+                            context,
+                            data,
+                            runwayDays,
+                            adjustedBalance,
+                          ),
                         ),
                       ),
                     ),
@@ -398,8 +468,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     FadeSlideEntrance.staggered(
                       index: 4,
                       child: dashboardAsync.when(
-                        loading: () => const _DashboardCardSkeleton(height: 285),
-                        error: (_, _) => const SizedBox.shrink(),
+                        loading: () =>
+                            const _DashboardCardSkeleton(height: 285),
+                        error: (e, _) => KasyabaErrorCard(
+                          message: friendlyErrorMessage(e),
+                          onRetry: () => ref.invalidate(dashboardProvider),
+                        ),
                         data: (data) => MonthEndForecastCard(
                           data: data,
                           onTap: () => context.go('/planning'),
@@ -412,8 +486,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     FadeSlideEntrance.staggered(
                       index: 5,
                       child: dashboardAsync.when(
-                        loading: () => const _DashboardCardSkeleton(height: 180),
-                        error: (_, _) => const SizedBox.shrink(),
+                        loading: () =>
+                            const _DashboardCardSkeleton(height: 180),
+                        error: (e, _) => KasyabaErrorCard(
+                          message: friendlyErrorMessage(e),
+                          onRetry: () => ref.invalidate(dashboardProvider),
+                        ),
                         data: (data) => SpendingThisMonthCard(
                           data: data,
                           onTap: () => context.go('/transactions'),
@@ -426,12 +504,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     FadeSlideEntrance.staggered(
                       index: 6,
                       child: DashboardMoreCard(
-                        goals: goalsAsync.valueOrNull ?? const [],
-                        bills: billsAsync.valueOrNull ?? const [],
-                        transactions: transactions,
+                        goals: goalsAsync,
+                        bills: billsAsync,
+                        transactions: transactionsAsync,
                         onGoalsTap: () => context.go('/goals'),
                         onBillsTap: () => context.go('/bills'),
                         onTransactionsTap: () => context.go('/transactions'),
+                        onRetryGoals: () => ref.invalidate(goalsProvider),
+                        onRetryBills: () => ref.invalidate(billsProvider),
+                        onRetryTransactions: () =>
+                            ref.invalidate(transactionsProvider),
                       ),
                     ),
                   ],
@@ -469,7 +551,9 @@ class _OfflineSyncBanner extends StatelessWidget {
         color: DashboardTokens.bigStone,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: hasPending ? DashboardTokens.apricot : DashboardTokens.poloBlue22,
+          color: hasPending
+              ? DashboardTokens.apricot
+              : DashboardTokens.poloBlue22,
           width: 1,
         ),
       ),
@@ -478,7 +562,9 @@ class _OfflineSyncBanner extends StatelessWidget {
           Icon(
             hasPending ? Icons.sync_rounded : Icons.cloud_off_rounded,
             size: 16,
-            color: hasPending ? DashboardTokens.apricot : DashboardTokens.periwinkleGraySubtitle,
+            color: hasPending
+                ? DashboardTokens.apricot
+                : DashboardTokens.periwinkleGraySubtitle,
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -487,7 +573,9 @@ class _OfflineSyncBanner extends StatelessWidget {
               style: GoogleFonts.dmSans(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: hasPending ? DashboardTokens.apricot : DashboardTokens.periwinkleGraySubtitle,
+                color: hasPending
+                    ? DashboardTokens.apricot
+                    : DashboardTokens.periwinkleGraySubtitle,
               ),
             ),
           ),
@@ -613,7 +701,9 @@ class _QuickStartChecklistCard extends StatelessWidget {
             child: LinearProgressIndicator(
               value: completedCount / 3.0,
               backgroundColor: DashboardTokens.ebony.withValues(alpha: 0.5),
-              valueColor: const AlwaysStoppedAnimation<Color>(DashboardTokens.bermuda),
+              valueColor: const AlwaysStoppedAnimation<Color>(
+                DashboardTokens.bermuda,
+              ),
               minHeight: 4,
             ),
           ),
@@ -669,11 +759,13 @@ class _QuickStartChecklistCard extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
           color: isCompleted
-              ? Colors.white.withValues(alpha: 0.02)
+              ? DashboardTokens.poloBlue.withValues(alpha: 0.04)
               : DashboardTokens.ebony.withValues(alpha: 0.4),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isCompleted ? Colors.transparent : DashboardTokens.poloBlue22,
+            color: isCompleted
+                ? Colors.transparent
+                : DashboardTokens.poloBlue22,
           ),
         ),
         child: Row(
@@ -698,7 +790,9 @@ class _QuickStartChecklistCard extends StatelessWidget {
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                       color: DashboardTokens.periwinkleGray,
-                      decoration: isCompleted ? TextDecoration.lineThrough : null,
+                      decoration: isCompleted
+                          ? TextDecoration.lineThrough
+                          : null,
                     ),
                   ),
                   const SizedBox(height: 1),
@@ -715,7 +809,10 @@ class _QuickStartChecklistCard extends StatelessWidget {
             if (actionLabel != null) ...[
               const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
                   color: DashboardTokens.bermuda.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
@@ -950,10 +1047,7 @@ class _DashboardErrorCard extends StatelessWidget {
   final String message;
   final VoidCallback onRetry;
 
-  const _DashboardErrorCard({
-    required this.message,
-    required this.onRetry,
-  });
+  const _DashboardErrorCard({required this.message, required this.onRetry});
 
   @override
   Widget build(BuildContext context) {
@@ -962,7 +1056,9 @@ class _DashboardErrorCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: DashboardTokens.bigStone,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: DashboardTokens.apricot.withValues(alpha: 0.35)),
+        border: Border.all(
+          color: DashboardTokens.apricot.withValues(alpha: 0.35),
+        ),
         boxShadow: [
           BoxShadow(
             color: DashboardTokens.ebony.withValues(alpha: 0.35),
@@ -1029,7 +1125,11 @@ class _DashboardErrorCard extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.refresh_rounded, size: 16, color: DashboardTokens.apricot),
+                    const Icon(
+                      Icons.refresh_rounded,
+                      size: 16,
+                      color: DashboardTokens.apricot,
+                    ),
                     const SizedBox(width: 6),
                     Text(
                       'Retry',
@@ -1048,537 +1148,4 @@ class _DashboardErrorCard extends StatelessWidget {
       ),
     );
   }
-}
-
-// ─── Kasya Ba Today? Math Breakdown Sheet ──────────────────────────
-
-void _showSafeSpendBreakdownSheet(
-  BuildContext context,
-  DailySafeSpendCalculation calc,
-) {
-  final hasSafeSpend = calc.dailySafeSpend > 0;
-  final accentColor = hasSafeSpend ? DashboardTokens.bermuda : DashboardTokens.apricot;
-  final formattedPayday = DateFormat('MMMM d, yyyy').format(calc.nextPayday);
-  final shortPayday = DateFormat('MMM d').format(calc.nextPayday);
-
-  ModernBottomSheet.show(
-    context: context,
-    title: 'Kasya Ba Today? Math Breakdown',
-    subtitle: '100% deterministic calculation of your safe daily spending allowance.',
-    showDragHandle: true,
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Formula Box
-        Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: DashboardTokens.bigStone,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: DashboardTokens.poloBlue22),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Icon(
-                    Icons.functions_rounded,
-                    size: 16,
-                    color: DashboardTokens.bermuda,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'EXACT DETERMINISTIC FORMULA',
-                    style: GoogleFonts.dmSans(
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.8,
-                      color: DashboardTokens.bermuda,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                decoration: BoxDecoration(
-                  color: DashboardTokens.ebony.withValues(alpha: 0.6),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: DashboardTokens.poloBlue22),
-                ),
-                child: Text(
-                  'Daily Safe Spend = Math.max(0, (Total Liquid Balance - Unpaid Bills Due Before Next Payday - Scheduled Goal Contributions) / Days Until Next Payday)',
-                  style: GoogleFonts.dmSans(
-                    fontSize: 11,
-                    color: DashboardTokens.periwinkleGray,
-                    height: 1.45,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'In simple words: (Available Cash Pool) ÷ (Days Left Until Payday)',
-                style: GoogleFonts.dmSans(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                  color: DashboardTokens.periwinkleGraySubtitle,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 14),
-
-        // Numerator Details (Cash Pool)
-        Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: DashboardTokens.bigStone,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: DashboardTokens.poloBlue22),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Icon(
-                    Icons.account_balance_wallet_outlined,
-                    size: 15,
-                    color: DashboardTokens.periwinkleGray,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'NUMERATOR (SAFE CASH BUFFER)',
-                    style: GoogleFonts.dmSans(
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.8,
-                      color: DashboardTokens.periwinkleGray,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 2),
-              Text(
-                'Your Available Cash Pool (Cash minus commitments)',
-                style: GoogleFonts.dmSans(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                  color: DashboardTokens.periwinkleGraySubtitle,
-                ),
-              ),
-              const SizedBox(height: 12),
-              _buildDeterministicRow(
-                label: 'Total Liquid Balance',
-                value: CurrencyFormatter.format(calc.totalLiquidBalance),
-                prefix: '+',
-                valueColor: DashboardTokens.bermuda,
-              ),
-              const SizedBox(height: 8),
-              _buildDeterministicRow(
-                label: 'Unpaid Bills Due (before $shortPayday)',
-                sublabel:
-                    '${calc.unpaidBillsCount} unpaid bill${calc.unpaidBillsCount == 1 ? '' : 's'} due on or before payday',
-                value: CurrencyFormatter.format(calc.unpaidBillsDue),
-                prefix: '-',
-                valueColor: calc.unpaidBillsDue > 0
-                    ? DashboardTokens.apricot
-                    : DashboardTokens.periwinkleGraySubtitle,
-              ),
-              const SizedBox(height: 8),
-              _buildDeterministicRow(
-                label: 'Scheduled Goal Contributions',
-                sublabel:
-                    '${calc.activeGoalsCount} active goal${calc.activeGoalsCount == 1 ? '' : 's'} prorated to next payday',
-                value: CurrencyFormatter.format(calc.scheduledGoalContributions),
-                prefix: '-',
-                valueColor: calc.scheduledGoalContributions > 0
-                    ? DashboardTokens.poloBlue
-                    : DashboardTokens.periwinkleGraySubtitle,
-              ),
-
-              if (calc.goalDetails.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: DashboardTokens.ebony.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: DashboardTokens.poloBlue22),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'GOAL PRORATION BREAKDOWN',
-                        style: GoogleFonts.dmSans(
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.6,
-                          color: DashboardTokens.poloBlue,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      for (final detail in calc.goalDetails) ...[
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Icon(
-                              Icons.track_changes_rounded,
-                              size: 14,
-                              color: DashboardTokens.bermuda,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    detail.title,
-                                    style: GoogleFonts.dmSans(
-                                      fontSize: 11.5,
-                                      fontWeight: FontWeight.bold,
-                                      color: DashboardTokens.periwinkleGray,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 1),
-                                  Text(
-                                    '${CurrencyFormatter.format(detail.dailyRate)}/day × ${detail.daysCounted} days until payday',
-                                    style: GoogleFonts.dmSans(
-                                      fontSize: 10.5,
-                                      color: DashboardTokens.periwinkleGraySubtitle,
-                                      fontFeatures: CurrencyFormatter.tabularFigures,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Text(
-                              '-${CurrencyFormatter.format(detail.totalContribution)}',
-                              style: GoogleFonts.dmSans(
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.bold,
-                                color: DashboardTokens.poloBlue,
-                                fontFeatures: CurrencyFormatter.tabularFigures,
-                              ),
-                            ),
-                          ],
-                        ),
-                        if (detail != calc.goalDetails.last)
-                          const Divider(
-                            color: DashboardTokens.poloBlue22,
-                            height: 12,
-                          ),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
-
-              const Divider(color: DashboardTokens.poloBlue22, height: 20),
-              _buildDeterministicRow(
-                label: 'Safe Available Cash',
-                value: CurrencyFormatter.format(calc.numerator),
-                prefix: '=',
-                isTotal: true,
-                valueColor: calc.numerator > 0
-                    ? DashboardTokens.periwinkleGray
-                    : DashboardTokens.apricot,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-
-        // Denominator Details (Payday Timeline)
-        Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: DashboardTokens.bigStone,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: DashboardTokens.poloBlue22),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Icon(
-                    Icons.calendar_today_outlined,
-                    size: 15,
-                    color: DashboardTokens.poloBlue,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'DENOMINATOR (PAYDAY TIMELINE)',
-                    style: GoogleFonts.dmSans(
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.8,
-                      color: DashboardTokens.poloBlue,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 2),
-              Text(
-                'Days Until Next Payday (Cash stretch period)',
-                style: GoogleFonts.dmSans(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                  color: DashboardTokens.periwinkleGraySubtitle,
-                ),
-              ),
-              const SizedBox(height: 12),
-              _buildDeterministicRow(
-                label: 'Next Configured Payday',
-                sublabel: 'Schedule: ${calc.paydaySchedule}',
-                value: formattedPayday,
-                valueColor: DashboardTokens.periwinkleGray,
-              ),
-              const SizedBox(height: 8),
-              _buildDeterministicRow(
-                label: 'Days Until Next Payday',
-                value: '÷ ${calc.daysUntilPayday} days',
-                valueColor: DashboardTokens.poloBlue,
-                isTotal: true,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 14),
-
-        // Result Card
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: accentColor.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: accentColor.withValues(alpha: 0.4)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: accentColor.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  hasSafeSpend
-                      ? Icons.verified_rounded
-                      : Icons.warning_amber_rounded,
-                  color: accentColor,
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'DAILY SAFE SPEND ALLOWANCE',
-                      style: GoogleFonts.dmSans(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.8,
-                        color: DashboardTokens.periwinkleGraySubtitle,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
-                      children: [
-                        Text(
-                          CurrencyFormatter.format(calc.dailySafeSpend),
-                          style: GoogleFonts.bricolageGrotesque(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: accentColor,
-                            fontFeatures: CurrencyFormatter.tabularFigures,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '/ day',
-                          style: GoogleFonts.dmSans(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: DashboardTokens.periwinkleGraySubtitle,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        // Contextual Explanation for ₱0.00
-        if (!hasSafeSpend) ...[
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(13),
-            decoration: BoxDecoration(
-              color: DashboardTokens.bigStone,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: DashboardTokens.apricot.withValues(alpha: 0.35)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.shield_outlined,
-                      size: 16,
-                      color: DashboardTokens.apricot,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        calc.totalLiquidBalance <= 0
-                            ? 'Why is your daily safe spend ₱0.00?'
-                            : 'Savings & Bills Protection Active',
-                        style: GoogleFonts.dmSans(
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.bold,
-                          color: DashboardTokens.apricot,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  calc.totalLiquidBalance <= 0
-                      ? 'You have ₱0.00 recorded in your balance right now, but your ${calc.activeGoalsCount > 0 ? "active goal requires ${CurrencyFormatter.format(calc.scheduledGoalContributions)}" : "upcoming bills require funding"} before your next payday ($shortPayday). Kasyaba holds your allowance at ₱0.00 so you don\'t overspend money you don\'t have yet.'
-                      : 'Your upcoming bills (${CurrencyFormatter.format(calc.unpaidBillsDue)}) and goal contributions (${CurrencyFormatter.format(calc.scheduledGoalContributions)}) exceed your current cash. Kasyaba holds your daily spending at ₱0.00 to keep your essential commitments protected until payday.',
-                  style: GoogleFonts.dmSans(
-                    fontSize: 11,
-                    color: DashboardTokens.periwinkleGraySubtitle,
-                    height: 1.4,
-                  ),
-                ),
-                if (calc.totalLiquidBalance <= 0) ...[
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        context.go('/transactions/add', extra: 'income');
-                      },
-                      icon: const Icon(Icons.add_rounded, size: 14),
-                      label: const Text(
-                        '+ Log Starting Cash / Balance',
-                        style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: DashboardTokens.bermuda,
-                        side: const BorderSide(color: DashboardTokens.bermuda),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-
-        const SizedBox(height: 18),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(),
-          style: FilledButton.styleFrom(
-            backgroundColor: DashboardTokens.periwinkleGray,
-            foregroundColor: DashboardTokens.ebony,
-            minimumSize: const Size.fromHeight(48),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          child: Text(
-            'Close Breakdown',
-            style: GoogleFonts.dmSans(fontWeight: FontWeight.bold),
-          ),
-        ),
-        const SizedBox(height: 8),
-      ],
-    ),
-  );
-}
-
-Widget _buildDeterministicRow({
-  required String label,
-  String? sublabel,
-  required String value,
-  String? prefix,
-  bool isTotal = false,
-  Color? valueColor,
-}) {
-  final effectiveColor = valueColor ?? DashboardTokens.periwinkleGray;
-  return Row(
-    crossAxisAlignment: CrossAxisAlignment.center,
-    children: [
-      Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: GoogleFonts.dmSans(
-                fontSize: isTotal ? 13 : 12,
-                fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
-                color: isTotal
-                    ? DashboardTokens.periwinkleGray
-                    : DashboardTokens.periwinkleGraySubtitle,
-              ),
-            ),
-            if (sublabel != null) ...[
-              const SizedBox(height: 1),
-              Text(
-                sublabel,
-                style: GoogleFonts.dmSans(
-                  fontSize: 10.5,
-                  color: DashboardTokens.periwinkleGraySubtitle,
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-      if (prefix != null) ...[
-        Text(
-          '$prefix ',
-          style: GoogleFonts.dmSans(
-            fontSize: isTotal ? 14 : 12,
-            fontWeight: FontWeight.bold,
-            color: effectiveColor,
-          ),
-        ),
-      ],
-      Text(
-        value,
-        style: GoogleFonts.dmSans(
-          fontSize: isTotal ? 15 : 13,
-          fontWeight: isTotal ? FontWeight.bold : FontWeight.w600,
-          color: effectiveColor,
-          fontFeatures: CurrencyFormatter.tabularFigures,
-        ),
-      ),
-    ],
-  );
 }

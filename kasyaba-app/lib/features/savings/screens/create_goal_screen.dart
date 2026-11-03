@@ -4,9 +4,14 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_motion.dart';
-import '../../../shared/widgets/motion_components.dart';
+import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../../../core/utils/deterministic_math.dart';
+import '../../../shared/widgets/kasyaba_background.dart';
+import '../../../shared/widgets/kasyaba_date_picker.dart';
+import '../../../shared/widgets/motion_components.dart';
+import '../../../shared/widgets/pill_button.dart';
 import '../../dashboard/widgets/dashboard_tokens.dart';
 
 /// ─────────────────────────────────────────────────────────────
@@ -33,19 +38,15 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
   void initState() {
     super.initState();
     final g = widget.existingGoal;
-    _nameController = TextEditingController(text: g?.name ?? 'New phone');
+    _nameController = TextEditingController(text: g?.name ?? '');
     _amountController = TextEditingController(
-      text: g != null ? g.targetAmount.toStringAsFixed(0) : '30000',
+      text: g != null ? g.targetAmount.toStringAsFixed(0) : '',
     );
     _alreadySavedController = TextEditingController(
-      text: g != null ? g.currentAmount.toStringAsFixed(0) : '0',
+      text: g != null ? g.currentAmount.toStringAsFixed(0) : '',
     );
     if (g?.targetDate != null) {
       _targetDate = DateTime.tryParse(g!.targetDate!);
-    } else {
-      // Default to 5 months in the future matching Figma "Mar 2027" style
-      final now = DateTime.now();
-      _targetDate = DateTime(now.year, now.month + 5, now.day);
     }
   }
 
@@ -58,23 +59,29 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
   }
 
   double get _targetAmount {
-    return double.tryParse(_amountController.text.replaceAll(',', '').trim()) ?? 0.0;
+    return double.tryParse(_amountController.text.replaceAll(',', '').trim()) ??
+        0.0;
   }
 
   double get _alreadySaved {
-    return double.tryParse(_alreadySavedController.text.replaceAll(',', '').trim()) ?? 0.0;
+    return double.tryParse(
+          _alreadySavedController.text.replaceAll(',', '').trim(),
+        ) ??
+        0.0;
   }
 
   double get _monthlyRequired {
-    final remaining = (_targetAmount - _alreadySaved).clamp(0.0, double.infinity);
-    if (remaining <= 0) return 0.0;
-    if (_targetDate == null) return remaining;
+    if (_targetAmount <= 0) return 0.0;
 
-    final now = DateTime.now();
-    final daysUntilTarget = _targetDate!.difference(now).inDays;
-    if (daysUntilTarget <= 0) return remaining;
-
-    return (remaining / daysUntilTarget) * 30.0;
+    return goalMonthlyNeed(
+      SavingsGoal(
+        id: widget.existingGoal?.id ?? 'preview',
+        name: _nameController.text.trim(),
+        targetAmount: _targetAmount,
+        currentAmount: _alreadySaved,
+        targetDate: _targetDate?.toIso8601String(),
+      ),
+    );
   }
 
   Future<void> _pickDate() async {
@@ -85,17 +92,7 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
       firstDate: now,
       lastDate: DateTime(now.year + 10),
       builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: DashboardTokens.periwinkleGray,
-              onPrimary: DashboardTokens.ebony,
-              surface: DashboardTokens.bigStone,
-              onSurface: DashboardTokens.periwinkleGray,
-            ),
-          ),
-          child: child!,
-        );
+        return Theme(data: kasyabaDatePickerTheme(context), child: child!);
       },
     );
     if (picked != null) {
@@ -133,18 +130,13 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
           targetDate: _targetDate,
         );
       } else {
-        await repo.addGoal(
+        final created = await repo.addGoal(
           name: name,
           targetAmount: target,
           targetDate: _targetDate,
         );
 
-        if (initialSaved > 0) {
-          final goals = await ref.read(goalsProvider.future);
-          final created = goals.firstWhere(
-            (g) => g.name == name,
-            orElse: () => goals.first,
-          );
+        if (created != null && initialSaved > 0) {
           await repo.addGoalContribution(
             goalId: created.id,
             amount: initialSaved,
@@ -160,13 +152,14 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
       if (mounted) {
         setState(() {
           _isSubmitting = false;
-          _errorMessage = 'Failed to save goal: $e';
+          _errorMessage = friendlyErrorMessage(
+            e,
+            fallback: 'Could not save goal. Please try again.',
+          );
         });
       }
     }
   }
-
-  String get goalIdOrEmpty => widget.existingGoal?.id ?? '';
 
   @override
   Widget build(BuildContext context) {
@@ -192,376 +185,383 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
       ),
       child: Scaffold(
         backgroundColor: DashboardTokens.ebony,
-        body: Container(
-          width: double.infinity,
-          height: double.infinity,
-          decoration: const BoxDecoration(
-            color: DashboardTokens.ebony,
-            gradient: DashboardTokens.canvasGradient,
-          ),
-          child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(20, topPadding + 14, 20, 110),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // ── Top Header (Node 11:1825) ──────────────────────────
-                FadeSlideEntrance.staggered(
-                  index: 0,
-                  child: Row(
-                    children: [
-                      GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () {
-                          AppHaptics.selectionClick();
-                          Navigator.of(context).pop();
-                        },
-                        child: Container(
-                          width: 50,
-                          height: 50,
-                          decoration: BoxDecoration(
-                            color: DashboardTokens.bigStone,
-                            borderRadius: BorderRadius.circular(24),
-                            border: Border.all(color: DashboardTokens.poloBlue22),
+        body: KasyabaBackground(
+          child: SizedBox.expand(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(20, topPadding + 14, 20, 110),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // ── Top Header (Node 11:1825) ──────────────────────────
+                  FadeSlideEntrance.staggered(
+                    index: 0,
+                    child: Row(
+                      children: [
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () {
+                            AppHaptics.selectionClick();
+                            Navigator.of(context).pop();
+                          },
+                          child: Container(
+                            width: 50,
+                            height: 50,
+                            decoration: BoxDecoration(
+                              color: DashboardTokens.bigStone,
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(
+                                color: DashboardTokens.poloBlue22,
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.arrow_back_rounded,
+                              color: DashboardTokens.periwinkleGray,
+                              size: 22,
+                            ),
                           ),
-                          child: const Icon(
-                            Icons.arrow_back_rounded,
+                        ),
+                        const SizedBox(width: 14),
+                        Text(
+                          isEditing ? 'Edit goal' : 'New goal',
+                          style: GoogleFonts.bricolageGrotesque(
                             color: DashboardTokens.periwinkleGray,
-                            size: 22,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 14),
-                      Text(
-                        isEditing ? 'Edit goal' : 'New goal',
-                        style: GoogleFonts.bricolageGrotesque(
-                          color: DashboardTokens.periwinkleGray,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 20),
+                  const SizedBox(height: 20),
 
-                // ── Goal Form Fields ──────────────────────────────────
-                FadeSlideEntrance.staggered(
-                  index: 1,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // ── Goal Name Field (Node 11:1831) ──────────────────────
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 21, vertical: 18.5),
-                        decoration: BoxDecoration(
-                          color: DashboardTokens.bigStone,
-                          borderRadius: BorderRadius.circular(28),
-                          border: Border.all(color: DashboardTokens.poloBlue22),
-                        ),
-                        child: Row(
-                          children: [
-                            SizedBox(
-                              width: 96,
-                              child: Text(
-                                'Name',
-                                style: GoogleFonts.dmSans(
-                                  color: DashboardTokens.periwinkleGraySubtitle,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              child: TextField(
-                                controller: _nameController,
-                                style: GoogleFonts.dmSans(
-                                  color: DashboardTokens.periwinkleGray,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                decoration: const InputDecoration(
-                                  isDense: true,
-                                  hintText: 'e.g. New phone',
-                                  hintStyle: TextStyle(color: DashboardTokens.poloBlue30),
-                                  filled: false,
-                                  fillColor: Colors.transparent,
-                                  border: InputBorder.none,
-                                  enabledBorder: InputBorder.none,
-                                  focusedBorder: InputBorder.none,
-                                  errorBorder: InputBorder.none,
-                                  disabledBorder: InputBorder.none,
-                                  contentPadding: EdgeInsets.zero,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-
-                      // ── Target Amount Hero Box (Node 11:1836) ────────────────
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 21, vertical: 18),
-                        decoration: BoxDecoration(
-                          color: DashboardTokens.cello60,
-                          borderRadius: BorderRadius.circular(28),
-                          border: Border.all(color: DashboardTokens.poloBlue30),
-                        ),
-                        child: Column(
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.baseline,
-                              textBaseline: TextBaseline.alphabetic,
-                              children: [
-                                Text(
-                                  '₱',
-                                  style: GoogleFonts.bricolageGrotesque(
-                                    color: DashboardTokens.periwinkleGraySubtitle,
-                                    fontSize: 26,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                                IntrinsicWidth(
-                                  child: TextField(
-                                    controller: _amountController,
-                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                    textAlign: TextAlign.center,
-                                    onChanged: (_) => setState(() {}),
-                                    style: GoogleFonts.bricolageGrotesque(
-                                      color: DashboardTokens.periwinkleGray,
-                                      fontSize: 40,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                    decoration: const InputDecoration(
-                                      isDense: true,
-                                      filled: false,
-                                      fillColor: Colors.transparent,
-                                      border: InputBorder.none,
-                                      enabledBorder: InputBorder.none,
-                                      focusedBorder: InputBorder.none,
-                                      errorBorder: InputBorder.none,
-                                      disabledBorder: InputBorder.none,
-                                      contentPadding: EdgeInsets.zero,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Target amount',
-                              style: GoogleFonts.dmSans(
-                                color: DashboardTokens.periwinkleGraySubtitle,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-
-                      // ── Target Date Field (Node 11:1842) ────────────────────
-                      GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: _pickDate,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 21, vertical: 18.5),
+                  // ── Goal Form Fields ──────────────────────────────────
+                  FadeSlideEntrance.staggered(
+                    index: 1,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // ── Goal Name Field (Node 11:1831) ──────────────────────
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 21,
+                            vertical: 18.5,
+                          ),
                           decoration: BoxDecoration(
                             color: DashboardTokens.bigStone,
                             borderRadius: BorderRadius.circular(28),
-                            border: Border.all(color: DashboardTokens.poloBlue22),
+                            border: Border.all(
+                              color: DashboardTokens.poloBlue22,
+                            ),
                           ),
                           child: Row(
                             children: [
                               SizedBox(
                                 width: 96,
                                 child: Text(
-                                  'Target date',
+                                  'Name',
                                   style: GoogleFonts.dmSans(
-                                    color: DashboardTokens.periwinkleGraySubtitle,
+                                    color:
+                                        DashboardTokens.periwinkleGraySubtitle,
                                     fontSize: 14,
                                   ),
                                 ),
                               ),
                               Expanded(
-                                child: Text(
-                                  dateText,
+                                child: TextField(
+                                  controller: _nameController,
                                   style: GoogleFonts.dmSans(
                                     color: DashboardTokens.periwinkleGray,
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
                                   ),
+                                  decoration: const InputDecoration(
+                                    isDense: true,
+                                    hintText: 'e.g. New phone',
+                                    hintStyle: TextStyle(
+                                      color: DashboardTokens.poloBlue30,
+                                    ),
+                                    filled: false,
+                                    fillColor: Colors.transparent,
+                                    border: InputBorder.none,
+                                    enabledBorder: InputBorder.none,
+                                    focusedBorder: InputBorder.none,
+                                    errorBorder: InputBorder.none,
+                                    disabledBorder: InputBorder.none,
+                                    contentPadding: EdgeInsets.zero,
+                                  ),
                                 ),
-                              ),
-                              const Icon(
-                                Icons.calendar_today_rounded,
-                                size: 18,
-                                color: DashboardTokens.periwinkleGraySubtitle,
                               ),
                             ],
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 14),
+                        const SizedBox(height: 14),
 
-                      // ── Already Saved Field (Node 11:1847) ───────────────────
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 21, vertical: 18.5),
-                        decoration: BoxDecoration(
-                          color: DashboardTokens.bigStone,
-                          borderRadius: BorderRadius.circular(28),
-                          border: Border.all(color: DashboardTokens.poloBlue22),
-                        ),
-                        child: Row(
-                          children: [
-                            SizedBox(
-                              width: 96,
-                              child: Text(
-                                'Already saved',
+                        // ── Target Amount Hero Box (Node 11:1836) ────────────────
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 21,
+                            vertical: 18,
+                          ),
+                          decoration: BoxDecoration(
+                            color: DashboardTokens.cello60,
+                            borderRadius: BorderRadius.circular(28),
+                            border: Border.all(
+                              color: DashboardTokens.poloBlue30,
+                            ),
+                          ),
+                          child: Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.baseline,
+                                textBaseline: TextBaseline.alphabetic,
+                                children: [
+                                  Text(
+                                    '₱',
+                                    style: GoogleFonts.bricolageGrotesque(
+                                      color: DashboardTokens
+                                          .periwinkleGraySubtitle,
+                                      fontSize: 26,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  IntrinsicWidth(
+                                    child: TextField(
+                                      controller: _amountController,
+                                      keyboardType:
+                                          const TextInputType.numberWithOptions(
+                                            decimal: true,
+                                          ),
+                                      textAlign: TextAlign.center,
+                                      onChanged: (_) => setState(() {}),
+                                      style: GoogleFonts.bricolageGrotesque(
+                                        color: DashboardTokens.periwinkleGray,
+                                        fontSize: 40,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      decoration: const InputDecoration(
+                                        isDense: true,
+                                        filled: false,
+                                        fillColor: Colors.transparent,
+                                        border: InputBorder.none,
+                                        enabledBorder: InputBorder.none,
+                                        focusedBorder: InputBorder.none,
+                                        errorBorder: InputBorder.none,
+                                        disabledBorder: InputBorder.none,
+                                        contentPadding: EdgeInsets.zero,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Target amount',
                                 style: GoogleFonts.dmSans(
                                   color: DashboardTokens.periwinkleGraySubtitle,
                                   fontSize: 14,
                                 ),
                               ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+
+                        // ── Target Date Field (Node 11:1842) ────────────────────
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: _pickDate,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 21,
+                              vertical: 18.5,
                             ),
-                            Text(
-                              '₱',
-                              style: GoogleFonts.dmSans(
-                                color: DashboardTokens.periwinkleGray,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
+                            decoration: BoxDecoration(
+                              color: DashboardTokens.bigStone,
+                              borderRadius: BorderRadius.circular(28),
+                              border: Border.all(
+                                color: DashboardTokens.poloBlue22,
                               ),
                             ),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: TextField(
-                                controller: _alreadySavedController,
-                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                onChanged: (_) => setState(() {}),
+                            child: Row(
+                              children: [
+                                SizedBox(
+                                  width: 96,
+                                  child: Text(
+                                    'Target date',
+                                    style: GoogleFonts.dmSans(
+                                      color: DashboardTokens
+                                          .periwinkleGraySubtitle,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Text(
+                                    dateText,
+                                    style: GoogleFonts.dmSans(
+                                      color: DashboardTokens.periwinkleGray,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                const Icon(
+                                  Icons.calendar_today_rounded,
+                                  size: 18,
+                                  color: DashboardTokens.periwinkleGraySubtitle,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+
+                        // ── Already Saved Field (Node 11:1847) ───────────────────
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 21,
+                            vertical: 18.5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: DashboardTokens.bigStone,
+                            borderRadius: BorderRadius.circular(28),
+                            border: Border.all(
+                              color: DashboardTokens.poloBlue22,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              SizedBox(
+                                width: 96,
+                                child: Text(
+                                  'Already saved',
+                                  style: GoogleFonts.dmSans(
+                                    color:
+                                        DashboardTokens.periwinkleGraySubtitle,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                '₱',
                                 style: GoogleFonts.dmSans(
                                   color: DashboardTokens.periwinkleGray,
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
                                 ),
-                                decoration: const InputDecoration(
-                                  isDense: true,
-                                  hintText: '0',
-                                  hintStyle: TextStyle(color: DashboardTokens.poloBlue30),
-                                  filled: false,
-                                  fillColor: Colors.transparent,
-                                  border: InputBorder.none,
-                                  enabledBorder: InputBorder.none,
-                                  focusedBorder: InputBorder.none,
-                                  errorBorder: InputBorder.none,
-                                  disabledBorder: InputBorder.none,
-                                  contentPadding: EdgeInsets.zero,
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: TextField(
+                                  controller: _alreadySavedController,
+                                  keyboardType:
+                                      const TextInputType.numberWithOptions(
+                                        decimal: true,
+                                      ),
+                                  onChanged: (_) => setState(() {}),
+                                  style: GoogleFonts.dmSans(
+                                    color: DashboardTokens.periwinkleGray,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  decoration: const InputDecoration(
+                                    isDense: true,
+                                    hintText: '0',
+                                    hintStyle: TextStyle(
+                                      color: DashboardTokens.poloBlue30,
+                                    ),
+                                    filled: false,
+                                    fillColor: Colors.transparent,
+                                    border: InputBorder.none,
+                                    enabledBorder: InputBorder.none,
+                                    focusedBorder: InputBorder.none,
+                                    errorBorder: InputBorder.none,
+                                    disabledBorder: InputBorder.none,
+                                    contentPadding: EdgeInsets.zero,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // ── Calculation Preview Box (Node 11:1852) ───────────────
-                FadeSlideEntrance.staggered(
-                  index: 2,
-                  child: Container(
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: DashboardTokens.bigStone,
-                      borderRadius: BorderRadius.circular(28),
-                      border: Border.all(color: DashboardTokens.poloBlue22),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'You would need about',
-                          style: GoogleFonts.dmSans(
-                            color: DashboardTokens.periwinkleGraySubtitle,
-                            fontSize: 14,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${CurrencyFormatter.format(_monthlyRequired, decimalDigits: 0)} a month',
-                          style: GoogleFonts.bricolageGrotesque(
-                            color: DashboardTokens.bermuda,
-                            fontSize: 26,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'This comes out of your safe-to-spend each day,\nso you will see it in your daily number.',
-                          style: GoogleFonts.dmSans(
-                            color: DashboardTokens.periwinkleGraySubtitle,
-                            fontSize: 13,
-                            height: 1.4,
+                            ],
                           ),
                         ),
                       ],
                     ),
                   ),
-                ),
+                  const SizedBox(height: 16),
 
-                if (_errorMessage != null) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    _errorMessage!,
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.dmSans(
-                      color: DashboardTokens.apricot,
-                      fontSize: 13,
+                  // ── Calculation Preview Box (Node 11:1852) ───────────────
+                  FadeSlideEntrance.staggered(
+                    index: 2,
+                    child: Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        color: DashboardTokens.bigStone,
+                        borderRadius: BorderRadius.circular(28),
+                        border: Border.all(color: DashboardTokens.poloBlue22),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'You would need about',
+                            style: GoogleFonts.dmSans(
+                              color: DashboardTokens.periwinkleGraySubtitle,
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${CurrencyFormatter.format(_monthlyRequired, decimalDigits: 0)} a month',
+                            style: GoogleFonts.bricolageGrotesque(
+                              color: DashboardTokens.bermuda,
+                              fontSize: 26,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'This comes out of your safe-to-spend each day,\nso you will see it in your daily number.',
+                            style: GoogleFonts.dmSans(
+                              color: DashboardTokens.periwinkleGraySubtitle,
+                              fontSize: 13,
+                              height: 1.4,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  if (_errorMessage != null) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      _errorMessage!,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.dmSans(
+                        color: DashboardTokens.apricot,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 24),
+
+                  // ── CTA Button (Node 11:1860) ───────────────────────────
+                  FadeSlideEntrance.staggered(
+                    index: 3,
+                    child: PillButton(
+                      label: isEditing ? 'Save changes' : 'Create goal',
+                      onPressed: _isSubmitting ? null : _handleSubmit,
+                      isLoading: _isSubmitting,
                     ),
                   ),
                 ],
-                const SizedBox(height: 24),
-
-                // ── CTA Button (Node 11:1860) ───────────────────────────
-                FadeSlideEntrance.staggered(
-                  index: 3,
-                  child: SizedBox(
-                    height: 56,
-                    child: FilledButton(
-                      onPressed: _isSubmitting ? null : _handleSubmit,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: DashboardTokens.periwinkleGray,
-                        foregroundColor: DashboardTokens.ebony,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(28),
-                        ),
-                      ),
-                      child: _isSubmitting
-                          ? const SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                                color: DashboardTokens.ebony,
-                              ),
-                            )
-                          : Text(
-                              isEditing ? 'Save changes' : 'Create goal',
-                              style: GoogleFonts.dmSans(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                    ),
-                  ),
-                ),
-            ],
+              ),
+            ),
           ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 }

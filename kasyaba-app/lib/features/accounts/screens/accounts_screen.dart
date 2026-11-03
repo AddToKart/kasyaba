@@ -1,404 +1,55 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+import '../../../app/theme/kasyaba_tokens.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
+import '../../../core/providers/preference_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
-import '../../dashboard/widgets/dashboard_tokens.dart';
+import '../../../shared/widgets/app_dialog.dart';
+import '../../../shared/widgets/app_sheet.dart';
+import '../../../shared/widgets/app_state_widgets.dart';
 import '../../../shared/widgets/figma_toggle_switch.dart';
+import '../../../shared/widgets/kasyaba_background.dart';
+import '../../../shared/widgets/kasyaba_card.dart';
+import '../../../shared/widgets/kasyaba_toast.dart';
 import '../../../shared/widgets/motion_components.dart';
+import '../../../shared/widgets/pill_button.dart';
 import '../widgets/reconcile_balance_sheet.dart';
 
-/// ─────────────────────────────────────────────────────────────
-///  1:1 Figma Accounts and Wallets Screen (Node 42:6865)
-/// ─────────────────────────────────────────────────────────────
-class AccountsScreen extends ConsumerStatefulWidget {
+class AccountsScreen extends ConsumerWidget {
   const AccountsScreen({super.key});
 
-  @override
-  ConsumerState<AccountsScreen> createState() => _AccountsScreenState();
-}
-
-class _AccountsScreenState extends ConsumerState<AccountsScreen> {
-  // Set of account IDs excluded from Safe to Spend calculation
-  final Set<String> _excludedAccountIds = <String>{};
-
-  void _showAddAccountSheet(BuildContext context) {
-    final nameController = TextEditingController();
-    final balanceController = TextEditingController(text: '0');
-    var accountType = 'cash';
-    var isSubmitting = false;
-
-    showModalBottomSheet<bool>(
+  Future<void> _showAddAccountSheet(BuildContext context) async {
+    final created = await showKasyabaSheet<bool>(
       context: context,
-      useRootNavigator: true,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) => StatefulBuilder(
-        builder: (ctx, setSheetState) {
-          final bottomInset = MediaQuery.of(ctx).viewInsets.bottom;
-
-          return Container(
-            decoration: BoxDecoration(
-              color: DashboardTokens.ebony,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-              border: Border.all(
-                color: DashboardTokens.poloBlue22,
-                width: 1,
-              ),
-            ),
-            padding: EdgeInsets.fromLTRB(20, 20, 20, 24 + bottomInset),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Modal Handle
-                Center(
-                  child: Container(
-                    width: 38,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: DashboardTokens.poloBlue30,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 18),
-
-                // Modal Title
-                const Text(
-                  'Add account',
-                  style: TextStyle(
-                    fontFamily: 'Bricolage Grotesque',
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                    color: DashboardTokens.periwinkleGray,
-                  ),
-                ),
-                const SizedBox(height: 18),
-
-                // Account Name Input Card
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: DashboardTokens.bigStone,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: DashboardTokens.poloBlue22,
-                      width: 1,
-                    ),
-                  ),
-                  child: TextField(
-                    controller: nameController,
-                    autofocus: true,
-                    textCapitalization: TextCapitalization.words,
-                    style: const TextStyle(
-                      fontFamily: 'DM Sans',
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: DashboardTokens.periwinkleGray,
-                    ),
-                    decoration: const InputDecoration(
-                      labelText: 'Account name',
-                      labelStyle: TextStyle(
-                        fontFamily: 'DM Sans',
-                        color: DashboardTokens.periwinkleGraySubtitle,
-                      ),
-                      hintText: 'e.g. BPI Savings, Maya',
-                      hintStyle: TextStyle(
-                        fontFamily: 'DM Sans',
-                        color: DashboardTokens.poloBlue40,
-                      ),
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                // Account Type Selector
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: DashboardTokens.bigStone,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: DashboardTokens.poloBlue22,
-                      width: 1,
-                    ),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: accountType,
-                      dropdownColor: DashboardTokens.bigStone,
-                      icon: const Icon(
-                        Icons.keyboard_arrow_down_rounded,
-                        color: DashboardTokens.periwinkleGray,
-                      ),
-                      style: const TextStyle(
-                        fontFamily: 'DM Sans',
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: DashboardTokens.periwinkleGray,
-                      ),
-                      items: const [
-                        DropdownMenuItem(
-                          value: 'cash',
-                          child: Text('Cash Wallet (Physical Cash)'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'bank',
-                          child: Text('Bank Account (BPI, BDO, UnionBank)'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'ewallet',
-                          child: Text('E-wallet (GCash, Maya, GrabPay)'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'other',
-                          child: Text('Other (Investment, Credit, Vault)'),
-                        ),
-                      ],
-                      onChanged: (val) {
-                        if (val != null) setSheetState(() => accountType = val);
-                      },
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                // Opening Balance Input Card
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: DashboardTokens.bigStone,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: DashboardTokens.poloBlue22,
-                      width: 1,
-                    ),
-                  ),
-                  child: TextField(
-                    controller: balanceController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    style: const TextStyle(
-                      fontFamily: 'DM Sans',
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: DashboardTokens.periwinkleGray,
-                    ),
-                    decoration: const InputDecoration(
-                      labelText: 'Opening balance',
-                      labelStyle: TextStyle(
-                        fontFamily: 'DM Sans',
-                        color: DashboardTokens.periwinkleGraySubtitle,
-                      ),
-                      prefixText: '₱ ',
-                      prefixStyle: TextStyle(
-                        fontFamily: 'DM Sans',
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: DashboardTokens.periwinkleGray,
-                      ),
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // Submit Button
-                SpringTouch(
-                  onTap: isSubmitting
-                      ? null
-                      : () async {
-                          final name = nameController.text.trim();
-                          final balance = double.tryParse(balanceController.text.trim());
-                          if (name.isEmpty || balance == null || balance < 0) return;
-
-                          setSheetState(() => isSubmitting = true);
-                          try {
-                            await ref.read(transactionMutatorProvider).createAccount(
-                                  name: name,
-                                  type: accountType,
-                                  openingBalance: balance,
-                                );
-                            if (sheetContext.mounted) {
-                              Navigator.of(sheetContext).pop(true);
-                            }
-                          } catch (error) {
-                            if (sheetContext.mounted) {
-                              ScaffoldMessenger.of(sheetContext).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    friendlyErrorMessage(
-                                      error,
-                                      fallback: 'Could not create account. Please try again.',
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }
-                          } finally {
-                            if (sheetContext.mounted) {
-                              setSheetState(() => isSubmitting = false);
-                            }
-                          }
-                        },
-                  child: Container(
-                    height: 56,
-                    decoration: BoxDecoration(
-                      color: DashboardTokens.periwinkleGray,
-                      borderRadius: BorderRadius.circular(28),
-                    ),
-                    alignment: Alignment.center,
-                    child: isSubmitting
-                        ? const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation(DashboardTokens.ebony),
-                            ),
-                          )
-                        : const Text(
-                            'Add account',
-                            style: TextStyle(
-                              fontFamily: 'DM Sans',
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: DashboardTokens.ebony,
-                            ),
-                          ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
+      builder: (_) => const _AddAccountSheet(),
     );
+    if (created == true && context.mounted) {
+      KasyabaToast.showSuccess(context, 'Account created.');
+    }
   }
 
   Future<void> _archiveAccount(
     BuildContext context,
+    WidgetRef ref,
     Account account,
     int accountCount,
   ) async {
     if (accountCount <= 1) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Keep at least one active account.')),
-      );
+      KasyabaToast.showInfo(context, 'Keep at least one active account.');
       return;
     }
 
-    final confirmed = await showModalBottomSheet<bool>(
-      context: context,
-      useRootNavigator: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) => Container(
-        decoration: BoxDecoration(
-          color: DashboardTokens.ebony,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-          border: Border.all(
-            color: DashboardTokens.poloBlue22,
-            width: 1,
-          ),
-        ),
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Container(
-                width: 38,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: DashboardTokens.poloBlue30,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 18),
-            Text(
-              'Archive ${account.name}?',
-              style: const TextStyle(
-                fontFamily: 'Bricolage Grotesque',
-                fontSize: 22,
-                fontWeight: FontWeight.w700,
-                color: DashboardTokens.periwinkleGray,
-              ),
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              'It will disappear from new transactions, but its history remains in your financial records.',
-              style: TextStyle(
-                fontFamily: 'DM Sans',
-                fontSize: 14,
-                fontWeight: FontWeight.w400,
-                color: DashboardTokens.periwinkleGraySubtitle,
-                height: 1.45,
-              ),
-            ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: SpringTouch(
-                    onTap: () => Navigator.of(sheetContext).pop(false),
-                    child: Container(
-                      height: 52,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(26),
-                        border: Border.all(
-                          color: DashboardTokens.kashmirBlue,
-                          width: 1,
-                        ),
-                      ),
-                      alignment: Alignment.center,
-                      child: const Text(
-                        'Cancel',
-                        style: TextStyle(
-                          fontFamily: 'DM Sans',
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: DashboardTokens.periwinkleGray,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: SpringTouch(
-                    onTap: () => Navigator.of(sheetContext).pop(true),
-                    child: Container(
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: DashboardTokens.apricot,
-                        borderRadius: BorderRadius.circular(26),
-                      ),
-                      alignment: Alignment.center,
-                      child: const Text(
-                        'Archive',
-                        style: TextStyle(
-                          fontFamily: 'DM Sans',
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: DashboardTokens.ebony,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
+    final confirmed = await showKasyabaConfirmDialog(
+      context,
+      title: 'Archive ${account.name}?',
+      message:
+          'It will disappear from new transactions, but its history remains in your financial records.',
+      confirmLabel: 'Archive',
+      destructive: true,
     );
 
     if (!context.mounted || confirmed != true) return;
@@ -406,19 +57,14 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
     try {
       await ref.read(transactionMutatorProvider).archiveAccount(account.id);
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Account archived.')),
-      );
+      KasyabaToast.showSuccess(context, 'Account archived.');
     } catch (error) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            friendlyErrorMessage(
-              error,
-              fallback: 'Could not archive the account. Please try again.',
-            ),
-          ),
+      KasyabaToast.showError(
+        context,
+        friendlyErrorMessage(
+          error,
+          fallback: 'Could not archive the account. Please try again.',
         ),
       );
     }
@@ -442,281 +88,234 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
     };
   }
 
+  String _balanceLabel(
+    AsyncValue<Map<String, double>> balancesAsync,
+    String accountId,
+  ) {
+    final balances = balancesAsync.valueOrNull;
+    if (balances == null) return '—';
+    final value = balances[accountId];
+    if (value == null) return '—';
+    return CurrencyFormatter.format(value);
+  }
+
+  String _totalLabel(
+    List<Account> accounts,
+    AsyncValue<Map<String, double>> balancesAsync,
+  ) {
+    final balances = balancesAsync.valueOrNull;
+    if (balances == null) return '—';
+    var total = 0.0;
+    for (final account in accounts) {
+      total += balances[account.id] ?? 0.0;
+    }
+    return CurrencyFormatter.format(total);
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final accountsAsync = ref.watch(accountsProvider);
     final balancesAsync = ref.watch(accountBalancesProvider);
-    final balances = balancesAsync.valueOrNull ?? const <String, double>{};
+    final excludedAccountIds = ref.watch(excludedAccountsProvider);
 
     return Scaffold(
-      backgroundColor: DashboardTokens.ebony,
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: DashboardTokens.canvasGradient,
-        ),
+      backgroundColor: KasyabaTokens.ebony,
+      body: KasyabaBackground(
         child: SafeArea(
           bottom: false,
-          child: Column(
-            children: [
-              Expanded(
-                child: accountsAsync.when(
-                  loading: () => const Center(
-                    child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation(DashboardTokens.periwinkleGray),
+          child: accountsAsync.when(
+            loading: () => ListView(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
+              children: const [
+                _AccountsHeader(),
+                SizedBox(height: 20),
+                KasyabaLoadingSkeleton(lines: 5),
+              ],
+            ),
+            error: (error, _) => ListView(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
+              children: [
+                const _AccountsHeader(),
+                const SizedBox(height: 20),
+                KasyabaErrorCard(
+                  message: friendlyErrorMessage(
+                    error,
+                    fallback: 'Could not load your accounts.',
+                  ),
+                  onRetry: () {
+                    ref.invalidate(accountsProvider);
+                    ref.invalidate(accountBalancesProvider);
+                  },
+                ),
+              ],
+            ),
+            data: (accounts) {
+              return ListView(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
+                children: [
+                  const _AccountsHeader(),
+                  const SizedBox(height: 20),
+                  FadeSlideEntrance.staggered(
+                    index: 1,
+                    child: Container(
+                      padding: const EdgeInsets.all(19),
+                      decoration: BoxDecoration(
+                        color: KasyabaTokens.cello60,
+                        borderRadius: BorderRadius.circular(
+                          KasyabaTokens.radiusCard,
+                        ),
+                        border: Border.all(
+                          color: KasyabaTokens.poloBlue30,
+                          width: 1,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Total across accounts',
+                            style: GoogleFonts.dmSans(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w400,
+                              color: KasyabaTokens.periwinkleGraySubtitle,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _totalLabel(accounts, balancesAsync),
+                            style: GoogleFonts.bricolageGrotesque(
+                              fontSize: 30,
+                              fontWeight: FontWeight.w700,
+                              color: KasyabaTokens.periwinkleGray,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  error: (error, _) => Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
+                  const SizedBox(height: 14),
+                  if (balancesAsync.hasError)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 14),
+                      child: KasyabaErrorCard(
+                        message: friendlyErrorMessage(
+                          balancesAsync.error,
+                          fallback: 'Could not load account balances.',
+                        ),
+                        onRetry: () => ref.invalidate(accountBalancesProvider),
+                      ),
+                    ),
+                  if (accounts.isEmpty)
+                    FadeSlideEntrance.staggered(
+                      index: 2,
+                      child: KasyabaCard(
+                        padding: EdgeInsets.zero,
+                        child: KasyabaEmptyState(
+                          icon: Icons.account_balance_wallet_outlined,
+                          title: 'No accounts yet',
+                          message:
+                              'Add a cash wallet, bank account, or e-wallet to start tracking your money.',
+                          action: PillButton(
+                            label: 'Add account',
+                            onPressed: () => _showAddAccountSheet(context),
+                            height: 48,
+                            expand: false,
+                          ),
+                        ),
+                      ),
+                    )
+                  else
+                    FadeSlideEntrance.staggered(
+                      index: 2,
                       child: Container(
-                        padding: const EdgeInsets.all(20),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 19,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
-                          color: DashboardTokens.bigStone,
-                          borderRadius: BorderRadius.circular(28),
+                          color: KasyabaTokens.bigStone,
+                          borderRadius: BorderRadius.circular(
+                            KasyabaTokens.radiusCard,
+                          ),
                           border: Border.all(
-                            color: DashboardTokens.poloBlue22,
+                            color: KasyabaTokens.poloBlue22,
                             width: 1,
                           ),
                         ),
                         child: Column(
-                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(
-                              Icons.error_outline_rounded,
-                              color: DashboardTokens.apricot,
-                              size: 32,
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              friendlyErrorMessage(
-                                error,
-                                fallback: 'Could not load your accounts.',
-                              ),
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontFamily: 'DM Sans',
-                                color: DashboardTokens.periwinkleGraySubtitle,
-                                fontSize: 14,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            SpringTouch(
-                              onTap: () => ref.invalidate(accountsProvider),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                                decoration: BoxDecoration(
-                                  color: DashboardTokens.periwinkleGray,
-                                  borderRadius: BorderRadius.circular(20),
+                            for (int i = 0; i < accounts.length; i++) ...[
+                              if (i > 0)
+                                Container(
+                                  height: 1,
+                                  color: KasyabaTokens.poloBlue16,
                                 ),
-                                child: const Text(
-                                  'Try again',
-                                  style: TextStyle(
-                                    fontFamily: 'DM Sans',
-                                    fontWeight: FontWeight.w700,
-                                    color: DashboardTokens.ebony,
-                                  ),
+                              _buildAccountItem(
+                                context,
+                                ref,
+                                account: accounts[i],
+                                balanceLabel: _balanceLabel(
+                                  balancesAsync,
+                                  accounts[i].id,
+                                ),
+                                accountCount: accounts.length,
+                                isIncluded: !excludedAccountIds.contains(
+                                  accounts[i].id,
                                 ),
                               ),
-                            ),
+                            ],
                           ],
                         ),
                       ),
                     ),
+                  const SizedBox(height: 12),
+                  FadeSlideEntrance.staggered(
+                    index: 3,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: Text(
+                        'Accounts you switch on are counted in your Safe to spend. Switch one off to keep it out, for example savings you do not want to touch.',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w400,
+                          color: KasyabaTokens.periwinkleGraySubtitle,
+                          height: 1.45,
+                        ),
+                      ),
+                    ),
                   ),
-                  data: (accounts) {
-                    // Compute total across accounts
-                    double totalBalance = 0.0;
-                    for (final account in accounts) {
-                      totalBalance += (balances[account.id] ?? 0.0);
-                    }
-
-                    return ListView(
-                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
-                      children: [
-                        // Header row: 50x50 squircle back button + Title
-                        FadeSlideEntrance.staggered(
-                          index: 0,
-                          child: Row(
-                            children: [
-                              SpringTouch(
-                                onTap: () => context.pop(),
-                                child: Container(
-                                  width: 50,
-                                  height: 50,
-                                  decoration: BoxDecoration(
-                                    color: DashboardTokens.bigStone,
-                                    borderRadius: BorderRadius.circular(24),
-                                    border: Border.all(
-                                      color: DashboardTokens.poloBlue22,
-                                      width: 1,
-                                    ),
-                                  ),
-                                  child: const Icon(
-                                    Icons.chevron_left_rounded,
-                                    color: DashboardTokens.periwinkleGray,
-                                    size: 26,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 14),
-                              const Text(
-                                'Accounts',
-                                style: TextStyle(
-                                  fontFamily: 'Bricolage Grotesque',
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w700,
-                                  color: DashboardTokens.periwinkleGray,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-
-                        // Total Balance Hero Card
-                        FadeSlideEntrance.staggered(
-                          index: 1,
-                          child: Container(
-                            padding: const EdgeInsets.all(19),
-                            decoration: BoxDecoration(
-                              color: DashboardTokens.cello60,
-                              borderRadius: BorderRadius.circular(28),
-                              border: Border.all(
-                                color: DashboardTokens.poloBlue30,
-                                width: 1,
-                              ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Total across accounts',
-                                  style: TextStyle(
-                                    fontFamily: 'DM Sans',
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w400,
-                                    color: DashboardTokens.periwinkleGraySubtitle,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  CurrencyFormatter.format(totalBalance),
-                                  style: const TextStyle(
-                                    fontFamily: 'Bricolage Grotesque',
-                                    fontSize: 30,
-                                    fontWeight: FontWeight.w700,
-                                    color: DashboardTokens.periwinkleGray,
-                                    letterSpacing: -0.5,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-
-                        // Accounts Group Card
-                        if (accounts.isNotEmpty)
-                          FadeSlideEntrance.staggered(
-                            index: 2,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 19, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: DashboardTokens.bigStone,
-                                borderRadius: BorderRadius.circular(28),
-                                border: Border.all(
-                                  color: DashboardTokens.poloBlue22,
-                                  width: 1,
-                                ),
-                              ),
-                              child: Column(
-                                children: [
-                                  for (int i = 0; i < accounts.length; i++) ...[
-                                    if (i > 0)
-                                      Container(
-                                        height: 1,
-                                        color: DashboardTokens.poloBlue16,
-                                      ),
-                                    _buildAccountItem(
-                                      account: accounts[i],
-                                      balance: balances[accounts[i].id] ?? 0.0,
-                                      accountCount: accounts.length,
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                          ),
-
-                        const SizedBox(height: 12),
-
-                        // Footnote
-                        FadeSlideEntrance.staggered(
-                          index: 3,
-                          child: const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 4),
-                            child: Text(
-                              'Accounts you switch on are counted in your Safe to spend. Switch one off to keep it out, for example savings you do not want to touch.',
-                              style: TextStyle(
-                                fontFamily: 'DM Sans',
-                                fontSize: 14,
-                                fontWeight: FontWeight.w400,
-                                color: DashboardTokens.periwinkleGraySubtitle,
-                                height: 1.45,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-
-                        // Add account button
-                        FadeSlideEntrance.staggered(
-                          index: 4,
-                          child: SpringTouch(
-                            onTap: () => _showAddAccountSheet(context),
-                            child: Container(
-                              height: 56,
-                              decoration: BoxDecoration(
-                                color: DashboardTokens.periwinkleGray,
-                                borderRadius: BorderRadius.circular(28),
-                              ),
-                              alignment: Alignment.center,
-                              child: const Text(
-                                'Add account',
-                                style: TextStyle(
-                                  fontFamily: 'DM Sans',
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  color: DashboardTokens.ebony,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                ),
-              ),
-            ],
+                  if (accounts.isNotEmpty) ...[
+                    const SizedBox(height: 24),
+                    FadeSlideEntrance.staggered(
+                      index: 4,
+                      child: PillButton(
+                        label: 'Add account',
+                        onPressed: () => _showAddAccountSheet(context),
+                      ),
+                    ),
+                  ],
+                ],
+              );
+            },
           ),
         ),
       ),
     );
   }
 
-  Widget _buildAccountItem({
+  Widget _buildAccountItem(
+    BuildContext context,
+    WidgetRef ref, {
     required Account account,
-    required double balance,
+    required String balanceLabel,
     required int accountCount,
+    required bool isIncluded,
   }) {
-    final isIncludedInSafeSpend = !_excludedAccountIds.contains(account.id);
-
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 14),
       child: Column(
         children: [
-          // Top row: Icon, Name + Type, Balance, More options
           Row(
             children: [
               Container(
@@ -724,15 +323,12 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
                 height: 48,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(23),
-                  border: Border.all(
-                    color: DashboardTokens.poloBlue30,
-                    width: 1,
-                  ),
+                  border: Border.all(color: KasyabaTokens.poloBlue30, width: 1),
                 ),
                 child: Center(
                   child: Icon(
                     _iconForType(account.type),
-                    color: DashboardTokens.periwinkleGray,
+                    color: KasyabaTokens.periwinkleGray,
                     size: 22,
                   ),
                 ),
@@ -744,90 +340,86 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
                   children: [
                     Text(
                       account.name,
-                      style: const TextStyle(
-                        fontFamily: 'DM Sans',
+                      style: GoogleFonts.dmSans(
                         fontSize: 17,
                         fontWeight: FontWeight.w700,
-                        color: DashboardTokens.periwinkleGray,
+                        color: KasyabaTokens.periwinkleGray,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       _descriptionForType(account.type),
-                      style: const TextStyle(
-                        fontFamily: 'DM Sans',
+                      style: GoogleFonts.dmSans(
                         fontSize: 14,
                         fontWeight: FontWeight.w400,
-                        color: DashboardTokens.periwinkleGraySubtitle,
+                        color: KasyabaTokens.periwinkleGraySubtitle,
                       ),
                     ),
                   ],
                 ),
               ),
               Text(
-                CurrencyFormatter.format(balance),
-                style: const TextStyle(
-                  fontFamily: 'DM Sans',
+                balanceLabel,
+                style: GoogleFonts.dmSans(
                   fontSize: 17,
                   fontWeight: FontWeight.w700,
-                  color: DashboardTokens.periwinkleGray,
+                  color: KasyabaTokens.periwinkleGray,
+                  fontFeatures: CurrencyFormatter.tabularFigures,
                 ),
               ),
               const SizedBox(width: 4),
               PopupMenuButton<String>(
                 icon: const Icon(
                   Icons.more_vert_rounded,
-                  color: DashboardTokens.periwinkleGraySubtitle,
+                  color: KasyabaTokens.periwinkleGraySubtitle,
                   size: 20,
                 ),
-                color: DashboardTokens.bigStone,
+                color: KasyabaTokens.bigStone,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: const BorderSide(color: DashboardTokens.poloBlue22),
+                  borderRadius: BorderRadius.circular(24),
+                  side: const BorderSide(color: KasyabaTokens.poloBlue22),
                 ),
                 onSelected: (action) {
                   if (action == 'reconcile') {
                     showReconcileBalanceSheet(context, targetAccount: account);
                   } else if (action == 'archive') {
-                    _archiveAccount(context, account, accountCount);
+                    _archiveAccount(context, ref, account, accountCount);
                   }
                 },
                 itemBuilder: (context) => [
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'reconcile',
                     child: Row(
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.tune_rounded,
                           size: 18,
-                          color: DashboardTokens.periwinkleGray,
+                          color: KasyabaTokens.periwinkleGray,
                         ),
-                        SizedBox(width: 10),
+                        const SizedBox(width: 10),
                         Text(
                           'Reconcile balance',
-                          style: TextStyle(
-                            fontFamily: 'DM Sans',
-                            color: DashboardTokens.periwinkleGray,
+                          style: GoogleFonts.dmSans(
+                            color: KasyabaTokens.periwinkleGray,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'archive',
                     child: Row(
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.archive_outlined,
                           size: 18,
-                          color: DashboardTokens.apricot,
+                          color: KasyabaTokens.apricot,
                         ),
-                        SizedBox(width: 10),
+                        const SizedBox(width: 10),
                         Text(
                           'Archive account',
-                          style: TextStyle(
-                            fontFamily: 'DM Sans',
-                            color: DashboardTokens.apricot,
+                          style: GoogleFonts.dmSans(
+                            color: KasyabaTokens.apricot,
                           ),
                         ),
                       ],
@@ -838,45 +430,284 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
             ],
           ),
           const SizedBox(height: 12),
-
-          // Bottom toggle row: "Count in safe to spend"
           Container(
             padding: const EdgeInsets.only(top: 13),
             decoration: const BoxDecoration(
               border: Border(
-                top: BorderSide(
-                  color: DashboardTokens.poloBlue14,
-                  width: 1,
-                ),
+                top: BorderSide(color: KasyabaTokens.poloBlue14, width: 1),
               ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Count in safe to spend',
-                  style: TextStyle(
-                    fontFamily: 'DM Sans',
+                  style: GoogleFonts.dmSans(
                     fontSize: 14,
                     fontWeight: FontWeight.w400,
-                    color: DashboardTokens.periwinkleGraySubtitle,
+                    color: KasyabaTokens.periwinkleGraySubtitle,
                   ),
                 ),
                 FigmaToggleSwitch(
-                  value: isIncludedInSafeSpend,
-                  onChanged: (val) {
-                    setState(() {
-                      if (val) {
-                        _excludedAccountIds.remove(account.id);
-                      } else {
-                        _excludedAccountIds.add(account.id);
-                      }
-                    });
-                  },
+                  value: isIncluded,
+                  onChanged: (_) => ref
+                      .read(excludedAccountsProvider.notifier)
+                      .toggle(account.id),
                 ),
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AccountsHeader extends StatelessWidget {
+  const _AccountsHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeSlideEntrance.staggered(
+      index: 0,
+      child: Row(
+        children: [
+          SpringTouch(
+            onTap: () => context.pop(),
+            child: Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: KasyabaTokens.bigStone,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: KasyabaTokens.poloBlue22, width: 1),
+              ),
+              child: const Icon(
+                Icons.chevron_left_rounded,
+                color: KasyabaTokens.periwinkleGray,
+                size: 26,
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Text(
+            'Accounts',
+            style: GoogleFonts.bricolageGrotesque(
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+              color: KasyabaTokens.periwinkleGray,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AddAccountSheet extends ConsumerStatefulWidget {
+  const _AddAccountSheet();
+
+  @override
+  ConsumerState<_AddAccountSheet> createState() => _AddAccountSheetState();
+}
+
+class _AddAccountSheetState extends ConsumerState<_AddAccountSheet> {
+  final _nameController = TextEditingController();
+  final _balanceController = TextEditingController(text: '0');
+  String _accountType = 'cash';
+  bool _isSubmitting = false;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _balanceController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (_isSubmitting) return;
+
+    final name = _nameController.text.trim();
+    final balance = double.tryParse(_balanceController.text.trim());
+    if (name.isEmpty || balance == null || balance < 0) {
+      KasyabaToast.showError(
+        context,
+        'Enter an account name and a valid opening balance.',
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+    try {
+      await ref
+          .read(transactionMutatorProvider)
+          .createAccount(
+            name: name,
+            type: _accountType,
+            openingBalance: balance,
+          );
+      if (mounted) Navigator.of(context).pop(true);
+    } catch (error) {
+      if (mounted) {
+        KasyabaToast.showError(
+          context,
+          friendlyErrorMessage(
+            error,
+            fallback: 'Could not create account. Please try again.',
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+
+    return AppSheet(
+      color: KasyabaTokens.ebony,
+      padding: EdgeInsets.fromLTRB(20, 0, 20, 24 + bottomInset),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Add account',
+            style: GoogleFonts.bricolageGrotesque(
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              color: KasyabaTokens.periwinkleGray,
+            ),
+          ),
+          const SizedBox(height: 18),
+          _SheetField(
+            label: 'Account name',
+            child: TextField(
+              controller: _nameController,
+              autofocus: true,
+              textCapitalization: TextCapitalization.words,
+              style: GoogleFonts.dmSans(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: KasyabaTokens.periwinkleGray,
+              ),
+              decoration: _inputDecoration('e.g. BPI Savings, Maya'),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _SheetField(
+            label: 'Account type',
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: _accountType,
+                dropdownColor: KasyabaTokens.bigStone,
+                icon: const Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: KasyabaTokens.periwinkleGray,
+                ),
+                style: GoogleFonts.dmSans(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: KasyabaTokens.periwinkleGray,
+                ),
+                items: const [
+                  DropdownMenuItem(
+                    value: 'cash',
+                    child: Text('Cash Wallet (Physical Cash)'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'bank',
+                    child: Text('Bank Account (BPI, BDO, UnionBank)'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'ewallet',
+                    child: Text('E-wallet (GCash, Maya, GrabPay)'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'other',
+                    child: Text('Other (Investment, Credit, Vault)'),
+                  ),
+                ],
+                onChanged: (value) {
+                  if (value != null) setState(() => _accountType = value);
+                },
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _SheetField(
+            label: 'Opening balance',
+            child: TextField(
+              controller: _balanceController,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              style: GoogleFonts.dmSans(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: KasyabaTokens.periwinkleGray,
+              ),
+              decoration: _inputDecoration('0.00').copyWith(
+                prefixText: '₱ ',
+                prefixStyle: GoogleFonts.dmSans(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: KasyabaTokens.periwinkleGray,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          PillButton(
+            label: 'Add account',
+            onPressed: _submit,
+            isLoading: _isSubmitting,
+          ),
+        ],
+      ),
+    );
+  }
+
+  InputDecoration _inputDecoration(String hint) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: GoogleFonts.dmSans(color: KasyabaTokens.poloBlue40),
+      border: InputBorder.none,
+      enabledBorder: InputBorder.none,
+      focusedBorder: InputBorder.none,
+    );
+  }
+}
+
+class _SheetField extends StatelessWidget {
+  final String label;
+  final Widget child;
+
+  const _SheetField({required this.label, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+      decoration: BoxDecoration(
+        color: KasyabaTokens.bigStone,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: KasyabaTokens.poloBlue22, width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: GoogleFonts.dmSans(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: KasyabaTokens.periwinkleGraySubtitle,
+            ),
+          ),
+          child,
         ],
       ),
     );

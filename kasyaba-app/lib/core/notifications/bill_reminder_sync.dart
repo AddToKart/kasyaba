@@ -4,14 +4,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../auth/auth_provider.dart';
 import '../providers/api_providers.dart';
+import 'notification_preferences.dart';
 import 'notification_service.dart';
 
 /// Keeps local bill reminders in step with the current bill list. Watched by
 /// the app root so it stays active for the whole authenticated session.
 final billReminderSyncProvider = Provider<void>((ref) {
-  final isAuthenticated =
-      ref.watch(authProvider.select((s) => s.isAuthenticated));
+  final isAuthenticated = ref.watch(
+    authProvider.select((state) => state.isAuthenticated),
+  );
   if (!isAuthenticated) return;
+
+  final preferences = ref.watch(notificationPreferencesProvider);
 
   ref.listen<AsyncValue<List<BillItem>>>(billsProvider, (_, next) {
     final bills = next.valueOrNull;
@@ -24,8 +28,12 @@ final billReminderSyncProvider = Provider<void>((ref) {
             name: bill.name,
             dueDate: bill.dueDate,
             status: bill.status,
+            leadDays: bill.reminderLeadDays,
           ),
         ),
+        enabled: preferences.billReminders,
+        defaultLeadDays: preferences.remindDaysBefore,
+        timeOfDay: preferences.reminderTime,
       ),
     );
   }, fireImmediately: true);

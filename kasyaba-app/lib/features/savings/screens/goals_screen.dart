@@ -1,18 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_motion.dart';
-import '../../../shared/widgets/motion_components.dart';
+import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../../../core/utils/deterministic_math.dart';
+import '../../../shared/widgets/app_state_widgets.dart';
+import '../../../shared/widgets/kasyaba_background.dart';
+import '../../../shared/widgets/kasyaba_card.dart';
+import '../../../shared/widgets/motion_components.dart';
+import '../../../shared/widgets/pill_button.dart';
 import '../../dashboard/widgets/dashboard_tokens.dart';
 import '../../dashboard/widgets/kasyaba_affordability_sheet.dart';
 import '../widgets/goal_deposit_sheet.dart';
-import 'create_goal_screen.dart';
-import 'goal_detail_screen.dart';
 
 /// ─────────────────────────────────────────────────────────────
 ///  Goals Screen (Figma Node 42:6585)
@@ -62,21 +67,6 @@ class GoalsScreen extends ConsumerWidget {
     );
   }
 
-  double _calculateMonthlyNeed(SavingsGoal goal) {
-    final remaining = (goal.targetAmount - goal.currentAmount).clamp(0.0, double.infinity);
-    if (remaining <= 0) return 0.0;
-    if (goal.targetDate == null) return remaining;
-
-    final target = DateTime.tryParse(goal.targetDate!);
-    if (target == null) return remaining;
-
-    final now = DateTime.now();
-    final daysUntil = target.difference(now).inDays;
-    if (daysUntil <= 0) return remaining;
-
-    return (remaining / daysUntil) * 30.0;
-  }
-
   String _formatTargetDate(String? raw) {
     if (raw == null) return 'Flexible timeline';
     final parsed = DateTime.tryParse(raw);
@@ -90,19 +80,7 @@ class GoalsScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: DashboardTokens.ebony,
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: RadialGradient(
-            center: const Alignment(0.8, -1.0),
-            radius: 1.2,
-            colors: [
-              const Color(0xFF4F7596).withValues(alpha: 0.67),
-              DashboardTokens.ebony,
-            ],
-            stops: const [0.0, 0.7],
-          ),
-          color: DashboardTokens.ebony,
-        ),
+      body: KasyabaBackground(
         child: SafeArea(
           bottom: false,
           child: RefreshIndicator(
@@ -135,11 +113,7 @@ class GoalsScreen extends ConsumerWidget {
                         scaleDown: 0.88,
                         onTap: () {
                           AppHaptics.lightImpact();
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const CreateGoalScreen(),
-                            ),
-                          );
+                          context.push('/goals/new');
                         },
                         child: Container(
                           width: 48,
@@ -165,52 +139,22 @@ class GoalsScreen extends ConsumerWidget {
                   const SizedBox(height: 14),
 
                   goalsAsync.when(
-                    loading: () => Column(
+                    loading: () => const Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        _buildHeroSkeleton(),
-                        const SizedBox(height: 14),
-                        _buildGoalCardSkeleton(),
-                        const SizedBox(height: 14),
-                        _buildGoalCardSkeleton(),
+                        KasyabaLoadingSkeleton(lines: 3),
+                        SizedBox(height: 14),
+                        KasyabaLoadingSkeleton(lines: 2),
+                        SizedBox(height: 14),
+                        KasyabaLoadingSkeleton(lines: 2),
                       ],
                     ),
-                    error: (err, _) => Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: DashboardTokens.bigStone,
-                        borderRadius: BorderRadius.circular(28),
-                        border: Border.all(
-                          color: DashboardTokens.poloBlue22,
-                          width: 1,
-                        ),
+                    error: (err, _) => KasyabaErrorCard(
+                      message: friendlyErrorMessage(
+                        err,
+                        fallback: 'Could not load your goals.',
                       ),
-                      child: Column(
-                        children: [
-                          const Icon(
-                            Icons.error_outline,
-                            color: DashboardTokens.apricot,
-                            size: 36,
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            'Failed to load goals: $err',
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.dmSans(
-                              color: DashboardTokens.periwinkleGraySubtitle,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          FilledButton(
-                            style: FilledButton.styleFrom(
-                              backgroundColor: DashboardTokens.periwinkleGray,
-                              foregroundColor: DashboardTokens.ebony,
-                            ),
-                            onPressed: () => ref.invalidate(goalsProvider),
-                            child: const Text('Retry'),
-                          ),
-                        ],
-                      ),
+                      onRetry: () => ref.invalidate(goalsProvider),
                     ),
                     data: (goals) {
                       final totalSaved = goals.fold<double>(
@@ -231,16 +175,8 @@ class GoalsScreen extends ConsumerWidget {
                           // ─── Total Saved Hero Card (Figma Node 11:1987) ───
                           FadeSlideEntrance.staggered(
                             index: 0,
-                            child: Container(
+                            child: KasyabaCard(
                               padding: const EdgeInsets.all(19),
-                              decoration: BoxDecoration(
-                                color: DashboardTokens.bigStone,
-                                borderRadius: BorderRadius.circular(28),
-                                border: Border.all(
-                                  color: DashboardTokens.poloBlue22,
-                                  width: 1,
-                                ),
-                              ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -248,12 +184,14 @@ class GoalsScreen extends ConsumerWidget {
                                     'Total saved',
                                     style: GoogleFonts.dmSans(
                                       fontSize: 14,
-                                      color: DashboardTokens.periwinkleGraySubtitle,
+                                      color: DashboardTokens
+                                          .periwinkleGraySubtitle,
                                     ),
                                   ),
                                   const SizedBox(height: 4),
                                   Row(
-                                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.baseline,
                                     textBaseline: TextBaseline.alphabetic,
                                     children: [
                                       Text(
@@ -269,7 +207,8 @@ class GoalsScreen extends ConsumerWidget {
                                         style: GoogleFonts.dmSans(
                                           fontSize: 15,
                                           fontWeight: FontWeight.w500,
-                                          color: DashboardTokens.periwinkleGraySubtitle,
+                                          color: DashboardTokens
+                                              .periwinkleGraySubtitle,
                                         ),
                                       ),
                                     ],
@@ -285,7 +224,8 @@ class GoalsScreen extends ConsumerWidget {
                                     child: LayoutBuilder(
                                       builder: (context, constraints) {
                                         final fillWidth =
-                                            constraints.maxWidth * overallProgress;
+                                            constraints.maxWidth *
+                                            overallProgress;
                                         return Align(
                                           alignment: Alignment.centerLeft,
                                           child: AnimatedContainer(
@@ -294,7 +234,8 @@ class GoalsScreen extends ConsumerWidget {
                                             width: fillWidth,
                                             decoration: BoxDecoration(
                                               color: DashboardTokens.bermuda,
-                                              borderRadius: BorderRadius.circular(4),
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
                                             ),
                                           ),
                                         );
@@ -309,76 +250,19 @@ class GoalsScreen extends ConsumerWidget {
 
                           // ─── Empty state if no goals ───
                           if (goals.isEmpty)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 36,
-                              ),
-                              decoration: BoxDecoration(
-                                color: DashboardTokens.bigStone,
-                                borderRadius: BorderRadius.circular(28),
-                                border: Border.all(
-                                  color: DashboardTokens.poloBlue22,
-                                  width: 1,
-                                ),
-                              ),
-                              child: Column(
-                                children: [
-                                  SvgPicture.asset(
-                                    'assets/images/goal_emergency.svg',
-                                    width: 44,
-                                    height: 44,
-                                    colorFilter: const ColorFilter.mode(
-                                      DashboardTokens.periwinkleGraySubtitle,
-                                      BlendMode.srcIn,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    'No savings goals yet',
-                                    style: GoogleFonts.bricolageGrotesque(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w700,
-                                      color: DashboardTokens.periwinkleGray,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
+                            KasyabaCard(
+                              padding: EdgeInsets.zero,
+                              child: KasyabaEmptyState(
+                                icon: Icons.savings_outlined,
+                                title: 'No savings goals yet',
+                                message:
                                     'Create a goal for an emergency fund, gadget, or trip to track progress.',
-                                    textAlign: TextAlign.center,
-                                    style: GoogleFonts.dmSans(
-                                      fontSize: 14,
-                                      color: DashboardTokens.periwinkleGraySubtitle,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 20),
-                                  FilledButton(
-                                    style: FilledButton.styleFrom(
-                                      backgroundColor: DashboardTokens.periwinkleGray,
-                                      foregroundColor: DashboardTokens.ebony,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(22),
-                                      ),
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 24,
-                                        vertical: 14,
-                                      ),
-                                    ),
-                                    onPressed: () {
-                                      Navigator.of(context).push(
-                                        MaterialPageRoute(
-                                          builder: (_) => const CreateGoalScreen(),
-                                        ),
-                                      );
-                                    },
-                                    child: Text(
-                                      'Add your first goal',
-                                      style: GoogleFonts.dmSans(
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                                action: PillButton(
+                                  label: 'Add your first goal',
+                                  onPressed: () => context.push('/goals/new'),
+                                  height: 48,
+                                  expand: false,
+                                ),
                               ),
                             ),
 
@@ -386,219 +270,192 @@ class GoalsScreen extends ConsumerWidget {
                           ...goals.asMap().entries.map((entry) {
                             final i = entry.key;
                             final goal = entry.value;
-                            final progress = goal.targetAmount > 0
-                                ? (goal.currentAmount / goal.targetAmount)
-                                    .clamp(0.0, 1.0)
-                                : 0.0;
+                            final progress = goal.progress;
                             final percent = (progress * 100).round();
-                            final monthlyNeed = _calculateMonthlyNeed(goal);
+                            final monthlyNeed = goalMonthlyNeed(goal);
                             final dateText = _formatTargetDate(goal.targetDate);
+                            final bool? canAfford = goal.canAffordByTargetDate;
+                            final statusLabel = canAfford == null
+                                ? null
+                                : (canAfford
+                                      ? 'On track · $dateText'
+                                      : 'Behind schedule · $dateText');
+                            final statusColor = canAfford == true
+                                ? DashboardTokens.bermuda
+                                : DashboardTokens.apricot;
 
                             return FadeSlideEntrance.staggered(
                               index: 1 + i,
                               child: Padding(
                                 padding: const EdgeInsets.only(bottom: 14),
-                                child: Material(
-                                  color: Colors.transparent,
-                                  child: InkWell(
-                                    borderRadius: BorderRadius.circular(28),
-                                    onTap: () {
-                                      AppHaptics.lightImpact();
-                                      Navigator.of(context).push(
-                                        MaterialPageRoute(
-                                          builder: (_) => GoalDetailScreen(
-                                            goalId: goal.id,
-                                            initialGoal: goal,
+                                child: KasyabaCard(
+                                  padding: const EdgeInsets.all(19),
+                                  onTap: () {
+                                    AppHaptics.lightImpact();
+                                    context.push(
+                                      '/goals/${goal.id}',
+                                      extra: goal,
+                                    );
+                                  },
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: [
+                                      // Row 1: Squircle Icon + Title + Percent
+                                      Row(
+                                        children: [
+                                          Container(
+                                            width: 48,
+                                            height: 48,
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(23),
+                                              border: Border.all(
+                                                color:
+                                                    DashboardTokens.poloBlue30,
+                                                width: 1,
+                                              ),
+                                            ),
+                                            alignment: Alignment.center,
+                                            child: _buildGoalIcon(goal.name),
                                           ),
-                                        ),
-                                      );
-                                    },
-                                    child: Container(
-                                      padding: const EdgeInsets.all(19),
-                                    decoration: BoxDecoration(
-                                      color: DashboardTokens.bigStone,
-                                      borderRadius: BorderRadius.circular(28),
-                                      border: Border.all(
-                                        color: DashboardTokens.poloBlue22,
-                                        width: 1,
-                                      ),
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.stretch,
-                                      children: [
-                                        // Row 1: Squircle Icon + Title + Percent
-                                        Row(
-                                          children: [
-                                            Container(
-                                              width: 48,
-                                              height: 48,
-                                              decoration: BoxDecoration(
-                                                borderRadius:
-                                                    BorderRadius.circular(23),
-                                                border: Border.all(
-                                                  color: DashboardTokens.poloBlue30,
-                                                  width: 1,
-                                                ),
-                                              ),
-                                              alignment: Alignment.center,
-                                              child: _buildGoalIcon(goal.name),
-                                            ),
-                                            const SizedBox(width: 12),
-                                            Expanded(
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                    goal.name,
-                                                    style: GoogleFonts.dmSans(
-                                                      fontSize: 18,
-                                                      fontWeight:
-                                                          FontWeight.w700,
-                                                      color: DashboardTokens
-                                                          .periwinkleGray,
-                                                    ),
-                                                  ),
-                                                  const SizedBox(height: 2),
-                                                  Text(
-                                                    '${CurrencyFormatter.format(goal.currentAmount)} of ${CurrencyFormatter.format(goal.targetAmount)}',
-                                                    style: GoogleFonts.dmSans(
-                                                      fontSize: 14,
-                                                      color: DashboardTokens
-                                                          .periwinkleGraySubtitle,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                            Text(
-                                              '$percent%',
-                                              style: GoogleFonts
-                                                  .bricolageGrotesque(
-                                                fontSize: 20,
-                                                fontWeight: FontWeight.w700,
-                                                color: DashboardTokens
-                                                    .periwinkleGray,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 12),
-
-                                        // 8px progress bar
-                                        Container(
-                                          height: 8,
-                                          decoration: BoxDecoration(
-                                            color: DashboardTokens.poloBlue20,
-                                            borderRadius:
-                                                BorderRadius.circular(4),
-                                          ),
-                                          child: LayoutBuilder(
-                                            builder: (context, constraints) {
-                                              final fillWidth =
-                                                  constraints.maxWidth * progress;
-                                              return Align(
-                                                alignment: Alignment.centerLeft,
-                                                child: AnimatedContainer(
-                                                  duration: AppMotion.bouncy,
-                                                  curve: Curves.easeOutCubic,
-                                                  width: fillWidth,
-                                                  decoration: BoxDecoration(
-                                                    color:
-                                                        DashboardTokens.bermuda,
-                                                    borderRadius:
-                                                        BorderRadius.circular(4),
-                                                  ),
-                                                ),
-                                              );
-                                            },
-                                          ),
-                                        ),
-                                        const SizedBox(height: 12),
-
-                                        // Row 2: Status & Need / Deposit button
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.center,
-                                          children: [
-                                            Expanded(
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                    'On track · $dateText',
-                                                    style: GoogleFonts.dmSans(
-                                                      fontSize: 14,
-                                                      fontWeight:
-                                                          FontWeight.w700,
-                                                      color: DashboardTokens
-                                                          .bermuda,
-                                                    ),
-                                                  ),
-                                                  const SizedBox(height: 2),
-                                                  Text(
-                                                    'Needs about ${CurrencyFormatter.format(monthlyNeed)} a month',
-                                                    style: GoogleFonts.dmSans(
-                                                      fontSize: 13,
-                                                      color: DashboardTokens
-                                                          .periwinkleGraySubtitle,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                            const SizedBox(width: 12),
-                                            // Deposit button (Figma Node 11:2015)
-                                            SpringTouch(
-                                              scaleDown: 0.94,
-                                              onTap: () {
-                                                AppHaptics.lightImpact();
-                                                GoalDepositSheet.show(
-                                                  context,
-                                                  goal,
-                                                );
-                                              },
-                                              child: Container(
-                                                height: 46,
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                  horizontal: 19,
-                                                ),
-                                                decoration: BoxDecoration(
-                                                  borderRadius:
-                                                      BorderRadius.circular(22),
-                                                  border: Border.all(
-                                                    color: DashboardTokens
-                                                        .kashmirBlue,
-                                                    width: 1,
-                                                  ),
-                                                ),
-                                                alignment: Alignment.center,
-                                                child: Text(
-                                                  'Deposit',
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  goal.name,
                                                   style: GoogleFonts.dmSans(
-                                                    fontSize: 14,
+                                                    fontSize: 18,
                                                     fontWeight: FontWeight.w700,
                                                     color: DashboardTokens
                                                         .periwinkleGray,
                                                   ),
                                                 ),
-                                              ),
+                                                const SizedBox(height: 2),
+                                                Text(
+                                                  '${CurrencyFormatter.format(goal.currentAmount)} of ${CurrencyFormatter.format(goal.targetAmount)}',
+                                                  style: GoogleFonts.dmSans(
+                                                    fontSize: 14,
+                                                    color: DashboardTokens
+                                                        .periwinkleGraySubtitle,
+                                                  ),
+                                                ),
+                                              ],
                                             ),
-                                          ],
+                                          ),
+                                          Text(
+                                            '$percent%',
+                                            style:
+                                                GoogleFonts.bricolageGrotesque(
+                                                  fontSize: 20,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: DashboardTokens
+                                                      .periwinkleGray,
+                                                ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 12),
+
+                                      // 8px progress bar
+                                      Container(
+                                        height: 8,
+                                        decoration: BoxDecoration(
+                                          color: DashboardTokens.poloBlue20,
+                                          borderRadius: BorderRadius.circular(
+                                            4,
+                                          ),
                                         ),
-                                      ],
-                                    ),
+                                        child: LayoutBuilder(
+                                          builder: (context, constraints) {
+                                            final fillWidth =
+                                                constraints.maxWidth * progress;
+                                            return Align(
+                                              alignment: Alignment.centerLeft,
+                                              child: AnimatedContainer(
+                                                duration: AppMotion.bouncy,
+                                                curve: Curves.easeOutCubic,
+                                                width: fillWidth,
+                                                decoration: BoxDecoration(
+                                                  color:
+                                                      DashboardTokens.bermuda,
+                                                  borderRadius:
+                                                      BorderRadius.circular(4),
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                      const SizedBox(height: 12),
+
+                                      // Row 2: Status & Need / Deposit button
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
+                                        children: [
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  statusLabel ?? dateText,
+                                                  style: GoogleFonts.dmSans(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: statusLabel == null
+                                                        ? DashboardTokens
+                                                              .periwinkleGraySubtitle
+                                                        : statusColor,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 2),
+                                                Text(
+                                                  'Needs about ${CurrencyFormatter.format(monthlyNeed)} a month',
+                                                  style: GoogleFonts.dmSans(
+                                                    fontSize: 13,
+                                                    color: DashboardTokens
+                                                        .periwinkleGraySubtitle,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          // Deposit button (Figma Node 11:2015)
+                                          PillButton(
+                                            label: 'Deposit',
+                                            variant:
+                                                PillButtonVariant.secondary,
+                                            height: 46,
+                                            expand: false,
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 19,
+                                            ),
+                                            borderRadius: 22,
+                                            fontSize: 14,
+                                            onPressed: () {
+                                              AppHaptics.lightImpact();
+                                              GoalDepositSheet.show(
+                                                context,
+                                                goal,
+                                              );
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),
-                            ),
-                          );
-                        }),
+                            );
+                          }),
 
                           const SizedBox(height: 6),
 
@@ -612,7 +469,8 @@ class GoalsScreen extends ConsumerWidget {
                                   'Planning a purchase?\u00A0',
                                   style: GoogleFonts.dmSans(
                                     fontSize: 14,
-                                    color: DashboardTokens.periwinkleGraySubtitle,
+                                    color:
+                                        DashboardTokens.periwinkleGraySubtitle,
                                   ),
                                 ),
                                 GestureDetector(
@@ -653,36 +511,6 @@ class GoalsScreen extends ConsumerWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildHeroSkeleton() {
-    return Container(
-      height: 120,
-      padding: const EdgeInsets.all(19),
-      decoration: BoxDecoration(
-        color: DashboardTokens.bigStone,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: DashboardTokens.poloBlue22, width: 1),
-      ),
-      child: const Center(
-        child: CircularProgressIndicator(
-          color: DashboardTokens.bermuda,
-          strokeWidth: 2,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildGoalCardSkeleton() {
-    return Container(
-      height: 140,
-      padding: const EdgeInsets.all(19),
-      decoration: BoxDecoration(
-        color: DashboardTokens.bigStone,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: DashboardTokens.poloBlue22, width: 1),
       ),
     );
   }

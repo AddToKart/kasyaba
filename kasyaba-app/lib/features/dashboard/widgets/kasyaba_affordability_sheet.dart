@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_motion.dart';
+import '../../../app/theme/kasyaba_tokens.dart';
+import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
+import '../../../core/providers/preference_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/deterministic_math.dart';
+import '../../../shared/widgets/app_state_widgets.dart';
 import 'dashboard_tokens.dart';
 import 'kasyaba_safe_spend_breakdown_sheet.dart';
 
@@ -28,7 +33,8 @@ void showKasyaBaAffordabilitySheet(BuildContext context) {
 }
 
 class KasyabaAffordabilitySheet {
-  static void show(BuildContext context) => showKasyaBaAffordabilitySheet(context);
+  static void show(BuildContext context) =>
+      showKasyaBaAffordabilitySheet(context);
 }
 
 class _KasyaBaAffordabilitySheetModal extends ConsumerStatefulWidget {
@@ -91,7 +97,10 @@ class _KasyaBaAffordabilitySheetModalState
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = 'Could not evaluate purchase check: $e';
+          _errorMessage = friendlyErrorMessage(
+            e,
+            fallback: 'Could not evaluate this purchase. Please try again.',
+          );
           _isLoading = false;
         });
       }
@@ -104,9 +113,17 @@ class _KasyaBaAffordabilitySheetModalState
     final bills = ref.watch(billsProvider).valueOrNull ?? [];
     final goals = ref.watch(goalsProvider).valueOrNull ?? [];
     final dashboard = ref.watch(dashboardProvider).valueOrNull;
+    final accountBalances = ref.watch(accountBalancesProvider).valueOrNull;
+    final excludedAccountIds = ref.watch(excludedAccountsProvider);
+
+    final adjustedBalance = adjustedLiquidBalance(
+      dashboardTotalBalance: dashboard?.totalBalance ?? 0.0,
+      accountBalances: accountBalances,
+      excludedAccountIds: excludedAccountIds,
+    );
 
     final safeSpendCalc = calculateDailySafeSpend(
-      totalLiquidBalance: dashboard?.totalBalance ?? 0.0,
+      totalLiquidBalance: adjustedBalance,
       bills: bills,
       goals: goals,
       profile: userProfile,
@@ -119,9 +136,9 @@ class _KasyaBaAffordabilitySheetModalState
     final monthlySalary =
         userProfile?.salaryAmount != null && userProfile!.salaryAmount! > 0
         ? userProfile.salaryAmount!
-        : 45000.0;
+        : null;
     final workHours = calculateWorkHoursEquivalent(
-      itemPrice: rawAmount > 0 ? rawAmount : 50000.0,
+      itemPrice: rawAmount,
       monthlySalary: monthlySalary,
     );
 
@@ -131,7 +148,7 @@ class _KasyaBaAffordabilitySheetModalState
         purchaseAmount: rawAmount,
         tenureMonths: _tenureMonths,
         monthlyInterestRatePercent: interestRate,
-        currentBalance: dashboard?.totalBalance ?? 0.0,
+        currentBalance: adjustedBalance,
         daysUntilPayday: safeSpendCalc.daysUntilPayday,
       );
     }
@@ -171,7 +188,7 @@ class _KasyaBaAffordabilitySheetModalState
                   width: 48,
                   height: 4.5,
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.7),
+                    color: DashboardTokens.poloBlue40,
                     borderRadius: BorderRadius.circular(2.5),
                   ),
                 ),
@@ -526,7 +543,9 @@ class _KasyaBaAffordabilitySheetModalState
                       width: double.infinity,
                       height: 56,
                       child: FilledButton(
-                        onPressed: _isLoading ? null : _evaluate,
+                        onPressed: _isLoading || rawAmount <= 0
+                            ? null
+                            : _evaluate,
                         style: FilledButton.styleFrom(
                           backgroundColor: DashboardTokens.periwinkleGray,
                           foregroundColor: DashboardTokens.ebony,
@@ -565,12 +584,22 @@ class _KasyaBaAffordabilitySheetModalState
                       ),
                     ],
 
+                    if (rawAmount <= 0) ...[
+                      const SizedBox(height: 8),
+                      const KasyabaEmptyState(
+                        icon: Icons.receipt_long_outlined,
+                        title: 'Enter a purchase price',
+                        message:
+                            'Add an item price above to see whether it fits your safe-to-spend.',
+                      ),
+                    ],
+
                     // ── Formal Simulation Result Section (Image 2) ──────
                     AnimatedSize(
                       duration: const Duration(milliseconds: 320),
                       curve: Curves.easeOutCubic,
                       alignment: Alignment.topCenter,
-                      child: _result != null
+                      child: _result != null && rawAmount > 0
                           ? Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
@@ -785,42 +814,70 @@ class _SimulationResultCard extends StatelessWidget {
                   height: 1.35,
                 ),
               ),
-              const SizedBox(height: 16),
-
-              // Recessed Life-Energy Work Hours Box
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF101E31),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Column(
+              if (result.earliestSafeBuyDate != null ||
+                  result.daysUntilSafeBuy != null) ...[
+                const SizedBox(height: 12),
+                Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      '${workHours.workHours.toStringAsFixed(1)} work hours · ${workHours.workDays.toStringAsFixed(1)} workdays',
-                      style: GoogleFonts.dmSans(
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.bold,
-                        color: DashboardTokens.periwinkleGray,
-                      ),
+                    const Icon(
+                      Icons.event_available_outlined,
+                      size: 16,
+                      color: DashboardTokens.poloBlue,
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Based on ${CurrencyFormatter.format(workHours.salaryAmount ?? 45000, decimalDigits: 0)} a month, ${CurrencyFormatter.format(workHours.hourlyWage > 0 ? workHours.hourlyWage : 255.68)} per hour, 176 work hours a month.',
-                      style: GoogleFonts.dmSans(
-                        fontSize: 12,
-                        color: DashboardTokens.periwinkleGraySubtitle,
-                        height: 1.35,
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _earliestSafeBuyLabel(result),
+                        style: GoogleFonts.dmSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: DashboardTokens.poloBlue,
+                          height: 1.35,
+                        ),
                       ),
                     ),
                   ],
                 ),
-              ),
+              ],
+              if (workHours.hasSalary) ...[
+                const SizedBox(height: 16),
+
+                // Recessed Life-Energy Work Hours Box
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  decoration: BoxDecoration(
+                    color: KasyabaTokens.recessFill,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${workHours.workHours.toStringAsFixed(1)} work hours · ${workHours.workDays.toStringAsFixed(1)} workdays',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.bold,
+                          color: DashboardTokens.periwinkleGray,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Based on ${CurrencyFormatter.format(workHours.salaryAmount!, decimalDigits: 0)} a month, ${CurrencyFormatter.format(workHours.hourlyWage)} per hour, 176 work hours a month.',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 12,
+                          color: DashboardTokens.periwinkleGraySubtitle,
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -853,7 +910,9 @@ class _SimulationResultCard extends StatelessWidget {
                 child: Text(
                   mode == _PaymentMode.payInFull
                       ? 'PAY IN FULL'
-                      : 'INSTALLMENT (${installmentComp?.tenureMonths ?? 3}M)',
+                      : installmentComp == null
+                      ? 'INSTALLMENT'
+                      : 'INSTALLMENT (${installmentComp!.tenureMonths}M)',
                   style: GoogleFonts.dmSans(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
@@ -867,7 +926,9 @@ class _SimulationResultCard extends StatelessWidget {
                 label: 'Paid today',
                 value: mode == _PaymentMode.payInFull
                     ? '-${CurrencyFormatter.format(rawAmount)}'
-                    : '-${CurrencyFormatter.format(installmentComp?.monthlyInstallment ?? (rawAmount / 3))}',
+                    : installmentComp == null
+                    ? '—'
+                    : '-${CurrencyFormatter.format(installmentComp!.monthlyInstallment)}',
                 valueColor: DashboardTokens.apricot,
               ),
               const SizedBox(height: 14),
@@ -875,8 +936,9 @@ class _SimulationResultCard extends StatelessWidget {
                 label: 'Cash left',
                 value: CurrencyFormatter.format(
                   mode == _PaymentMode.payInFull
-                      ? result.postPurchaseBalance
-                      : (installmentComp?.postCashBalance ??
+                      ? (installmentComp?.postCashBalance ??
+                            result.postPurchaseBalance)
+                      : (installmentComp?.postInstallmentBalance ??
                             result.postPurchaseBalance),
                 ),
                 valueColor: DashboardTokens.periwinkleGray,
@@ -941,6 +1003,27 @@ class _SimulationResultCard extends StatelessWidget {
       ],
     );
   }
+}
+
+String _earliestSafeBuyLabel(PurchaseCheckResult result) {
+  final parsedDate = result.earliestSafeBuyDate != null
+      ? DateTime.tryParse(result.earliestSafeBuyDate!)
+      : null;
+  final dateLabel = parsedDate != null
+      ? DateFormat('MMM d, yyyy').format(parsedDate)
+      : result.earliestSafeBuyDate;
+  final days = result.daysUntilSafeBuy;
+
+  if (dateLabel != null && days != null) {
+    return 'Earliest safe buy: $dateLabel · in $days day${days == 1 ? '' : 's'}';
+  }
+  if (dateLabel != null) {
+    return 'Earliest safe buy: $dateLabel';
+  }
+  if (days != null) {
+    return 'Safe to buy in $days day${days == 1 ? '' : 's'}';
+  }
+  return '';
 }
 
 class _MetricRow extends StatelessWidget {

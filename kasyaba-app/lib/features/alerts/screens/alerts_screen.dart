@@ -9,6 +9,8 @@ import '../../../shared/widgets/motion_components.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
+import '../../../shared/widgets/app_state_widgets.dart';
+import '../../../shared/widgets/kasyaba_toast.dart';
 import '../../auth/widgets/auth_widgets.dart';
 import '../../dashboard/widgets/dashboard_tokens.dart';
 
@@ -21,7 +23,10 @@ class AlertsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final alertsAsync = ref.watch(alertsProvider);
-    final topPadding = math.max(56.0, MediaQuery.of(context).padding.top + 16.0);
+    final topPadding = math.max(
+      56.0,
+      MediaQuery.of(context).padding.top + 16.0,
+    );
 
     return Scaffold(
       backgroundColor: DashboardTokens.ebony,
@@ -102,7 +107,8 @@ class AlertsScreen extends ConsumerWidget {
                               const SizedBox(height: 8),
                               _NotificationGroupCard(
                                 alerts: todayAlerts,
-                                onAlertTap: (alert) => _handleAlertTap(ref, alert),
+                                onAlertTap: (alert) =>
+                                    _handleAlertTap(context, ref, alert),
                               ),
                             ],
                           ),
@@ -124,7 +130,8 @@ class AlertsScreen extends ConsumerWidget {
                               const SizedBox(height: 8),
                               _NotificationGroupCard(
                                 alerts: earlierAlerts,
-                                onAlertTap: (alert) => _handleAlertTap(ref, alert),
+                                onAlertTap: (alert) =>
+                                    _handleAlertTap(context, ref, alert),
                               ),
                             ],
                           ),
@@ -141,14 +148,28 @@ class AlertsScreen extends ConsumerWidget {
     );
   }
 
-  void _handleAlertTap(WidgetRef ref, AlertItem alert) async {
+  void _handleAlertTap(
+    BuildContext context,
+    WidgetRef ref,
+    AlertItem alert,
+  ) async {
     AppHaptics.selectionClick();
     if (!alert.isRead) {
       try {
         final dio = ref.read(dioProvider);
         await dio.post('/alerts/${alert.id}/read');
         ref.invalidate(alertsProvider);
-      } catch (_) {}
+      } catch (e) {
+        if (context.mounted) {
+          KasyabaToast.showError(
+            context,
+            friendlyErrorMessage(
+              e,
+              fallback: 'Could not mark this notification as read.',
+            ),
+          );
+        }
+      }
     }
   }
 }
@@ -225,20 +246,13 @@ class _NotificationGroupCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: DashboardTokens.bigStone,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(
-          color: DashboardTokens.poloBlue22,
-          width: 1,
-        ),
+        border: Border.all(color: DashboardTokens.poloBlue22, width: 1),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 19, vertical: 3),
       child: Column(
         children: [
           for (int i = 0; i < alerts.length; i++) ...[
-            if (i > 0)
-              Container(
-                height: 1,
-                color: DashboardTokens.poloBlue16,
-              ),
+            if (i > 0) Container(height: 1, color: DashboardTokens.poloBlue16),
             _NotificationItemRow(
               alert: alerts[i],
               onTap: () => onAlertTap(alerts[i]),
@@ -255,10 +269,7 @@ class _NotificationItemRow extends StatelessWidget {
   final AlertItem alert;
   final VoidCallback onTap;
 
-  const _NotificationItemRow({
-    required this.alert,
-    required this.onTap,
-  });
+  const _NotificationItemRow({required this.alert, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -376,7 +387,7 @@ class _NotificationItemRow extends StatelessWidget {
       'Sep',
       'Oct',
       'Nov',
-      'Dec'
+      'Dec',
     ];
     final monthStr = months[date.month - 1];
     if (now.year == date.year) {
@@ -396,10 +407,7 @@ class _NotificationsEmptyState extends StatelessWidget {
       decoration: BoxDecoration(
         color: DashboardTokens.bigStone,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(
-          color: DashboardTokens.poloBlue22,
-          width: 1,
-        ),
+        border: Border.all(color: DashboardTokens.poloBlue22, width: 1),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
       child: Column(
@@ -411,10 +419,7 @@ class _NotificationsEmptyState extends StatelessWidget {
             decoration: BoxDecoration(
               color: DashboardTokens.ebony85,
               shape: BoxShape.circle,
-              border: Border.all(
-                color: DashboardTokens.poloBlue22,
-                width: 1,
-              ),
+              border: Border.all(color: DashboardTokens.poloBlue22, width: 1),
             ),
             child: const Icon(
               Icons.notifications_none_rounded,
@@ -453,27 +458,7 @@ class _NotificationsLoadingState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: DashboardTokens.bigStone,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(
-          color: DashboardTokens.poloBlue22,
-          width: 1,
-        ),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
-      child: const Center(
-        child: SizedBox(
-          width: 28,
-          height: 28,
-          child: CircularProgressIndicator(
-            strokeWidth: 2.5,
-            color: DashboardTokens.periwinkleGray,
-          ),
-        ),
-      ),
-    );
+    return const KasyabaLoadingSkeleton(lines: 5);
   }
 }
 
@@ -482,10 +467,7 @@ class _NotificationsErrorCard extends StatelessWidget {
   final String message;
   final VoidCallback onRetry;
 
-  const _NotificationsErrorCard({
-    required this.message,
-    required this.onRetry,
-  });
+  const _NotificationsErrorCard({required this.message, required this.onRetry});
 
   @override
   Widget build(BuildContext context) {

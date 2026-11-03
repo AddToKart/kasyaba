@@ -7,7 +7,9 @@ import 'dashboard_tokens.dart';
 class QuickStatsRow extends StatelessWidget {
   final double savings;
   final double budgetPercent;
-  final int runwayDays;
+
+  /// Null means the runway cannot be derived (e.g. no spending history yet).
+  final int? runwayDays;
   final VoidCallback onSavedTap;
   final VoidCallback onBudgetTap;
   final VoidCallback onBufferTap;
@@ -26,13 +28,19 @@ class QuickStatsRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final formattedSaved = CurrencyFormatter.formatCompact(savings);
     final formattedBudget = '${budgetPercent.toStringAsFixed(0)}%';
-    final formattedBuffer = runwayDays >= 90 ? '90+ days' : '$runwayDays days';
+    final days = runwayDays;
+    final formattedBuffer = days == null
+        ? '—'
+        : (days >= 90 ? '90+ days' : '$days days');
+    final bufferColor = days == null
+        ? DashboardTokens.periwinkleGraySubtitle
+        : DashboardTokens.bermuda;
 
     final budgetColor = budgetPercent >= 100
         ? DashboardTokens.apricot
         : (budgetPercent >= 80
-            ? DashboardTokens.apricot.withValues(alpha: 0.9)
-            : DashboardTokens.bermuda);
+              ? DashboardTokens.apricot.withValues(alpha: 0.9)
+              : DashboardTokens.bermuda);
 
     return Row(
       children: [
@@ -63,7 +71,7 @@ class QuickStatsRow extends StatelessWidget {
           child: _QuickStatCard(
             value: formattedBuffer,
             label: 'Buffer',
-            valueColor: DashboardTokens.bermuda,
+            valueColor: bufferColor,
             onTap: onBufferTap,
           ),
         ),
@@ -95,10 +103,7 @@ class _QuickStatCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: DashboardTokens.bigStone,
           borderRadius: BorderRadius.circular(22),
-          border: Border.all(
-            color: DashboardTokens.poloBlue22,
-            width: 1.0,
-          ),
+          border: Border.all(color: DashboardTokens.poloBlue22, width: 1.0),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -134,4 +139,3 @@ class _QuickStatCard extends StatelessWidget {
     );
   }
 }
-

@@ -16,15 +16,21 @@ class RegisterScreen extends ConsumerStatefulWidget {
 
 class _RegisterScreenState extends ConsumerState<RegisterScreen>
     with TickerProviderStateMixin {
-  final formGroup = FormGroup({
-    'name': FormControl<String>(validators: [Validators.required]),
-    'email': FormControl<String>(
-      validators: [Validators.required, Validators.email],
-    ),
-    'password': FormControl<String>(
-      validators: [Validators.required, Validators.minLength(8)],
-    ),
-  });
+  final formGroup = FormGroup(
+    {
+      'name': FormControl<String>(validators: [Validators.required]),
+      'email': FormControl<String>(
+        validators: [Validators.required, Validators.email],
+      ),
+      'password': FormControl<String>(
+        validators: [Validators.required, Validators.minLength(8)],
+      ),
+      'confirmPassword': FormControl<String>(
+        validators: [Validators.required],
+      ),
+    },
+    validators: [Validators.mustMatch('password', 'confirmPassword')],
+  );
 
   late final AnimationController _bgController;
   late final AnimationController _entryController;
@@ -58,6 +64,20 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
     _entryController.dispose();
     formGroup.dispose();
     super.dispose();
+  }
+
+  double _passwordStrength(String password) {
+    if (password.isEmpty) return 0;
+    var score = 0;
+    if (password.length >= 8) score++;
+    if (password.length >= 12) score++;
+    if (RegExp(r'[a-z]').hasMatch(password) &&
+        RegExp(r'[A-Z]').hasMatch(password)) {
+      score++;
+    }
+    if (RegExp(r'\d').hasMatch(password)) score++;
+    if (RegExp(r'[^A-Za-z0-9]').hasMatch(password)) score++;
+    return (score / 5).clamp(0.0, 1.0).toDouble();
   }
 
   Future<void> _handleRegister() async {
@@ -113,40 +133,27 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                           children: [
                             const SizedBox(height: 12),
 
-                            // ── Top Navigation & Step Indicator (Node 11:741-746) ──
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                AuthBackButton(
-                                  onPressed: () {
-                                    if (context.canPop()) {
-                                      context.pop();
-                                    } else {
-                                      context.go('/login');
-                                    }
-                                  },
-                                  size: 46,
-                                  radius: 22,
-                                  backgroundColor: isDark
-                                      ? AuthFigmaTokens.cello55
-                                      : AppColors.lightCardSurface,
-                                  borderColor: isDark
-                                      ? AuthFigmaTokens.poloBlue28
-                                      : AppColors.lightBorderHairline,
-                                  hasBlur: true,
-                                ),
-                                Text(
-                                  'STEP 1 OF 2',
-                                  style: GoogleFonts.dmSans(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: 1.0,
-                                    color: isDark
-                                        ? AuthFigmaTokens.poloBlue
-                                        : AppColors.lightTextSecondary,
-                                  ),
-                                ),
-                              ],
+                            // ── Top Navigation (Node 11:741-746) ──
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: AuthBackButton(
+                                onPressed: () {
+                                  if (context.canPop()) {
+                                    context.pop();
+                                  } else {
+                                    context.go('/login');
+                                  }
+                                },
+                                size: 46,
+                                radius: 22,
+                                backgroundColor: isDark
+                                    ? AuthFigmaTokens.cello55
+                                    : AppColors.lightCardSurface,
+                                borderColor: isDark
+                                    ? AuthFigmaTokens.poloBlue28
+                                    : AppColors.lightBorderHairline,
+                                hasBlur: true,
+                              ),
                             ),
                             const SizedBox(height: 28),
 
@@ -225,13 +232,58 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                                     label: 'Password',
                                     hintText: 'At least 8 characters',
                                     obscureText: true,
-                                    textInputAction: TextInputAction.done,
-                                    onSubmitted: _handleRegister,
+                                    textInputAction: TextInputAction.next,
                                     validationMessages: {
                                       ValidationMessage.required: (_) =>
                                           'Password is required',
                                       ValidationMessage.minLength: (_) =>
                                           'At least 8 characters required',
+                                    },
+                                  ),
+                                  ReactiveFormConsumer(
+                                    builder: (context, form, child) {
+                                      final password =
+                                          (form.control('password').value
+                                                  as String?) ??
+                                              '';
+                                      return PasswordStrengthBar(
+                                        strength:
+                                            _passwordStrength(password),
+                                      );
+                                    },
+                                  ),
+                                  const SizedBox(height: 14),
+
+                                  // CONFIRM PASSWORD Field
+                                  AuthReactiveField(
+                                    formControlName: 'confirmPassword',
+                                    label: 'Confirm password',
+                                    hintText: 'Re-enter your password',
+                                    obscureText: true,
+                                    textInputAction: TextInputAction.done,
+                                    onSubmitted: _handleRegister,
+                                    validationMessages: {
+                                      ValidationMessage.required: (_) =>
+                                          'Please confirm your password',
+                                      ValidationMessage.mustMatch: (_) =>
+                                          'Passwords do not match',
+                                    },
+                                  ),
+                                  ReactiveFormConsumer(
+                                    builder: (context, form, child) {
+                                      final password =
+                                          (form.control('password').value
+                                                  as String?) ??
+                                              '';
+                                      final confirm =
+                                          (form.control('confirmPassword')
+                                                      .value
+                                                  as String?) ??
+                                              '';
+                                      return PasswordMatchIndicator(
+                                        isMatching: password == confirm,
+                                        hasConfirmText: confirm.isNotEmpty,
+                                      );
                                     },
                                   ),
                                   const SizedBox(height: 14),

@@ -58,7 +58,7 @@ void main() {
     expect(find.text('Reset Password'), findsNothing);
   });
 
-  testWidgets('RegisterScreen renders exact Figma elements, step indicator, form card, and continue button',
+  testWidgets('RegisterScreen renders exact Figma elements, form card, and continue button',
       (tester) async {
     await tester.pumpWidget(
       const ProviderScope(
@@ -71,8 +71,8 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 1000));
 
-    // Top Navigation & Step Indicator
-    expect(find.text('STEP 1 OF 2'), findsOneWidget);
+    // No onboarding step copy (single-step registration)
+    expect(find.text('STEP 1 OF 2'), findsNothing);
 
     // Screen Title and Subtitle
     expect(find.text('Create your account.'), findsOneWidget);
@@ -82,6 +82,7 @@ void main() {
     expect(find.text('FULL NAME'), findsOneWidget);
     expect(find.text('EMAIL'), findsOneWidget);
     expect(find.text('PASSWORD'), findsOneWidget);
+    expect(find.text('CONFIRM PASSWORD'), findsOneWidget);
 
     // Primary Continue button
     expect(find.text('Continue'), findsOneWidget);
@@ -91,11 +92,16 @@ void main() {
 
     // Fill form and check validity
     final fields = find.byType(TextField);
-    expect(fields, findsNWidgets(3));
+    expect(fields, findsNWidgets(4));
     await tester.enterText(fields.at(0), 'Juan Dela Cruz');
     await tester.enterText(fields.at(1), 'juan@example.com');
     await tester.enterText(fields.at(2), 'Password123!');
+    await tester.enterText(fields.at(3), 'Password123!');
     await tester.pump();
+
+    // Password strength and match indicators are wired to the form
+    expect(find.text('Strong password'), findsOneWidget);
+    expect(find.text('Passwords match'), findsOneWidget);
   });
 
   testWidgets('ForgotPasswordScreen renders exact Figma elements, back button, inline field, and action button',

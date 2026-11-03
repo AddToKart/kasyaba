@@ -37,6 +37,19 @@ class AppMotion {
 
   /// Smooth deceleration for bottom sheets and drawers
   static const Curve easeOutQuart = Curves.easeOutQuart;
+
+  // ── Spacing Scale ───────────────────────────────────────────
+  static const double spacingXs = 4.0;
+  static const double spacingSm = 10.0;
+  static const double spacingMd = 14.0;
+  static const double spacingLg = 20.0;
+  static const double spacingXl = 24.0;
+
+  // ── Radius Scale ────────────────────────────────────────────
+  static const double radiusSm = 12.0;
+  static const double radiusMd = 20.0;
+  static const double radiusLg = 28.0;
+  static const double radiusXl = 32.0;
 }
 
 /// Tactile Haptics Engine wrapper for consistent physical feedback

@@ -47,24 +47,6 @@ void main() {
     expect(wasTapped, isTrue);
   });
 
-  testWidgets('AnimatedCurrencyText interpolates and renders formatted amount', (tester) async {
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: Scaffold(
-          body: Center(
-            child: AnimatedCurrencyText(
-              value: 12500.0,
-              style: TextStyle(fontSize: 20),
-            ),
-          ),
-        ),
-      ),
-    );
-
-    await tester.pumpAndSettle();
-    expect(find.text('₱12,500.00'), findsOneWidget);
-  });
-
   testWidgets('SlidingSegmentedPill renders items and responds to taps', (tester) async {
     var selectedIndex = 0;
 

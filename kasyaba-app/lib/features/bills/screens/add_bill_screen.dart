@@ -8,8 +8,9 @@ import '../../../app/theme/app_motion.dart';
 import '../../../shared/widgets/motion_components.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
-import '../../../core/utils/currency_formatter.dart';
+import '../../../shared/widgets/kasyaba_date_picker.dart';
 import '../../../shared/widgets/kasyaba_toast.dart';
+import '../../../shared/widgets/pill_button.dart';
 import '../../dashboard/widgets/dashboard_tokens.dart';
 
 DateTime _dateOnly(DateTime date) => DateTime(date.year, date.month, date.day);
@@ -33,9 +34,9 @@ class _AddBillScreenState extends ConsumerState<AddBillScreen> {
 
   DateTime _dueDate = _dateOnly(DateTime.now().add(const Duration(days: 7)));
   String _repeats = 'Monthly'; // 'Once', 'Weekly', 'Monthly'
-  String _remindMe = '3 days before'; // 'On the day', '1 day before', '3 days before', '1 week before'
-  String? _selectedAccountId;
-  String? _selectedCategory = 'Utilities';
+  String _remindMe = '1 day before';
+  String? _selectedCategoryId;
+  String? _selectedCategoryName;
   bool _isSubmitting = false;
 
   static const List<String> _repeatOptions = ['Once', 'Weekly', 'Monthly'];
@@ -45,14 +46,17 @@ class _AddBillScreenState extends ConsumerState<AddBillScreen> {
     '3 days before',
     '1 week before',
   ];
+  static const Map<String, int> _remindLeadDays = {
+    'On the day': 0,
+    '1 day before': 1,
+    '3 days before': 3,
+    '1 week before': 7,
+  };
 
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(
-      text: widget.initialName ?? 'Electricity',
-    );
-    _amountController.text = '2500';
+    _nameController = TextEditingController(text: widget.initialName ?? '');
   }
 
   @override
@@ -79,17 +83,7 @@ class _AddBillScreenState extends ConsumerState<AddBillScreen> {
       lastDate: DateTime(2035),
       builder: (ctx, child) {
         if (child == null) return const SizedBox.shrink();
-        return Theme(
-          data: Theme.of(ctx).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: DashboardTokens.periwinkleGray,
-              onPrimary: DashboardTokens.ebony,
-              surface: DashboardTokens.bigStone,
-              onSurface: DashboardTokens.periwinkleGray,
-            ),
-          ),
-          child: child,
-        );
+        return Theme(data: kasyabaDatePickerTheme(ctx), child: child);
       },
     );
     if (picked != null && mounted) {
@@ -97,117 +91,31 @@ class _AddBillScreenState extends ConsumerState<AddBillScreen> {
     }
   }
 
-  Future<void> _showAccountPicker() async {
+  Future<void> _showCategoryPicker() async {
     AppHaptics.selectionClick();
-    final accounts = ref.read(accountsProvider).valueOrNull ?? [];
-    final balances = ref.read(accountBalancesProvider).valueOrNull ?? {};
+    final cached = ref.read(categoriesProvider).valueOrNull;
+    List<Category> categories;
+    if (cached != null && cached.isNotEmpty) {
+      categories = cached;
+    } else {
+      try {
+        categories = await ref.read(categoriesProvider.future);
+      } catch (_) {
+        categories = const [];
+      }
+    }
+    if (!mounted) return;
 
-    if (accounts.isEmpty) {
-      KasyabaToast.showError(
+    if (categories.isEmpty) {
+      KasyabaToast.showInfo(
         context,
-        'No accounts available',
-        subtitle: 'Create one in Accounts first.',
+        'Categories unavailable',
+        subtitle: 'You can still save this bill without a category.',
       );
       return;
     }
 
-    await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: DashboardTokens.bigStone,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (sheetContext) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 36,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: DashboardTokens.poloBlue22,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Pay From Account',
-                  style: GoogleFonts.bricolageGrotesque(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: DashboardTokens.periwinkleGray,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Flexible(
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    itemCount: accounts.length,
-                    separatorBuilder: (_, _) => Divider(
-                      height: 1,
-                      color: DashboardTokens.poloBlue16,
-                    ),
-                    itemBuilder: (ctx, idx) {
-                      final acc = accounts[idx];
-                      final bal = balances[acc.id] ?? 0.0;
-                      final isSelected = _selectedAccountId == acc.id;
-                      return ListTile(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        title: Text(
-                          acc.name,
-                          style: GoogleFonts.dmSans(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: isSelected
-                                ? DashboardTokens.bermuda
-                                : DashboardTokens.periwinkleGray,
-                          ),
-                        ),
-                        trailing: Text(
-                          CurrencyFormatter.format(bal),
-                          style: GoogleFonts.dmSans(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: DashboardTokens.periwinkleGraySubtitle,
-                          ),
-                        ),
-                        onTap: () => Navigator.of(sheetContext).pop(acc.id),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    ).then((chosenId) {
-      if (chosenId != null && mounted) {
-        setState(() => _selectedAccountId = chosenId);
-      }
-    });
-  }
-
-  Future<void> _showCategoryPicker() async {
-    AppHaptics.selectionClick();
-    final categories = [
-      'Utilities',
-      'Housing & Rent',
-      'Subscription',
-      'Internet',
-      'Insurance',
-      'Credit Card',
-      'Education',
-      'Other',
-    ];
-
-    await showModalBottomSheet<String>(
+    final chosen = await showModalBottomSheet<Category>(
       context: context,
       backgroundColor: DashboardTokens.bigStone,
       shape: const RoundedRectangleBorder(
@@ -244,17 +152,40 @@ class _AddBillScreenState extends ConsumerState<AddBillScreen> {
                 Flexible(
                   child: ListView.separated(
                     shrinkWrap: true,
-                    itemCount: categories.length,
-                    separatorBuilder: (_, _) => Divider(
-                      height: 1,
-                      color: DashboardTokens.poloBlue16,
-                    ),
+                    itemCount: categories.length + 1,
+                    separatorBuilder: (_, _) =>
+                        Divider(height: 1, color: DashboardTokens.poloBlue16),
                     itemBuilder: (ctx, idx) {
-                      final c = categories[idx];
-                      final isSelected = _selectedCategory == c;
+                      if (idx == 0) {
+                        final isSelected = _selectedCategoryId == null;
+                        return ListTile(
+                          title: Text(
+                            'No category',
+                            style: GoogleFonts.dmSans(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: isSelected
+                                  ? DashboardTokens.bermuda
+                                  : DashboardTokens.periwinkleGray,
+                            ),
+                          ),
+                          trailing: isSelected
+                              ? const Icon(
+                                  Icons.check_rounded,
+                                  color: DashboardTokens.bermuda,
+                                  size: 20,
+                                )
+                              : null,
+                          onTap: () => Navigator.of(
+                            sheetContext,
+                          ).pop(const Category(id: '', name: 'No category')),
+                        );
+                      }
+                      final category = categories[idx - 1];
+                      final isSelected = _selectedCategoryId == category.id;
                       return ListTile(
                         title: Text(
-                          c,
+                          category.name,
                           style: GoogleFonts.dmSans(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
@@ -263,7 +194,14 @@ class _AddBillScreenState extends ConsumerState<AddBillScreen> {
                                 : DashboardTokens.periwinkleGray,
                           ),
                         ),
-                        onTap: () => Navigator.of(sheetContext).pop(c),
+                        trailing: isSelected
+                            ? const Icon(
+                                Icons.check_rounded,
+                                color: DashboardTokens.bermuda,
+                                size: 20,
+                              )
+                            : null,
+                        onTap: () => Navigator.of(sheetContext).pop(category),
                       );
                     },
                   ),
@@ -273,14 +211,18 @@ class _AddBillScreenState extends ConsumerState<AddBillScreen> {
           ),
         );
       },
-    ).then((chosen) {
-      if (chosen != null && mounted) {
-        setState(() => _selectedCategory = chosen);
-      }
-    });
+    );
+
+    if (chosen != null && mounted) {
+      setState(() {
+        _selectedCategoryId = chosen.id.isEmpty ? null : chosen.id;
+        _selectedCategoryName = chosen.id.isEmpty ? null : chosen.name;
+      });
+    }
   }
 
   Future<void> _handleSave() async {
+    if (_isSubmitting) return;
     if (!_formKey.currentState!.validate()) return;
 
     final name = _nameController.text.trim();
@@ -289,7 +231,9 @@ class _AddBillScreenState extends ConsumerState<AddBillScreen> {
       return;
     }
 
-    final amount = double.tryParse(_amountController.text.replaceAll(',', '').trim()) ?? 0.0;
+    final amount =
+        double.tryParse(_amountController.text.replaceAll(',', '').trim()) ??
+        0.0;
     if (amount <= 0) {
       KasyabaToast.showError(context, 'Please enter a valid bill amount.');
       return;
@@ -304,6 +248,8 @@ class _AddBillScreenState extends ConsumerState<AddBillScreen> {
         amount: amount,
         startsOn: _dueDate,
         recurrence: _repeats.toLowerCase(),
+        categoryId: _selectedCategoryId,
+        reminderLeadDays: _remindLeadDays[_remindMe] ?? 1,
       );
 
       if (mounted) {
@@ -318,7 +264,10 @@ class _AddBillScreenState extends ConsumerState<AddBillScreen> {
       if (mounted) {
         KasyabaToast.showError(
           context,
-          friendlyErrorMessage(e, fallback: 'Could not save bill. Please try again.'),
+          friendlyErrorMessage(
+            e,
+            fallback: 'Could not save bill. Please try again.',
+          ),
         );
       }
     } finally {
@@ -329,18 +278,6 @@ class _AddBillScreenState extends ConsumerState<AddBillScreen> {
   @override
   Widget build(BuildContext context) {
     final topPadding = MediaQuery.paddingOf(context).top;
-    final accounts = ref.watch(accountsProvider).valueOrNull ?? [];
-    final balances = ref.watch(accountBalancesProvider).valueOrNull ?? {};
-
-    if (_selectedAccountId == null && accounts.isNotEmpty) {
-      _selectedAccountId = accounts.first.id;
-    }
-
-    final currentAccount = accounts.firstWhere(
-      (a) => a.id == _selectedAccountId,
-      orElse: () => Account(id: _selectedAccountId ?? '', name: 'Cash Wallet'),
-    );
-    final accountBalance = balances[currentAccount.id] ?? 0.0;
 
     return Theme(
       data: Theme.of(context).copyWith(
@@ -426,11 +363,13 @@ class _AddBillScreenState extends ConsumerState<AddBillScreen> {
                       ),
                       cursorColor: DashboardTokens.periwinkleGray,
                       decoration: InputDecoration(
-                        hintText: 'Electricity',
+                        hintText: 'e.g. Internet bill',
                         hintStyle: GoogleFonts.dmSans(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: DashboardTokens.periwinkleGray.withValues(alpha: 0.4),
+                          color: DashboardTokens.periwinkleGray.withValues(
+                            alpha: 0.4,
+                          ),
                         ),
                         border: InputBorder.none,
                         enabledBorder: InputBorder.none,
@@ -445,7 +384,10 @@ class _AddBillScreenState extends ConsumerState<AddBillScreen> {
 
                   // ── Hero Amount Card (Node 11:1526) ─────────────────────────
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 21, vertical: 24),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 21,
+                      vertical: 24,
+                    ),
                     decoration: BoxDecoration(
                       color: DashboardTokens.cello60,
                       borderRadius: BorderRadius.circular(28),
@@ -471,9 +413,10 @@ class _AddBillScreenState extends ConsumerState<AddBillScreen> {
                           child: IntrinsicWidth(
                             child: TextFormField(
                               controller: _amountController,
-                              keyboardType: const TextInputType.numberWithOptions(
-                                decimal: true,
-                              ),
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
                               style: GoogleFonts.bricolageGrotesque(
                                 fontSize: 44,
                                 fontWeight: FontWeight.bold,
@@ -487,7 +430,8 @@ class _AddBillScreenState extends ConsumerState<AddBillScreen> {
                                 hintStyle: GoogleFonts.bricolageGrotesque(
                                   fontSize: 44,
                                   fontWeight: FontWeight.bold,
-                                  color: DashboardTokens.periwinkleGray.withValues(alpha: 0.35),
+                                  color: DashboardTokens.periwinkleGray
+                                      .withValues(alpha: 0.35),
                                 ),
                                 border: InputBorder.none,
                                 enabledBorder: InputBorder.none,
@@ -560,7 +504,8 @@ class _AddBillScreenState extends ConsumerState<AddBillScreen> {
                                 border: isSelected
                                     ? null
                                     : Border.all(
-                                        color: DashboardTokens.poloBlue.withValues(alpha: 0.4),
+                                        color: DashboardTokens.poloBlue
+                                            .withValues(alpha: 0.4),
                                         width: 1,
                                       ),
                               ),
@@ -620,7 +565,8 @@ class _AddBillScreenState extends ConsumerState<AddBillScreen> {
                                 border: isSelected
                                     ? null
                                     : Border.all(
-                                        color: DashboardTokens.poloBlue.withValues(alpha: 0.4),
+                                        color: DashboardTokens.poloBlue
+                                            .withValues(alpha: 0.4),
                                         width: 1,
                                       ),
                               ),
@@ -642,37 +588,6 @@ class _AddBillScreenState extends ConsumerState<AddBillScreen> {
                   ),
                   const SizedBox(height: 14),
 
-                  // ── Pay from Card (Node 11:1557) ────────────────────────────
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: _showAccountPicker,
-                    child: _buildInputRowCard(
-                      label: 'Pay from',
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              currentAccount.name,
-                              style: GoogleFonts.dmSans(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: DashboardTokens.periwinkleGray,
-                              ),
-                            ),
-                          ),
-                          Text(
-                            CurrencyFormatter.format(accountBalance),
-                            style: GoogleFonts.dmSans(
-                              fontSize: 14,
-                              color: DashboardTokens.periwinkleGraySubtitle,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-
                   // ── Category Card (Node 11:1564) ────────────────────────────
                   GestureDetector(
                     behavior: HitTestBehavior.opaque,
@@ -680,11 +595,13 @@ class _AddBillScreenState extends ConsumerState<AddBillScreen> {
                     child: _buildInputRowCard(
                       label: 'Category',
                       child: Text(
-                        _selectedCategory ?? 'Utilities',
+                        _selectedCategoryName ?? 'Select category',
                         style: GoogleFonts.dmSans(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: DashboardTokens.periwinkleGray,
+                          color: _selectedCategoryName == null
+                              ? DashboardTokens.periwinkleGraySubtitle
+                              : DashboardTokens.periwinkleGray,
                         ),
                       ),
                     ),
@@ -692,34 +609,10 @@ class _AddBillScreenState extends ConsumerState<AddBillScreen> {
                   const SizedBox(height: 24),
 
                   // ── CTA Button (Node 11:1570) ───────────────────────────────
-                  SpringTouch(
-                    scaleDown: 0.96,
-                    onTap: _isSubmitting ? null : _handleSave,
-                    child: Container(
-                      height: 56,
-                      decoration: BoxDecoration(
-                        color: DashboardTokens.periwinkleGray,
-                        borderRadius: BorderRadius.circular(28),
-                      ),
-                      alignment: Alignment.center,
-                      child: _isSubmitting
-                          ? const SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                                color: DashboardTokens.ebony,
-                              ),
-                            )
-                          : Text(
-                              'Save bill',
-                              style: GoogleFonts.dmSans(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: DashboardTokens.ebony,
-                              ),
-                            ),
-                    ),
+                  PillButton(
+                    label: 'Save bill',
+                    onPressed: _isSubmitting ? null : _handleSave,
+                    isLoading: _isSubmitting,
                   ),
                 ],
               ),
@@ -730,20 +623,14 @@ class _AddBillScreenState extends ConsumerState<AddBillScreen> {
     );
   }
 
-  Widget _buildInputRowCard({
-    required String label,
-    required Widget child,
-  }) {
+  Widget _buildInputRowCard({required String label, required Widget child}) {
     return Container(
       height: 58,
       padding: const EdgeInsets.symmetric(horizontal: 21),
       decoration: BoxDecoration(
         color: DashboardTokens.bigStone,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(
-          color: DashboardTokens.poloBlue22,
-          width: 1,
-        ),
+        border: Border.all(color: DashboardTokens.poloBlue22, width: 1),
       ),
       child: Row(
         children: [

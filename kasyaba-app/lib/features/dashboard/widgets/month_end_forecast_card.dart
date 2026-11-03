@@ -1,32 +1,58 @@
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
 import 'dashboard_tokens.dart';
 
-class MonthEndForecastCard extends StatelessWidget {
+class MonthEndForecastCard extends ConsumerWidget {
   final DashboardData data;
   final VoidCallback? onTap;
 
-  const MonthEndForecastCard({
-    super.key,
-    required this.data,
-    this.onTap,
-  });
+  const MonthEndForecastCard({super.key, required this.data, this.onTap});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final now = DateTime.now();
     final monthEnd = DateTime(now.year, now.month + 1, 0);
     final monthEndStr = DateFormat('MMM d').format(monthEnd);
     final monthStartStr = DateFormat('MMM 1').format(now);
 
-    final isPositive = data.predictedMonthEnd >= 0;
-    final badgeText = isPositive ? 'Bills covered' : 'Review bills';
-    final badgeTextColor = isPositive ? DashboardTokens.bermuda : DashboardTokens.apricot;
-    final badgeBgColor = isPositive ? DashboardTokens.bermuda15 : DashboardTokens.apricot.withValues(alpha: 0.15);
+    final billsAsync = ref.watch(billsProvider);
+    final bills = billsAsync.valueOrNull;
+    final todayStart = DateTime(now.year, now.month, now.day);
+
+    double upcomingBillsTotal = 0.0;
+    if (bills != null) {
+      for (final bill in bills) {
+        if (bill.status == 'paid') continue;
+        if (bill.dueDate.isBefore(todayStart)) continue;
+        upcomingBillsTotal += bill.amount;
+      }
+    }
+
+    final bool isPositive;
+    final String badgeText;
+    if (bills == null) {
+      // Bills data is still loading or failed: never claim bills are covered.
+      isPositive = data.predictedMonthEnd >= 0;
+      badgeText = isPositive ? 'Projected positive' : 'Tight month';
+    } else if (upcomingBillsTotal > 0) {
+      isPositive = data.predictedMonthEnd >= upcomingBillsTotal;
+      badgeText = isPositive ? 'Bills covered' : 'Tight month';
+    } else {
+      isPositive = data.predictedMonthEnd >= 0;
+      badgeText = isPositive ? 'Projected positive' : 'Tight month';
+    }
+
+    final badgeTextColor = isPositive
+        ? DashboardTokens.bermuda
+        : DashboardTokens.apricot;
+    final badgeBgColor = isPositive
+        ? DashboardTokens.bermuda15
+        : DashboardTokens.apricot.withValues(alpha: 0.15);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -51,10 +77,7 @@ class MonthEndForecastCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: DashboardTokens.bigStone,
               borderRadius: BorderRadius.circular(28),
-              border: Border.all(
-                color: DashboardTokens.poloBlue22,
-                width: 1.0,
-              ),
+              border: Border.all(color: DashboardTokens.poloBlue22, width: 1.0),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -77,7 +100,9 @@ class MonthEndForecastCard extends StatelessWidget {
                                 fontSize: 30,
                                 fontWeight: FontWeight.bold,
                                 color: DashboardTokens.periwinkleGray,
-                                fontFeatures: const [FontFeature.tabularFigures()],
+                                fontFeatures: const [
+                                  FontFeature.tabularFigures(),
+                                ],
                               ),
                             ),
                           ),
@@ -95,7 +120,7 @@ class MonthEndForecastCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
 
-                    // Badge: "Bills covered"
+                    // Badge: only claims bills are covered when we know they are.
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
@@ -118,17 +143,11 @@ class MonthEndForecastCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
 
-                // Chart Area
+                // Live chart sourced from DashboardData.dailyBalance
                 SizedBox(
                   height: 132,
                   width: double.infinity,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: SvgPicture.asset(
-                      'assets/images/dashboard_forecast_chart.svg',
-                      fit: BoxFit.fill,
-                    ),
-                  ),
+                  child: _ForecastChart(points: data.dailyBalance),
                 ),
                 const SizedBox(height: 8),
 
@@ -249,6 +268,161 @@ class MonthEndForecastCard extends StatelessWidget {
   }
 }
 
+/// Renders actual vs projected daily balances. Never falls back to the static
+/// Figma asset: if no daily balance data exists, a neutral placeholder renders.
+class _ForecastChart extends StatelessWidget {
+  final List<DailyBalancePoint> points;
+
+  const _ForecastChart({required this.points});
+
+  @override
+  Widget build(BuildContext context) {
+    if (points.isEmpty) {
+      return Container(
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: DashboardTokens.ebony.withValues(alpha: 0.35),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: DashboardTokens.poloBlue16),
+        ),
+        child: Text(
+          'Forecast chart will appear once daily balances are available.',
+          textAlign: TextAlign.center,
+          style: GoogleFonts.dmSans(
+            fontSize: 12,
+            height: 1.4,
+            color: DashboardTokens.periwinkleGraySubtitle,
+          ),
+        ),
+      );
+    }
+
+    final sorted = List<DailyBalancePoint>.from(points);
+    sorted.sort((a, b) {
+      final dateA = DateTime.tryParse(a.date);
+      final dateB = DateTime.tryParse(b.date);
+      if (dateA == null || dateB == null) return 0;
+      return dateA.compareTo(dateB);
+    });
+
+    final actualSpots = <FlSpot>[];
+    final projectedSpots = <FlSpot>[];
+    final values = <double>[];
+    for (var i = 0; i < sorted.length; i++) {
+      final point = sorted[i];
+      final actual = point.balance;
+      final projected = point.projected ?? point.balance;
+      actualSpots.add(FlSpot(i.toDouble(), actual));
+      projectedSpots.add(FlSpot(i.toDouble(), projected));
+      values
+        ..add(actual)
+        ..add(projected);
+    }
+
+    final rawMin = values.reduce((a, b) => a < b ? a : b);
+    final rawMax = values.reduce((a, b) => a > b ? a : b);
+    final span = rawMax - rawMin;
+    final padding = span.abs() < 1 ? 1.0 : span * 0.12;
+    final minY = rawMin - padding;
+    final maxY = rawMax + padding;
+    final yInterval = (maxY - minY) / 2;
+    final bottomInterval = sorted.length <= 2
+        ? 1.0
+        : ((sorted.length - 1) / 2).clamp(1.0, double.infinity).toDouble();
+
+    return LineChart(
+      LineChartData(
+        minX: 0,
+        maxX: (sorted.length - 1).toDouble(),
+        minY: minY,
+        maxY: maxY,
+        clipData: const FlClipData.all(),
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: false,
+          horizontalInterval: yInterval,
+          getDrawingHorizontalLine: (value) =>
+              const FlLine(color: DashboardTokens.poloBlue16, strokeWidth: 1),
+        ),
+        borderData: FlBorderData(show: false),
+        titlesData: FlTitlesData(
+          show: true,
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 48,
+              interval: yInterval,
+              getTitlesWidget: (value, meta) => Text(
+                CurrencyFormatter.formatCompact(value),
+                style: GoogleFonts.dmSans(
+                  fontSize: 9.5,
+                  color: DashboardTokens.baliHai,
+                ),
+              ),
+            ),
+          ),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: sorted.length > 1,
+              reservedSize: 20,
+              interval: bottomInterval,
+              getTitlesWidget: (value, meta) {
+                final index = value.round();
+                if (index < 0 || index >= sorted.length) {
+                  return const SizedBox.shrink();
+                }
+                final date = DateTime.tryParse(sorted[index].date);
+                if (date == null) return const SizedBox.shrink();
+                return Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    DateFormat('MMM d').format(date),
+                    style: GoogleFonts.dmSans(
+                      fontSize: 9.5,
+                      color: DashboardTokens.periwinkleGraySubtitle,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+        lineTouchData: const LineTouchData(enabled: false),
+        lineBarsData: [
+          LineChartBarData(
+            spots: actualSpots,
+            isCurved: true,
+            curveSmoothness: 0.25,
+            color: DashboardTokens.periwinkleGray,
+            barWidth: 2.4,
+            isStrokeCapRound: true,
+            dotData: FlDotData(show: sorted.length == 1),
+            belowBarData: BarAreaData(show: false),
+          ),
+          LineChartBarData(
+            spots: projectedSpots,
+            isCurved: true,
+            curveSmoothness: 0.25,
+            color: DashboardTokens.poloBlue40,
+            barWidth: 2.0,
+            isStrokeCapRound: true,
+            dashArray: const [6, 4],
+            dotData: const FlDotData(show: false),
+            belowBarData: BarAreaData(show: false),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _DashedLinePainter extends CustomPainter {
   final Color color;
 
@@ -278,4 +452,3 @@ class _DashedLinePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
-

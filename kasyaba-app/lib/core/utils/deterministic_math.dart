@@ -56,47 +56,124 @@ class DailySafeSpendCalculation {
 }
 
 /// Computes the exact next payday date based on the user's schedule configuration.
-DateTime computeNextPayday(DateTime now, {String? frequency, String? schedule}) {
+///
+/// Supports weekly/bi-weekly frequencies, end-of-month schedules, arbitrary
+/// single or paired day-of-month schedules (e.g. `10th & 25th`), and custom
+/// schedules that embed a day number (e.g. `Custom: 20th`). Unrecognized
+/// schedules fall back to the standard `15th & 30th` PH schedule.
+DateTime computeNextPayday(
+  DateTime now, {
+  String? frequency,
+  String? schedule,
+}) {
   final today = DateTime(now.year, now.month, now.day);
-  final sched = (schedule ?? '15th & 30th').trim();
-  final lastDayOfThisMonth = DateTime(today.year, today.month + 1, 0).day;
-  final secondPaydayDay = math.min(30, lastDayOfThisMonth);
+  final normalizedFrequency = (frequency ?? '').trim().toLowerCase();
 
-  if (sched.contains('15th') && sched.contains('30th')) {
-    if (today.day < 15) {
-      return DateTime(today.year, today.month, 15);
-    } else if (today.day < secondPaydayDay) {
-      return DateTime(today.year, today.month, secondPaydayDay);
-    } else {
-      return DateTime(today.year, today.month + 1, 15);
-    }
-  } else if (sched.contains('1st') && sched.contains('15th')) {
-    if (today.day < 15) {
-      return DateTime(today.year, today.month, 15);
-    } else {
-      return DateTime(today.year, today.month + 1, 1);
-    }
-  } else if (sched.contains('1st')) {
-    return DateTime(today.year, today.month + 1, 1);
-  } else if (sched.contains('30th') || sched.toLowerCase().contains('end')) {
-    if (today.day < secondPaydayDay) {
-      return DateTime(today.year, today.month, secondPaydayDay);
-    } else {
-      final nextMonthLastDay = math.min(30, DateTime(today.year, today.month + 2, 0).day);
-      return DateTime(today.year, today.month + 1, nextMonthLastDay);
-    }
-  } else if (frequency == 'weekly') {
+  if (normalizedFrequency == 'weekly') {
     return today.add(const Duration(days: 7));
   }
-
-  // Fallback default (15th & 30th)
-  if (today.day < 15) {
-    return DateTime(today.year, today.month, 15);
-  } else if (today.day < secondPaydayDay) {
-    return DateTime(today.year, today.month, secondPaydayDay);
-  } else {
-    return DateTime(today.year, today.month + 1, 15);
+  if (normalizedFrequency == 'bi-weekly' || normalizedFrequency == 'biweekly') {
+    return today.add(const Duration(days: 14));
   }
+
+  final sched = (schedule ?? '15th & 30th').trim();
+  final lowerSched = sched.toLowerCase();
+
+  // Preserve the historical end-of-month behavior (clamped to day 30).
+  if (lowerSched.contains('end')) {
+    final lastDayOfThisMonth = DateTime(today.year, today.month + 1, 0).day;
+    final secondPaydayDay = math.min(30, lastDayOfThisMonth);
+    if (today.day < secondPaydayDay) {
+      return DateTime(today.year, today.month, secondPaydayDay);
+    }
+    final nextMonthLastDay = math.min(
+      30,
+      DateTime(today.year, today.month + 2, 0).day,
+    );
+    return DateTime(today.year, today.month + 1, nextMonthLastDay);
+  }
+
+  final parsedDays =
+      RegExp(r'\d{1,2}')
+          .allMatches(sched)
+          .map((match) => int.tryParse(match.group(0) ?? ''))
+          .whereType<int>()
+          .where((day) => day >= 1 && day <= 31)
+          .toSet()
+          .toList()
+        ..sort();
+
+  if (parsedDays.isNotEmpty) {
+    return _nextOccurrenceForDays(today, parsedDays);
+  }
+
+  // Fallback default (15th & 30th).
+  return _nextOccurrenceForDays(today, const <int>[15, 30]);
+}
+
+/// Returns the first configured day-of-month occurrence strictly after [today].
+DateTime _nextOccurrenceForDays(DateTime today, List<int> days) {
+  final sortedDays = List<int>.from(days)..sort();
+  for (var monthOffset = 0; monthOffset <= 1; monthOffset++) {
+    final monthStart = DateTime(today.year, today.month + monthOffset, 1);
+    final lastDayOfMonth = DateTime(
+      monthStart.year,
+      monthStart.month + 1,
+      0,
+    ).day;
+    for (final day in sortedDays) {
+      final candidate = DateTime(
+        monthStart.year,
+        monthStart.month,
+        math.min(day, lastDayOfMonth),
+      );
+      if (candidate.isAfter(today)) {
+        return candidate;
+      }
+    }
+  }
+
+  final nextMonth = DateTime(today.year, today.month + 1, 1);
+  final lastDayOfNextMonth = DateTime(
+    nextMonth.year,
+    nextMonth.month + 1,
+    0,
+  ).day;
+  return DateTime(
+    nextMonth.year,
+    nextMonth.month,
+    math.min(sortedDays.first, lastDayOfNextMonth),
+  );
+}
+
+/// Unified monthly savings need for a goal.
+///
+/// Prefers the server-provided monthly requirement, then the server-provided
+/// remaining days, then the goal target date, and finally a 365-day horizon.
+double goalMonthlyNeed(SavingsGoal goal) {
+  final requiredMonthly = goal.monthlySavingsRequired;
+  if (requiredMonthly != null && requiredMonthly > 0) {
+    return requiredMonthly;
+  }
+
+  final remaining = math.max(0.0, goal.targetAmount - goal.currentAmount);
+  if (remaining <= 0) return 0.0;
+
+  final daysRemaining = goal.daysRemaining;
+  if (daysRemaining != null && daysRemaining > 0) {
+    return remaining / daysRemaining * 30;
+  }
+
+  final now = DateTime.now();
+  final targetDate = goal.targetDate != null
+      ? DateTime.tryParse(goal.targetDate!)
+      : null;
+  if (targetDate != null && targetDate.isAfter(now)) {
+    final daysUntilTarget = math.max(1, targetDate.difference(now).inDays);
+    return remaining / daysUntilTarget * 30;
+  }
+
+  return remaining / 365 * 30;
 }
 
 /// Calculates the deterministic "Kasya Ba Today?" Daily Safe-to-Spend metric:
@@ -118,7 +195,14 @@ DailySafeSpendCalculation calculateDailySafeSpend({
   final daysUntilPayday = rawDays > 0 ? rawDays : 1;
 
   // Unpaid bills due on or before the next payday (inclusive of the entire payday)
-  final endOfPayday = DateTime(nextPayday.year, nextPayday.month, nextPayday.day, 23, 59, 59);
+  final endOfPayday = DateTime(
+    nextPayday.year,
+    nextPayday.month,
+    nextPayday.day,
+    23,
+    59,
+    59,
+  );
   final unpaidBills = bills.where((b) {
     if (b.status == 'paid') return false;
     return !b.dueDate.isAfter(endOfPayday);
@@ -150,7 +234,9 @@ DailySafeSpendCalculation calculateDailySafeSpend({
 
     if (itemContrib > 0) {
       scheduledGoalContributions += itemContrib;
-      final parsedDate = goal.targetDate != null ? DateTime.tryParse(goal.targetDate!) : null;
+      final parsedDate = goal.targetDate != null
+          ? DateTime.tryParse(goal.targetDate!)
+          : null;
       goalDetails.add(
         GoalContributionDetail(
           title: goal.name,
@@ -166,7 +252,8 @@ DailySafeSpendCalculation calculateDailySafeSpend({
     }
   }
 
-  final numerator = totalLiquidBalance - unpaidBillsDue - scheduledGoalContributions;
+  final numerator =
+      totalLiquidBalance - unpaidBillsDue - scheduledGoalContributions;
   final dailySafeSpend = math.max(0.0, numerator / daysUntilPayday);
 
   return DailySafeSpendCalculation(
@@ -245,6 +332,9 @@ class InstallmentComparison {
   final double currentBalance;
   final double postCashBalance;
 
+  /// Balance remaining after the first installment is paid today.
+  final double postInstallmentBalance;
+
   const InstallmentComparison({
     required this.purchaseAmount,
     required this.tenureMonths,
@@ -258,6 +348,7 @@ class InstallmentComparison {
     required this.installmentDailySafeSpendImpact,
     required this.currentBalance,
     required this.postCashBalance,
+    required this.postInstallmentBalance,
   });
 }
 
@@ -274,7 +365,9 @@ InstallmentComparison calculateInstallmentComparison({
   final monthlyInterest = purchaseAmount * (monthlyInterestRatePercent / 100.0);
   final totalInterest = monthlyInterest * tenureMonths;
   final totalCost = purchaseAmount + totalInterest;
-  final monthlyInstallment = tenureMonths > 0 ? totalCost / tenureMonths : totalCost;
+  final monthlyInstallment = tenureMonths > 0
+      ? totalCost / tenureMonths
+      : totalCost;
   final cashPreserved = math.max(0.0, purchaseAmount - monthlyInstallment);
 
   final cashDailyImpact = purchaseAmount / days;
@@ -293,6 +386,32 @@ InstallmentComparison calculateInstallmentComparison({
     installmentDailySafeSpendImpact: installmentDailyImpact,
     currentBalance: currentBalance,
     postCashBalance: currentBalance - purchaseAmount,
+    postInstallmentBalance: currentBalance - monthlyInstallment,
   );
 }
 
+/// Liquid balance that should count toward safe-to-spend.
+///
+/// When per-account balances are available and at least one account is
+/// excluded, this sums the balances of the non-excluded accounts. Otherwise it
+/// falls back to [dashboardTotalBalance]. The result is returned as-is and may
+/// be negative; callers are responsible for clamping it to zero.
+double adjustedLiquidBalance({
+  required double dashboardTotalBalance,
+  required Map<String, double>? accountBalances,
+  required Set<String> excludedAccountIds,
+}) {
+  if (accountBalances == null ||
+      accountBalances.isEmpty ||
+      excludedAccountIds.isEmpty) {
+    return dashboardTotalBalance;
+  }
+
+  var total = 0.0;
+  for (final entry in accountBalances.entries) {
+    if (!excludedAccountIds.contains(entry.key)) {
+      total += entry.value;
+    }
+  }
+  return total;
+}

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../app/theme/app_motion.dart';
-import '../../core/utils/currency_formatter.dart';
 import '../../features/dashboard/widgets/dashboard_tokens.dart';
 
 /// ─────────────────────────────────────────────────────────────
@@ -208,41 +207,6 @@ class _SpringTouchState extends State<SpringTouch>
         ),
         child: widget.child,
       ),
-    );
-  }
-}
-
-/// Smooth counting number transition for financial values.
-class AnimatedCurrencyText extends StatelessWidget {
-  final double value;
-  final TextStyle style;
-  final Duration duration;
-  final Curve curve;
-  final String? prefix;
-
-  const AnimatedCurrencyText({
-    super.key,
-    required this.value,
-    required this.style,
-    this.duration = const Duration(milliseconds: 400),
-    this.curve = Curves.easeOutCubic,
-    this.prefix,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween<double>(begin: value, end: value),
-      duration: duration,
-      curve: curve,
-      builder: (context, val, child) {
-        final formatted = CurrencyFormatter.format(val);
-        final displayText = prefix != null ? '$prefix$formatted' : formatted;
-        return Text(
-          displayText,
-          style: style,
-        );
-      },
     );
   }
 }

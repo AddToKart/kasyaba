@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'router/router.dart';
+import 'theme/kasyaba_tokens.dart';
 import '../core/connectivity/connectivity_service.dart';
 import '../core/database/offline_sync_service.dart';
 import '../core/notifications/bill_reminder_sync.dart';
+import '../core/notifications/notification_sync.dart';
 import '../core/providers/api_providers.dart';
 import '../core/providers/theme_provider.dart';
 import 'theme/app_theme.dart';
@@ -18,6 +21,10 @@ class KasyabaApp extends ConsumerWidget {
     final themeMode = ref.watch(themeModeProvider);
     ref.watch(offlineSyncProvider);
     ref.watch(billReminderSyncProvider);
+    ref.watch(paydayReminderSyncProvider);
+    ref.watch(alertNotificationSyncProvider);
+    ref.watch(goalMilestoneSyncProvider);
+    ref.watch(weeklySummarySyncProvider);
     ref.watch(accountBootstrapProvider);
 
     return MaterialApp.router(
@@ -46,26 +53,28 @@ class KasyabaApp extends ConsumerWidget {
                       left: 16,
                       right: 16,
                     ),
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Color(0xFFDC2626), Color(0xFFB91C1C)],
+                    decoration: BoxDecoration(
+                      color: KasyabaTokens.bigStone,
+                      borderRadius: BorderRadius.circular(
+                        KasyabaTokens.radiusDialog,
                       ),
+                      border: Border.all(color: KasyabaTokens.apricot),
                     ),
-                    child: const Row(
+                    child: Row(
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.wifi_off_rounded,
-                          color: Colors.white,
+                          color: KasyabaTokens.apricot,
                           size: 18,
                         ),
-                        SizedBox(width: 8),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             'No internet connection',
-                            style: TextStyle(
-                              color: Colors.white,
+                            style: GoogleFonts.dmSans(
+                              color: KasyabaTokens.periwinkleGray,
                               fontSize: 13,
-                              fontWeight: FontWeight.w500,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),

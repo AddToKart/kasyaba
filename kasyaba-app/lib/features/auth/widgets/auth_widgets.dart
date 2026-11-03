@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:reactive_forms/reactive_forms.dart';
 import '../../../app/theme/app_theme.dart';
+import '../../../app/theme/kasyaba_tokens.dart';
 
 /// ─────────────────────────────────────────────────────────────
 ///  Auth Design System — Figma Pixel-Perfect Tokens (Node 11:779)
@@ -186,7 +187,7 @@ class _AuthCapsuleInlineFieldState extends State<AuthCapsuleInlineField> {
         borderRadius: BorderRadius.circular(28),
         border: Border.all(
           color: _isFocused
-              ? (isDark ? AuthFigmaTokens.poloBlue : AppColors.emerald500)
+              ? (isDark ? AuthFigmaTokens.poloBlue : KasyabaTokens.poloBlue)
               : (isDark
                     ? AuthFigmaTokens.poloBlue22
                     : AppColors.lightBorderHairline),
@@ -630,7 +631,7 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
         : const Color(0xFF64748B);
     final focusedIconColor = isDark
         ? AuthFigmaTokens.periwinkleGray
-        : AppColors.emerald500;
+        : KasyabaTokens.poloBlue;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -713,14 +714,14 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
               errorBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(27),
                 borderSide: const BorderSide(
-                  color: AppColors.expense,
+                  color: KasyabaTokens.apricot,
                   width: 1.0,
                 ),
               ),
               focusedErrorBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(27),
                 borderSide: const BorderSide(
-                  color: AppColors.expense,
+                  color: KasyabaTokens.apricot,
                   width: 1.5,
                 ),
               ),
@@ -788,77 +789,6 @@ class AuthPrimaryPillButton extends StatelessWidget {
   }
 }
 
-// ── Primary Luxury Gradient Button (10px Radius) ──
-class AuthGradientButton extends StatelessWidget {
-  final bool isLoading;
-  final VoidCallback onPressed;
-  final String label;
-
-  const AuthGradientButton({
-    super.key,
-    required this.isLoading,
-    required this.onPressed,
-    required this.label,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
-        gradient: isLoading
-            ? null
-            : const LinearGradient(
-                colors: [Color(0xFF059669), Color(0xFF10B981)],
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-              ),
-        boxShadow: isLoading
-            ? []
-            : [
-                BoxShadow(
-                  color: AppColors.emerald500.withValues(alpha: 0.35),
-                  blurRadius: 18,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-      ),
-      child: ElevatedButton(
-        onPressed: isLoading ? null : onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: isLoading
-              ? AppColors.surface600
-              : Colors.transparent,
-          foregroundColor: Colors.white,
-          shadowColor: Colors.transparent,
-          minimumSize: const Size.fromHeight(50),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-          elevation: 0,
-        ),
-        child: isLoading
-            ? const SizedBox(
-                height: 20,
-                width: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.2,
-                  color: Colors.white,
-                ),
-              )
-            : Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.3,
-                ),
-              ),
-      ),
-    );
-  }
-}
-
 // ── Bottom Reassurance Footnote (Node 11:828-830) ──
 class AuthTrustFooter extends StatelessWidget {
   const AuthTrustFooter({super.key});
@@ -880,20 +810,26 @@ class AuthTrustFooter extends StatelessWidget {
 
 // ── Live 4-Segment Password Strength Indicator ──
 class PasswordStrengthBar extends StatelessWidget {
-  final int strength; // 0 to 4
+  final double strength; // 0 to 1
 
   const PasswordStrengthBar({super.key, required this.strength});
 
   @override
   Widget build(BuildContext context) {
-    if (strength <= 0) return const SizedBox.shrink();
+    final normalized = strength.clamp(0.0, 1.0);
+    if (normalized <= 0) return const SizedBox.shrink();
 
-    final (color, label) = switch (strength) {
-      1 => (AppColors.expense, 'Weak'),
-      2 => (AppColors.warning, 'Fair'),
-      3 => (AppColors.info, 'Good'),
-      _ => (AppColors.emerald400, 'Strong'),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final filled = (normalized * 4).ceil().clamp(1, 4).toInt();
+    final (color, label) = switch (filled) {
+      1 => (KasyabaTokens.apricot, 'Weak'),
+      2 => (KasyabaTokens.casablanca, 'Fair'),
+      3 => (KasyabaTokens.poloBlue, 'Good'),
+      _ => (KasyabaTokens.bermuda, 'Strong'),
     };
+    final trackColor = isDark
+        ? KasyabaTokens.poloBlue22
+        : AppColors.lightBorderHairline;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -901,14 +837,14 @@ class PasswordStrengthBar extends StatelessWidget {
         const SizedBox(height: 8),
         Row(
           children: List.generate(4, (index) {
-            final isFilled = index < strength;
+            final isFilled = index < filled;
             return Expanded(
               child: Container(
                 height: 4,
                 margin: EdgeInsets.only(right: index < 3 ? 6 : 0),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(2),
-                  color: isFilled ? color : const Color(0x22FFFFFF),
+                  color: isFilled ? color : trackColor,
                 ),
               ),
             );
@@ -918,17 +854,28 @@ class PasswordStrengthBar extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              '$label password',
-              style: TextStyle(
-                color: color,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
+            Expanded(
+              child: Text(
+                '$label password',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
-            const Text(
+            const SizedBox(width: 8),
+            Text(
               'Min. 8 characters',
-              style: TextStyle(color: Color(0xFF64748B), fontSize: 10),
+              maxLines: 1,
+              style: TextStyle(
+                color: isDark
+                    ? KasyabaTokens.baliHai
+                    : AppColors.lightTextSecondary,
+                fontSize: 10,
+              ),
             ),
           ],
         ),
@@ -952,6 +899,8 @@ class PasswordMatchIndicator extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!hasConfirmText) return const SizedBox.shrink();
 
+    final color = isMatching ? KasyabaTokens.bermuda : KasyabaTokens.apricot;
+
     return Padding(
       padding: const EdgeInsets.only(top: 8),
       child: Row(
@@ -959,13 +908,13 @@ class PasswordMatchIndicator extends StatelessWidget {
           Icon(
             isMatching ? Icons.check_circle_rounded : Icons.cancel_outlined,
             size: 14,
-            color: isMatching ? AppColors.emerald400 : AppColors.expense,
+            color: color,
           ),
           const SizedBox(width: 6),
           Text(
             isMatching ? 'Passwords match' : 'Passwords do not match yet',
             style: TextStyle(
-              color: isMatching ? AppColors.emerald400 : AppColors.expense,
+              color: color,
               fontSize: 11,
               fontWeight: FontWeight.w600,
             ),
@@ -988,9 +937,9 @@ class AuthErrorBanner extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(10),
-        color: AppColors.expense.withValues(alpha: 0.12),
+        color: KasyabaTokens.apricot15,
         border: Border.all(
-          color: AppColors.expense.withValues(alpha: 0.3),
+          color: KasyabaTokens.apricot.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -998,7 +947,7 @@ class AuthErrorBanner extends StatelessWidget {
         children: [
           const Icon(
             Icons.error_outline_rounded,
-            color: AppColors.expense,
+            color: KasyabaTokens.apricot,
             size: 18,
           ),
           const SizedBox(width: 10),
@@ -1006,7 +955,7 @@ class AuthErrorBanner extends StatelessWidget {
             child: Text(
               message,
               style: const TextStyle(
-                color: AppColors.expense,
+                color: KasyabaTokens.apricot,
                 fontWeight: FontWeight.w600,
                 fontSize: 12,
               ),

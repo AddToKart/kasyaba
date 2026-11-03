@@ -7,7 +7,6 @@ import '../../features/auth/screens/forgot_password_screen.dart';
 import '../../features/dashboard/screens/dashboard_screen.dart';
 import '../../features/transactions/screens/transactions_screen.dart';
 import '../../features/transactions/screens/add_transaction_screen.dart';
-import '../../features/transactions/screens/add_transfer_screen.dart';
 import '../../features/accounts/screens/accounts_screen.dart';
 import '../../features/planning/screens/planning_screen.dart';
 import '../../features/planning/screens/math_breakdown_screen.dart';
@@ -23,8 +22,11 @@ import '../../features/settings/screens/settings_screen.dart';
 import '../../features/settings/screens/notification_settings_screen.dart';
 import '../../features/settings/screens/backup_export_screen.dart';
 import '../../features/settings/screens/delete_account_screen.dart';
+import '../../features/settings/screens/privacy_about_screen.dart';
 import '../../features/splash/screens/splash_screen.dart';
 import '../../shared/widgets/motion_components.dart';
+import '../../shared/widgets/app_state_widgets.dart';
+import '../theme/kasyaba_tokens.dart';
 import '../../core/auth/auth_provider.dart';
 import '../../core/providers/api_providers.dart';
 import 'app_shell.dart';
@@ -155,8 +157,28 @@ final routerProvider = Provider<GoRouter>((ref) {
           if (transaction is! TransactionEntry) {
             return MotionPageTransitions.slideUpTransition(
               key: state.pageKey,
-              child: const Scaffold(
-                body: Center(child: Text('Transaction details unavailable.')),
+              child: Builder(
+                builder: (context) => Scaffold(
+                  backgroundColor: KasyabaTokens.ebony,
+                  body: SafeArea(
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: KasyabaErrorCard(
+                          message: 'Transaction details unavailable.',
+                          retryLabel: 'Back to transactions',
+                          onRetry: () {
+                            if (context.canPop()) {
+                              context.pop();
+                            } else {
+                              context.go('/transactions');
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ),
             );
           }
@@ -165,13 +187,6 @@ final routerProvider = Provider<GoRouter>((ref) {
             child: AddTransactionScreen(transaction: transaction),
           );
         },
-      ),
-      GoRoute(
-        path: '/transfers/add',
-        pageBuilder: (context, state) => MotionPageTransitions.slideUpTransition(
-          key: state.pageKey,
-          child: const AddTransferScreen(),
-        ),
       ),
       GoRoute(
         path: '/accounts',
@@ -199,6 +214,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => MotionPageTransitions.slideUpTransition(
           key: state.pageKey,
           child: const DeleteAccountScreen(),
+        ),
+      ),
+      GoRoute(
+        path: '/settings/privacy',
+        pageBuilder: (context, state) => MotionPageTransitions.slideUpTransition(
+          key: state.pageKey,
+          child: const PrivacyAndAboutScreen(),
         ),
       ),
       GoRoute(

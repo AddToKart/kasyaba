@@ -9,10 +9,28 @@ import '../../../shared/widgets/motion_components.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../../../shared/widgets/app_state_widgets.dart';
+import '../../../shared/widgets/kasyaba_date_picker.dart';
 import '../../../shared/widgets/kasyaba_toast.dart';
 import '../../dashboard/widgets/dashboard_tokens.dart';
 
 DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
+
+String? _billRecurrenceLabel(String? recurrence) {
+  switch (recurrence?.toLowerCase()) {
+    case 'monthly':
+      return 'Monthly';
+    case 'weekly':
+      return 'Weekly';
+    case 'once':
+    case 'one-time':
+    case 'one_time':
+    case 'onetime':
+      return 'One-time';
+    default:
+      return null;
+  }
+}
 
 /// ─────────────────────────────────────────────────────────────
 ///  Bills Screen
@@ -32,7 +50,11 @@ class BillsScreen extends ConsumerStatefulWidget {
 }
 
 class _BillsScreenState extends ConsumerState<BillsScreen> {
-  DateTime _currentMonth = DateTime(DateTime.now().year, DateTime.now().month, 1);
+  DateTime _currentMonth = DateTime(
+    DateTime.now().year,
+    DateTime.now().month,
+    1,
+  );
   DateTime _selectedDay = _dateOnly(DateTime.now());
   bool _isMonthView = false;
   String _activeFilter = 'Upcoming'; // 'Upcoming', 'Paid', 'Overdue'
@@ -64,17 +86,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
       initialDatePickerMode: DatePickerMode.year,
       builder: (ctx, child) {
         if (child == null) return const SizedBox.shrink();
-        return Theme(
-          data: Theme.of(ctx).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: DashboardTokens.periwinkleGray,
-              onPrimary: DashboardTokens.ebony,
-              surface: DashboardTokens.bigStone,
-              onSurface: DashboardTokens.periwinkleGray,
-            ),
-          ),
-          child: child,
-        );
+        return Theme(data: kasyabaDatePickerTheme(ctx), child: child);
       },
     );
     if (picked != null && mounted) {
@@ -110,7 +122,10 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
           builder: (ctx, setSheetState) {
             return SafeArea(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -179,18 +194,27 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                         ),
                         const SizedBox(height: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: DashboardTokens.ebony.withValues(alpha: 0.5),
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: DashboardTokens.poloBlue22, width: 1),
+                            border: Border.all(
+                              color: DashboardTokens.poloBlue22,
+                              width: 1,
+                            ),
                           ),
                           child: DropdownButtonHideUnderline(
                             child: DropdownButton<String>(
                               value: selectedAccount,
                               dropdownColor: DashboardTokens.bigStone,
                               isExpanded: true,
-                              icon: const Icon(Icons.keyboard_arrow_down_rounded, color: DashboardTokens.periwinkleGray),
+                              icon: const Icon(
+                                Icons.keyboard_arrow_down_rounded,
+                                color: DashboardTokens.periwinkleGray,
+                              ),
                               items: accounts.map((acc) {
                                 return DropdownMenuItem(
                                   value: acc.id,
@@ -203,7 +227,8 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                                   ),
                                 );
                               }).toList(),
-                              onChanged: (val) => setSheetState(() => selectedAccount = val),
+                              onChanged: (val) =>
+                                  setSheetState(() => selectedAccount = val),
                             ),
                           ),
                         ),
@@ -218,10 +243,12 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                                 setSheetState(() => isSubmitting = true);
                                 try {
                                   AppHaptics.mediumImpact();
-                                  await ref.read(transactionMutatorProvider).markBillPaid(
-                                    billId: bill.id,
-                                    accountId: selectedAccount!,
-                                  );
+                                  await ref
+                                      .read(transactionMutatorProvider)
+                                      .markBillPaid(
+                                        billId: bill.id,
+                                        accountId: selectedAccount!,
+                                      );
                                   if (!mounted) return;
                                   if (sheetContext.mounted) {
                                     Navigator.of(sheetContext).pop();
@@ -229,14 +256,19 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                                   KasyabaToast.showSuccess(
                                     context,
                                     '${bill.name} marked as paid!',
-                                    subtitle: 'Deducted ${CurrencyFormatter.format(bill.amount)}',
+                                    subtitle:
+                                        'Deducted ${CurrencyFormatter.format(bill.amount)}',
                                   );
                                 } catch (e) {
                                   if (mounted) {
                                     setSheetState(() => isSubmitting = false);
                                     KasyabaToast.showError(
                                       context,
-                                      friendlyErrorMessage(e, fallback: 'Failed to mark bill as paid.'),
+                                      friendlyErrorMessage(
+                                        e,
+                                        fallback:
+                                            'Failed to mark bill as paid.',
+                                      ),
                                     );
                                   }
                                 }
@@ -276,7 +308,9 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                                 setSheetState(() => isSubmitting = true);
                                 try {
                                   AppHaptics.mediumImpact();
-                                  await ref.read(transactionMutatorProvider).markBillUnpaid(bill.id);
+                                  await ref
+                                      .read(transactionMutatorProvider)
+                                      .markBillUnpaid(bill.id);
                                   if (!mounted) return;
                                   if (sheetContext.mounted) {
                                     Navigator.of(sheetContext).pop();
@@ -290,7 +324,10 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                                     setSheetState(() => isSubmitting = false);
                                     KasyabaToast.showError(
                                       context,
-                                      friendlyErrorMessage(e, fallback: 'Failed to update bill.'),
+                                      friendlyErrorMessage(
+                                        e,
+                                        fallback: 'Failed to update bill.',
+                                      ),
                                     );
                                   }
                                 }
@@ -298,7 +335,10 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                         child: Container(
                           height: 52,
                           decoration: BoxDecoration(
-                            border: Border.all(color: DashboardTokens.poloBlue30, width: 1),
+                            border: Border.all(
+                              color: DashboardTokens.poloBlue30,
+                              width: 1,
+                            ),
                             borderRadius: BorderRadius.circular(26),
                           ),
                           alignment: Alignment.center,
@@ -339,8 +379,14 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
     final allBills = billsAsync.valueOrNull ?? [];
     final today = _dateOnly(DateTime.now());
 
+    // Keep the list, calendar dots, and month picker on the same month.
+    final monthBills = allBills.where((b) {
+      return b.dueDate.year == _currentMonth.year &&
+          b.dueDate.month == _currentMonth.month;
+    }).toList();
+
     // Filter bills into Upcoming, Paid, and Overdue
-    final List<BillItem> displayedBills = allBills.where((b) {
+    final List<BillItem> displayedBills = monthBills.where((b) {
       final bDate = _dateOnly(b.dueDate);
       final isPaid = b.status.toLowerCase() == 'paid';
       final isOverdue = !isPaid && bDate.isBefore(today);
@@ -350,8 +396,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
       if (_activeFilter == 'Paid') return isPaid;
       if (_activeFilter == 'Overdue') return isOverdue;
       return true;
-    }).toList()
-      ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
+    }).toList()..sort((a, b) => a.dueDate.compareTo(b.dueDate));
 
     // Group bills by date for display
     final Map<String, List<BillItem>> groupedBills = {};
@@ -505,12 +550,21 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                   child: !_isMonthView
                       ? Row(
                           children: weekDays.map((day) {
-                            final dayLetters = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+                            final dayLetters = [
+                              'S',
+                              'M',
+                              'T',
+                              'W',
+                              'T',
+                              'F',
+                              'S',
+                            ];
                             final dayLetter = dayLetters[day.weekday % 7];
-                            final isSelected = day.year == _selectedDay.year &&
+                            final isSelected =
+                                day.year == _selectedDay.year &&
                                 day.month == _selectedDay.month &&
                                 day.day == _selectedDay.day;
-                            final hasBill = allBills.any((b) {
+                            final hasBill = monthBills.any((b) {
                               final bDate = _dateOnly(b.dueDate);
                               return bDate.year == day.year &&
                                   bDate.month == day.month &&
@@ -522,11 +576,23 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                                 behavior: HitTestBehavior.opaque,
                                 onTap: () {
                                   AppHaptics.selectionClick();
-                                  setState(() => _selectedDay = day);
+                                  setState(() {
+                                    _selectedDay = day;
+                                    if (day.year != _currentMonth.year ||
+                                        day.month != _currentMonth.month) {
+                                      _currentMonth = DateTime(
+                                        day.year,
+                                        day.month,
+                                        1,
+                                      );
+                                    }
+                                  });
                                 },
                                 child: Container(
                                   height: 60,
-                                  margin: const EdgeInsets.symmetric(horizontal: 2),
+                                  margin: const EdgeInsets.symmetric(
+                                    horizontal: 2,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: isSelected
                                         ? DashboardTokens.periwinkleGray
@@ -543,7 +609,8 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                                           fontWeight: FontWeight.bold,
                                           color: isSelected
                                               ? DashboardTokens.ebony
-                                              : DashboardTokens.periwinkleGraySubtitle,
+                                              : DashboardTokens
+                                                    .periwinkleGraySubtitle,
                                         ),
                                       ),
                                       const SizedBox(height: 2),
@@ -566,7 +633,9 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                                             color: isSelected
                                                 ? DashboardTokens.ebony
                                                 : DashboardTokens.apricot,
-                                            borderRadius: BorderRadius.circular(2),
+                                            borderRadius: BorderRadius.circular(
+                                              2,
+                                            ),
                                           ),
                                         )
                                       else
@@ -578,7 +647,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                             );
                           }).toList(),
                         )
-                      : _buildMonthCalendar(allBills),
+                      : _buildMonthCalendar(monthBills),
                 ),
                 const SizedBox(height: 16),
 
@@ -611,7 +680,15 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      if (billsAsync.isLoading && allBills.isEmpty) ...[
+                      if (billsAsync.hasError && allBills.isEmpty) ...[
+                        KasyabaErrorCard(
+                          message: friendlyErrorMessage(
+                            billsAsync.error,
+                            fallback: 'Could not load bills.',
+                          ),
+                          onRetry: () => ref.invalidate(billsProvider),
+                        ),
+                      ] else if (billsAsync.isLoading && allBills.isEmpty) ...[
                         const Padding(
                           padding: EdgeInsets.symmetric(vertical: 40),
                           child: Center(
@@ -628,7 +705,9 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                         ...sortedGroupKeys.map((groupKey) {
                           final items = groupedBills[groupKey]!;
                           final groupDate = items.first.dueDate;
-                          final groupTitle = DateFormat('EEE, MMM d').format(groupDate);
+                          final groupTitle = DateFormat(
+                            'EEE, MMM d',
+                          ).format(groupDate);
 
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 16),
@@ -651,10 +730,12 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                                   ),
                                 ),
                                 // Bills in this group
-                                ...items.map((bill) => Padding(
-                                      padding: const EdgeInsets.only(bottom: 10),
-                                      child: _buildBillCard(bill, today),
-                                    )),
+                                ...items.map(
+                                  (bill) => Padding(
+                                    padding: const EdgeInsets.only(bottom: 10),
+                                    child: _buildBillCard(bill, today),
+                                  ),
+                                ),
                               ],
                             ),
                           );
@@ -699,7 +780,9 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(22),
                                 border: Border.all(
-                                  color: DashboardTokens.poloBlue.withValues(alpha: 0.4),
+                                  color: DashboardTokens.poloBlue.withValues(
+                                    alpha: 0.4,
+                                  ),
                                   width: 1,
                                 ),
                               ),
@@ -742,10 +825,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
       decoration: BoxDecoration(
         color: DashboardTokens.bigStone,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(
-          color: DashboardTokens.poloBlue22,
-          width: 1,
-        ),
+        border: Border.all(color: DashboardTokens.poloBlue22, width: 1),
       ),
       child: Column(
         children: [
@@ -782,7 +862,8 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                   }
 
                   final cellDate = DateTime(year, month, dayNum);
-                  final isSelected = cellDate.year == _selectedDay.year &&
+                  final isSelected =
+                      cellDate.year == _selectedDay.year &&
                       cellDate.month == _selectedDay.month &&
                       cellDate.day == _selectedDay.day;
 
@@ -849,30 +930,33 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
     );
   }
 
-
-
   // ── Bill Card (Node 11:1678) ──────────────────────────────────────────────
   Widget _buildBillCard(BillItem bill, DateTime today) {
     final bDate = _dateOnly(bill.dueDate);
     final daysUntil = bDate.difference(today).inDays;
     final isPaid = bill.status.toLowerCase() == 'paid';
 
-    final String subtitle;
+    final recurrenceLabel = _billRecurrenceLabel(bill.recurrence);
+    final String statusText;
     final Color statusColor;
 
     if (isPaid) {
-      subtitle = 'Paid · Monthly';
+      statusText = 'Paid';
       statusColor = DashboardTokens.bermuda;
     } else if (daysUntil < 0) {
-      subtitle = 'Monthly · overdue by ${-daysUntil} days';
+      statusText = 'overdue by ${-daysUntil} days';
       statusColor = DashboardTokens.apricot;
     } else if (daysUntil == 0) {
-      subtitle = 'Monthly · due today';
+      statusText = 'due today';
       statusColor = DashboardTokens.apricot;
     } else {
-      subtitle = 'Monthly · due in $daysUntil days';
+      statusText = 'due in $daysUntil days';
       statusColor = DashboardTokens.periwinkleGraySubtitle;
     }
+
+    final subtitle = recurrenceLabel == null
+        ? statusText
+        : '$recurrenceLabel · $statusText';
 
     return SpringTouch(
       scaleDown: 0.98,
@@ -882,10 +966,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
         decoration: BoxDecoration(
           color: DashboardTokens.bigStone,
           borderRadius: BorderRadius.circular(28),
-          border: Border.all(
-            color: DashboardTokens.poloBlue22,
-            width: 1,
-          ),
+          border: Border.all(color: DashboardTokens.poloBlue22, width: 1),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -905,10 +986,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                   const SizedBox(height: 3),
                   Text(
                     subtitle,
-                    style: GoogleFonts.dmSans(
-                      fontSize: 14,
-                      color: statusColor,
-                    ),
+                    style: GoogleFonts.dmSans(fontSize: 14, color: statusColor),
                   ),
                 ],
               ),
@@ -932,26 +1010,23 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
   // ── Empty State Card (Node 106:691 / 106:819) ─────────────────────────────
   Widget _buildEmptyStateCard() {
     final emptyTitle = _activeFilter == 'Paid'
-        ? 'No paid bills this period'
+        ? 'No paid bills this month'
         : (_activeFilter == 'Overdue'
-            ? 'No overdue bills this period'
-            : 'No bills this week');
+              ? 'No overdue bills this month'
+              : 'No bills this month');
 
     final emptySubtitle = _activeFilter == 'Paid'
         ? 'Bills you mark as paid will show up here.'
         : (_activeFilter == 'Overdue'
-            ? 'Great job! You have no overdue bills.'
-            : 'Add a bill to get a reminder before it is due.');
+              ? 'Great job! You have no overdue bills.'
+              : 'Add a bill to get a reminder before it is due.');
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 19, vertical: 24),
       decoration: BoxDecoration(
         color: DashboardTokens.bigStone,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(
-          color: DashboardTokens.poloBlue22,
-          width: 1,
-        ),
+        border: Border.all(color: DashboardTokens.poloBlue22, width: 1),
       ),
       child: Column(
         children: [
@@ -960,10 +1035,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
             height: 58,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(28),
-              border: Border.all(
-                color: DashboardTokens.kashmirBlue,
-                width: 1,
-              ),
+              border: Border.all(color: DashboardTokens.kashmirBlue, width: 1),
             ),
             alignment: Alignment.center,
             child: const Icon(

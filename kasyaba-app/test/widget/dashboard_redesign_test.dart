@@ -1,3 +1,4 @@
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -40,6 +41,23 @@ void main() {
           CategoryExpenseSummary(
             categoryName: 'Education',
             total: 17000.0,
+          ),
+        ],
+        dailyBalance: [
+          DailyBalancePoint(
+            date: '2026-11-01',
+            balance: 800000.0,
+            projected: 790000.0,
+          ),
+          DailyBalancePoint(
+            date: '2026-11-15',
+            balance: 770000.0,
+            projected: 757499.80,
+          ),
+          DailyBalancePoint(
+            date: '2026-11-30',
+            balance: 760000.0,
+            projected: 757499.80,
           ),
         ],
       );
@@ -134,6 +152,7 @@ void main() {
       expect(find.text('Month-end forecast'), findsOneWidget);
       expect(find.text('₱757,499.80'), findsOneWidget);
       expect(find.text('Bills covered'), findsOneWidget);
+      expect(find.byType(LineChart), findsOneWidget);
       expect(find.text('Actual'), findsOneWidget);
       expect(find.text('Projected'), findsOneWidget);
       expect(find.text('Bill due'), findsOneWidget);

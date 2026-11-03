@@ -1,9 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'app/app.dart';
-import 'app/theme/app_theme.dart';
+import 'app/theme/kasyaba_tokens.dart';
 import 'core/api/api_client.dart';
 import 'core/errors/error_handlers.dart';
 import 'core/notifications/notification_service.dart';
@@ -37,17 +38,17 @@ class _ConfigurationErrorApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: const Scaffold(
-        backgroundColor: AppColors.obsidian,
+      home: Scaffold(
+        backgroundColor: KasyabaTokens.ebony,
         body: Center(
           child: Padding(
-            padding: EdgeInsets.all(32),
+            padding: const EdgeInsets.all(32),
             child: Text(
               'This build is missing its API configuration.\n\n'
               'Please install the official release from Google Play.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: AppColors.textDark,
+              style: GoogleFonts.dmSans(
+                color: KasyabaTokens.periwinkleGray,
                 fontSize: 16,
                 height: 1.5,
               ),

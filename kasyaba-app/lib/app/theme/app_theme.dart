@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../features/dashboard/widgets/dashboard_tokens.dart';
+import 'kasyaba_tokens.dart';
 
 /// ─────────────────────────────────────────────────────────────
 ///  Kasyaba Design System — Luxury Ultra Fintech Theme
@@ -111,47 +111,339 @@ class AppColors {
 }
 
 class AppTheme {
-  static const double cardRadius = 20.0;
-  static const double buttonRadius = 12.0;
-  static const double inputRadius = 12.0;
+  static const double cardRadius = 28.0;
+  static const double buttonRadius = 28.0;
+  static const double inputRadius = 28.0;
   static const double tagRadius = 9999.0;
-  static const double alertRadius = 14.0;
+  static const double alertRadius = 24.0;
   static const double navbarHeight = 76.0;
 
   ThemeData get dark {
     final colorScheme = ColorScheme(
       brightness: Brightness.dark,
-      primary: AppColors.emerald500,
-      onPrimary: Colors.black,
-      primaryContainer: AppColors.emerald900,
-      onPrimaryContainer: AppColors.emerald100,
-      secondary: AppColors.textMuted,
-      onSecondary: Colors.white,
-      secondaryContainer: AppColors.surface700,
-      onSecondaryContainer: AppColors.textDark,
-      tertiary: AppColors.info,
-      onTertiary: Colors.white,
-      tertiaryContainer: AppColors.surface700,
-      onTertiaryContainer: Colors.white,
-      error: AppColors.expense,
-      onError: Colors.white,
-      errorContainer: const Color(0xFF4C0519),
-      onErrorContainer: const Color(0xFFFECDD3),
-      surface: AppColors.surfaceCard,
-      onSurface: AppColors.textDark,
-      surfaceContainerHighest: AppColors.surface700,
-      onSurfaceVariant: AppColors.textMuted,
-      outline: AppColors.subtleBorder,
-      outlineVariant: AppColors.surface600,
-      inverseSurface: AppColors.textDark,
-      onInverseSurface: AppColors.surface900,
-      inversePrimary: AppColors.emerald700,
+      primary: KasyabaTokens.periwinkleGray,
+      onPrimary: KasyabaTokens.ebony,
+      primaryContainer: KasyabaTokens.cello,
+      onPrimaryContainer: KasyabaTokens.periwinkleGray,
+      secondary: KasyabaTokens.periwinkleGraySubtitle,
+      onSecondary: KasyabaTokens.ebony,
+      secondaryContainer: KasyabaTokens.bigStone,
+      onSecondaryContainer: KasyabaTokens.periwinkleGray,
+      tertiary: KasyabaTokens.bermuda,
+      onTertiary: KasyabaTokens.ebony,
+      tertiaryContainer: KasyabaTokens.bermuda15,
+      onTertiaryContainer: KasyabaTokens.periwinkleGray,
+      error: KasyabaTokens.apricot,
+      onError: KasyabaTokens.ebony,
+      errorContainer: KasyabaTokens.apricot15,
+      onErrorContainer: KasyabaTokens.apricot,
+      surface: KasyabaTokens.ebony,
+      onSurface: KasyabaTokens.periwinkleGray,
+      surfaceContainerHighest: KasyabaTokens.bigStone,
+      onSurfaceVariant: KasyabaTokens.periwinkleGraySubtitle,
+      outline: KasyabaTokens.poloBlue30,
+      outlineVariant: KasyabaTokens.poloBlue22,
+      inverseSurface: KasyabaTokens.periwinkleGray,
+      onInverseSurface: KasyabaTokens.ebony,
+      inversePrimary: KasyabaTokens.poloBlue,
       shadow: Colors.black,
       scrim: Colors.black,
       surfaceTint: Colors.transparent,
     );
 
-    return _buildTheme(colorScheme, isDark: true);
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      colorScheme: colorScheme,
+      scaffoldBackgroundColor: KasyabaTokens.ebony,
+      fontFamily: GoogleFonts.dmSans().fontFamily,
+
+      cardTheme: CardThemeData(
+        color: KasyabaTokens.bigStone,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(cardRadius),
+          side: const BorderSide(color: KasyabaTokens.poloBlue22),
+        ),
+        margin: EdgeInsets.zero,
+        shadowColor: Colors.transparent,
+      ),
+
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: KasyabaTokens.bigStone,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 16,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(inputRadius),
+          borderSide: const BorderSide(color: KasyabaTokens.poloBlue22),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(inputRadius),
+          borderSide: const BorderSide(color: KasyabaTokens.poloBlue22),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(inputRadius),
+          borderSide: const BorderSide(
+            color: KasyabaTokens.poloBlue,
+            width: 1.5,
+          ),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(inputRadius),
+          borderSide: const BorderSide(color: KasyabaTokens.apricot),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(inputRadius),
+          borderSide: const BorderSide(
+            color: KasyabaTokens.apricot,
+            width: 1.5,
+          ),
+        ),
+        labelStyle: const TextStyle(
+          color: KasyabaTokens.periwinkleGraySubtitle,
+          fontWeight: FontWeight.w500,
+          fontSize: 14,
+        ),
+        hintStyle: TextStyle(
+          color: KasyabaTokens.periwinkleGraySubtitle.withValues(alpha: 0.6),
+          fontSize: 14,
+        ),
+        prefixIconColor: KasyabaTokens.periwinkleGraySubtitle,
+      ),
+
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          minimumSize: const Size(0, 52),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(buttonRadius),
+          ),
+          backgroundColor: KasyabaTokens.periwinkleGray,
+          foregroundColor: KasyabaTokens.ebony,
+          textStyle: const TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 14.5,
+            letterSpacing: 0.2,
+          ),
+          elevation: 0,
+        ),
+      ),
+
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          minimumSize: const Size(0, 52),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(buttonRadius),
+          ),
+          side: const BorderSide(color: KasyabaTokens.kashmirBlue),
+          foregroundColor: KasyabaTokens.periwinkleGray,
+          textStyle: const TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 14.5,
+          ),
+          elevation: 0,
+        ),
+      ),
+
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: KasyabaTokens.periwinkleGray,
+          textStyle: const TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(buttonRadius),
+          ),
+        ),
+      ),
+
+      chipTheme: ChipThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(KasyabaTokens.radiusChip),
+          side: const BorderSide(color: KasyabaTokens.poloBlue22),
+        ),
+        backgroundColor: KasyabaTokens.bigStone,
+        labelStyle: const TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: 12,
+          color: KasyabaTokens.periwinkleGray,
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      ),
+
+      dialogTheme: DialogThemeData(
+        backgroundColor: KasyabaTokens.bigStone,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(KasyabaTokens.radiusDialog),
+          side: const BorderSide(color: KasyabaTokens.poloBlue22),
+        ),
+        titleTextStyle: GoogleFonts.dmSans(
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+          color: KasyabaTokens.periwinkleGray,
+        ),
+        contentTextStyle: GoogleFonts.dmSans(
+          fontSize: 14,
+          color: KasyabaTokens.periwinkleGraySubtitle,
+        ),
+      ),
+
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: KasyabaTokens.bigStone,
+        surfaceTintColor: Colors.transparent,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(KasyabaTokens.radiusSheetTop),
+          ),
+        ),
+        dragHandleColor: KasyabaTokens.poloBlue30,
+      ),
+
+      listTileTheme: ListTileThemeData(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        titleTextStyle: const TextStyle(
+          fontWeight: FontWeight.w700,
+          fontSize: 14.5,
+          color: KasyabaTokens.periwinkleGray,
+        ),
+        subtitleTextStyle: const TextStyle(
+          fontWeight: FontWeight.w400,
+          fontSize: 12.5,
+          color: KasyabaTokens.periwinkleGraySubtitle,
+        ),
+        iconColor: KasyabaTokens.poloBlue,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        tileColor: Colors.transparent,
+      ),
+
+      progressIndicatorTheme: const ProgressIndicatorThemeData(
+        color: KasyabaTokens.periwinkleGray,
+        linearTrackColor: KasyabaTokens.bigStone,
+        linearMinHeight: 6,
+      ),
+
+      dividerTheme: const DividerThemeData(
+        color: KasyabaTokens.poloBlue16,
+        thickness: 1,
+        space: 1,
+      ),
+
+      iconTheme: const IconThemeData(
+        color: KasyabaTokens.periwinkleGraySubtitle,
+        size: 22,
+      ),
+
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: KasyabaTokens.bigStone,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(KasyabaTokens.radiusDialog),
+          side: const BorderSide(color: KasyabaTokens.poloBlue22),
+        ),
+        insetPadding: const EdgeInsets.fromLTRB(16, 0, 16, 105),
+        contentTextStyle: GoogleFonts.dmSans(
+          fontWeight: FontWeight.bold,
+          fontSize: 14,
+          color: KasyabaTokens.periwinkleGray,
+        ),
+        elevation: 8,
+      ),
+
+      textTheme: GoogleFonts.dmSansTextTheme(
+        const TextTheme(
+          displayLarge: TextStyle(
+            fontSize: 57,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -1.5,
+            color: KasyabaTokens.periwinkleGray,
+          ),
+          displayMedium: TextStyle(
+            fontSize: 45,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -1,
+            color: KasyabaTokens.periwinkleGray,
+          ),
+          displaySmall: TextStyle(
+            fontSize: 36,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.8,
+            color: KasyabaTokens.periwinkleGray,
+          ),
+          headlineLarge: TextStyle(
+            fontSize: 32,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.8,
+            color: KasyabaTokens.periwinkleGray,
+          ),
+          headlineMedium: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.5,
+            color: KasyabaTokens.periwinkleGray,
+          ),
+          headlineSmall: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.3,
+            color: KasyabaTokens.periwinkleGray,
+          ),
+          titleLarge: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.3,
+            color: KasyabaTokens.periwinkleGray,
+          ),
+          titleMedium: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+            letterSpacing: -0.2,
+            color: KasyabaTokens.periwinkleGray,
+          ),
+          titleSmall: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: KasyabaTokens.periwinkleGray,
+          ),
+          bodyLarge: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w400,
+            color: KasyabaTokens.periwinkleGray,
+          ),
+          bodyMedium: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w400,
+            color: KasyabaTokens.periwinkleGray,
+          ),
+          bodySmall: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w400,
+            color: KasyabaTokens.periwinkleGraySubtitle,
+          ),
+          labelLarge: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.1,
+            color: KasyabaTokens.periwinkleGray,
+          ),
+          labelMedium: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            letterSpacing: 0.4,
+            color: KasyabaTokens.periwinkleGraySubtitle,
+          ),
+          labelSmall: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w500,
+            letterSpacing: 0.5,
+            color: KasyabaTokens.periwinkleGraySubtitle,
+          ),
+        ),
+      ),
+    );
   }
 
   ThemeData get light {
@@ -369,11 +661,11 @@ class AppTheme {
 
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: isDark ? DashboardTokens.bigStone : AppColors.lightCardSurface,
+        backgroundColor: isDark ? KasyabaTokens.bigStone : AppColors.lightCardSurface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(24),
           side: BorderSide(
-            color: isDark ? DashboardTokens.poloBlue22 : cardBorder,
+            color: isDark ? KasyabaTokens.poloBlue22 : cardBorder,
             width: 1,
           ),
         ),
@@ -381,7 +673,7 @@ class AppTheme {
         contentTextStyle: GoogleFonts.dmSans(
           fontWeight: FontWeight.bold,
           fontSize: 14,
-          color: isDark ? DashboardTokens.periwinkleGray : textPrimary,
+          color: isDark ? KasyabaTokens.periwinkleGray : textPrimary,
         ),
         elevation: isDark ? 8 : 3,
       ),

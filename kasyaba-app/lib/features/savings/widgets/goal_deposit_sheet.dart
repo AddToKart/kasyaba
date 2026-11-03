@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../app/theme/app_motion.dart';
+import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../shared/widgets/kasyaba_toast.dart';
+import '../../../shared/widgets/pill_button.dart';
 import '../../dashboard/widgets/dashboard_tokens.dart';
 
 /// ─────────────────────────────────────────────────────────────
@@ -42,7 +44,7 @@ class _GoalDepositModal extends ConsumerStatefulWidget {
 }
 
 class _GoalDepositModalState extends ConsumerState<_GoalDepositModal> {
-  final _amountController = TextEditingController(text: '5000');
+  final _amountController = TextEditingController();
   String? _selectedAccountId;
   bool _isSubmitting = false;
   String? _errorMessage;
@@ -54,13 +56,30 @@ class _GoalDepositModalState extends ConsumerState<_GoalDepositModal> {
   }
 
   double get _enteredAmount {
-    return double.tryParse(_amountController.text.replaceAll(',', '').trim()) ?? 0.0;
+    return double.tryParse(_amountController.text.replaceAll(',', '').trim()) ??
+        0.0;
+  }
+
+  String? _effectiveAccountId(List<Account> accounts) {
+    if (accounts.isEmpty) return null;
+    for (final account in accounts) {
+      if (account.id == _selectedAccountId) return account.id;
+    }
+    return accounts.first.id;
   }
 
   Future<void> _handleSaveDeposit() async {
     final amount = _enteredAmount;
     if (amount <= 0) {
       setState(() => _errorMessage = 'Please enter a valid deposit amount');
+      return;
+    }
+
+    final accounts =
+        ref.read(accountsProvider).valueOrNull ?? const <Account>[];
+    final accountId = _effectiveAccountId(accounts);
+    if (accountId == null) {
+      setState(() => _errorMessage = 'No wallets available yet');
       return;
     }
 
@@ -71,10 +90,12 @@ class _GoalDepositModalState extends ConsumerState<_GoalDepositModal> {
 
     try {
       AppHaptics.mediumImpact();
-      await ref.read(budgetRepositoryProvider).addGoalContribution(
+      await ref
+          .read(budgetRepositoryProvider)
+          .addGoalContribution(
             goalId: widget.goal.id,
             amount: amount,
-            accountId: _selectedAccountId,
+            accountId: accountId,
           );
       if (mounted) {
         Navigator.of(context).pop();
@@ -88,7 +109,10 @@ class _GoalDepositModalState extends ConsumerState<_GoalDepositModal> {
       if (mounted) {
         setState(() {
           _isSubmitting = false;
-          _errorMessage = 'Failed to deposit: $e';
+          _errorMessage = friendlyErrorMessage(
+            e,
+            fallback: 'Could not save your deposit. Please try again.',
+          );
         });
       }
     }
@@ -109,29 +133,34 @@ class _GoalDepositModalState extends ConsumerState<_GoalDepositModal> {
         ? (bottomInset + 20.0)
         : dockClearance;
 
-    final accounts = accountsAsync.valueOrNull ?? [];
-    if (_selectedAccountId == null && accounts.isNotEmpty) {
-      _selectedAccountId = accounts.first.id;
+    final accounts = accountsAsync.valueOrNull ?? const <Account>[];
+    final effectiveAccountId = _effectiveAccountId(accounts);
+    Account? selectedAccount;
+    for (final account in accounts) {
+      if (account.id == effectiveAccountId) {
+        selectedAccount = account;
+        break;
+      }
     }
 
-    final selectedAccount = accounts.firstWhere(
-      (a) => a.id == _selectedAccountId,
-      orElse: () => accounts.isNotEmpty
-          ? accounts.first
-          : const Account(
-              id: 'cash_wallet',
-              name: 'Cash Wallet',
-              type: 'cash',
-            ),
-    );
-
-    final balances = balancesAsync.valueOrNull ?? {};
-    final selectedBalance = balances[selectedAccount.id] ?? 825149.80;
+    final balances = balancesAsync.valueOrNull ?? const <String, double>{};
+    final selectedBalance = selectedAccount != null
+        ? balances[selectedAccount.id]
+        : null;
+    final walletUnavailableMessage = accountsAsync.hasError
+        ? friendlyErrorMessage(
+            accountsAsync.error,
+            fallback: 'Could not load your wallets.',
+          )
+        : 'No wallets available yet';
+    final canSubmit = !_isSubmitting && selectedAccount != null;
 
     final depositAmt = _enteredAmount;
     final projectedCurrent = widget.goal.currentAmount + depositAmt;
     final projectedPercent = widget.goal.targetAmount > 0
-        ? ((projectedCurrent / widget.goal.targetAmount) * 100).clamp(0, 100).toInt()
+        ? ((projectedCurrent / widget.goal.targetAmount) * 100)
+              .clamp(0, 100)
+              .toInt()
         : 0;
 
     return Theme(
@@ -180,7 +209,12 @@ class _GoalDepositModalState extends ConsumerState<_GoalDepositModal> {
               // ── Scrollable Modal Content ─────────────────────────────
               Flexible(
                 child: SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(20, 8, 20, effectiveBottomPadding),
+                  padding: EdgeInsets.fromLTRB(
+                    20,
+                    8,
+                    20,
+                    effectiveBottomPadding,
+                  ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -215,7 +249,10 @@ class _GoalDepositModalState extends ConsumerState<_GoalDepositModal> {
                             IntrinsicWidth(
                               child: TextField(
                                 controller: _amountController,
-                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                      decimal: true,
+                                    ),
                                 textAlign: TextAlign.center,
                                 autofocus: true,
                                 onChanged: (_) => setState(() {}),
@@ -253,10 +290,12 @@ class _GoalDepositModalState extends ConsumerState<_GoalDepositModal> {
                             ),
                             children: [
                               TextSpan(
-                                text: '${widget.goal.name}: ${CurrencyFormatter.format(widget.goal.currentAmount, decimalDigits: 0)} → ',
+                                text:
+                                    '${widget.goal.name}: ${CurrencyFormatter.format(widget.goal.currentAmount, decimalDigits: 0)} → ',
                               ),
                               TextSpan(
-                                text: '${CurrencyFormatter.format(projectedCurrent, decimalDigits: 0)} ($projectedPercent%)',
+                                text:
+                                    '${CurrencyFormatter.format(projectedCurrent, decimalDigits: 0)} ($projectedPercent%)',
                                 style: GoogleFonts.dmSans(
                                   color: DashboardTokens.bermuda,
                                   fontWeight: FontWeight.bold,
@@ -270,43 +309,63 @@ class _GoalDepositModalState extends ConsumerState<_GoalDepositModal> {
 
                       // ── From Wallet Card (Node 11:1881) ──────────────────
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 21, vertical: 18.5),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 21,
+                          vertical: 18.5,
+                        ),
                         decoration: BoxDecoration(
                           color: DashboardTokens.bigStone,
                           borderRadius: BorderRadius.circular(28),
                           border: Border.all(color: DashboardTokens.poloBlue22),
                         ),
-                        child: Row(
-                          children: [
-                            SizedBox(
-                              width: 72,
-                              child: Text(
-                                'From',
+                        child: selectedAccount != null
+                            ? Row(
+                                children: [
+                                  SizedBox(
+                                    width: 72,
+                                    child: Text(
+                                      'From',
+                                      style: GoogleFonts.dmSans(
+                                        color: DashboardTokens
+                                            .periwinkleGraySubtitle,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Text(
+                                      selectedAccount.name,
+                                      style: GoogleFonts.dmSans(
+                                        color: DashboardTokens.periwinkleGray,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  Text(
+                                    selectedBalance != null
+                                        ? CurrencyFormatter.format(
+                                            selectedBalance,
+                                          )
+                                        : '—',
+                                    style: GoogleFonts.dmSans(
+                                      color: DashboardTokens
+                                          .periwinkleGraySubtitle,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : Text(
+                                walletUnavailableMessage,
+                                textAlign: TextAlign.center,
                                 style: GoogleFonts.dmSans(
-                                  color: DashboardTokens.periwinkleGraySubtitle,
+                                  color: accountsAsync.hasError
+                                      ? DashboardTokens.apricot
+                                      : DashboardTokens.periwinkleGraySubtitle,
                                   fontSize: 14,
                                 ),
                               ),
-                            ),
-                            Expanded(
-                              child: Text(
-                                selectedAccount.name,
-                                style: GoogleFonts.dmSans(
-                                  color: DashboardTokens.periwinkleGray,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            Text(
-                              CurrencyFormatter.format(selectedBalance),
-                              style: GoogleFonts.dmSans(
-                                color: DashboardTokens.periwinkleGraySubtitle,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
                       ),
                       const SizedBox(height: 12),
 
@@ -337,35 +396,10 @@ class _GoalDepositModalState extends ConsumerState<_GoalDepositModal> {
                       const SizedBox(height: 20),
 
                       // ── CTA Button ───────────────────────────────────────
-                      SizedBox(
-                        height: 56,
-                        child: FilledButton(
-                          onPressed: _isSubmitting ? null : _handleSaveDeposit,
-                          style: FilledButton.styleFrom(
-                            backgroundColor: DashboardTokens.periwinkleGray,
-                            foregroundColor: DashboardTokens.ebony,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(28),
-                            ),
-                          ),
-                          child: _isSubmitting
-                              ? const SizedBox(
-                                  width: 22,
-                                  height: 22,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2.5,
-                                    color: DashboardTokens.ebony,
-                                  ),
-                                )
-                              : Text(
-                                  'Save deposit',
-                                  style: GoogleFonts.dmSans(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                        ),
+                      PillButton(
+                        label: 'Save deposit',
+                        onPressed: canSubmit ? _handleSaveDeposit : null,
+                        isLoading: _isSubmitting,
                       ),
                     ],
                   ),

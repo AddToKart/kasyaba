@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../app/theme/app_theme.dart';
 
-/// Clean monochrome vector icon & color helper for transaction categories
+/// Clean monochrome vector icon helper for transaction categories
 class CategoryIconHelper {
   CategoryIconHelper._();
 
@@ -108,34 +107,5 @@ class CategoryIconHelper {
     return Icons.receipt_long_rounded;
   }
 
-  static Color getColor(String categoryName, {bool isExpense = true}) {
-    if (!isExpense) return AppColors.income;
-    final lower = categoryName.toLowerCase().trim();
-    if (lower.contains('food') || lower.contains('dining')) {
-      return const Color(0xFFF97316); // Amber Orange
-    }
-    if (lower.contains('entertain') || lower.contains('subscription')) {
-      return const Color(0xFFA855F7); // Purple
-    }
-    if (lower.contains('utilit') || lower.contains('bill')) {
-      return const Color(0xFF38BDF8); // Sky Blue
-    }
-    if (lower.contains('health') || lower.contains('medical')) {
-      return const Color(0xFFEF4444); // Red
-    }
-    if (lower.contains('transport') || RegExp(r'\b(car|cars|auto)\b').hasMatch(lower)) {
-      return const Color(0xFFEAB308); // Yellow
-    }
-    if (lower.contains('shop')) {
-      return const Color(0xFFEC4899); // Pink
-    }
-    if (lower.contains('transfer')) {
-      return AppColors.info;
-    }
-    return AppColors.gold500;
-  }
-
   static IconData iconFor(String categoryName) => getIcon(categoryName);
-  static Color colorFor(String categoryName, {bool isExpense = true}) =>
-      getColor(categoryName, isExpense: isExpense);
 }

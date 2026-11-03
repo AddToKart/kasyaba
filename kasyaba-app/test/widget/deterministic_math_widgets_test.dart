@@ -1,9 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:kasyaba/core/providers/api_providers.dart';
 import 'package:kasyaba/core/utils/deterministic_math.dart';
 import 'package:kasyaba/features/dashboard/screens/dashboard_screen.dart';
+import 'package:kasyaba/features/planning/screens/math_breakdown_screen.dart';
+
+Widget _dashboardTestApp() {
+  final router = GoRouter(
+    initialLocation: '/dashboard',
+    routes: [
+      GoRoute(
+        path: '/dashboard',
+        builder: (context, state) => const DashboardScreen(),
+      ),
+      GoRoute(
+        path: '/planning/breakdown',
+        builder: (context, state) => MathBreakdownScreen(
+          calculation: state.extra as DailySafeSpendCalculation?,
+        ),
+      ),
+    ],
+  );
+  return MaterialApp.router(routerConfig: router);
+}
 
 void main() {
   group('Daily Safe Spend Hero Card & Breakdown Sheet', () {
@@ -40,11 +61,7 @@ void main() {
             transactionsProvider.overrideWith((ref) => []),
             budgetStatusProvider.overrideWith((ref) => BudgetStatus.empty()),
           ],
-          child: const MaterialApp(
-            home: Scaffold(
-              body: DashboardScreen(),
-            ),
-          ),
+          child: _dashboardTestApp(),
         ),
       );
 
@@ -56,22 +73,21 @@ void main() {
       expect(find.text('Breakdown'), findsOneWidget);
       expect(find.textContaining('/ day'), findsWidgets);
 
-      // Tap on breakdown to open bottom sheet
+      // Tap on breakdown to open the new-generation math breakdown route
       await tester.tap(find.text('Breakdown'));
       await tester.pumpAndSettle();
 
-      // Verify breakdown sheet contents
-      expect(find.text('Kasya Ba Today? Math Breakdown'), findsOneWidget);
-      expect(find.text('EXACT DETERMINISTIC FORMULA'), findsOneWidget);
-      expect(find.text('NUMERATOR (SAFE CASH BUFFER)'), findsOneWidget);
-      expect(find.text('DENOMINATOR (PAYDAY TIMELINE)'), findsOneWidget);
-      expect(find.text('DAILY SAFE SPEND ALLOWANCE'), findsOneWidget);
-      expect(find.text('Close Breakdown'), findsOneWidget);
+      // Verify breakdown screen contents
+      expect(find.text('How we calculate'), findsOneWidget);
+      expect(find.text('Exact deterministic formula'), findsOneWidget);
+      expect(find.text('Find your safe cash'), findsOneWidget);
+      expect(find.text('Spread it until payday'), findsOneWidget);
+      expect(find.text('Available to spend today'), findsOneWidget);
 
-      // Close breakdown sheet
-      await tester.tap(find.text('Close Breakdown'));
+      // Navigate back to the dashboard
+      await tester.tap(find.byIcon(Icons.chevron_left_rounded));
       await tester.pumpAndSettle();
-      expect(find.text('EXACT DETERMINISTIC FORMULA'), findsNothing);
+      expect(find.text('How we calculate'), findsNothing);
     });
 
     testWidgets('fresh user with 0 transactions renders Quick Start Checklist and goal proration breakdown', (tester) async {
@@ -114,11 +130,7 @@ void main() {
             transactionsProvider.overrideWith((ref) => []),
             budgetStatusProvider.overrideWith((ref) => BudgetStatus.empty()),
           ],
-          child: const MaterialApp(
-            home: Scaffold(
-              body: DashboardScreen(),
-            ),
-          ),
+          child: _dashboardTestApp(),
         ),
       );
 
@@ -132,17 +144,16 @@ void main() {
       expect(find.text('+ Add Starting Cash'), findsOneWidget);
       expect(find.text('+ Set Up'), findsOneWidget);
 
-      // Open breakdown
+      // Open the new-generation math breakdown route
       await tester.tap(find.text('Breakdown'));
       await tester.pumpAndSettle();
 
-      // Verify Itemized Goal Breakdown & Contextual ₱0 explanation
-      expect(find.text('GOAL PRORATION BREAKDOWN'), findsOneWidget);
+      // Verify itemized goal contributions on the breakdown screen
+      expect(find.text('How we calculate'), findsOneWidget);
+      expect(find.textContaining('Savings for 1 goal'), findsOneWidget);
       expect(find.text('Tuition Fee'), findsOneWidget);
-      expect(find.text('Why is your daily safe spend ₱0.00?'), findsOneWidget);
-      expect(find.text('+ Log Starting Cash / Balance'), findsOneWidget);
 
-      await tester.tap(find.text('Close Breakdown'));
+      await tester.tap(find.byIcon(Icons.chevron_left_rounded));
       await tester.pumpAndSettle();
     });
 
@@ -195,11 +206,7 @@ void main() {
             transactionsProvider.overrideWith((ref) => [pastTx]),
             budgetStatusProvider.overrideWith((ref) => BudgetStatus.empty()),
           ],
-          child: const MaterialApp(
-            home: Scaffold(
-              body: DashboardScreen(),
-            ),
-          ),
+          child: _dashboardTestApp(),
         ),
       );
 

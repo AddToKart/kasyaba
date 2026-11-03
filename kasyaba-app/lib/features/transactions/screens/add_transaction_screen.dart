@@ -10,7 +10,9 @@ import '../../../shared/widgets/motion_components.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../../../shared/widgets/kasyaba_date_picker.dart';
 import '../../../shared/widgets/kasyaba_toast.dart';
+import '../../../shared/widgets/pill_button.dart';
 import '../../dashboard/widgets/dashboard_tokens.dart';
 
 DateTime _dateOnly(DateTime date) => DateTime(date.year, date.month, date.day);
@@ -27,11 +29,7 @@ bool _categoryNamesMatch(String left, String right) {
   return a == b || a.startsWith(b) || b.startsWith(a);
 }
 
-enum TransactionTypeMode {
-  expense,
-  income,
-  transfer,
-}
+enum TransactionTypeMode { expense, income, transfer }
 
 /// ─────────────────────────────────────────────────────────────
 ///  Add Transaction / Transfer Screen
@@ -72,16 +70,6 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
   String _selectedFeePreset = 'Free';
   String _selectedIncomeSource = 'Salary';
 
-  static const List<Map<String, String>> _defaultExpenseCategories = [
-    {'id': 'cat_food', 'name': 'Food'},
-    {'id': 'cat_transport', 'name': 'Transport'},
-    {'id': 'cat_shopping', 'name': 'Shopping'},
-    {'id': 'cat_rent', 'name': 'Rent'},
-    {'id': 'cat_utilities', 'name': 'Utilities'},
-    {'id': 'cat_healthcare', 'name': 'Healthcare'},
-    {'id': 'cat_more', 'name': 'More'},
-  ];
-
   static const List<String> _incomeSources = [
     'Salary',
     'Freelance',
@@ -120,22 +108,17 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     }
 
     _selectedCategory = transaction?.categoryId ?? 'cat_food';
-    _selectedCategoryName = transaction?.categoryName ?? 'Food';
+    _selectedCategoryName = transaction?.categoryName ?? 'Food & Dining';
     _selectedAccount = transaction?.accountId;
     _selectedDate = transaction?.date ?? _dateOnly(DateTime.now());
 
     if (transaction != null) {
-      _amountController.text = transaction.amount == transaction.amount.roundToDouble()
+      _amountController.text =
+          transaction.amount == transaction.amount.roundToDouble()
           ? transaction.amount.toInt().toString()
           : transaction.amount.toStringAsFixed(2);
       _descriptionController.text = transaction.title;
       _notesController.text = transaction.notes ?? '';
-    } else {
-      if (_isExpense) {
-        _descriptionController.text = '';
-      } else if (_isIncome) {
-        _descriptionController.text = 'Monthly salary';
-      }
     }
 
     _amountController.addListener(_onStateChange);
@@ -172,17 +155,17 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     AppHaptics.selectionClick();
     setState(() {
       _mode = targetMode;
-      if (_mode == TransactionTypeMode.income && _descriptionController.text.isEmpty) {
-        _descriptionController.text = 'Monthly salary';
-      }
     });
   }
 
   String _formatDateDisplay(DateTime date) {
     final now = DateTime.now();
-    final isToday = date.year == now.year && date.month == now.month && date.day == now.day;
+    final isToday =
+        date.year == now.year && date.month == now.month && date.day == now.day;
     final formatted = DateFormat('MMM d').format(date);
-    return isToday ? 'Today, $formatted' : DateFormat('EEE, MMM d').format(date);
+    return isToday
+        ? 'Today, $formatted'
+        : DateFormat('EEE, MMM d').format(date);
   }
 
   Future<void> _selectDate() async {
@@ -194,17 +177,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
       lastDate: DateTime(2100, 12, 31),
       builder: (ctx, child) {
         if (child == null) return const SizedBox.shrink();
-        return Theme(
-          data: Theme.of(ctx).copyWith(
-            colorScheme: ColorScheme.dark(
-              primary: DashboardTokens.periwinkleGray,
-              onPrimary: DashboardTokens.ebony,
-              surface: DashboardTokens.bigStone,
-              onSurface: DashboardTokens.periwinkleGray,
-            ),
-          ),
-          child: child,
-        );
+        return Theme(data: kasyabaDatePickerTheme(ctx), child: child);
       },
     );
     if (picked != null && mounted) {
@@ -253,7 +226,9 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  isDestination ? 'Select Destination Account' : 'Select Account',
+                  isDestination
+                      ? 'Select Destination Account'
+                      : 'Select Account',
                   style: GoogleFonts.bricolageGrotesque(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -265,10 +240,8 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                   child: ListView.separated(
                     shrinkWrap: true,
                     itemCount: accounts.length,
-                    separatorBuilder: (_, _) => Divider(
-                      height: 1,
-                      color: DashboardTokens.poloBlue16,
-                    ),
+                    separatorBuilder: (_, _) =>
+                        Divider(height: 1, color: DashboardTokens.poloBlue16),
                     itemBuilder: (ctx, idx) {
                       final acc = accounts[idx];
                       final bal = balances[acc.id] ?? 0.0;
@@ -276,7 +249,10 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                           ? _selectedToAccount == acc.id
                           : _selectedAccount == acc.id;
                       return ListTile(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         title: Text(
                           acc.name,
                           style: GoogleFonts.dmSans(
@@ -336,12 +312,36 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     });
   }
 
+  String? _effectiveAccountId(List<Account> accounts) =>
+      _selectedAccount ??
+      widget.transaction?.accountId ??
+      (accounts.isNotEmpty ? accounts.first.id : null);
+
+  String? _effectiveToAccountId(List<Account> accounts, String? fromAccountId) {
+    if (_selectedToAccount != null) return _selectedToAccount;
+    if (accounts.length < 2) return null;
+    return accounts
+        .firstWhere(
+          (account) => account.id != fromAccountId,
+          orElse: () => accounts.last,
+        )
+        .id;
+  }
+
+  String get _incomeSourceValue {
+    final description = _descriptionController.text.trim();
+    return description.isNotEmpty ? description : _selectedIncomeSource;
+  }
+
   Future<void> _handleSave() async {
+    if (_isSubmitting) return;
     if (!_formKey.currentState!.validate()) return;
 
+    final accounts = ref.read(accountsProvider).valueOrNull ?? [];
+
     if (_isTransfer) {
-      final fromAccountId = _selectedAccount;
-      final toAccountId = _selectedToAccount;
+      final fromAccountId = _effectiveAccountId(accounts);
+      final toAccountId = _effectiveToAccountId(accounts, fromAccountId);
       if (fromAccountId == null ||
           !RegExp(
             r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$',
@@ -364,13 +364,17 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
         return;
       }
 
-      final amount = double.tryParse(_amountController.text.replaceAll(',', '').trim()) ?? 0.0;
+      final amount =
+          double.tryParse(_amountController.text.replaceAll(',', '').trim()) ??
+          0.0;
       if (amount <= 0) {
         KasyabaToast.showError(context, 'Enter an amount greater than zero.');
         return;
       }
 
-      final fee = double.tryParse(_feeController.text.replaceAll(',', '').trim()) ?? 0.0;
+      final fee =
+          double.tryParse(_feeController.text.replaceAll(',', '').trim()) ??
+          0.0;
       if (fee < 0) {
         KasyabaToast.showError(context, 'Transfer fee cannot be negative.');
         return;
@@ -382,7 +386,6 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
 
       try {
         final mutator = ref.read(transactionMutatorProvider);
-        final accounts = ref.read(accountsProvider).valueOrNull ?? [];
         final fromAcc = accounts.firstWhere(
           (a) => a.id == fromAccountId,
           orElse: () => Account(id: fromAccountId, name: 'Source Wallet'),
@@ -395,8 +398,8 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
         final transferNote = notes.isNotEmpty
             ? notes
             : (description.isNotEmpty
-                ? description
-                : 'Transfer: ${fromAcc.name} → ${toAcc.name}');
+                  ? description
+                  : 'Transfer: ${fromAcc.name} → ${toAcc.name}');
 
         final saveStatus = await mutator.addTransfer(
           fromAccountId: fromAccountId,
@@ -426,8 +429,8 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
           final transferSubtitle = saveStatus == TransactionSaveStatus.queued
               ? 'Will sync when online'
               : (fee > 0
-                  ? '${CurrencyFormatter.format(amount)} + ${CurrencyFormatter.format(fee)} fee'
-                  : CurrencyFormatter.format(amount));
+                    ? '${CurrencyFormatter.format(amount)} + ${CurrencyFormatter.format(fee)} fee'
+                    : CurrencyFormatter.format(amount));
 
           KasyabaToast.showSuccess(
             context,
@@ -452,7 +455,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
       return;
     }
 
-    final accountId = _selectedAccount ?? widget.transaction?.accountId;
+    final accountId = _effectiveAccountId(accounts);
     if (accountId == null ||
         !RegExp(
           r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$',
@@ -479,9 +482,12 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     final isExpense = _isExpense;
     setState(() => _isSubmitting = true);
 
-    final amount = double.tryParse(_amountController.text.replaceAll(',', '').trim()) ?? 0.0;
+    final amount =
+        double.tryParse(_amountController.text.replaceAll(',', '').trim()) ??
+        0.0;
     final description = _descriptionController.text.trim();
     final notes = _notesController.text.trim();
+    final incomeSource = _incomeSourceValue;
     final isScheduled = _isFutureDate(_selectedDate);
 
     try {
@@ -504,7 +510,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
             id: existing.id,
             accountId: accountId,
             amount: amount,
-            source: description.isNotEmpty ? description : 'Income',
+            source: incomeSource,
             receivedAt: _selectedDate,
             notes: notes,
           );
@@ -523,7 +529,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
         saveStatus = await mutator.addIncome(
           accountId: accountId,
           amount: amount,
-          source: description.isNotEmpty ? description : 'Income',
+          source: incomeSource,
           receivedAt: _selectedDate,
           notes: notes,
         );
@@ -534,10 +540,10 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
         final message = saveStatus == TransactionSaveStatus.queued
             ? '$label saved offline'
             : existing != null
-                ? '$label updated'
-                : isScheduled
-                    ? '$label scheduled'
-                    : '$label recorded!';
+            ? '$label updated'
+            : isScheduled
+            ? '$label scheduled'
+            : '$label recorded!';
         final subtitle = saveStatus == TransactionSaveStatus.queued
             ? 'Will sync automatically when online'
             : CurrencyFormatter.format(amount);
@@ -551,11 +557,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
             accentColor: DashboardTokens.apricot,
           );
         } else {
-          KasyabaToast.showSuccess(
-            context,
-            message,
-            subtitle: subtitle,
-          );
+          KasyabaToast.showSuccess(context, message, subtitle: subtitle);
         }
         _handleClose();
       }
@@ -581,32 +583,39 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     final accounts = ref.watch(accountsProvider).valueOrNull ?? [];
     final balances = ref.watch(accountBalancesProvider).valueOrNull ?? {};
 
-    // Auto-select first account if not set
-    if (_selectedAccount == null && accounts.isNotEmpty) {
-      _selectedAccount = accounts.first.id;
-    }
-    // Auto-select second account for transfer if not set
-    if (_isTransfer && _selectedToAccount == null && accounts.length > 1) {
-      _selectedToAccount = accounts.firstWhere(
-        (a) => a.id != _selectedAccount,
-        orElse: () => accounts.last,
-      ).id;
-    }
-
-    final currentAccount = accounts.firstWhere(
-      (a) => a.id == _selectedAccount,
-      orElse: () => Account(id: _selectedAccount ?? '', name: 'Cash Wallet'),
+    final effectiveAccountId = _effectiveAccountId(accounts);
+    final effectiveToAccountId = _effectiveToAccountId(
+      accounts,
+      effectiveAccountId,
     );
 
-    final currentToAccount = accounts.firstWhere(
-      (a) => a.id == _selectedToAccount,
-      orElse: () => Account(id: _selectedToAccount ?? '', name: accounts.length > 1 ? accounts[1].name : 'GCash'),
-    );
+    final currentAccount = accounts
+        .where((account) => account.id == effectiveAccountId)
+        .firstOrNull;
+    final currentToAccount = accounts
+        .where((account) => account.id == effectiveToAccountId)
+        .firstOrNull;
 
-    final currentAccountBalance = balances[currentAccount.id] ?? 0.0;
-    final toAccountBalance = balances[currentToAccount.id] ?? 0.0;
+    final currentAccountBalance = currentAccount == null
+        ? 0.0
+        : balances[currentAccount.id] ?? 0.0;
+    final toAccountBalance = currentToAccount == null
+        ? 0.0
+        : balances[currentToAccount.id] ?? 0.0;
 
-    final inputAmount = double.tryParse(_amountController.text.replaceAll(',', '').trim()) ?? 0.0;
+    final displayAccount = currentAccount ?? const Account(id: '', name: '—');
+    final displayToAccount =
+        currentToAccount ?? const Account(id: '', name: '—');
+
+    final fetchedCategories = ref.watch(categoriesProvider).valueOrNull;
+    final categories = (fetchedCategories == null || fetchedCategories.isEmpty)
+        ? defaultCategoriesList
+        : fetchedCategories;
+    final quickCategories = categories.take(6).toList();
+
+    final inputAmount =
+        double.tryParse(_amountController.text.replaceAll(',', '').trim()) ??
+        0.0;
 
     // Balance calculations for hero preview
     final double afterBalance;
@@ -632,7 +641,8 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
 
     final String buttonLabel;
     if (widget.transaction != null) {
-      buttonLabel = 'Update ${_isExpense ? "expense" : (_isIncome ? "income" : "transfer")}';
+      buttonLabel =
+          'Update ${_isExpense ? "expense" : (_isIncome ? "income" : "transfer")}';
     } else {
       buttonLabel = _isExpense
           ? 'Save expense'
@@ -719,7 +729,8 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                     fontSize: 15,
                     items: const ['Expense', 'Income', 'Transfer'],
                     selectedIndex: _mode.index,
-                    onChanged: (idx) => _switchMode(TransactionTypeMode.values[idx]),
+                    onChanged: (idx) =>
+                        _switchMode(TransactionTypeMode.values[idx]),
                   ),
                   const SizedBox(height: 14),
 
@@ -760,8 +771,8 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                                   controller: _amountController,
                                   keyboardType:
                                       const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
+                                        decimal: true,
+                                      ),
                                   style: GoogleFonts.bricolageGrotesque(
                                     fontSize: 46,
                                     fontWeight: FontWeight.bold,
@@ -772,8 +783,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                                   cursorColor: DashboardTokens.periwinkleGray,
                                   decoration: InputDecoration(
                                     hintText: '0',
-                                    hintStyle:
-                                        GoogleFonts.bricolageGrotesque(
+                                    hintStyle: GoogleFonts.bricolageGrotesque(
                                       fontSize: 46,
                                       fontWeight: FontWeight.bold,
                                       color: DashboardTokens.periwinkleGray
@@ -812,7 +822,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                             children: [
                               TextSpan(
                                 text: _isTransfer
-                                    ? '${currentAccount.name}: ${CurrencyFormatter.format(currentAccountBalance)} → '
+                                    ? '${displayAccount.name}: ${CurrencyFormatter.format(currentAccountBalance)} → '
                                     : 'Balance after: ${CurrencyFormatter.format(currentAccountBalance)} → ',
                               ),
                               TextSpan(
@@ -832,14 +842,18 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
 
                   // ── Mode-Specific Body ────────────────────────────────────
                   if (_isExpense) ...[
-                    _buildExpenseBody(currentAccount, currentAccountBalance),
+                    _buildExpenseBody(
+                      displayAccount,
+                      currentAccountBalance,
+                      quickCategories,
+                    ),
                   ] else if (_isIncome) ...[
-                    _buildIncomeBody(currentAccount, currentAccountBalance),
+                    _buildIncomeBody(displayAccount, currentAccountBalance),
                   ] else ...[
                     _buildTransferBody(
-                      currentAccount,
+                      displayAccount,
                       currentAccountBalance,
-                      currentToAccount,
+                      displayToAccount,
                       toAccountBalance,
                     ),
                   ],
@@ -847,34 +861,10 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                   const SizedBox(height: 24),
 
                   // ── CTA Button ────────────────────────────────────────────
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: _isSubmitting ? null : _handleSave,
-                    child: Container(
-                      height: 56,
-                      decoration: BoxDecoration(
-                        color: DashboardTokens.periwinkleGray,
-                        borderRadius: BorderRadius.circular(28),
-                      ),
-                      alignment: Alignment.center,
-                      child: _isSubmitting
-                          ? const SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                                color: DashboardTokens.ebony,
-                              ),
-                            )
-                          : Text(
-                              buttonLabel,
-                              style: GoogleFonts.dmSans(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: DashboardTokens.ebony,
-                              ),
-                            ),
-                    ),
+                  PillButton(
+                    label: buttonLabel,
+                    onPressed: _isSubmitting ? null : _handleSave,
+                    isLoading: _isSubmitting,
                   ),
                 ],
               ),
@@ -885,10 +875,12 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     );
   }
 
-
-
   // ── Expense Body (Node 37:6387) ───────────────────────────────────────────
-  Widget _buildExpenseBody(Account account, double balance) {
+  Widget _buildExpenseBody(
+    Account account,
+    double balance,
+    List<Category> categories,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -938,52 +930,29 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
             Wrap(
               spacing: 8,
               runSpacing: 10,
-              children: _defaultExpenseCategories.map((cat) {
-                final isSelected = _selectedCategoryName == cat['name'] ||
-                    _selectedCategory == cat['id'];
-                return GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () {
-                    AppHaptics.selectionClick();
-                    if (cat['id'] == 'cat_more') {
-                      _showAllCategoriesSheet();
-                    } else {
+              children: [
+                ...categories.map((cat) {
+                  final isSelected =
+                      _selectedCategoryName == cat.name ||
+                      _selectedCategory == cat.id;
+                  return _buildCategoryChip(
+                    label: cat.name,
+                    isSelected: isSelected,
+                    onTap: () {
+                      AppHaptics.selectionClick();
                       setState(() {
-                        _selectedCategory = cat['id'];
-                        _selectedCategoryName = cat['name'];
+                        _selectedCategory = cat.id;
+                        _selectedCategoryName = cat.name;
                       });
-                    }
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 17,
-                      vertical: 11,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? DashboardTokens.periwinkleGray
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(22),
-                      border: isSelected
-                          ? null
-                          : Border.all(
-                              color: DashboardTokens.poloBlue.withValues(alpha: 0.4),
-                              width: 1,
-                            ),
-                    ),
-                    child: Text(
-                      cat['name']!,
-                      style: GoogleFonts.dmSans(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: isSelected
-                            ? DashboardTokens.ebony
-                            : DashboardTokens.periwinkleGray,
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
+                    },
+                  );
+                }),
+                _buildCategoryChip(
+                  label: 'More',
+                  isSelected: false,
+                  onTap: _showAllCategoriesSheet,
+                ),
+              ],
             ),
           ],
         ),
@@ -1008,7 +977,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                   ),
                 ),
                 Text(
-                  CurrencyFormatter.format(balance),
+                  _accountBalanceLabel(account, balance),
                   style: GoogleFonts.dmSans(
                     fontSize: 14,
                     color: DashboardTokens.periwinkleGraySubtitle,
@@ -1063,49 +1032,21 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
               spacing: 8,
               runSpacing: 10,
               children: _incomeSources.map((source) {
-                final isSelected = _selectedIncomeSource == source;
-                return GestureDetector(
-                  behavior: HitTestBehavior.opaque,
+                return _buildCategoryChip(
+                  label: source,
+                  isSelected: _selectedIncomeSource == source,
                   onTap: () {
                     AppHaptics.selectionClick();
+                    final current = _descriptionController.text.trim();
+                    final isPreset =
+                        current.isEmpty || _incomeSources.contains(current);
                     setState(() {
                       _selectedIncomeSource = source;
-                      if (_descriptionController.text.isEmpty ||
-                          _incomeSources.contains(_descriptionController.text)) {
-                        _descriptionController.text = source == 'Salary'
-                            ? 'Monthly salary'
-                            : source;
+                      if (isPreset) {
+                        _descriptionController.text = source;
                       }
                     });
                   },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 17,
-                      vertical: 11,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? DashboardTokens.periwinkleGray
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(22),
-                      border: isSelected
-                          ? null
-                          : Border.all(
-                              color: DashboardTokens.poloBlue.withValues(alpha: 0.4),
-                              width: 1,
-                            ),
-                    ),
-                    child: Text(
-                      source,
-                      style: GoogleFonts.dmSans(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: isSelected
-                            ? DashboardTokens.ebony
-                            : DashboardTokens.periwinkleGray,
-                      ),
-                    ),
-                  ),
                 );
               }).toList(),
             ),
@@ -1125,7 +1066,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
             ),
             cursorColor: DashboardTokens.periwinkleGray,
             decoration: InputDecoration(
-              hintText: 'Monthly salary',
+              hintText: 'e.g. Salary payout',
               hintStyle: GoogleFonts.dmSans(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -1161,7 +1102,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                   ),
                 ),
                 Text(
-                  CurrencyFormatter.format(balance),
+                  _accountBalanceLabel(account, balance),
                   style: GoogleFonts.dmSans(
                     fontSize: 14,
                     color: DashboardTokens.periwinkleGraySubtitle,
@@ -1251,7 +1192,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                   ),
                 ),
                 Text(
-                  CurrencyFormatter.format(fromBalance),
+                  _accountBalanceLabel(fromAccount, fromBalance),
                   style: GoogleFonts.dmSans(
                     fontSize: 14,
                     color: DashboardTokens.periwinkleGraySubtitle,
@@ -1324,7 +1265,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                   ),
                 ),
                 Text(
-                  CurrencyFormatter.format(toBalance),
+                  _accountBalanceLabel(toAccount, toBalance),
                   style: GoogleFonts.dmSans(
                     fontSize: 14,
                     color: DashboardTokens.periwinkleGraySubtitle,
@@ -1362,7 +1303,9 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                     setState(() {
                       _selectedFeePreset = preset['label'] as String;
                       final amt = preset['amount'] as double;
-                      _feeController.text = amt > 0 ? amt.toStringAsFixed(2) : '';
+                      _feeController.text = amt > 0
+                          ? amt.toStringAsFixed(2)
+                          : '';
                     });
                   },
                   child: Container(
@@ -1378,7 +1321,9 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                       border: isSelected
                           ? null
                           : Border.all(
-                              color: DashboardTokens.poloBlue.withValues(alpha: 0.4),
+                              color: DashboardTokens.poloBlue.withValues(
+                                alpha: 0.4,
+                              ),
                               width: 1,
                             ),
                     ),
@@ -1441,21 +1386,54 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     );
   }
 
-  // ── Helper Row Card (height 58, big stone fill, polo blue 22% border) ─────
-  Widget _buildInputRowCard({
+  String _accountBalanceLabel(Account account, double balance) =>
+      account.id.isEmpty ? '—' : CurrencyFormatter.format(balance);
+
+  Widget _buildCategoryChip({
     required String label,
-    required Widget child,
+    required bool isSelected,
+    required VoidCallback onTap,
   }) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 11),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? DashboardTokens.periwinkleGray
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(22),
+          border: isSelected
+              ? null
+              : Border.all(
+                  color: DashboardTokens.poloBlue.withValues(alpha: 0.4),
+                  width: 1,
+                ),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.dmSans(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: isSelected
+                ? DashboardTokens.ebony
+                : DashboardTokens.periwinkleGray,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Helper Row Card (height 58, big stone fill, polo blue 22% border) ─────
+  Widget _buildInputRowCard({required String label, required Widget child}) {
     return Container(
       height: 58,
       padding: const EdgeInsets.symmetric(horizontal: 21),
       decoration: BoxDecoration(
         color: DashboardTokens.bigStone,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(
-          color: DashboardTokens.poloBlue22,
-          width: 1,
-        ),
+        border: Border.all(color: DashboardTokens.poloBlue22, width: 1),
       ),
       child: Row(
         children: [
@@ -1477,7 +1455,10 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
 
   void _showAllCategoriesSheet() {
     AppHaptics.selectionClick();
-    final categories = ref.read(categoriesProvider).valueOrNull ?? [];
+    final fetched = ref.read(categoriesProvider).valueOrNull;
+    final categories = (fetched == null || fetched.isEmpty)
+        ? defaultCategoriesList
+        : fetched;
     showModalBottomSheet<Category>(
       context: context,
       useRootNavigator: true,
@@ -1517,10 +1498,8 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                   child: ListView.separated(
                     shrinkWrap: true,
                     itemCount: categories.length,
-                    separatorBuilder: (_, _) => Divider(
-                      height: 1,
-                      color: DashboardTokens.poloBlue16,
-                    ),
+                    separatorBuilder: (_, _) =>
+                        Divider(height: 1, color: DashboardTokens.poloBlue16),
                     itemBuilder: (ctx, idx) {
                       final c = categories[idx];
                       return ListTile(
