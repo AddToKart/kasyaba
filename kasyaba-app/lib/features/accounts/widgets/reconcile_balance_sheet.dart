@@ -8,6 +8,7 @@ import '../../../shared/widgets/pressable_scale.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../../../shared/widgets/kasyaba_toast.dart';
 
 /// Shows the 1-Tap Wallet Balance Reconciliation modal sheet.
 Future<void> showReconcileBalanceSheet(
@@ -99,47 +100,19 @@ class _ReconcileBalanceSheetState extends ConsumerState<ReconcileBalanceSheet> {
 
       if (mounted) {
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(
-                  Icons.check_circle_rounded,
-                  color: Colors.white,
-                  size: 18,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    '${account.name} reconciled to $formattedActual (${discrepancy < 0 ? '-' : '+'}${CurrencyFormatter.format(discrepancy.abs())} logged)',
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ],
-            ),
-            backgroundColor: AppColors.emerald600,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-          ),
+        KasyabaToast.showSuccess(
+          context,
+          '${account.name} reconciled to $formattedActual',
+          subtitle: '${discrepancy < 0 ? '-' : '+'}${CurrencyFormatter.format(discrepancy.abs())} logged',
         );
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              friendlyErrorMessage(
-                error,
-                fallback: 'Could not reconcile balance. Please try again.',
-              ),
-            ),
-            backgroundColor: AppColors.expense,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
+        KasyabaToast.showError(
+          context,
+          friendlyErrorMessage(
+            error,
+            fallback: 'Could not reconcile balance. Please try again.',
           ),
         );
       }

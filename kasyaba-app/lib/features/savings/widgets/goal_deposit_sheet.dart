@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../app/theme/app_motion.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../../../shared/widgets/kasyaba_toast.dart';
 import '../../dashboard/widgets/dashboard_tokens.dart';
 
 /// ─────────────────────────────────────────────────────────────
@@ -76,17 +77,10 @@ class _GoalDepositModalState extends ConsumerState<_GoalDepositModal> {
           );
       if (mounted) {
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: DashboardTokens.bigStone,
-            content: Text(
-              'Deposited ${CurrencyFormatter.format(amount)} to ${widget.goal.name}!',
-              style: GoogleFonts.dmSans(
-                color: DashboardTokens.bermuda,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
+        KasyabaToast.showSuccess(
+          context,
+          'Deposited ${CurrencyFormatter.format(amount)}',
+          subtitle: 'Added to ${widget.goal.name}',
         );
       }
     } catch (e) {

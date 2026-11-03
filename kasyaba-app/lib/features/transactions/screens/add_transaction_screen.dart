@@ -6,10 +6,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_motion.dart';
-import '../../../app/theme/app_theme.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../../../shared/widgets/kasyaba_toast.dart';
 import '../../dashboard/widgets/dashboard_tokens.dart';
 
 DateTime _dateOnly(DateTime date) => DateTime(date.year, date.month, date.day);
@@ -217,8 +217,10 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     final balances = ref.read(accountBalancesProvider).valueOrNull ?? {};
 
     if (accounts.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No accounts available. Create one in Accounts first.')),
+      KasyabaToast.showError(
+        context,
+        'No accounts available',
+        subtitle: 'Create one in Accounts first.',
       );
       return;
     }
@@ -342,42 +344,33 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
           !RegExp(
             r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$',
           ).hasMatch(fromAccountId)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Select a valid source wallet.')),
-        );
+        KasyabaToast.showError(context, 'Select a valid source wallet.');
         return;
       }
       if (toAccountId == null ||
           !RegExp(
             r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$',
           ).hasMatch(toAccountId)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Select a valid destination wallet.')),
-        );
+        KasyabaToast.showError(context, 'Select a valid destination wallet.');
         return;
       }
       if (fromAccountId == toAccountId) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Source and destination wallets must be different.'),
-          ),
+        KasyabaToast.showError(
+          context,
+          'Source and destination wallets must be different.',
         );
         return;
       }
 
       final amount = double.tryParse(_amountController.text.replaceAll(',', '').trim()) ?? 0.0;
       if (amount <= 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Enter an amount greater than zero.')),
-        );
+        KasyabaToast.showError(context, 'Enter an amount greater than zero.');
         return;
       }
 
       final fee = double.tryParse(_feeController.text.replaceAll(',', '').trim()) ?? 0.0;
       if (fee < 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Transfer fee cannot be negative.')),
-        );
+        KasyabaToast.showError(context, 'Transfer fee cannot be negative.');
         return;
       }
 
@@ -425,52 +418,29 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
         }
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  const Icon(
-                    Icons.check_circle_rounded,
-                    color: Colors.white,
-                    size: 18,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      saveStatus == TransactionSaveStatus.queued
-                          ? 'Transfer saved offline — will sync when online'
-                          : fee > 0
-                              ? 'Transfer recorded! (${CurrencyFormatter.format(amount)} + ${CurrencyFormatter.format(fee)} fee)'
-                              : 'Transfer recorded! (${CurrencyFormatter.format(amount)})',
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ],
-              ),
-              backgroundColor: const Color(0xFF0284C7),
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
+          final transferMsg = saveStatus == TransactionSaveStatus.queued
+              ? 'Transfer saved offline'
+              : 'Transfer recorded!';
+          final transferSubtitle = saveStatus == TransactionSaveStatus.queued
+              ? 'Will sync when online'
+              : (fee > 0
+                  ? '${CurrencyFormatter.format(amount)} + ${CurrencyFormatter.format(fee)} fee'
+                  : CurrencyFormatter.format(amount));
+
+          KasyabaToast.showSuccess(
+            context,
+            transferMsg,
+            subtitle: transferSubtitle,
           );
           _handleClose();
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                friendlyErrorMessage(
-                  e,
-                  fallback: 'Could not record transfer. Please try again.',
-                ),
-              ),
-              backgroundColor: AppColors.expense,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
+          KasyabaToast.showError(
+            context,
+            friendlyErrorMessage(
+              e,
+              fallback: 'Could not record transfer. Please try again.',
             ),
           );
         }
@@ -485,9 +455,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
         !RegExp(
           r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$',
         ).hasMatch(accountId)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Select an available account first.')),
-      );
+      KasyabaToast.showError(context, 'Select an available account first.');
       return;
     }
 
@@ -562,54 +530,41 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
       if (mounted) {
         final label = isExpense ? 'Expense' : 'Income';
         final message = saveStatus == TransactionSaveStatus.queued
-            ? '$label saved offline — will sync when online'
+            ? '$label saved offline'
             : existing != null
                 ? '$label updated'
                 : isScheduled
                     ? '$label scheduled'
                     : '$label recorded!';
+        final subtitle = saveStatus == TransactionSaveStatus.queued
+            ? 'Will sync automatically when online'
+            : CurrencyFormatter.format(amount);
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(
-                  Icons.check_circle_rounded,
-                  color: Colors.white,
-                  size: 18,
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  message,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-              ],
-            ),
-            backgroundColor: isExpense ? DashboardTokens.apricot : DashboardTokens.bermuda,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-          ),
-        );
+        if (isExpense) {
+          KasyabaToast.showInfo(
+            context,
+            message,
+            subtitle: subtitle,
+            icon: Icons.receipt_long_rounded,
+            accentColor: DashboardTokens.apricot,
+          );
+        } else {
+          KasyabaToast.showSuccess(
+            context,
+            message,
+            subtitle: subtitle,
+          );
+        }
         _handleClose();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              friendlyErrorMessage(
-                e,
-                fallback:
-                    'Could not save ${isExpense ? "expense" : "income"}. Please try again.',
-              ),
-            ),
-            backgroundColor: DashboardTokens.apricot,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
+        KasyabaToast.showError(
+          context,
+          friendlyErrorMessage(
+            e,
+            fallback:
+                'Could not save ${isExpense ? "expense" : "income"}. Please try again.',
           ),
         );
       }

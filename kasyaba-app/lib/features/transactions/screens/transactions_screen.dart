@@ -13,6 +13,7 @@ import '../../../core/database/cache_service.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/category_icon_helper.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../../../shared/widgets/kasyaba_toast.dart';
 import '../../dashboard/widgets/dashboard_tokens.dart';
 
 Future<void> _showTransactionActions(
@@ -122,8 +123,10 @@ Future<void> _showTransactionActions(
       ref.invalidate(dashboardProvider);
       ref.invalidate(accountBalancesProvider);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Transaction re-queued for sync.')),
+        KasyabaToast.showInfo(
+          context,
+          'Transaction re-queued for sync',
+          icon: Icons.sync_rounded,
         );
       }
     } else if (action == 'delete') {
@@ -133,8 +136,10 @@ Future<void> _showTransactionActions(
       ref.invalidate(dashboardProvider);
       ref.invalidate(accountBalancesProvider);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Offline transaction discarded.')),
+        KasyabaToast.showInfo(
+          context,
+          'Offline transaction discarded',
+          icon: Icons.delete_outline_rounded,
         );
       }
     }
@@ -142,12 +147,11 @@ Future<void> _showTransactionActions(
   }
 
   if (transaction.isPendingSync) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'This transaction is stored locally and will automatically sync once connected.',
-        ),
-      ),
+    KasyabaToast.showInfo(
+      context,
+      'Stored locally',
+      subtitle: 'Will automatically sync once connected.',
+      icon: Icons.cloud_queue_rounded,
     );
     return;
   }
@@ -239,14 +243,10 @@ Future<void> _showTransactionActions(
   try {
     await ref.read(transactionMutatorProvider).deleteTransaction(transaction);
     if (!context.mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Transaction deleted.')));
+    KasyabaToast.showSuccess(context, 'Transaction deleted.');
   } catch (_) {
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Could not delete the transaction.')),
-    );
+    KasyabaToast.showError(context, 'Could not delete the transaction.');
   }
 }
 

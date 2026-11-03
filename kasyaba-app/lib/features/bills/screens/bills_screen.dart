@@ -7,6 +7,7 @@ import '../../../app/theme/app_theme.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../../../shared/widgets/kasyaba_toast.dart';
 import '../../../shared/widgets/modern_card.dart';
 import '../../../shared/widgets/empty_state_view.dart';
 import '../../../shared/widgets/modern_bottom_sheet.dart';
@@ -331,21 +332,17 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                             );
                             if (context.mounted) {
                               Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('${bill.name} marked as paid!'),
-                                  backgroundColor: AppColors.emerald500,
-                                ),
+                              KasyabaToast.showSuccess(
+                                context,
+                                '${bill.name} marked as paid!',
                               );
                             }
                           } catch (e) {
                             if (context.mounted) {
                               setModalState(() => isSubmitting = false);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(friendlyErrorMessage(e, fallback: 'Failed to mark bill as paid.')),
-                                  backgroundColor: AppColors.expense,
-                                ),
+                              KasyabaToast.showError(
+                                context,
+                                friendlyErrorMessage(e, fallback: 'Failed to mark bill as paid.'),
                               );
                             }
                           }
@@ -374,21 +371,17 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                             await ref.read(transactionMutatorProvider).markBillUnpaid(bill.id);
                             if (context.mounted) {
                               Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('${bill.name} marked as unpaid.'),
-                                  backgroundColor: AppColors.gold500,
-                                ),
+                              KasyabaToast.showInfo(
+                                context,
+                                '${bill.name} marked as unpaid',
                               );
                             }
                           } catch (e) {
                             if (context.mounted) {
                               setModalState(() => isSubmitting = false);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(friendlyErrorMessage(e, fallback: 'Failed to update bill.')),
-                                  backgroundColor: AppColors.expense,
-                                ),
+                              KasyabaToast.showError(
+                                context,
+                                friendlyErrorMessage(e, fallback: 'Failed to update bill.'),
                               );
                             }
                           }

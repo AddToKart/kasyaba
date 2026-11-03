@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../features/dashboard/widgets/dashboard_tokens.dart';
+
 /// ─────────────────────────────────────────────────────────────
 ///  Kasyaba Design System — Luxury Ultra Fintech Theme
 ///  Style: Apple Card / Revolut Metal aesthetic with dark obsidian glass,
@@ -367,17 +369,21 @@ class AppTheme {
 
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: isDark ? AppColors.surface800 : AppColors.lightCardSurface,
+        backgroundColor: isDark ? DashboardTokens.bigStone : AppColors.lightCardSurface,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-          side: BorderSide(color: cardBorder, width: 1),
+          borderRadius: BorderRadius.circular(24),
+          side: BorderSide(
+            color: isDark ? DashboardTokens.poloBlue22 : cardBorder,
+            width: 1,
+          ),
         ),
-        contentTextStyle: TextStyle(
-          fontWeight: FontWeight.w600,
+        insetPadding: const EdgeInsets.fromLTRB(16, 0, 16, 105),
+        contentTextStyle: GoogleFonts.dmSans(
+          fontWeight: FontWeight.bold,
           fontSize: 14,
-          color: textPrimary,
+          color: isDark ? DashboardTokens.periwinkleGray : textPrimary,
         ),
-        elevation: isDark ? 0 : 3,
+        elevation: isDark ? 8 : 3,
       ),
 
       progressIndicatorTheme: ProgressIndicatorThemeData(
