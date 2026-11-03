@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../app/theme/app_motion.dart';
 import '../../core/utils/currency_formatter.dart';
+import '../../features/dashboard/widgets/dashboard_tokens.dart';
 
 /// ─────────────────────────────────────────────────────────────
 ///  Kasyaba Motion Suite — Choreographed Kinematics
@@ -245,6 +247,128 @@ class AnimatedCurrencyText extends StatelessWidget {
   }
 }
 
+/// A luxury sliding segmented control where the active pill physically glides
+/// across the track with spring physics when selecting different tabs.
+class SlidingSegmentedPill extends StatelessWidget {
+  final List<String> items;
+  final int selectedIndex;
+  final ValueChanged<int> onChanged;
+  final double height;
+  final double borderRadius;
+  final double pillRadius;
+  final Color? backgroundColor;
+  final Color? activeColor;
+  final Color? activeTextColor;
+  final Color? inactiveTextColor;
+  final double fontSize;
+  final EdgeInsetsGeometry padding;
+
+  const SlidingSegmentedPill({
+    super.key,
+    required this.items,
+    required this.selectedIndex,
+    required this.onChanged,
+    this.height = 42,
+    this.borderRadius = 30,
+    this.pillRadius = 22,
+    this.backgroundColor,
+    this.activeColor,
+    this.activeTextColor,
+    this.inactiveTextColor,
+    this.fontSize = 13.5,
+    this.padding = const EdgeInsets.all(4),
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (items.isEmpty) return const SizedBox.shrink();
+
+    final safeIndex = selectedIndex.clamp(0, items.length - 1);
+    final count = items.length;
+    final alignmentX = count > 1
+        ? -1.0 + (2.0 * safeIndex / (count - 1))
+        : 0.0;
+
+    return Container(
+      height: height,
+      padding: padding,
+      decoration: BoxDecoration(
+        color: backgroundColor ?? DashboardTokens.bigStone,
+        borderRadius: BorderRadius.circular(borderRadius),
+        border: Border.all(
+          color: DashboardTokens.poloBlue22,
+          width: 1,
+        ),
+      ),
+      child: Stack(
+        children: [
+          // Moving Gliding Background Pill
+          AnimatedAlign(
+            alignment: Alignment(alignmentX, 0.0),
+            duration: const Duration(milliseconds: 240),
+            curve: Curves.easeOutCubic,
+            child: FractionallySizedBox(
+              widthFactor: 1.0 / count,
+              heightFactor: 1.0,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: activeColor ?? DashboardTokens.periwinkleGray,
+                  borderRadius: BorderRadius.circular(pillRadius),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.25),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // Clickable Text Labels Row
+          Row(
+            children: [
+              for (int i = 0; i < count; i++)
+                Expanded(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      if (safeIndex != i) {
+                        AppHaptics.selectionClick();
+                        onChanged(i);
+                      }
+                    },
+                    child: Center(
+                      child: AnimatedDefaultTextStyle(
+                        duration: const Duration(milliseconds: 200),
+                        curve: Curves.easeOutCubic,
+                        style: GoogleFonts.dmSans(
+                          fontSize: fontSize,
+                          fontWeight: FontWeight.bold,
+                          color: safeIndex == i
+                              ? (activeTextColor ?? DashboardTokens.ebony)
+                              : (inactiveTextColor ??
+                                  DashboardTokens.periwinkleGraySubtitle),
+                        ),
+                        child: Text(
+                          items[i],
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
 /// Custom Page Route Transitions
 class MotionPageTransitions {
   MotionPageTransitions._();
@@ -303,3 +427,5 @@ class MotionPageTransitions {
     );
   }
 }
+
+

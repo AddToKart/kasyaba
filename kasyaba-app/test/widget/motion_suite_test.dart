@@ -64,4 +64,41 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('₱12,500.00'), findsOneWidget);
   });
+
+  testWidgets('SlidingSegmentedPill renders items and responds to taps', (tester) async {
+    var selectedIndex = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: StatefulBuilder(
+            builder: (context, setState) {
+              return SlidingSegmentedPill(
+                items: const ['All', 'Expenses', 'Income'],
+                selectedIndex: selectedIndex,
+                onChanged: (idx) {
+                  setState(() => selectedIndex = idx);
+                },
+              );
+            },
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('All'), findsOneWidget);
+    expect(find.text('Expenses'), findsOneWidget);
+    expect(find.text('Income'), findsOneWidget);
+
+    // Tap 'Expenses'
+    await tester.tap(find.text('Expenses'));
+    await tester.pumpAndSettle();
+    expect(selectedIndex, 1);
+
+    // Tap 'Income'
+    await tester.tap(find.text('Income'));
+    await tester.pumpAndSettle();
+    expect(selectedIndex, 2);
+  });
 }
+

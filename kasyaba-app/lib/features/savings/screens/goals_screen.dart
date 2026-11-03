@@ -229,77 +229,80 @@ class GoalsScreen extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           // ─── Total Saved Hero Card (Figma Node 11:1987) ───
-                          Container(
-                            padding: const EdgeInsets.all(19),
-                            decoration: BoxDecoration(
-                              color: DashboardTokens.bigStone,
-                              borderRadius: BorderRadius.circular(28),
-                              border: Border.all(
-                                color: DashboardTokens.poloBlue22,
-                                width: 1,
+                          FadeSlideEntrance.staggered(
+                            index: 0,
+                            child: Container(
+                              padding: const EdgeInsets.all(19),
+                              decoration: BoxDecoration(
+                                color: DashboardTokens.bigStone,
+                                borderRadius: BorderRadius.circular(28),
+                                border: Border.all(
+                                  color: DashboardTokens.poloBlue22,
+                                  width: 1,
+                                ),
                               ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Total saved',
-                                  style: GoogleFonts.dmSans(
-                                    fontSize: 14,
-                                    color: DashboardTokens.periwinkleGraySubtitle,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                                  textBaseline: TextBaseline.alphabetic,
-                                  children: [
-                                    Text(
-                                      '${CurrencyFormatter.format(totalSaved)} ',
-                                      style: GoogleFonts.bricolageGrotesque(
-                                        fontSize: 28,
-                                        fontWeight: FontWeight.w700,
-                                        color: DashboardTokens.periwinkleGray,
-                                      ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Total saved',
+                                    style: GoogleFonts.dmSans(
+                                      fontSize: 14,
+                                      color: DashboardTokens.periwinkleGraySubtitle,
                                     ),
-                                    Text(
-                                      'of ${CurrencyFormatter.format(totalTarget)}',
-                                      style: GoogleFonts.dmSans(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w500,
-                                        color: DashboardTokens.periwinkleGraySubtitle,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 12),
-                                // 8px progress bar
-                                Container(
-                                  height: 8,
-                                  decoration: BoxDecoration(
-                                    color: DashboardTokens.poloBlue20,
-                                    borderRadius: BorderRadius.circular(4),
                                   ),
-                                  child: LayoutBuilder(
-                                    builder: (context, constraints) {
-                                      final fillWidth =
-                                          constraints.maxWidth * overallProgress;
-                                      return Align(
-                                        alignment: Alignment.centerLeft,
-                                        child: AnimatedContainer(
-                                          duration: AppMotion.bouncy,
-                                          curve: Curves.easeOutCubic,
-                                          width: fillWidth,
-                                          decoration: BoxDecoration(
-                                            color: DashboardTokens.bermuda,
-                                            borderRadius: BorderRadius.circular(4),
-                                          ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                                    textBaseline: TextBaseline.alphabetic,
+                                    children: [
+                                      Text(
+                                        '${CurrencyFormatter.format(totalSaved)} ',
+                                        style: GoogleFonts.bricolageGrotesque(
+                                          fontSize: 28,
+                                          fontWeight: FontWeight.w700,
+                                          color: DashboardTokens.periwinkleGray,
                                         ),
-                                      );
-                                    },
+                                      ),
+                                      Text(
+                                        'of ${CurrencyFormatter.format(totalTarget)}',
+                                        style: GoogleFonts.dmSans(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w500,
+                                          color: DashboardTokens.periwinkleGraySubtitle,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(height: 12),
+                                  // 8px progress bar
+                                  Container(
+                                    height: 8,
+                                    decoration: BoxDecoration(
+                                      color: DashboardTokens.poloBlue20,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: LayoutBuilder(
+                                      builder: (context, constraints) {
+                                        final fillWidth =
+                                            constraints.maxWidth * overallProgress;
+                                        return Align(
+                                          alignment: Alignment.centerLeft,
+                                          child: AnimatedContainer(
+                                            duration: AppMotion.bouncy,
+                                            curve: Curves.easeOutCubic,
+                                            width: fillWidth,
+                                            decoration: BoxDecoration(
+                                              color: DashboardTokens.bermuda,
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                           const SizedBox(height: 14),
@@ -380,7 +383,9 @@ class GoalsScreen extends ConsumerWidget {
                             ),
 
                           // ─── Goals Cards (Figma Nodes 11:1995, 11:2017, 11:2040) ───
-                          ...goals.map((goal) {
+                          ...goals.asMap().entries.map((entry) {
+                            final i = entry.key;
+                            final goal = entry.value;
                             final progress = goal.targetAmount > 0
                                 ? (goal.currentAmount / goal.targetAmount)
                                     .clamp(0.0, 1.0)
@@ -389,25 +394,27 @@ class GoalsScreen extends ConsumerWidget {
                             final monthlyNeed = _calculateMonthlyNeed(goal);
                             final dateText = _formatTargetDate(goal.targetDate);
 
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 14),
-                              child: Material(
-                                color: Colors.transparent,
-                                child: InkWell(
-                                  borderRadius: BorderRadius.circular(28),
-                                  onTap: () {
-                                    AppHaptics.lightImpact();
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (_) => GoalDetailScreen(
-                                          goalId: goal.id,
-                                          initialGoal: goal,
+                            return FadeSlideEntrance.staggered(
+                              index: 1 + i,
+                              child: Padding(
+                                padding: const EdgeInsets.only(bottom: 14),
+                                child: Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(28),
+                                    onTap: () {
+                                      AppHaptics.lightImpact();
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (_) => GoalDetailScreen(
+                                            goalId: goal.id,
+                                            initialGoal: goal,
+                                          ),
                                         ),
-                                      ),
-                                    );
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.all(19),
+                                      );
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.all(19),
                                     decoration: BoxDecoration(
                                       color: DashboardTokens.bigStone,
                                       borderRadius: BorderRadius.circular(28),
@@ -589,49 +596,53 @@ class GoalsScreen extends ConsumerWidget {
                                   ),
                                 ),
                               ),
-                            );
-                          }),
+                            ),
+                          );
+                        }),
 
                           const SizedBox(height: 6),
 
                           // ─── Footer: Planning a purchase? Can I afford it? (Figma Node 11:2063) ───
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                'Planning a purchase?\u00A0',
-                                style: GoogleFonts.dmSans(
-                                  fontSize: 14,
-                                  color: DashboardTokens.periwinkleGraySubtitle,
+                          FadeSlideEntrance.staggered(
+                            index: 1 + goals.length,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'Planning a purchase?\u00A0',
+                                  style: GoogleFonts.dmSans(
+                                    fontSize: 14,
+                                    color: DashboardTokens.periwinkleGraySubtitle,
+                                  ),
                                 ),
-                              ),
-                              GestureDetector(
-                                onTap: () {
-                                  AppHaptics.lightImpact();
-                                  // Open affordability bottom sheet or route to forecast
-                                  KasyabaAffordabilitySheet.show(context);
-                                },
-                                child: Container(
-                                  decoration: const BoxDecoration(
-                                    border: Border(
-                                      bottom: BorderSide(
-                                        color: DashboardTokens.kashmirBlue,
-                                        width: 2,
+                                GestureDetector(
+                                  onTap: () {
+                                    AppHaptics.lightImpact();
+                                    // Open affordability bottom sheet or route to forecast
+                                    KasyabaAffordabilitySheet.show(context);
+                                  },
+                                  child: Container(
+                                    decoration: const BoxDecoration(
+                                      border: Border(
+                                        bottom: BorderSide(
+                                          color: DashboardTokens.kashmirBlue,
+                                          width: 2,
+                                        ),
+                                      ),
+                                    ),
+                                    padding: const EdgeInsets.only(bottom: 2),
+                                    child: Text(
+                                      'Can I afford it?',
+                                      style: GoogleFonts.dmSans(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700,
+                                        color: DashboardTokens.periwinkleGray,
                                       ),
                                     ),
                                   ),
-                                  padding: const EdgeInsets.only(bottom: 2),
-                                  child: Text(
-                                    'Can I afford it?',
-                                    style: GoogleFonts.dmSans(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w700,
-                                      color: DashboardTokens.periwinkleGray,
-                                    ),
-                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ],
                       );

@@ -413,553 +413,586 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // ── Top Header Row (Node 82:510) ───────────────────────────
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Bills & Activity',
-                      style: GoogleFonts.bricolageGrotesque(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: DashboardTokens.periwinkleGray,
-                      ),
-                    ),
-                    GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () {
-                        AppHaptics.selectionClick();
-                        setState(() {
-                          _isSearchOpen = !_isSearchOpen;
-                          if (!_isSearchOpen) _searchController.clear();
-                        });
-                      },
-                      child: Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: DashboardTokens.bigStone,
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(
-                            color: DashboardTokens.poloBlue22,
-                            width: 1,
-                          ),
-                        ),
-                        alignment: Alignment.center,
-                        child: SvgPicture.asset(
-                          'assets/images/activity_search.svg',
-                          width: 22,
-                          height: 22,
-                          colorFilter: const ColorFilter.mode(
-                            DashboardTokens.periwinkleGray,
-                            BlendMode.srcIn,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-
-                // Inline Search Bar when toggled
-                if (_isSearchOpen) ...[
-                  const SizedBox(height: 12),
-                  Container(
-                    height: 48,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: DashboardTokens.bigStone,
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: DashboardTokens.poloBlue30,
-                        width: 1,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.search_rounded,
-                          color: DashboardTokens.periwinkleGraySubtitle,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: TextFormField(
-                            controller: _searchController,
-                            autofocus: true,
-                            style: GoogleFonts.dmSans(
-                              fontSize: 15,
+                FadeSlideEntrance.staggered(
+                  index: 0,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Bills & Activity',
+                            style: GoogleFonts.bricolageGrotesque(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
                               color: DashboardTokens.periwinkleGray,
                             ),
-                            cursorColor: DashboardTokens.periwinkleGray,
-                            decoration: InputDecoration(
-                              hintText: 'Search transactions...',
-                              hintStyle: GoogleFonts.dmSans(
-                                fontSize: 15,
-                                color: DashboardTokens.periwinkleGraySubtitle.withValues(alpha: 0.5),
+                          ),
+                          GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () {
+                              AppHaptics.selectionClick();
+                              setState(() {
+                                _isSearchOpen = !_isSearchOpen;
+                                if (!_isSearchOpen) _searchController.clear();
+                              });
+                            },
+                            child: Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: DashboardTokens.bigStone,
+                                borderRadius: BorderRadius.circular(24),
+                                border: Border.all(
+                                  color: DashboardTokens.poloBlue22,
+                                  width: 1,
+                                ),
                               ),
-                              border: InputBorder.none,
-                              enabledBorder: InputBorder.none,
-                              focusedBorder: InputBorder.none,
-                              filled: false,
-                              fillColor: Colors.transparent,
-                              contentPadding: EdgeInsets.zero,
+                              alignment: Alignment.center,
+                              child: SvgPicture.asset(
+                                'assets/images/activity_search.svg',
+                                width: 22,
+                                height: 22,
+                                colorFilter: const ColorFilter.mode(
+                                  DashboardTokens.periwinkleGray,
+                                  BlendMode.srcIn,
+                                ),
+                              ),
                             ),
+                          ),
+                        ],
+                      ),
+                      if (_isSearchOpen) ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          height: 48,
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: DashboardTokens.bigStone,
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(
+                              color: DashboardTokens.poloBlue30,
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.search_rounded,
+                                color: DashboardTokens.periwinkleGraySubtitle,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: TextFormField(
+                                  controller: _searchController,
+                                  autofocus: true,
+                                  style: GoogleFonts.dmSans(
+                                    fontSize: 15,
+                                    color: DashboardTokens.periwinkleGray,
+                                  ),
+                                  cursorColor: DashboardTokens.periwinkleGray,
+                                  decoration: InputDecoration(
+                                    hintText: 'Search transactions...',
+                                    hintStyle: GoogleFonts.dmSans(
+                                      fontSize: 15,
+                                      color: DashboardTokens.periwinkleGraySubtitle.withValues(alpha: 0.5),
+                                    ),
+                                    border: InputBorder.none,
+                                    enabledBorder: InputBorder.none,
+                                    focusedBorder: InputBorder.none,
+                                    filled: false,
+                                    fillColor: Colors.transparent,
+                                    contentPadding: EdgeInsets.zero,
+                                  ),
+                                ),
+                              ),
+                              if (_searchController.text.isNotEmpty)
+                                GestureDetector(
+                                  onTap: () => _searchController.clear(),
+                                  child: const Icon(
+                                    Icons.close_rounded,
+                                    color: DashboardTokens.periwinkleGraySubtitle,
+                                    size: 18,
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
-                        if (_searchController.text.isNotEmpty)
-                          GestureDetector(
-                            onTap: () => _searchController.clear(),
-                            child: const Icon(
-                              Icons.close_rounded,
-                              color: DashboardTokens.periwinkleGraySubtitle,
-                              size: 18,
-                            ),
-                          ),
                       ],
-                    ),
+                    ],
                   ),
-                ],
+                ),
 
                 const SizedBox(height: 14),
 
                 // ── Month Selector & Net Row (Node 82:516) ──────────────────
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: _pickMonth,
-                      child: Row(
+                FadeSlideEntrance.staggered(
+                  index: 1,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            DateFormat('MMMM yyyy').format(_currentMonth),
-                            style: GoogleFonts.dmSans(
-                              fontSize: 17,
-                              fontWeight: FontWeight.bold,
-                              color: DashboardTokens.periwinkleGray,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          SvgPicture.asset(
-                            'assets/images/activity_chevron_down.svg',
-                            width: 14,
-                            height: 14,
-                            colorFilter: const ColorFilter.mode(
-                              DashboardTokens.periwinkleGraySubtitle,
-                              BlendMode.srcIn,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    RichText(
-                      text: TextSpan(
-                        style: GoogleFonts.dmSans(
-                          fontSize: 14,
-                          color: DashboardTokens.periwinkleGraySubtitle,
-                        ),
-                        children: [
-                          const TextSpan(text: 'Net '),
-                          TextSpan(
-                            text: CurrencyFormatter.format(netMonthly),
-                            style: GoogleFonts.dmSans(
-                              fontWeight: FontWeight.bold,
-                              color: DashboardTokens.periwinkleGray,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-
-                // ── Monthly Totals Row (Node 82:521) ─────────────────────────
-                Row(
-                  children: [
-                    // Income Card
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 15,
-                          vertical: 11,
-                        ),
-                        decoration: BoxDecoration(
-                          color: DashboardTokens.bigStone,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: DashboardTokens.poloBlue22,
-                            width: 1,
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Income',
-                              style: GoogleFonts.dmSans(
-                                fontSize: 12,
-                                color: DashboardTokens.periwinkleGraySubtitle,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              CurrencyFormatter.format(monthlyIncome),
-                              style: GoogleFonts.dmSans(
-                                fontSize: 17,
-                                fontWeight: FontWeight.bold,
-                                color: DashboardTokens.bermuda,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    // Spent Card
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 15,
-                          vertical: 11,
-                        ),
-                        decoration: BoxDecoration(
-                          color: DashboardTokens.bigStone,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: DashboardTokens.poloBlue22,
-                            width: 1,
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Spent',
-                              style: GoogleFonts.dmSans(
-                                fontSize: 12,
-                                color: DashboardTokens.periwinkleGraySubtitle,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              CurrencyFormatter.format(monthlySpent),
-                              style: GoogleFonts.dmSans(
-                                fontSize: 17,
-                                fontWeight: FontWeight.bold,
-                                color: DashboardTokens.apricot,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-
-                // ── Upcoming Bills Section (Node 82:528) ────────────────────
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Upcoming bills',
-                      style: GoogleFonts.bricolageGrotesque(
-                        fontSize: 19,
-                        fontWeight: FontWeight.bold,
-                        color: DashboardTokens.periwinkleGray,
-                      ),
-                    ),
-                    Row(
-                      children: [
-                        SpringTouch(
-                          scaleDown: 0.94,
-                          onTap: () {
-                            AppHaptics.selectionClick();
-                            context.push('/bills');
-                          },
-                          child: Container(
-                            height: 36,
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: DashboardTokens.poloBlue22,
-                                width: 1,
-                              ),
-                            ),
-                            alignment: Alignment.center,
-                            child: Text(
-                              'View bills',
-                              style: GoogleFonts.dmSans(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: DashboardTokens.periwinkleGray,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        SpringTouch(
-                          scaleDown: 0.94,
-                          onTap: () {
-                            AppHaptics.selectionClick();
-                            context.push('/bills/add');
-                          },
-                          child: Container(
-                            height: 36,
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            decoration: BoxDecoration(
-                              color: DashboardTokens.periwinkleGray,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
+                          GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: _pickMonth,
                             child: Row(
                               children: [
-                                SvgPicture.asset(
-                                  'assets/images/activity_add.svg',
-                                  width: 18,
-                                  height: 18,
-                                  colorFilter: const ColorFilter.mode(
-                                    DashboardTokens.ebony,
-                                    BlendMode.srcIn,
+                                Text(
+                                  DateFormat('MMMM yyyy').format(_currentMonth),
+                                  style: GoogleFonts.dmSans(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.bold,
+                                    color: DashboardTokens.periwinkleGray,
                                   ),
                                 ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'Add a bill',
-                                  style: GoogleFonts.dmSans(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.bold,
-                                    color: DashboardTokens.ebony,
+                                const SizedBox(width: 8),
+                                SvgPicture.asset(
+                                  'assets/images/activity_chevron_down.svg',
+                                  width: 14,
+                                  height: 14,
+                                  colorFilter: const ColorFilter.mode(
+                                    DashboardTokens.periwinkleGraySubtitle,
+                                    BlendMode.srcIn,
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-
-                // Bill Schedule Card (Node 82:535)
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: DashboardTokens.bigStone,
-                    borderRadius: BorderRadius.circular(28),
-                    border: Border.all(
-                      color: DashboardTokens.poloBlue22,
-                      width: 1,
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // Calendar Heading Row
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            weekRangeLabel,
-                            style: GoogleFonts.dmSans(
-                              fontSize: 12,
-                              color: DashboardTokens.periwinkleGraySubtitle,
+                          RichText(
+                            text: TextSpan(
+                              style: GoogleFonts.dmSans(
+                                fontSize: 14,
+                                color: DashboardTokens.periwinkleGraySubtitle,
+                              ),
+                              children: [
+                                const TextSpan(text: 'Net '),
+                                TextSpan(
+                                  text: CurrencyFormatter.format(netMonthly),
+                                  style: GoogleFonts.dmSans(
+                                    fontWeight: FontWeight.bold,
+                                    color: DashboardTokens.periwinkleGray,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTap: () => context.push('/bills'),
-                            child: Text(
-                              'View month',
-                              style: GoogleFonts.dmSans(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: DashboardTokens.periwinkleGray,
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+
+                      // ── Monthly Totals Row (Node 82:521) ─────────────────────────
+                      Row(
+                        children: [
+                          // Income Card
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 15,
+                                vertical: 11,
+                              ),
+                              decoration: BoxDecoration(
+                                color: DashboardTokens.bigStone,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: DashboardTokens.poloBlue22,
+                                  width: 1,
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Income',
+                                    style: GoogleFonts.dmSans(
+                                      fontSize: 12,
+                                      color: DashboardTokens.periwinkleGraySubtitle,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    CurrencyFormatter.format(monthlyIncome),
+                                    style: GoogleFonts.dmSans(
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.bold,
+                                      color: DashboardTokens.bermuda,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          // Spent Card
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 15,
+                                vertical: 11,
+                              ),
+                              decoration: BoxDecoration(
+                                color: DashboardTokens.bigStone,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: DashboardTokens.poloBlue22,
+                                  width: 1,
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Spent',
+                                    style: GoogleFonts.dmSans(
+                                      fontSize: 12,
+                                      color: DashboardTokens.periwinkleGraySubtitle,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    CurrencyFormatter.format(monthlySpent),
+                                    style: GoogleFonts.dmSans(
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.bold,
+                                      color: DashboardTokens.apricot,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 12),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
 
-                      // 7-Day Week Calendar Strip (Node 82:539)
+                // ── Upcoming Bills Section (Node 82:528) ────────────────────
+                FadeSlideEntrance.staggered(
+                  index: 2,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
                       Row(
-                        children: weekDays.map((day) {
-                          final dayLetters = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-                          final dayLetter = dayLetters[day.weekday % 7];
-                          final isSelected = day.year == _selectedCalendarDay.year &&
-                              day.month == _selectedCalendarDay.month &&
-                              day.day == _selectedCalendarDay.day;
-                          final hasBill = bills.any((b) =>
-                              b.dueDate.year == day.year &&
-                              b.dueDate.month == day.month &&
-                              b.dueDate.day == day.day);
-
-                          return Expanded(
-                            child: GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: () {
-                                AppHaptics.selectionClick();
-                                setState(() => _selectedCalendarDay = day);
-                              },
-                              child: Container(
-                                height: 57,
-                                decoration: BoxDecoration(
-                                  color: isSelected
-                                      ? DashboardTokens.periwinkleGray
-                                      : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(22),
-                                ),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      dayLetter,
-                                      style: GoogleFonts.dmSans(
-                                        fontSize: 12,
-                                        color: isSelected
-                                            ? DashboardTokens.ebony
-                                            : DashboardTokens.periwinkleGraySubtitle,
-                                      ),
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Upcoming bills',
+                            style: GoogleFonts.bricolageGrotesque(
+                              fontSize: 19,
+                              fontWeight: FontWeight.bold,
+                              color: DashboardTokens.periwinkleGray,
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              SpringTouch(
+                                scaleDown: 0.94,
+                                onTap: () {
+                                  AppHaptics.selectionClick();
+                                  context.push('/bills');
+                                },
+                                child: Container(
+                                  height: 36,
+                                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                      color: DashboardTokens.poloBlue22,
+                                      width: 1,
                                     ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      '${day.day}',
-                                      style: GoogleFonts.dmSans(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.bold,
-                                        color: isSelected
-                                            ? DashboardTokens.ebony
-                                            : DashboardTokens.periwinkleGray,
-                                      ),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    'View bills',
+                                    style: GoogleFonts.dmSans(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                      color: DashboardTokens.periwinkleGray,
                                     ),
-                                    const SizedBox(height: 2),
-                                    // Apricot dot if bill on this day
-                                    if (hasBill)
-                                      Container(
-                                        width: 4,
-                                        height: 4,
-                                        decoration: BoxDecoration(
-                                          color: isSelected
-                                              ? DashboardTokens.ebony
-                                              : DashboardTokens.apricot,
-                                          borderRadius: BorderRadius.circular(2),
-                                        ),
-                                      )
-                                    else
-                                      const SizedBox(height: 4),
-                                  ],
+                                  ),
                                 ),
                               ),
-                            ),
-                          );
-                        }).toList(),
+                              const SizedBox(width: 8),
+                              SpringTouch(
+                                scaleDown: 0.94,
+                                onTap: () {
+                                  AppHaptics.selectionClick();
+                                  context.push('/bills/add');
+                                },
+                                child: Container(
+                                  height: 36,
+                                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                                  decoration: BoxDecoration(
+                                    color: DashboardTokens.periwinkleGray,
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      SvgPicture.asset(
+                                        'assets/images/activity_add.svg',
+                                        width: 18,
+                                        height: 18,
+                                        colorFilter: const ColorFilter.mode(
+                                          DashboardTokens.ebony,
+                                          BlendMode.srcIn,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'Add a bill',
+                                        style: GoogleFonts.dmSans(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.bold,
+                                          color: DashboardTokens.ebony,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 10),
 
-                      // Hairline Divider
+                      // Bill Schedule Card (Node 82:535)
                       Container(
-                        height: 1,
-                        color: DashboardTokens.poloBlue16,
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Upcoming Bill Item (Node 82:574)
-                      if (upcomingBills.isNotEmpty) ...[
-                        _buildBillItemRow(upcomingBills.first),
-                      ] else ...[
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          child: Text(
-                            'No upcoming bills this week',
-                            style: GoogleFonts.dmSans(
-                              fontSize: 14,
-                              color: DashboardTokens.periwinkleGraySubtitle,
-                            ),
-                            textAlign: TextAlign.center,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: DashboardTokens.bigStone,
+                          borderRadius: BorderRadius.circular(28),
+                          border: Border.all(
+                            color: DashboardTokens.poloBlue22,
+                            width: 1,
                           ),
                         ),
-                      ],
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // Calendar Heading Row
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  weekRangeLabel,
+                                  style: GoogleFonts.dmSans(
+                                    fontSize: 12,
+                                    color: DashboardTokens.periwinkleGraySubtitle,
+                                  ),
+                                ),
+                                GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: () => context.push('/bills'),
+                                  child: Text(
+                                    'View month',
+                                    style: GoogleFonts.dmSans(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: DashboardTokens.periwinkleGray,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+
+                            // 7-Day Week Calendar Strip (Node 82:539)
+                            Row(
+                              children: weekDays.map((day) {
+                                final dayLetters = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+                                final dayLetter = dayLetters[day.weekday % 7];
+                                final isSelected = day.year == _selectedCalendarDay.year &&
+                                    day.month == _selectedCalendarDay.month &&
+                                    day.day == _selectedCalendarDay.day;
+                                final hasBill = bills.any((b) =>
+                                    b.dueDate.year == day.year &&
+                                    b.dueDate.month == day.month &&
+                                    b.dueDate.day == day.day);
+
+                                return Expanded(
+                                  child: GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onTap: () {
+                                      AppHaptics.selectionClick();
+                                      setState(() => _selectedCalendarDay = day);
+                                    },
+                                    child: Container(
+                                      height: 57,
+                                      decoration: BoxDecoration(
+                                        color: isSelected
+                                            ? DashboardTokens.periwinkleGray
+                                            : Colors.transparent,
+                                        borderRadius: BorderRadius.circular(22),
+                                      ),
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            dayLetter,
+                                            style: GoogleFonts.dmSans(
+                                              fontSize: 12,
+                                              color: isSelected
+                                                  ? DashboardTokens.ebony
+                                                  : DashboardTokens.periwinkleGraySubtitle,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            '${day.day}',
+                                            style: GoogleFonts.dmSans(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.bold,
+                                              color: isSelected
+                                                  ? DashboardTokens.ebony
+                                                  : DashboardTokens.periwinkleGray,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          // Apricot dot if bill on this day
+                                          if (hasBill)
+                                            Container(
+                                              width: 4,
+                                              height: 4,
+                                              decoration: BoxDecoration(
+                                                color: isSelected
+                                                    ? DashboardTokens.ebony
+                                                    : DashboardTokens.apricot,
+                                                borderRadius: BorderRadius.circular(2),
+                                              ),
+                                            )
+                                          else
+                                            const SizedBox(height: 4),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                            const SizedBox(height: 12),
+
+                            // Hairline Divider
+                            Container(
+                              height: 1,
+                              color: DashboardTokens.poloBlue16,
+                            ),
+                            const SizedBox(height: 12),
+
+                            // Upcoming Bill Item (Node 82:574)
+                            if (upcomingBills.isNotEmpty) ...[
+                              _buildBillItemRow(upcomingBills.first),
+                            ] else ...[
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                child: Text(
+                                  'No upcoming bills this week',
+                                  style: GoogleFonts.dmSans(
+                                    fontSize: 14,
+                                    color: DashboardTokens.periwinkleGraySubtitle,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 24),
 
                 // ── Activity Section (Node 82:583) ──────────────────────────
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Activity',
-                      style: GoogleFonts.bricolageGrotesque(
-                        fontSize: 19,
-                        fontWeight: FontWeight.bold,
-                        color: DashboardTokens.periwinkleGray,
-                      ),
-                    ),
-                    GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () => context.push('/transactions/add'),
-                      child: Container(
-                        height: 36,
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: BoxDecoration(
-                          color: DashboardTokens.periwinkleGray,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          children: [
-                            SvgPicture.asset(
-                              'assets/images/activity_add.svg',
-                              width: 18,
-                              height: 18,
-                              colorFilter: const ColorFilter.mode(
-                                DashboardTokens.ebony,
-                                BlendMode.srcIn,
-                              ),
-                            ),
-                            const SizedBox(width: 5),
-                            Text(
-                              'Add transaction',
-                              style: GoogleFonts.dmSans(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: DashboardTokens.ebony,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-
-                // 3-Way Filter Pill: All / Expenses / Income (Node 82:588)
-                Container(
-                  height: 40,
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: DashboardTokens.bigStone,
-                    borderRadius: BorderRadius.circular(30),
-                    border: Border.all(
-                      color: DashboardTokens.poloBlue22,
-                      width: 1,
-                    ),
-                  ),
-                  child: Row(
+                FadeSlideEntrance.staggered(
+                  index: 3,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _buildActivityFilterTab('All'),
-                      _buildActivityFilterTab('Expenses'),
-                      _buildActivityFilterTab('Income'),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Activity',
+                            style: GoogleFonts.bricolageGrotesque(
+                              fontSize: 19,
+                              fontWeight: FontWeight.bold,
+                              color: DashboardTokens.periwinkleGray,
+                            ),
+                          ),
+                          GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () => context.push('/transactions/add'),
+                            child: Container(
+                              height: 36,
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              decoration: BoxDecoration(
+                                color: DashboardTokens.periwinkleGray,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Row(
+                                children: [
+                                  SvgPicture.asset(
+                                    'assets/images/activity_add.svg',
+                                    width: 18,
+                                    height: 18,
+                                    colorFilter: const ColorFilter.mode(
+                                      DashboardTokens.ebony,
+                                      BlendMode.srcIn,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 5),
+                                  Text(
+                                    'Add transaction',
+                                    style: GoogleFonts.dmSans(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                      color: DashboardTokens.ebony,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+
+                      // 3-Way Physical Sliding Filter Pill: All / Expenses / Income (Node 82:588)
+                      SlidingSegmentedPill(
+                        items: const ['All', 'Expenses', 'Income'],
+                        selectedIndex: switch (_activeFilter) {
+                          'Expenses' => 1,
+                          'Income' => 2,
+                          _ => 0,
+                        },
+                        onChanged: (idx) {
+                          setState(() {
+                            _activeFilter = switch (idx) {
+                              1 => 'Expenses',
+                              2 => 'Income',
+                              _ => 'All',
+                            };
+                          });
+                        },
+                      ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 14),
 
                 // ── Grouped Daily Transactions List (Node 82:597) ───────────
-                if (paginatedAsync.isLoading && transactions.isEmpty) ...[
+                FadeSlideEntrance.staggered(
+                  index: 4,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (paginatedAsync.isLoading && transactions.isEmpty) ...[
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 40),
                     child: Center(
@@ -1080,42 +1113,15 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  // ── Activity Filter Tab ───────────────────────────────────────────────────
-  Widget _buildActivityFilterTab(String label) {
-    final isSelected = _activeFilter == label;
-    return Expanded(
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () {
-          AppHaptics.selectionClick();
-          setState(() => _activeFilter = label);
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: isSelected ? DashboardTokens.periwinkleGray : Colors.transparent,
-            borderRadius: BorderRadius.circular(22),
-          ),
-          child: Text(
-            label,
-            style: GoogleFonts.dmSans(
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-              color: isSelected
-                  ? DashboardTokens.ebony
-                  : DashboardTokens.periwinkleGraySubtitle,
+        ],
             ),
           ),
         ),
       ),
     );
   }
+
+
 
   // ── Bill Item Row (Node 82:574) ───────────────────────────────────────────
   Widget _buildBillItemRow(BillItem bill) {

@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_motion.dart';
+import '../../../shared/widgets/motion_components.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
@@ -227,6 +228,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
 
     await showModalBottomSheet<String>(
       context: context,
+      useRootNavigator: true,
       backgroundColor: DashboardTokens.bigStone,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
@@ -710,24 +712,14 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                   const SizedBox(height: 14),
 
                   // ── 3-Way Mode Switcher (Node 11:2372) ───────────────────
-                  Container(
+                  SlidingSegmentedPill(
                     height: 54,
-                    padding: const EdgeInsets.all(5),
-                    decoration: BoxDecoration(
-                      color: DashboardTokens.bigStone,
-                      borderRadius: BorderRadius.circular(30),
-                      border: Border.all(
-                        color: DashboardTokens.poloBlue22,
-                        width: 1,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        _buildModeTab('Expense', TransactionTypeMode.expense),
-                        _buildModeTab('Income', TransactionTypeMode.income),
-                        _buildModeTab('Transfer', TransactionTypeMode.transfer),
-                      ],
-                    ),
+                    pillRadius: 26,
+                    borderRadius: 30,
+                    fontSize: 15,
+                    items: const ['Expense', 'Income', 'Transfer'],
+                    selectedIndex: _mode.index,
+                    onChanged: (idx) => _switchMode(TransactionTypeMode.values[idx]),
                   ),
                   const SizedBox(height: 14),
 
@@ -893,34 +885,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     );
   }
 
-  // ── Mode Switcher Tab ─────────────────────────────────────────────────────
-  Widget _buildModeTab(String label, TransactionTypeMode mode) {
-    final isSelected = _mode == mode;
-    return Expanded(
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => _switchMode(mode),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: isSelected ? DashboardTokens.periwinkleGray : Colors.transparent,
-            borderRadius: BorderRadius.circular(22),
-          ),
-          child: Text(
-            label,
-            style: GoogleFonts.dmSans(
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-              color: isSelected
-                  ? DashboardTokens.ebony
-                  : DashboardTokens.periwinkleGraySubtitle,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+
 
   // ── Expense Body (Node 37:6387) ───────────────────────────────────────────
   Widget _buildExpenseBody(Account account, double balance) {
@@ -1515,6 +1480,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     final categories = ref.read(categoriesProvider).valueOrNull ?? [];
     showModalBottomSheet<Category>(
       context: context,
+      useRootNavigator: true,
       backgroundColor: DashboardTokens.bigStone,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),

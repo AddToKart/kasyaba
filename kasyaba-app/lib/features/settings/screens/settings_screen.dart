@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../app/theme/app_motion.dart';
+import '../../../shared/widgets/motion_components.dart';
 import '../../../core/providers/theme_provider.dart';
 import '../../../shared/widgets/pressable_scale.dart';
 import '../../../core/app_info.dart';
@@ -812,65 +813,70 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
         children: [
           // User Profile Card
-          ModernCard(
-            padding: const EdgeInsets.all(20),
-            borderRadius: 16,
-            borderColor: AppColors.subtleBorderAdaptive(isDark),
-            backgroundColor: isDark ? AppColors.surface800 : AppColors.lightCard,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Container(
-                  width: 54,
-                  height: 54,
-                  decoration: BoxDecoration(
-                    color: isDark ? AppColors.surface700 : AppColors.lightCard2,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: AppColors.emerald500,
-                      width: 2,
-                    ),
-                  ),
-                  child: Center(
-                    child: Text(
-                      initial,
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : AppColors.textLight,
+          FadeSlideEntrance.staggered(
+            index: 0,
+            child: ModernCard(
+              padding: const EdgeInsets.all(20),
+              borderRadius: 16,
+              borderColor: AppColors.subtleBorderAdaptive(isDark),
+              backgroundColor: isDark ? AppColors.surface800 : AppColors.lightCard,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 54,
+                    height: 54,
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.surface700 : AppColors.lightCard2,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: AppColors.emerald500,
+                        width: 2,
                       ),
                     ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        displayName,
-                        style: theme.textTheme.titleMedium?.copyWith(
+                    child: Center(
+                      child: Text(
+                        initial,
+                        style: TextStyle(
+                          fontSize: 24,
                           fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : AppColors.textLight,
                         ),
                       ),
-                      const SizedBox(height: 3),
-                      Text(
-                        authState.email ?? 'No email set',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: isDark ? AppColors.textMuted : AppColors.textMutedL,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          displayName,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          authState.email ?? 'No email set',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: isDark ? AppColors.textMuted : AppColors.textMutedL,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 20),
 
           // ── Salary & Payday Settings Card ────────────────────────
-          profileAsync.when(
+          FadeSlideEntrance.staggered(
+            index: 1,
+            child: profileAsync.when(
             loading: () => const SizedBox.shrink(),
             error: (err, _) => const SizedBox.shrink(),
             data: (profile) {
@@ -996,16 +1002,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
               );
             },
+            ),
           ),
           const SizedBox(height: 20),
 
           // ── Appearance & Theme Card ──────────────────────────────
-          _ThemeSelectorCard(
-            currentMode: currentThemeMode,
-            isDark: isDark,
-            onThemeChanged: (mode) {
-              ref.read(themeModeProvider.notifier).setThemeMode(mode);
-            },
+          FadeSlideEntrance.staggered(
+            index: 2,
+            child: _ThemeSelectorCard(
+              currentMode: currentThemeMode,
+              isDark: isDark,
+              onThemeChanged: (mode) {
+                ref.read(themeModeProvider.notifier).setThemeMode(mode);
+              },
+            ),
           ),
           const SizedBox(height: 24),
 

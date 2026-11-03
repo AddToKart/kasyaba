@@ -100,6 +100,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
 
     showModalBottomSheet<void>(
       context: context,
+      useRootNavigator: true,
       backgroundColor: DashboardTokens.bigStone,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
@@ -391,244 +392,84 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // ── Top Header Row (Back + Title + Plus Button) (Node 106:2510) ──
-                Row(
-                  children: [
-                    SpringTouch(
-                      scaleDown: 0.90,
-                      onTap: () {
-                        AppHaptics.selectionClick();
-                        _handleBack();
-                      },
-                      child: Container(
-                        width: 50,
-                        height: 50,
-                        decoration: BoxDecoration(
-                          color: DashboardTokens.bigStone,
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(
-                            color: DashboardTokens.poloBlue22,
-                            width: 1,
-                          ),
-                        ),
-                        alignment: Alignment.center,
-                        child: const Icon(
-                          Icons.arrow_back_rounded,
-                          color: DashboardTokens.periwinkleGray,
-                          size: 22,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'Bills',
-                        style: GoogleFonts.bricolageGrotesque(
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                          color: DashboardTokens.periwinkleGray,
-                        ),
-                      ),
-                    ),
-                    SpringTouch(
-                      scaleDown: 0.88,
-                      onTap: () {
-                        AppHaptics.selectionClick();
-                        context.push('/bills/add');
-                      },
-                      child: Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: DashboardTokens.periwinkleGray,
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                        alignment: Alignment.center,
-                        child: const Icon(
-                          Icons.add_rounded,
-                          color: DashboardTokens.ebony,
-                          size: 24,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-
-                // ── Month Selector & View Switcher Row (Node 11:1723) ────────
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: _pickMonth,
-                      child: Text(
-                        DateFormat('MMMM yyyy').format(_currentMonth),
-                        style: GoogleFonts.bricolageGrotesque(
-                          fontSize: 19,
-                          fontWeight: FontWeight.bold,
-                          color: DashboardTokens.periwinkleGray,
-                        ),
-                      ),
-                    ),
-                    SpringTouch(
-                      scaleDown: 0.94,
-                      onTap: () {
-                        AppHaptics.selectionClick();
-                        setState(() => _isMonthView = !_isMonthView);
-                      },
-                      child: Text(
-                        _isMonthView ? 'Show week' : 'Show full month',
-                        style: GoogleFonts.dmSans(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: DashboardTokens.periwinkleGraySubtitle,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-
-                // ── Calendar Component (Adaptive: Week Strip vs. Full Month) ─
-                if (!_isMonthView) ...[
-                  // 7-Day Week Calendar Strip (Node 11:1728)
-                  Row(
-                    children: weekDays.map((day) {
-                      final dayLetters = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-                      final dayLetter = dayLetters[day.weekday % 7];
-                      final isSelected = day.year == _selectedDay.year &&
-                          day.month == _selectedDay.month &&
-                          day.day == _selectedDay.day;
-                      final hasBill = allBills.any((b) {
-                        final bDate = _dateOnly(b.dueDate);
-                        return bDate.year == day.year &&
-                            bDate.month == day.month &&
-                            bDate.day == day.day;
-                      });
-
-                      return Expanded(
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () {
-                            AppHaptics.selectionClick();
-                            setState(() => _selectedDay = day);
-                          },
-                          child: Container(
-                            height: 60,
-                            margin: const EdgeInsets.symmetric(horizontal: 2),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? DashboardTokens.periwinkleGray
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(24),
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  dayLetter,
-                                  style: GoogleFonts.dmSans(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: isSelected
-                                        ? DashboardTokens.ebony
-                                        : DashboardTokens.periwinkleGraySubtitle,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  '${day.day}',
-                                  style: GoogleFonts.dmSans(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.bold,
-                                    color: isSelected
-                                        ? DashboardTokens.ebony
-                                        : DashboardTokens.periwinkleGray,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                if (hasBill)
-                                  Container(
-                                    width: 4,
-                                    height: 4,
-                                    decoration: BoxDecoration(
-                                      color: isSelected
-                                          ? DashboardTokens.ebony
-                                          : DashboardTokens.apricot,
-                                      borderRadius: BorderRadius.circular(2),
-                                    ),
-                                  )
-                                else
-                                  const SizedBox(height: 4),
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ] else ...[
-                  // Full Month Calendar View (Node 106:1278)
-                  _buildMonthCalendar(allBills),
-                ],
-                const SizedBox(height: 16),
-
-                // ── 3-Way Filter Pill: Upcoming / Paid / Overdue (Node 11:1764)
-                Container(
-                  height: 44,
-                  padding: const EdgeInsets.all(5),
-                  decoration: BoxDecoration(
-                    color: DashboardTokens.bigStone,
-                    borderRadius: BorderRadius.circular(30),
-                    border: Border.all(
-                      color: DashboardTokens.poloBlue22,
-                      width: 1,
-                    ),
-                  ),
-                  child: Row(
+                // ── Top Header Row & Month Selector (Node 106:2510) ──────────
+                FadeSlideEntrance.staggered(
+                  index: 0,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _buildBillsFilterTab('Upcoming'),
-                      _buildBillsFilterTab('Paid'),
-                      _buildBillsFilterTab('Overdue'),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // ── Bills List or Empty State ────────────────────────────────
-                if (billsAsync.isLoading && allBills.isEmpty) ...[
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 40),
-                    child: Center(
-                      child: CircularProgressIndicator(
-                        color: DashboardTokens.periwinkleGray,
-                        strokeWidth: 2.5,
-                      ),
-                    ),
-                  ),
-                ] else if (displayedBills.isEmpty) ...[
-                  // Exact Empty State matching Node 106:595 / 106:723
-                  _buildEmptyStateCard(),
-                ] else ...[
-                  ...sortedGroupKeys.map((groupKey) {
-                    final items = groupedBills[groupKey]!;
-                    final groupDate = items.first.dueDate;
-                    final groupTitle = DateFormat('EEE, MMM d').format(groupDate);
-
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                      Row(
                         children: [
-                          // Date Header (Node 11:1677)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 4,
-                              vertical: 6,
+                          SpringTouch(
+                            scaleDown: 0.90,
+                            onTap: () {
+                              AppHaptics.selectionClick();
+                              _handleBack();
+                            },
+                            child: Container(
+                              width: 50,
+                              height: 50,
+                              decoration: BoxDecoration(
+                                color: DashboardTokens.bigStone,
+                                borderRadius: BorderRadius.circular(24),
+                                border: Border.all(
+                                  color: DashboardTokens.poloBlue22,
+                                  width: 1,
+                                ),
+                              ),
+                              alignment: Alignment.center,
+                              child: const Icon(
+                                Icons.arrow_back_rounded,
+                                color: DashboardTokens.periwinkleGray,
+                                size: 22,
+                              ),
                             ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
                             child: Text(
-                              groupTitle,
+                              'Bills',
+                              style: GoogleFonts.bricolageGrotesque(
+                                fontSize: 26,
+                                fontWeight: FontWeight.bold,
+                                color: DashboardTokens.periwinkleGray,
+                              ),
+                            ),
+                          ),
+                          SpringTouch(
+                            scaleDown: 0.88,
+                            onTap: () {
+                              AppHaptics.selectionClick();
+                              context.push('/bills/add');
+                            },
+                            child: Container(
+                              width: 48,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                color: DashboardTokens.periwinkleGray,
+                                borderRadius: BorderRadius.circular(24),
+                              ),
+                              alignment: Alignment.center,
+                              child: const Icon(
+                                Icons.add_rounded,
+                                color: DashboardTokens.ebony,
+                                size: 24,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // ── Month Selector & View Switcher Row (Node 11:1723) ────────
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: _pickMonth,
+                            child: Text(
+                              DateFormat('MMMM yyyy').format(_currentMonth),
                               style: GoogleFonts.bricolageGrotesque(
                                 fontSize: 19,
                                 fontWeight: FontWeight.bold,
@@ -636,67 +477,246 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                               ),
                             ),
                           ),
-                          // Bills in this group
-                          ...items.map((bill) => Padding(
-                                padding: const EdgeInsets.only(bottom: 10),
-                                child: _buildBillCard(bill, today),
-                              )),
-                        ],
-                      ),
-                    );
-                  }),
-                ],
-                const SizedBox(height: 14),
-
-                // ── Quick Add Section (Node 11:1783) ─────────────────────────
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'QUICK ADD',
-                      style: GoogleFonts.dmSans(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.0,
-                        color: DashboardTokens.periwinkleGraySubtitle,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 10,
-                      children: _quickAddPresets.map((preset) {
-                        return SpringTouch(
-                          scaleDown: 0.92,
-                          onTap: () {
-                            AppHaptics.selectionClick();
-                            context.push('/bills/add', extra: preset);
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 17,
-                              vertical: 11,
-                            ),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(22),
-                              border: Border.all(
-                                color: DashboardTokens.poloBlue.withValues(alpha: 0.4),
-                                width: 1,
-                              ),
-                            ),
+                          SpringTouch(
+                            scaleDown: 0.94,
+                            onTap: () {
+                              AppHaptics.selectionClick();
+                              setState(() => _isMonthView = !_isMonthView);
+                            },
                             child: Text(
-                              preset,
+                              _isMonthView ? 'Show week' : 'Show full month',
                               style: GoogleFonts.dmSans(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
-                                color: DashboardTokens.periwinkleGray,
+                                color: DashboardTokens.periwinkleGraySubtitle,
                               ),
                             ),
                           ),
-                        );
-                      }).toList(),
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // ── Calendar Component (Adaptive: Week Strip vs. Full Month) ─
+                FadeSlideEntrance.staggered(
+                  index: 1,
+                  child: !_isMonthView
+                      ? Row(
+                          children: weekDays.map((day) {
+                            final dayLetters = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+                            final dayLetter = dayLetters[day.weekday % 7];
+                            final isSelected = day.year == _selectedDay.year &&
+                                day.month == _selectedDay.month &&
+                                day.day == _selectedDay.day;
+                            final hasBill = allBills.any((b) {
+                              final bDate = _dateOnly(b.dueDate);
+                              return bDate.year == day.year &&
+                                  bDate.month == day.month &&
+                                  bDate.day == day.day;
+                            });
+
+                            return Expanded(
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: () {
+                                  AppHaptics.selectionClick();
+                                  setState(() => _selectedDay = day);
+                                },
+                                child: Container(
+                                  height: 60,
+                                  margin: const EdgeInsets.symmetric(horizontal: 2),
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? DashboardTokens.periwinkleGray
+                                        : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(24),
+                                  ),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        dayLetter,
+                                        style: GoogleFonts.dmSans(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          color: isSelected
+                                              ? DashboardTokens.ebony
+                                              : DashboardTokens.periwinkleGraySubtitle,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '${day.day}',
+                                        style: GoogleFonts.dmSans(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.bold,
+                                          color: isSelected
+                                              ? DashboardTokens.ebony
+                                              : DashboardTokens.periwinkleGray,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      if (hasBill)
+                                        Container(
+                                          width: 4,
+                                          height: 4,
+                                          decoration: BoxDecoration(
+                                            color: isSelected
+                                                ? DashboardTokens.ebony
+                                                : DashboardTokens.apricot,
+                                            borderRadius: BorderRadius.circular(2),
+                                          ),
+                                        )
+                                      else
+                                        const SizedBox(height: 4),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        )
+                      : _buildMonthCalendar(allBills),
+                ),
+                const SizedBox(height: 16),
+
+                // ── 3-Way Physical Sliding Filter Pill: Upcoming / Paid / Overdue ──
+                FadeSlideEntrance.staggered(
+                  index: 2,
+                  child: SlidingSegmentedPill(
+                    items: const ['Upcoming', 'Paid', 'Overdue'],
+                    selectedIndex: switch (_activeFilter) {
+                      'Paid' => 1,
+                      'Overdue' => 2,
+                      _ => 0,
+                    },
+                    onChanged: (idx) {
+                      setState(() {
+                        _activeFilter = switch (idx) {
+                          1 => 'Paid',
+                          2 => 'Overdue',
+                          _ => 'Upcoming',
+                        };
+                      });
+                    },
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // ── Bills List or Empty State ────────────────────────────────
+                FadeSlideEntrance.staggered(
+                  index: 3,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (billsAsync.isLoading && allBills.isEmpty) ...[
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 40),
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              color: DashboardTokens.periwinkleGray,
+                              strokeWidth: 2.5,
+                            ),
+                          ),
+                        ),
+                      ] else if (displayedBills.isEmpty) ...[
+                        // Exact Empty State matching Node 106:595 / 106:723
+                        _buildEmptyStateCard(),
+                      ] else ...[
+                        ...sortedGroupKeys.map((groupKey) {
+                          final items = groupedBills[groupKey]!;
+                          final groupDate = items.first.dueDate;
+                          final groupTitle = DateFormat('EEE, MMM d').format(groupDate);
+
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                // Date Header (Node 11:1677)
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                    vertical: 6,
+                                  ),
+                                  child: Text(
+                                    groupTitle,
+                                    style: GoogleFonts.bricolageGrotesque(
+                                      fontSize: 19,
+                                      fontWeight: FontWeight.bold,
+                                      color: DashboardTokens.periwinkleGray,
+                                    ),
+                                  ),
+                                ),
+                                // Bills in this group
+                                ...items.map((bill) => Padding(
+                                      padding: const EdgeInsets.only(bottom: 10),
+                                      child: _buildBillCard(bill, today),
+                                    )),
+                              ],
+                            ),
+                          );
+                        }),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // ── Quick Add Section (Node 11:1783) ─────────────────────────
+                FadeSlideEntrance.staggered(
+                  index: 4,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'QUICK ADD',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.0,
+                          color: DashboardTokens.periwinkleGraySubtitle,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 10,
+                        children: _quickAddPresets.map((preset) {
+                          return SpringTouch(
+                            scaleDown: 0.92,
+                            onTap: () {
+                              AppHaptics.selectionClick();
+                              context.push('/bills/add', extra: preset);
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 17,
+                                vertical: 11,
+                              ),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(22),
+                                border: Border.all(
+                                  color: DashboardTokens.poloBlue.withValues(alpha: 0.4),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Text(
+                                preset,
+                                style: GoogleFonts.dmSans(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: DashboardTokens.periwinkleGray,
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -829,37 +849,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
     );
   }
 
-  // ── 3-Way Bills Filter Tab ────────────────────────────────────────────────
-  Widget _buildBillsFilterTab(String label) {
-    final isSelected = _activeFilter == label;
-    return Expanded(
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () {
-          AppHaptics.selectionClick();
-          setState(() => _activeFilter = label);
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: isSelected ? DashboardTokens.periwinkleGray : Colors.transparent,
-            borderRadius: BorderRadius.circular(22),
-          ),
-          child: Text(
-            label,
-            style: GoogleFonts.dmSans(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: isSelected
-                  ? DashboardTokens.ebony
-                  : DashboardTokens.periwinkleGraySubtitle,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+
 
   // ── Bill Card (Node 11:1678) ──────────────────────────────────────────────
   Widget _buildBillCard(BillItem bill, DateTime today) {

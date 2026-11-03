@@ -18,6 +18,7 @@ void showKasyaBaAffordabilitySheet(BuildContext context) {
 
   showModalBottomSheet(
     context: context,
+    useRootNavigator: true,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
     barrierColor: Colors.black.withValues(alpha: 0.75),

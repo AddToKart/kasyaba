@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../app/theme/app_motion.dart';
+import '../../../shared/widgets/motion_components.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
@@ -41,28 +42,40 @@ class AlertsScreen extends ConsumerWidget {
             padding: EdgeInsets.fromLTRB(20, topPadding, 20, 110),
             children: [
               // ── Header (Node 11:2427) ──────────────────────────
-              _NotificationHeader(
-                onBackTap: () {
-                  AppHaptics.selectionClick();
-                  if (context.canPop()) {
-                    context.pop();
-                  } else {
-                    context.go('/dashboard');
-                  }
-                },
+              FadeSlideEntrance.staggered(
+                index: 0,
+                child: _NotificationHeader(
+                  onBackTap: () {
+                    AppHaptics.selectionClick();
+                    if (context.canPop()) {
+                      context.pop();
+                    } else {
+                      context.go('/dashboard');
+                    }
+                  },
+                ),
               ),
               const SizedBox(height: 20),
 
               // ── Notifications Content ──────────────────────────
               alertsAsync.when(
-                loading: () => const _NotificationsLoadingState(),
-                error: (err, _) => _NotificationsErrorCard(
-                  message: friendlyErrorMessage(err),
-                  onRetry: () => ref.invalidate(alertsProvider),
+                loading: () => FadeSlideEntrance.staggered(
+                  index: 1,
+                  child: const _NotificationsLoadingState(),
+                ),
+                error: (err, _) => FadeSlideEntrance.staggered(
+                  index: 1,
+                  child: _NotificationsErrorCard(
+                    message: friendlyErrorMessage(err),
+                    onRetry: () => ref.invalidate(alertsProvider),
+                  ),
                 ),
                 data: (alerts) {
                   if (alerts.isEmpty) {
-                    return const _NotificationsEmptyState();
+                    return FadeSlideEntrance.staggered(
+                      index: 1,
+                      child: const _NotificationsEmptyState(),
+                    );
                   }
 
                   final now = DateTime.now();
@@ -80,11 +93,19 @@ class AlertsScreen extends ConsumerWidget {
                     children: [
                       // "TODAY" Section (Node 11:2433 & 11:2436)
                       if (todayAlerts.isNotEmpty) ...[
-                        const _SectionHeader(title: 'TODAY'),
-                        const SizedBox(height: 8),
-                        _NotificationGroupCard(
-                          alerts: todayAlerts,
-                          onAlertTap: (alert) => _handleAlertTap(ref, alert),
+                        FadeSlideEntrance.staggered(
+                          index: 1,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              const _SectionHeader(title: 'TODAY'),
+                              const SizedBox(height: 8),
+                              _NotificationGroupCard(
+                                alerts: todayAlerts,
+                                onAlertTap: (alert) => _handleAlertTap(ref, alert),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
 
@@ -94,11 +115,19 @@ class AlertsScreen extends ConsumerWidget {
 
                       // "EARLIER" Section (Node 11:2458 & 11:2461)
                       if (earlierAlerts.isNotEmpty) ...[
-                        const _SectionHeader(title: 'EARLIER'),
-                        const SizedBox(height: 8),
-                        _NotificationGroupCard(
-                          alerts: earlierAlerts,
-                          onAlertTap: (alert) => _handleAlertTap(ref, alert),
+                        FadeSlideEntrance.staggered(
+                          index: 2,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              const _SectionHeader(title: 'EARLIER'),
+                              const SizedBox(height: 8),
+                              _NotificationGroupCard(
+                                alerts: earlierAlerts,
+                                onAlertTap: (alert) => _handleAlertTap(ref, alert),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ],
