@@ -20,6 +20,9 @@ import '../../features/bills/screens/bills_screen.dart';
 import '../../features/bills/screens/add_bill_screen.dart';
 import '../../features/alerts/screens/alerts_screen.dart';
 import '../../features/settings/screens/settings_screen.dart';
+import '../../features/settings/screens/notification_settings_screen.dart';
+import '../../features/settings/screens/backup_export_screen.dart';
+import '../../features/settings/screens/delete_account_screen.dart';
 import '../../features/splash/screens/splash_screen.dart';
 import '../../shared/widgets/motion_components.dart';
 import '../../core/auth/auth_provider.dart';
@@ -175,6 +178,27 @@ final routerProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => MotionPageTransitions.slideUpTransition(
           key: state.pageKey,
           child: const AccountsScreen(),
+        ),
+      ),
+      GoRoute(
+        path: '/settings/notifications',
+        pageBuilder: (context, state) => MotionPageTransitions.slideUpTransition(
+          key: state.pageKey,
+          child: const NotificationSettingsScreen(),
+        ),
+      ),
+      GoRoute(
+        path: '/settings/backup',
+        pageBuilder: (context, state) => MotionPageTransitions.slideUpTransition(
+          key: state.pageKey,
+          child: const BackupExportScreen(),
+        ),
+      ),
+      GoRoute(
+        path: '/settings/delete-account',
+        pageBuilder: (context, state) => MotionPageTransitions.slideUpTransition(
+          key: state.pageKey,
+          child: const DeleteAccountScreen(),
         ),
       ),
       GoRoute(

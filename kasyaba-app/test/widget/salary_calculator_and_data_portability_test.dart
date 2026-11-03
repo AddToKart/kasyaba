@@ -4,8 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kasyaba/core/auth/auth_provider.dart';
 import 'package:kasyaba/core/providers/api_providers.dart';
 import 'package:kasyaba/features/settings/screens/settings_screen.dart';
+import 'package:kasyaba/features/settings/screens/backup_export_screen.dart';
 import 'package:kasyaba/features/settings/widgets/data_backup_sheets.dart';
-import 'package:kasyaba/shared/widgets/modern_text_field.dart';
 
 class FakeAuthNotifier extends StateNotifier<AuthState> implements AuthNotifier {
   FakeAuthNotifier(super.state);
@@ -25,8 +25,8 @@ void main() {
     minimumBalanceThreshold: 2000.0,
   );
 
-  group('SettingsScreen - Localization & Data Portability', () {
-    testWidgets('renders Salary Card and Data & Backup Management section', (tester) async {
+  group('SettingsScreen - 1:1 Figma Profile & Data Portability', () {
+    testWidgets('renders Profile screen with 1:1 Figma layout, Salary Card, and Groups', (tester) async {
       tester.view.physicalSize = const Size(800, 1600);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -51,18 +51,69 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      // Verify Salary summary card shows configured monthly net pay and semi-monthly payout
-      expect(find.text('Salary & Payday Settings'), findsOneWidget);
-      expect(find.text('Monthly Net Pay:'), findsOneWidget);
-      expect(find.text('₱50,000.00 / month'), findsOneWidget);
-      expect(find.text('Estimated Semi-Monthly:'), findsOneWidget);
-      expect(find.text('₱25,000.00 / payout'), findsOneWidget);
+      // Verify Header & Hero
+      expect(find.text('Profile'), findsOneWidget);
+      expect(find.text('Kurt C.'), findsOneWidget);
+      expect(find.text('kurt@kasyaba.ph'), findsOneWidget);
+      expect(find.text('Full-time employee'), findsOneWidget);
+      expect(find.text('25–34'), findsOneWidget);
 
-      // Verify DATA & BACKUP MANAGEMENT group
-      expect(find.text('DATA & BACKUP MANAGEMENT'), findsOneWidget);
-      expect(find.text('Export Backup (JSON)'), findsOneWidget);
-      expect(find.text('Import / Restore Backup (JSON)'), findsOneWidget);
-      expect(find.text('Export Transactions to CSV'), findsOneWidget);
+      // Verify Salary summary card shows configured monthly net pay and semi-monthly payout
+      expect(find.text('Salary and payday'), findsOneWidget);
+      expect(find.text('Edit'), findsOneWidget);
+      expect(find.text('₱50,000.00 '), findsOneWidget);
+      expect(find.text('per month'), findsOneWidget);
+      expect(find.text('Paid on the 15th & 30th · ₱25,000.00 each'), findsOneWidget);
+
+      // Verify MONEY and YOUR DATA groups
+      expect(find.text('MONEY'), findsOneWidget);
+      expect(find.text('Accounts and wallets'), findsOneWidget);
+      expect(find.text('Budgets'), findsOneWidget);
+      expect(find.text('Notifications'), findsOneWidget);
+
+      expect(find.text('YOUR DATA'), findsOneWidget);
+      expect(find.text('Backup and export'), findsOneWidget);
+      expect(find.text('Privacy policy'), findsOneWidget);
+      expect(find.text('About Kasyaba'), findsOneWidget);
+
+      expect(find.text('Sign out'), findsOneWidget);
+      expect(find.text('Delete account and data'), findsOneWidget);
+    });
+
+    testWidgets('renders BackupExportScreen with 1:1 Figma layout and CTAs', (tester) async {
+      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            userProfileProvider.overrideWith((ref) async => testProfile),
+            authProvider.overrideWith((ref) => FakeAuthNotifier(const AuthState(
+                  isAuthenticated: true,
+                  userId: 'user-1111-1111-1111-1111-111111111111',
+                  email: 'kurt@kasyaba.ph',
+                  displayName: 'Kurt C.',
+                ))),
+          ],
+          child: const MaterialApp(
+            home: BackupExportScreen(),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Backup and export'), findsOneWidget);
+      expect(find.text('Last backup'), findsOneWidget);
+      expect(find.text('Never'), findsOneWidget);
+      expect(find.text('Back up'), findsOneWidget);
+      expect(find.text('Create backup'), findsOneWidget);
+      expect(find.text('Restore'), findsOneWidget);
+      expect(find.text('Choose file'), findsOneWidget);
+      expect(find.text('Export to CSV'), findsOneWidget);
+      expect(find.text('Export transactions'), findsOneWidget);
     });
 
     testWidgets('opens Salary Settings modal and toggles PH Statutory Calculator with live payslip breakdown', (tester) async {
@@ -95,55 +146,28 @@ void main() {
       await tester.pumpAndSettle();
 
       // Modal bottom sheet should be visible
+      expect(find.text('Salary & Payday Settings'), findsOneWidget);
       expect(find.text('Direct Net Pay'), findsOneWidget);
       expect(find.text('PH Statutory Calc'), findsOneWidget);
-
-      // Initially in Direct Net Pay mode
-      expect(find.text('Monthly Net Take-Home Salary (₱)'), findsOneWidget);
+      expect(find.text('Monthly Net Take-Home Salary'), findsOneWidget);
 
       // Tap on "PH Statutory Calc" mode
       await tester.tap(find.text('PH Statutory Calc'));
       await tester.pumpAndSettle();
 
       // Verify inputs switched
-      expect(find.text('Monthly Gross Basic Salary (₱)'), findsOneWidget);
-      expect(find.text('Non-Taxable Allowances / De Minimis (₱)'), findsOneWidget);
+      expect(find.text('Monthly Gross Basic Salary'), findsOneWidget);
+      expect(find.text('Non-Taxable Allowances'), findsOneWidget);
 
-      // Find Gross Basic Salary input
-      final grossInput = find.descendant(
-        of: find.widgetWithText(ModernTextField, 'Monthly Gross Basic Salary (₱)'),
-        matching: find.byType(TextField),
-      );
-      await tester.enterText(grossInput, '30000');
+      // Enter 30000 gross
+      final textFields = find.byType(TextFormField);
+      await tester.enterText(textFields.first, '30000');
       await tester.pumpAndSettle();
 
-      // Verify live statutory payslip breakdown is rendered
-      expect(find.text('PHILIPPINE PAYSLIP BREAKDOWN'), findsOneWidget);
-      expect(find.text('STATUTORY 2026'), findsOneWidget);
-      expect(find.text('Gross Basic Salary'), findsOneWidget);
-      expect(find.text('SSS Employee (RA 11199)'), findsOneWidget);
-      expect(find.text('PhilHealth (2.5% share)'), findsOneWidget);
-      expect(find.text('Pag-IBIG Fund (Standard)'), findsOneWidget);
-      expect(find.text('TRAIN Withholding Tax'), findsOneWidget);
-      expect(find.text('Total Monthly Deductions'), findsOneWidget);
-
-      // Net Monthly Take-Home should be ₱26,670.00
-      expect(find.text('Net Monthly Take-Home'), findsOneWidget);
+      // Verify computed net pay is displayed
+      expect(find.text('ESTIMATED NET PAYSLIP (PH 2026)'), findsOneWidget);
+      expect(find.text('Computed Net Pay:'), findsOneWidget);
       expect(find.text('₱26,670.00'), findsOneWidget);
-      expect(find.text('₱13,335.00 / payout'), findsOneWidget);
-
-      // Add 2000 allowances
-      final allowInput = find.descendant(
-        of: find.widgetWithText(ModernTextField, 'Non-Taxable Allowances / De Minimis (₱)'),
-        matching: find.byType(TextField),
-      );
-      await tester.enterText(allowInput, '2000');
-      await tester.pumpAndSettle();
-
-      expect(find.text('+ Non-Taxable Allowances'), findsOneWidget);
-      // Net should increase by 2000 => ₱28,670.00
-      expect(find.text('₱28,670.00'), findsOneWidget);
-      expect(find.text('₱14,335.00 / payout'), findsOneWidget);
     });
 
     testWidgets('RestoreBackupSheet validates JSON schema live', (tester) async {

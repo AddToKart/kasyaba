@@ -1,22 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../app/theme/app_theme.dart';
-import '../../../app/theme/app_motion.dart';
-import '../../../shared/widgets/motion_components.dart';
-import '../../../core/providers/theme_provider.dart';
-import '../../../shared/widgets/pressable_scale.dart';
 import '../../../core/app_info.dart';
 import '../../../core/auth/auth_provider.dart';
-import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
+import '../../../core/providers/theme_provider.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/ph_salary_calculator.dart';
-import '../../../shared/widgets/modern_card.dart';
-import '../../../shared/widgets/modern_bottom_sheet.dart';
-import '../../../shared/widgets/modern_text_field.dart';
-import '../widgets/data_backup_sheets.dart';
+import '../../dashboard/widgets/dashboard_tokens.dart';
+import '../../../shared/widgets/motion_components.dart';
 
+/// ─────────────────────────────────────────────────────────────
+///  1:1 Figma Profile & Settings Screen (Node 42:6828)
+/// ─────────────────────────────────────────────────────────────
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
@@ -29,7 +25,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _grossSalaryController = TextEditingController();
   final _allowancesController = TextEditingController();
   final _minThresholdController = TextEditingController();
-  final _deleteAccountPasswordController = TextEditingController();
 
   @override
   void dispose() {
@@ -37,12 +32,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _grossSalaryController.dispose();
     _allowancesController.dispose();
     _minThresholdController.dispose();
-    _deleteAccountPasswordController.dispose();
     super.dispose();
   }
 
   void _showEditProfileBottomSheet(UserProfile profile) {
-    // Reset previous input, then seed the sheet from the saved profile.
     _salaryController.clear();
     _grossSalaryController.clear();
     _allowancesController.clear();
@@ -68,443 +61,478 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       );
     }
 
-    ModernBottomSheet.show(
+    showModalBottomSheet<void>(
       context: context,
-      title: 'Salary & Payday Settings',
-      subtitle:
-          'Feed your exact income schedule into the deterministic forecasting engine.',
-      child: StatefulBuilder(
-        builder: (context, setModalState) {
-          final isDark = Theme.of(context).brightness == Brightness.dark;
+      useRootNavigator: true,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (ctx, setModalState) {
+          final bottomInset = MediaQuery.of(ctx).viewInsets.bottom;
 
-          return Form(
-            key: formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // ── Mode Switcher: Direct Net vs Statutory Calculator ──
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? AppColors.surface700
-                        : AppColors.lightInputFill,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isDark
-                          ? AppColors.subtleBorder
-                          : AppColors.lightBorderHairline,
+          return Container(
+            decoration: BoxDecoration(
+              color: DashboardTokens.ebony,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+              border: Border.all(
+                color: DashboardTokens.poloBlue22,
+                width: 1,
+              ),
+            ),
+            padding: EdgeInsets.fromLTRB(20, 20, 20, 24 + bottomInset),
+            child: SingleChildScrollView(
+              child: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 38,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: DashboardTokens.poloBlue30,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
                     ),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(8),
-                          onTap: () =>
-                              setModalState(() => isCalculatorMode = false),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 9),
-                            decoration: BoxDecoration(
-                              color: !isCalculatorMode
-                                  ? (isDark
-                                      ? const Color(0xFF27272A)
-                                      : Colors.white)
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(8),
-                              boxShadow: !isCalculatorMode
-                                  ? [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.12),
-                                        blurRadius: 4,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ]
-                                  : null,
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.edit_note_rounded,
-                                  size: 16,
+                    const SizedBox(height: 18),
+                    const Text(
+                      'Salary & Payday Settings',
+                      style: TextStyle(
+                        fontFamily: 'Bricolage Grotesque',
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: DashboardTokens.periwinkleGray,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Feed your exact income schedule into the deterministic forecasting engine.',
+                      style: TextStyle(
+                        fontFamily: 'DM Sans',
+                        fontSize: 14,
+                        color: DashboardTokens.periwinkleGraySubtitle,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+
+                    // Mode Switcher Pill
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: DashboardTokens.bigStone,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: DashboardTokens.poloBlue22,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: SpringTouch(
+                              onTap: () => setModalState(() => isCalculatorMode = false),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 10),
+                                decoration: BoxDecoration(
                                   color: !isCalculatorMode
-                                      ? const Color(0xFF10B981)
-                                      : Colors.grey,
+                                      ? DashboardTokens.periwinkleGray
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                                const SizedBox(width: 6),
-                                Text(
+                                alignment: Alignment.center,
+                                child: Text(
                                   'Direct Net Pay',
                                   style: TextStyle(
-                                    fontSize: 12.5,
-                                    fontWeight: !isCalculatorMode
-                                        ? FontWeight.w700
-                                        : FontWeight.w500,
+                                    fontFamily: 'DM Sans',
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
                                     color: !isCalculatorMode
-                                        ? (isDark
-                                            ? Colors.white
-                                            : AppColors.textLight)
-                                        : Colors.grey,
+                                        ? DashboardTokens.ebony
+                                        : DashboardTokens.periwinkleGraySubtitle,
                                   ),
                                 ),
-                              ],
+                              ),
                             ),
                           ),
-                        ),
-                      ),
-                      Expanded(
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(8),
-                          onTap: () {
-                            setModalState(() {
-                              isCalculatorMode = true;
-                              recomputeBreakdown();
-                            });
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 9),
-                            decoration: BoxDecoration(
-                              color: isCalculatorMode
-                                  ? (isDark
-                                      ? const Color(0xFF27272A)
-                                      : Colors.white)
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(8),
-                              boxShadow: isCalculatorMode
-                                  ? [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.12),
-                                        blurRadius: 4,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ]
-                                  : null,
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.calculate_outlined,
-                                  size: 16,
+                          Expanded(
+                            child: SpringTouch(
+                              onTap: () {
+                                setModalState(() {
+                                  isCalculatorMode = true;
+                                  recomputeBreakdown();
+                                });
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 10),
+                                decoration: BoxDecoration(
                                   color: isCalculatorMode
-                                      ? const Color(0xFF38BDF8)
-                                      : Colors.grey,
+                                      ? DashboardTokens.periwinkleGray
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                                const SizedBox(width: 6),
-                                Text(
+                                alignment: Alignment.center,
+                                child: Text(
                                   'PH Statutory Calc',
                                   style: TextStyle(
-                                    fontSize: 12.5,
-                                    fontWeight: isCalculatorMode
-                                        ? FontWeight.w700
-                                        : FontWeight.w500,
+                                    fontFamily: 'DM Sans',
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
                                     color: isCalculatorMode
-                                        ? (isDark
-                                            ? Colors.white
-                                            : AppColors.textLight)
-                                        : Colors.grey,
+                                        ? DashboardTokens.ebony
+                                        : DashboardTokens.periwinkleGraySubtitle,
                                   ),
                                 ),
-                              ],
+                              ),
                             ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    if (!isCalculatorMode) ...[
+                      // Monthly Net Salary Input Card
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: DashboardTokens.bigStone,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: DashboardTokens.poloBlue22,
+                            width: 1,
+                          ),
+                        ),
+                        child: TextFormField(
+                          controller: _salaryController,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          style: const TextStyle(
+                            fontFamily: 'DM Sans',
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: DashboardTokens.periwinkleGray,
+                          ),
+                          decoration: const InputDecoration(
+                            labelText: 'Monthly Net Take-Home Salary',
+                            labelStyle: TextStyle(
+                              fontFamily: 'DM Sans',
+                              color: DashboardTokens.periwinkleGraySubtitle,
+                            ),
+                            prefixText: '₱ ',
+                            prefixStyle: TextStyle(
+                              fontFamily: 'DM Sans',
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: DashboardTokens.periwinkleGray,
+                            ),
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                if (!isCalculatorMode) ...[
-                  ModernTextField(
-                    controller: _salaryController,
-                    label: 'Monthly Net Take-Home Salary (₱)',
-                    hint: '45000.00',
-                    prefixIcon: Icons.payments_outlined,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    validator: (v) {
-                      if (v == null || v.trim().isEmpty) return null;
-                      final value = double.tryParse(v.trim());
-                      if (value == null || !value.isFinite || value < 0) {
-                        return 'Enter a valid non-negative amount';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Directly input what lands in your bank or e-wallet every month.',
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      color: isDark
-                          ? AppColors.textMuted
-                          : AppColors.textMutedL,
-                    ),
-                  ),
-                ] else ...[
-                  ModernTextField(
-                    controller: _grossSalaryController,
-                    label: 'Monthly Gross Basic Salary (₱)',
-                    hint: '50000.00',
-                    prefixIcon: Icons.account_balance_outlined,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    onChanged: (_) => setModalState(recomputeBreakdown),
-                    validator: (v) {
-                      if (isCalculatorMode) {
-                        if (v == null || v.trim().isEmpty) {
-                          return 'Please enter your gross basic salary';
-                        }
-                        final val = double.tryParse(v.trim());
-                        if (val == null || !val.isFinite || val <= 0) {
-                          return 'Enter a valid positive salary';
-                        }
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  ModernTextField(
-                    controller: _allowancesController,
-                    label: 'Non-Taxable Allowances / De Minimis (₱)',
-                    hint: '2000.00 (Optional)',
-                    prefixIcon: Icons.card_giftcard_rounded,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    onChanged: (_) => setModalState(recomputeBreakdown),
-                  ),
-                  const SizedBox(height: 14),
-
-                  // Payslip Breakdown Card
-                  _buildPayslipBreakdownCard(
-                    context: context,
-                    breakdown: liveBreakdown,
-                    paydaySched: paydaySched,
-                  ),
-                ],
-                const SizedBox(height: 18),
-
-                const Text(
-                  'Payday Frequency',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                ),
-                const SizedBox(height: 8),
-                DropdownButtonFormField<String>(
-                  initialValue: paydayFreq,
-                  decoration: InputDecoration(
-                    prefixIcon: const Icon(
-                      Icons.event_repeat_outlined,
-                      color: Color(0xFF10B981),
-                    ),
-                    filled: true,
-                    fillColor: isDark
-                        ? AppColors.surface700
-                        : AppColors.lightInputFill,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(
-                        color: AppColors.subtleBorderAdaptive(isDark),
+                    ] else ...[
+                      // Gross Basic Salary Input Card
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: DashboardTokens.bigStone,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: DashboardTokens.poloBlue22,
+                            width: 1,
+                          ),
+                        ),
+                        child: TextFormField(
+                          controller: _grossSalaryController,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          onChanged: (_) => setModalState(recomputeBreakdown),
+                          style: const TextStyle(
+                            fontFamily: 'DM Sans',
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: DashboardTokens.periwinkleGray,
+                          ),
+                          decoration: const InputDecoration(
+                            labelText: 'Monthly Gross Basic Salary',
+                            labelStyle: TextStyle(
+                              fontFamily: 'DM Sans',
+                              color: DashboardTokens.periwinkleGraySubtitle,
+                            ),
+                            prefixText: '₱ ',
+                            prefixStyle: TextStyle(
+                              fontFamily: 'DM Sans',
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: DashboardTokens.periwinkleGray,
+                            ),
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                  dropdownColor: isDark ? AppColors.surfaceCard : AppColors.lightCardSurface,
-                  items: const [
-                    DropdownMenuItem(
-                      value: 'semi-monthly',
-                      child: Text('Semi-Monthly (Twice a month)'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'monthly',
-                      child: Text('Monthly (Once a month)'),
-                    ),
-                    DropdownMenuItem(value: 'weekly', child: Text('Weekly')),
-                  ],
-                  onChanged: isSubmitting
-                      ? null
-                      : (val) {
-                          if (val != null) {
-                            setModalState(() => paydayFreq = val);
-                          }
-                        },
-                ),
-                const SizedBox(height: 16),
-
-                const Text(
-                  'Payday Schedule',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                ),
-                const SizedBox(height: 8),
-                DropdownButtonFormField<String>(
-                  initialValue: paydaySched,
-                  dropdownColor: isDark ? AppColors.surfaceCard : AppColors.lightCardSurface,
-                  decoration: InputDecoration(
-                    prefixIcon: const Icon(
-                      Icons.calendar_today_outlined,
-                      color: Color(0xFF10B981),
-                    ),
-                    filled: true,
-                    fillColor: isDark
-                        ? AppColors.surface700
-                        : AppColors.lightInputFill,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(
-                        color: AppColors.subtleBorderAdaptive(isDark),
+                      const SizedBox(height: 12),
+                      // Non-taxable Allowances Input Card
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: DashboardTokens.bigStone,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: DashboardTokens.poloBlue22,
+                            width: 1,
+                          ),
+                        ),
+                        child: TextFormField(
+                          controller: _allowancesController,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          onChanged: (_) => setModalState(recomputeBreakdown),
+                          style: const TextStyle(
+                            fontFamily: 'DM Sans',
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: DashboardTokens.periwinkleGray,
+                          ),
+                          decoration: const InputDecoration(
+                            labelText: 'Non-Taxable Allowances',
+                            labelStyle: TextStyle(
+                              fontFamily: 'DM Sans',
+                              color: DashboardTokens.periwinkleGraySubtitle,
+                            ),
+                            prefixText: '₱ ',
+                            prefixStyle: TextStyle(
+                              fontFamily: 'DM Sans',
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: DashboardTokens.periwinkleGray,
+                            ),
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                  items: const [
-                    DropdownMenuItem(
-                      value: '15th & 30th',
-                      child: Text('15th & 30th of the month'),
-                    ),
-                    DropdownMenuItem(
-                      value: '1st & 15th',
-                      child: Text('1st & 15th of the month'),
-                    ),
-                    DropdownMenuItem(
-                      value: '1st of month',
-                      child: Text('1st day of the month'),
-                    ),
-                    DropdownMenuItem(
-                      value: '30th of month',
-                      child: Text('End of the month'),
-                    ),
-                  ],
-                  onChanged: isSubmitting
-                      ? null
-                      : (val) {
-                          if (val != null) {
-                            setModalState(() => paydaySched = val);
-                          }
-                        },
-                ),
-                const SizedBox(height: 16),
-
-                ModernTextField(
-                  controller: _minThresholdController,
-                  label: 'Minimum Safety Buffer Threshold (₱)',
-                  hint: '2000.00',
-                  prefixIcon: Icons.shield_outlined,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  validator: (v) {
-                    if (v == null || v.trim().isEmpty) return null;
-                    final value = double.tryParse(v.trim());
-                    if (value == null || !value.isFinite || value < 0) {
-                      return 'Enter a valid non-negative amount';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 24),
-
-                FilledButton.icon(
-                  onPressed: isSubmitting
-                      ? null
-                      : () async {
-                          if (isSubmitting) return;
-                          if (!formKey.currentState!.validate()) return;
-
-                          final double? finalSalary;
-                          if (isCalculatorMode) {
-                            final gross = double.tryParse(
-                              _grossSalaryController.text.trim(),
-                            ) ?? 0.0;
-                            final allow = double.tryParse(
-                              _allowancesController.text.trim(),
-                            ) ?? 0.0;
-                            final calc = PhSalaryCalculator.calculate(
-                              grossBasicSalary: gross,
-                              nonTaxableAllowances: allow,
-                            );
-                            finalSalary = calc.netMonthlyPay;
-                            _salaryController.text =
-                                finalSalary.toStringAsFixed(2);
-                          } else {
-                            finalSalary = double.tryParse(
-                              _salaryController.text.trim(),
-                            );
-                          }
-
-                          final minThresh = double.tryParse(
-                            _minThresholdController.text.trim(),
-                          );
-                          setModalState(() => isSubmitting = true);
-
-                          try {
-                            final mutator = ref.read(
-                              transactionMutatorProvider,
-                            );
-                            await mutator.updateProfile(
-                              salaryAmount: finalSalary,
-                              paydayFrequency: paydayFreq,
-                              paydaySchedule: paydaySched,
-                              minimumBalanceThreshold: minThresh,
-                            );
-                            if (context.mounted) {
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    finalSalary != null
-                                        ? 'Salary settings updated! Net: ${CurrencyFormatter.format(finalSalary)}/mo'
-                                        : 'Salary & Payday settings updated!',
-                                  ),
-                                  backgroundColor: const Color(0xFF10B981),
+                      if (liveBreakdown != null) ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: DashboardTokens.bigStone,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: DashboardTokens.poloBlue22),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'ESTIMATED NET PAYSLIP (PH 2026)',
+                                style: TextStyle(
+                                  fontFamily: 'DM Sans',
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: DashboardTokens.periwinkleGraySubtitle,
+                                  letterSpacing: 0.8,
                                 ),
-                              );
-                            }
-                          } catch (error) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    friendlyErrorMessage(
-                                      error,
-                                      fallback:
-                                          'Unable to update settings. Please try again.',
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    'Computed Net Pay:',
+                                    style: TextStyle(
+                                      fontFamily: 'DM Sans',
+                                      color: DashboardTokens.periwinkleGraySubtitle,
                                     ),
                                   ),
-                                ),
-                              );
-                            }
-                          } finally {
-                            if (context.mounted) {
-                              setModalState(() => isSubmitting = false);
-                            }
-                          }
-                        },
-                  icon: isSubmitting
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
+                                  Text(
+                                    CurrencyFormatter.format(liveBreakdown!.netMonthlyPay),
+                                    style: const TextStyle(
+                                      fontFamily: 'DM Sans',
+                                      fontWeight: FontWeight.w700,
+                                      color: DashboardTokens.bermuda,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
-                        )
-                      : const Icon(Icons.check, size: 20),
-                  label: Text(
-                    isSubmitting ? 'Saving...' : 'Save Salary Settings',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF10B981),
-                    minimumSize: const Size.fromHeight(50),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                        ),
+                      ],
+                    ],
+                    const SizedBox(height: 12),
+
+                    // Payday Frequency Dropdown Card
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: DashboardTokens.bigStone,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: DashboardTokens.poloBlue22,
+                          width: 1,
+                        ),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: paydayFreq,
+                          dropdownColor: DashboardTokens.bigStone,
+                          icon: const Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            color: DashboardTokens.periwinkleGray,
+                          ),
+                          style: const TextStyle(
+                            fontFamily: 'DM Sans',
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: DashboardTokens.periwinkleGray,
+                          ),
+                          items: const [
+                            DropdownMenuItem(
+                              value: 'semi-monthly',
+                              child: Text('Semi-monthly (Twice a month)'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'monthly',
+                              child: Text('Monthly (Once a month)'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'weekly',
+                              child: Text('Weekly (Every 7 days)'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'bi-weekly',
+                              child: Text('Bi-weekly (Every 14 days)'),
+                            ),
+                          ],
+                          onChanged: (val) {
+                            if (val != null) setModalState(() => paydayFreq = val);
+                          },
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 12),
+
+                    // Payday Schedule Dropdown Card
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: DashboardTokens.bigStone,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: DashboardTokens.poloBlue22,
+                          width: 1,
+                        ),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: paydaySched,
+                          dropdownColor: DashboardTokens.bigStone,
+                          icon: const Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            color: DashboardTokens.periwinkleGray,
+                          ),
+                          style: const TextStyle(
+                            fontFamily: 'DM Sans',
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: DashboardTokens.periwinkleGray,
+                          ),
+                          items: const [
+                            DropdownMenuItem(
+                              value: '15th & 30th',
+                              child: Text('15th & 30th (Standard PH)'),
+                            ),
+                            DropdownMenuItem(
+                              value: '10th & 25th',
+                              child: Text('10th & 25th'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'End of Month',
+                              child: Text('End of Month (Last working day)'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'Custom / Other',
+                              child: Text('Custom / Other'),
+                            ),
+                          ],
+                          onChanged: (val) {
+                            if (val != null) setModalState(() => paydaySched = val);
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Save Button
+                    SpringTouch(
+                      onTap: isSubmitting
+                          ? null
+                          : () async {
+                              double? finalSalary;
+                              if (isCalculatorMode && liveBreakdown != null) {
+                                finalSalary = liveBreakdown!.netMonthlyPay;
+                              } else {
+                                finalSalary = double.tryParse(_salaryController.text.trim());
+                              }
+
+                              final threshold = double.tryParse(_minThresholdController.text.trim()) ?? 0.0;
+
+                              setModalState(() => isSubmitting = true);
+                              try {
+                                await ref.read(transactionMutatorProvider).updateProfile(
+                                      salaryAmount: finalSalary,
+                                      paydayFrequency: paydayFreq,
+                                      paydaySchedule: paydaySched,
+                                      minimumBalanceThreshold: threshold,
+                                    );
+                                if (sheetContext.mounted) {
+                                  Navigator.of(sheetContext).pop();
+                                }
+                              } catch (e) {
+                                if (sheetContext.mounted) {
+                                  ScaffoldMessenger.of(sheetContext).showSnackBar(
+                                    SnackBar(content: Text('Error updating settings: $e')),
+                                  );
+                                }
+                              } finally {
+                                if (sheetContext.mounted) {
+                                  setModalState(() => isSubmitting = false);
+                                }
+                              }
+                            },
+                      child: Container(
+                        height: 56,
+                        decoration: BoxDecoration(
+                          color: DashboardTokens.periwinkleGray,
+                          borderRadius: BorderRadius.circular(28),
+                        ),
+                        alignment: Alignment.center,
+                        child: isSubmitting
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation(DashboardTokens.ebony),
+                                ),
+                              )
+                            : const Text(
+                                'Save settings',
+                                style: TextStyle(
+                                  fontFamily: 'DM Sans',
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: DashboardTokens.ebony,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 8),
-              ],
+              ),
             ),
           );
         },
@@ -512,282 +540,163 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  Widget _buildPayslipBreakdownCard({
-    required BuildContext context,
-    required PhSalaryBreakdown? breakdown,
-    required String paydaySched,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    if (breakdown == null || breakdown.grossBasicSalary <= 0) {
-      return Container(
-        padding: const EdgeInsets.all(14),
+  void _showPrivacyPolicySheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      useRootNavigator: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
         decoration: BoxDecoration(
-          color: isDark ? AppColors.surface700 : AppColors.lightInputFill,
-          borderRadius: BorderRadius.circular(14),
+          color: DashboardTokens.ebony,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
           border: Border.all(
-            color: AppColors.subtleBorderAdaptive(isDark),
+            color: DashboardTokens.poloBlue22,
+            width: 1,
           ),
         ),
-        child: Row(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 36),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Icon(
-              Icons.info_outline_rounded,
-              size: 18,
-              color: AppColors.info,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                'Enter your Gross Basic Salary to see your official statutory deductions and take-home pay.',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isDark ? AppColors.textMuted : AppColors.lightTextSecondary,
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.surface800 : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0xFF10B981).withValues(alpha: 0.35),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF10B981).withValues(alpha: 0.06),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  const Icon(
-                    Icons.receipt_long_rounded,
-                    size: 18,
-                    color: Color(0xFF10B981),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'PHILIPPINE PAYSLIP BREAKDOWN',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.8,
-                      color: isDark ? Colors.white : AppColors.textLight,
-                    ),
-                  ),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+            Center(
+              child: Container(
+                width: 38,
+                height: 4,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(6),
+                  color: DashboardTokens.poloBlue30,
+                  borderRadius: BorderRadius.circular(2),
                 ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            const Text(
+              'Privacy Policy',
+              style: TextStyle(
+                fontFamily: 'Bricolage Grotesque',
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: DashboardTokens.periwinkleGray,
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Kasyaba is built offline-first. Your financial records, accounts, goals, and bills remain encrypted on your device.\n\n'
+              'We never sell your personal data or track your financial activity. You can export or delete your data at any time.',
+              style: TextStyle(
+                fontFamily: 'DM Sans',
+                fontSize: 14,
+                color: DashboardTokens.periwinkleGraySubtitle,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 24),
+            SpringTouch(
+              onTap: () => Navigator.of(ctx).pop(),
+              child: Container(
+                height: 52,
+                decoration: BoxDecoration(
+                  color: DashboardTokens.periwinkleGray,
+                  borderRadius: BorderRadius.circular(26),
+                ),
+                alignment: Alignment.center,
                 child: const Text(
-                  'STATUTORY 2026',
+                  'Close',
                   style: TextStyle(
-                    fontSize: 9.5,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.5,
-                    color: Color(0xFF10B981),
+                    fontFamily: 'DM Sans',
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: DashboardTokens.ebony,
                   ),
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          const Divider(height: 1, color: Color(0x22334155)),
-          const SizedBox(height: 10),
-
-          // Earnings
-          _payslipRow(
-            label: 'Gross Basic Salary',
-            amount: breakdown.grossBasicSalary,
-            isBold: true,
-            color: isDark ? Colors.white : AppColors.textLight,
-          ),
-          if (breakdown.nonTaxableAllowances > 0) ...[
-            const SizedBox(height: 5),
-            _payslipRow(
-              label: '+ Non-Taxable Allowances',
-              amount: breakdown.nonTaxableAllowances,
-              color: const Color(0xFF10B981),
             ),
           ],
-          const SizedBox(height: 10),
-
-          // Statutory Deductions
-          Text(
-            'MANDATORY CONTRIBUTIONS & TAXES',
-            style: TextStyle(
-              fontSize: 9.5,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.8,
-              color: isDark ? AppColors.textMuted : AppColors.textMutedL,
-            ),
-          ),
-          const SizedBox(height: 6),
-          _payslipRow(
-            label: 'SSS Employee (RA 11199)',
-            amount: -breakdown.sssContribution,
-            color: AppColors.expense,
-          ),
-          const SizedBox(height: 5),
-          _payslipRow(
-            label: 'PhilHealth (2.5% share)',
-            amount: -breakdown.philHealthContribution,
-            color: AppColors.expense,
-          ),
-          const SizedBox(height: 5),
-          _payslipRow(
-            label: 'Pag-IBIG Fund (Standard)',
-            amount: -breakdown.pagIbigContribution,
-            color: AppColors.expense,
-          ),
-          const SizedBox(height: 5),
-          _payslipRow(
-            label: 'TRAIN Withholding Tax',
-            amount: -breakdown.withholdingTax,
-            color: AppColors.expense,
-          ),
-          const SizedBox(height: 10),
-          const Divider(height: 1, color: Color(0x22334155)),
-          const SizedBox(height: 10),
-
-          // Total Deductions
-          _payslipRow(
-            label: 'Total Monthly Deductions',
-            amount: -breakdown.totalDeductions,
-            isBold: true,
-            color: AppColors.expense,
-          ),
-          const SizedBox(height: 12),
-
-          // Net Monthly Take-Home Hero Card
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: isDark
-                    ? const [Color(0xFF064E3B), Color(0xFF022C22)]
-                    : const [Color(0xFFD1FAE5), Color(0xFFA7F3D0)],
-              ),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: const Color(0xFF10B981).withValues(alpha: 0.5),
-              ),
-            ),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Net Monthly Take-Home',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: isDark
-                            ? const Color(0xFFA7F3D0)
-                            : const Color(0xFF065F46),
-                      ),
-                    ),
-                    Text(
-                      CurrencyFormatter.format(breakdown.netMonthlyPay),
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.5,
-                        color: isDark ? Colors.white : const Color(0xFF064E3B),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Semi-Monthly ($paydaySched)',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        color: isDark
-                            ? AppColors.textMuted
-                            : const Color(0xFF047857),
-                      ),
-                    ),
-                    Text(
-                      '${CurrencyFormatter.format(breakdown.semiMonthlyPayout)} / payout',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: isDark
-                            ? const Color(0xFF34D399)
-                            : const Color(0xFF065F46),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _payslipRow({
-    required String label,
-    required double amount,
-    bool isBold = false,
-    Color? color,
-  }) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 11.5,
-            fontWeight: isBold ? FontWeight.w700 : FontWeight.w500,
-            color: color,
+  void _showAboutSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      useRootNavigator: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+          color: DashboardTokens.ebony,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          border: Border.all(
+            color: DashboardTokens.poloBlue22,
+            width: 1,
           ),
         ),
-        Text(
-          amount < 0
-              ? '- ${CurrencyFormatter.format(amount.abs())}'
-              : CurrencyFormatter.format(amount),
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: isBold ? FontWeight.w800 : FontWeight.w600,
-            color: color,
-          ),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 36),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 38,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: DashboardTokens.poloBlue30,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            const Text(
+              'About Kasyaba',
+              style: TextStyle(
+                fontFamily: 'Bricolage Grotesque',
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: DashboardTokens.periwinkleGray,
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Version $kAppVersionLabel\n'
+              'Deterministic personal finance for Filipinos.\n\n'
+              '© 2026 Kasyaba Finance. All rights reserved.',
+              style: TextStyle(
+                fontFamily: 'DM Sans',
+                fontSize: 14,
+                color: DashboardTokens.periwinkleGraySubtitle,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 24),
+            SpringTouch(
+              onTap: () => Navigator.of(ctx).pop(),
+              child: Container(
+                height: 52,
+                decoration: BoxDecoration(
+                  color: DashboardTokens.periwinkleGray,
+                  borderRadius: BorderRadius.circular(26),
+                ),
+                alignment: Alignment.center,
+                child: const Text(
+                  'Got it',
+                  style: TextStyle(
+                    fontFamily: 'DM Sans',
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: DashboardTokens.ebony,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final currentThemeMode = ref.watch(themeModeProvider);
     final authState = ref.watch(authProvider);
     final profileAsync = ref.watch(userProfileProvider);
@@ -796,739 +705,748 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final initial = displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U';
 
     return Scaffold(
-      appBar: AppBar(
-        titleSpacing: 20,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        title: Text(
-          'Profile & Settings',
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w800,
-            fontSize: 22,
-            letterSpacing: 0.5,
-          ),
+      backgroundColor: DashboardTokens.ebony,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: DashboardTokens.canvasGradient,
         ),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
-        children: [
-          // User Profile Card
-          FadeSlideEntrance.staggered(
-            index: 0,
-            child: ModernCard(
-              padding: const EdgeInsets.all(20),
-              borderRadius: 16,
-              borderColor: AppColors.subtleBorderAdaptive(isDark),
-              backgroundColor: isDark ? AppColors.surface800 : AppColors.lightCard,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 54,
-                    height: 54,
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.surface700 : AppColors.lightCard2,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: AppColors.emerald500,
-                        width: 2,
-                      ),
-                    ),
-                    child: Center(
-                      child: Text(
-                        initial,
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : AppColors.textLight,
-                        ),
-                      ),
+        child: SafeArea(
+          bottom: false,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
+            children: [
+              // Header title
+              FadeSlideEntrance.staggered(
+                index: 0,
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Text(
+                    'Profile',
+                    style: TextStyle(
+                      fontFamily: 'Bricolage Grotesque',
+                      fontSize: 26,
+                      fontWeight: FontWeight.w700,
+                      color: DashboardTokens.periwinkleGray,
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          displayName,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          authState.email ?? 'No email set',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: isDark ? AppColors.textMuted : AppColors.textMutedL,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ),
-          const SizedBox(height: 20),
+              const SizedBox(height: 12),
 
-          // ── Salary & Payday Settings Card ────────────────────────
-          FadeSlideEntrance.staggered(
-            index: 1,
-            child: profileAsync.when(
-            loading: () => const SizedBox.shrink(),
-            error: (err, _) => const SizedBox.shrink(),
-            data: (profile) {
-              final salaryStr = profile.salaryAmount != null
-                  ? '${CurrencyFormatter.format(profile.salaryAmount!)} / month'
-                  : 'Not configured';
-              final schedStr =
-                  '${profile.paydayFrequency ?? 'semi-monthly'} (${profile.paydaySchedule ?? '15th & 30th'})';
-
-              return ModernCard(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Expanded(
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.work_outline_rounded,
-                                color: Color(0xFF10B981),
-                                size: 22,
+              // Profile Hero Card
+              FadeSlideEntrance.staggered(
+                index: 1,
+                child: Container(
+                  padding: const EdgeInsets.all(19),
+                  decoration: BoxDecoration(
+                    color: DashboardTokens.cello60,
+                    borderRadius: BorderRadius.circular(28),
+                    border: Border.all(
+                      color: DashboardTokens.poloBlue30,
+                      width: 1,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Avatar & Name Row
+                      Row(
+                        children: [
+                          Container(
+                            width: 56,
+                            height: 56,
+                            decoration: const BoxDecoration(
+                              color: DashboardTokens.periwinkleGray,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Center(
+                              child: Text(
+                                initial,
+                                style: const TextStyle(
+                                  fontFamily: 'Bricolage Grotesque',
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w700,
+                                  color: DashboardTokens.ebony,
+                                ),
                               ),
-                              SizedBox(width: 10),
-                              Flexible(
-                                child: Text(
-                                  'Salary & Payday Settings',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 15,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  displayName,
+                                  style: const TextStyle(
+                                    fontFamily: 'Bricolage Grotesque',
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w700,
+                                    color: DashboardTokens.periwinkleGray,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  authState.email ?? 'No email set',
+                                  style: const TextStyle(
+                                    fontFamily: 'DM Sans',
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w400,
+                                    color: DashboardTokens.periwinkleGraySubtitle,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Tags Row
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(15),
+                              border: Border.all(
+                                color: DashboardTokens.poloBlue40,
+                                width: 1,
+                              ),
+                            ),
+                            child: const Text(
+                              'Full-time employee',
+                              style: TextStyle(
+                                fontFamily: 'DM Sans',
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: DashboardTokens.periwinkleGray,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(15),
+                              border: Border.all(
+                                color: DashboardTokens.poloBlue40,
+                                width: 1,
+                              ),
+                            ),
+                            child: const Text(
+                              '25–34',
+                              style: TextStyle(
+                                fontFamily: 'DM Sans',
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: DashboardTokens.periwinkleGray,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+
+              // Salary and payday Card
+              FadeSlideEntrance.staggered(
+                index: 2,
+                child: profileAsync.when(
+                  loading: () => const SizedBox.shrink(),
+                  error: (err, _) => const SizedBox.shrink(),
+                  data: (profile) {
+                    final salary = profile.salaryAmount ?? 45000.0;
+                    final halfSalary = salary / 2;
+                    final sched = profile.paydaySchedule ?? '15th and 30th';
+
+                    return Container(
+                      padding: const EdgeInsets.all(19),
+                      decoration: BoxDecoration(
+                        color: DashboardTokens.bigStone,
+                        borderRadius: BorderRadius.circular(28),
+                        border: Border.all(
+                          color: DashboardTokens.poloBlue22,
+                          width: 1,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Salary and payday',
+                                style: TextStyle(
+                                  fontFamily: 'DM Sans',
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w700,
+                                  color: DashboardTokens.periwinkleGray,
+                                ),
+                              ),
+                              Tooltip(
+                                message: 'Edit salary & payday settings',
+                                child: SpringTouch(
+                                  onTap: () => _showEditProfileBottomSheet(profile),
+                                  child: const Text(
+                                    'Edit',
+                                    style: TextStyle(
+                                      fontFamily: 'DM Sans',
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                      color: DashboardTokens.periwinkleGraySubtitle,
+                                    ),
                                   ),
                                 ),
                               ),
                             ],
                           ),
-                        ),
-                        IconButton(
-                          tooltip: 'Edit salary & payday settings',
-                          icon: const Icon(
-                            Icons.edit_outlined,
-                            size: 18,
-                            color: Color(0xFF10B981),
-                          ),
-                          onPressed: () => _showEditProfileBottomSheet(profile),
-                        ),
-                      ],
-                    ),
-                    const Divider(height: 16),
-                    Row(
-                      children: [
-                        const Text(
-                          'Monthly Net Pay:',
-                          style: TextStyle(fontSize: 12, color: Colors.grey),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            salaryStr,
-                            textAlign: TextAlign.end,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF10B981),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (profile.salaryAmount != null &&
-                        profile.salaryAmount! > 0) ...[
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          const Text(
-                            'Estimated Semi-Monthly:',
-                            style: TextStyle(fontSize: 12, color: Colors.grey),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              '${CurrencyFormatter.format(profile.salaryAmount! / 2)} / payout',
-                              textAlign: TextAlign.end,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF38BDF8),
+                          const SizedBox(height: 6),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.baseline,
+                            textBaseline: TextBaseline.alphabetic,
+                            children: [
+                              Text(
+                                '${CurrencyFormatter.format(salary)} ',
+                                style: const TextStyle(
+                                  fontFamily: 'Bricolage Grotesque',
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.w700,
+                                  color: DashboardTokens.periwinkleGray,
+                                ),
                               ),
+                              const Text(
+                                'per month',
+                                style: TextStyle(
+                                  fontFamily: 'DM Sans',
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: DashboardTokens.periwinkleGraySubtitle,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Paid on the $sched · ${CurrencyFormatter.format(halfSalary)} each',
+                            style: const TextStyle(
+                              fontFamily: 'DM Sans',
+                              fontSize: 14,
+                              fontWeight: FontWeight.w400,
+                              color: DashboardTokens.periwinkleGraySubtitle,
                             ),
                           ),
                         ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Section Header: MONEY
+              FadeSlideEntrance.staggered(
+                index: 3,
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                  child: Text(
+                    'MONEY',
+                    style: TextStyle(
+                      fontFamily: 'DM Sans',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.0,
+                      color: DashboardTokens.periwinkleGraySubtitle,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+
+              // MONEY Card: Accounts, Budgets, Notifications
+              FadeSlideEntrance.staggered(
+                index: 4,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 19, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: DashboardTokens.bigStone,
+                    borderRadius: BorderRadius.circular(28),
+                    border: Border.all(
+                      color: DashboardTokens.poloBlue22,
+                      width: 1,
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      // Accounts and wallets
+                      SpringTouch(
+                        onTap: () => context.push('/accounts'),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: const [
+                                    Text(
+                                      'Accounts and wallets',
+                                      style: TextStyle(
+                                        fontFamily: 'DM Sans',
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700,
+                                        color: DashboardTokens.periwinkleGray,
+                                      ),
+                                    ),
+                                    SizedBox(height: 2),
+                                    Text(
+                                      'Cash, bank and e-wallets',
+                                      style: TextStyle(
+                                        fontFamily: 'DM Sans',
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w400,
+                                        color: DashboardTokens.periwinkleGraySubtitle,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(
+                                Icons.chevron_right_rounded,
+                                color: DashboardTokens.periwinkleGraySubtitle,
+                                size: 20,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      Container(height: 1, color: DashboardTokens.poloBlue16),
+
+                      // Budgets
+                      SpringTouch(
+                        onTap: () => context.push('/budgets'),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: const [
+                                    Text(
+                                      'Budgets',
+                                      style: TextStyle(
+                                        fontFamily: 'DM Sans',
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700,
+                                        color: DashboardTokens.periwinkleGray,
+                                      ),
+                                    ),
+                                    SizedBox(height: 2),
+                                    Text(
+                                      'Over budget this month',
+                                      style: TextStyle(
+                                        fontFamily: 'DM Sans',
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w400,
+                                        color: DashboardTokens.periwinkleGraySubtitle,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(
+                                Icons.chevron_right_rounded,
+                                color: DashboardTokens.periwinkleGraySubtitle,
+                                size: 20,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      Container(height: 1, color: DashboardTokens.poloBlue16),
+
+                      // Notifications
+                      SpringTouch(
+                        onTap: () => context.push('/settings/notifications'),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: const [
+                                    Text(
+                                      'Notifications',
+                                      style: TextStyle(
+                                        fontFamily: 'DM Sans',
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700,
+                                        color: DashboardTokens.periwinkleGray,
+                                      ),
+                                    ),
+                                    SizedBox(height: 2),
+                                    Text(
+                                      'Bill reminders and budget alerts',
+                                      style: TextStyle(
+                                        fontFamily: 'DM Sans',
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w400,
+                                        color: DashboardTokens.periwinkleGraySubtitle,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(
+                                Icons.chevron_right_rounded,
+                                color: DashboardTokens.periwinkleGraySubtitle,
+                                size: 20,
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ],
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        const Text(
-                          'Payout Schedule:',
-                          style: TextStyle(fontSize: 12, color: Colors.grey),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            schedStr,
-                            textAlign: TextAlign.end,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Section Header: YOUR DATA
+              FadeSlideEntrance.staggered(
+                index: 5,
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                  child: Text(
+                    'YOUR DATA',
+                    style: TextStyle(
+                      fontFamily: 'DM Sans',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.0,
+                      color: DashboardTokens.periwinkleGraySubtitle,
                     ),
-                  ],
+                  ),
                 ),
-              );
-            },
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          // ── Appearance & Theme Card ──────────────────────────────
-          FadeSlideEntrance.staggered(
-            index: 2,
-            child: _ThemeSelectorCard(
-              currentMode: currentThemeMode,
-              isDark: isDark,
-              onThemeChanged: (mode) {
-                ref.read(themeModeProvider.notifier).setThemeMode(mode);
-              },
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // Settings Section Label
-          Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 8),
-            child: Text(
-              'PREFERENCES',
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1,
               ),
-            ),
-          ),
+              const SizedBox(height: 6),
 
-          // Settings Options Card
-          ModernCard(
-            padding: EdgeInsets.zero,
-            child: Column(
-              children: [
-                ListTile(
-                  leading: const Icon(
-                    Icons.auto_graph_rounded,
-                    color: Color(0xFFD4AF37),
+              // YOUR DATA Card: Backup and export, Privacy policy, About Kasyaba
+              FadeSlideEntrance.staggered(
+                index: 6,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 19, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: DashboardTokens.bigStone,
+                    borderRadius: BorderRadius.circular(28),
+                    border: Border.all(
+                      color: DashboardTokens.poloBlue22,
+                      width: 1,
+                    ),
                   ),
-                  title: const Text(
-                    'Planning Lab',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  subtitle: const Text(
-                    'Map your runway and test decisions manually',
-                  ),
-                  trailing: const Icon(Icons.chevron_right, size: 20),
-                  onTap: () => context.push('/planning'),
-                ),
-                const Divider(height: 1, indent: 56),
-                ListTile(
-                  leading: const Icon(
-                    Icons.account_balance_wallet_outlined,
-                    color: Color(0xFF10B981),
-                  ),
-                  title: const Text(
-                    'Accounts & Wallets',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  subtitle: const Text(
-                    'Manage cash, bank accounts & e-wallets',
-                  ),
-                  trailing: const Icon(Icons.chevron_right, size: 20),
-                  onTap: () => context.push('/accounts'),
-                ),
-                const Divider(height: 1, indent: 56),
-                ListTile(
-                  leading: const Icon(
-                    Icons.notifications_outlined,
-                    color: Color(0xFFF59E0B),
-                  ),
-                  title: const Text(
-                    'Notifications',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  subtitle: const Text('Bill reminders & budget alerts'),
-                  trailing: const Icon(Icons.chevron_right, size: 20),
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Notifications enabled for bill reminders',
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                const Divider(height: 1, indent: 56),
-                ListTile(
-                  leading: const Icon(
-                    Icons.privacy_tip_outlined,
-                    color: Color(0xFF059669),
-                  ),
-                  title: const Text(
-                    'Privacy Policy',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  subtitle: const Text('Data protection & user rights'),
-                  trailing: const Icon(Icons.chevron_right, size: 20),
-                  onTap: () {
-                    showDialog(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        title: const Row(
-                          children: [
-                            Icon(
-                              Icons.shield_outlined,
-                              color: Color(0xFF059669),
-                            ),
-                            SizedBox(width: 8),
-                            Text('Privacy Policy'),
-                          ],
-                        ),
-                        content: const SingleChildScrollView(
-                          child: Text(
-                            'KASYABA values your privacy. We do not sell your personal or financial data. '
-                            'Your financial ledger, accounts, and budgets are securely encrypted and used strictly '
-                            'to provide deterministic forecasting, safety calculations, and bill reminders.\n\n'
-                            'You may request complete account and data deletion at any time in Profile & Settings.',
+                  child: Column(
+                    children: [
+                      // Backup and export
+                      SpringTouch(
+                        onTap: () => context.push('/settings/backup'),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: const [
+                                    Text(
+                                      'Backup and export',
+                                      style: TextStyle(
+                                        fontFamily: 'DM Sans',
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700,
+                                        color: DashboardTokens.periwinkleGray,
+                                      ),
+                                    ),
+                                    SizedBox(height: 2),
+                                    Text(
+                                      'JSON backup, restore, CSV for Excel',
+                                      style: TextStyle(
+                                        fontFamily: 'DM Sans',
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w400,
+                                        color: DashboardTokens.periwinkleGraySubtitle,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(
+                                Icons.chevron_right_rounded,
+                                color: DashboardTokens.periwinkleGraySubtitle,
+                                size: 20,
+                              ),
+                            ],
                           ),
                         ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(ctx),
-                            child: const Text('Close'),
-                          ),
-                        ],
                       ),
-                    );
-                  },
-                ),
-                const Divider(height: 1, indent: 56),
-                ListTile(
-                  leading: const Icon(
-                    Icons.info_outline,
-                    color: Color(0xFF64748B),
-                  ),
-                  title: const Text(
-                    'About Kasyaba',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  subtitle: const Text(kAppVersionLabel),
-                  onTap: () {
-                    showAboutDialog(
-                      context: context,
-                      applicationName: 'Kasyaba',
-                      applicationVersion: 'v$kAppVersion',
-                      applicationLegalese:
-                          '© 2026 Kasyaba Finance. All rights reserved.',
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
+                      Container(height: 1, color: DashboardTokens.poloBlue16),
 
-          // Data & Backup Management Section Label
-          Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 8),
-            child: Text(
-              'DATA & BACKUP MANAGEMENT',
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1,
+                      // Privacy policy
+                      SpringTouch(
+                        onTap: _showPrivacyPolicySheet,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: const [
+                                    Text(
+                                      'Privacy policy',
+                                      style: TextStyle(
+                                        fontFamily: 'DM Sans',
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700,
+                                        color: DashboardTokens.periwinkleGray,
+                                      ),
+                                    ),
+                                    SizedBox(height: 2),
+                                    Text(
+                                      'Your data stays on your device',
+                                      style: TextStyle(
+                                        fontFamily: 'DM Sans',
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w400,
+                                        color: DashboardTokens.periwinkleGraySubtitle,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(
+                                Icons.chevron_right_rounded,
+                                color: DashboardTokens.periwinkleGraySubtitle,
+                                size: 20,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      Container(height: 1, color: DashboardTokens.poloBlue16),
+
+                      // About Kasyaba
+                      SpringTouch(
+                        onTap: _showAboutSheet,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: const [
+                                    Text(
+                                      'About Kasyaba',
+                                      style: TextStyle(
+                                        fontFamily: 'DM Sans',
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700,
+                                        color: DashboardTokens.periwinkleGray,
+                                      ),
+                                    ),
+                                    SizedBox(height: 2),
+                                    Text(
+                                      'Version $kAppVersionLabel',
+                                      style: TextStyle(
+                                        fontFamily: 'DM Sans',
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w400,
+                                        color: DashboardTokens.periwinkleGraySubtitle,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(
+                                Icons.chevron_right_rounded,
+                                color: DashboardTokens.periwinkleGraySubtitle,
+                                size: 20,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ),
-          ),
+              const SizedBox(height: 20),
 
-          // Data & Backup Management Card
-          ModernCard(
-            padding: EdgeInsets.zero,
-            child: Column(
-              children: [
-                ListTile(
-                  leading: const Icon(
-                    Icons.cloud_download_outlined,
-                    color: Color(0xFF0284C7),
+              // Appearance & Theme Card (Allows Theme Switching seamlessly)
+              FadeSlideEntrance.staggered(
+                index: 7,
+                child: Container(
+                  padding: const EdgeInsets.all(19),
+                  decoration: BoxDecoration(
+                    color: DashboardTokens.bigStone,
+                    borderRadius: BorderRadius.circular(28),
+                    border: Border.all(
+                      color: DashboardTokens.poloBlue22,
+                      width: 1,
+                    ),
                   ),
-                  title: const Text(
-                    'Export Backup (JSON)',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  subtitle: const Text('Complete account & ledger snapshot'),
-                  trailing: const Icon(Icons.chevron_right, size: 20),
-                  onTap: () => showExportBackupSheet(context, ref),
-                ),
-                const Divider(height: 1, indent: 56),
-                ListTile(
-                  leading: const Icon(
-                    Icons.cloud_upload_outlined,
-                    color: Color(0xFF10B981),
-                  ),
-                  title: const Text(
-                    'Import / Restore Backup (JSON)',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  subtitle: const Text(
-                    'Restore financial records with schema check',
-                  ),
-                  trailing: const Icon(Icons.chevron_right, size: 20),
-                  onTap: () => showRestoreBackupSheet(context, ref),
-                ),
-                const Divider(height: 1, indent: 56),
-                ListTile(
-                  leading: const Icon(
-                    Icons.table_chart_outlined,
-                    color: Color(0xFFD4AF37),
-                  ),
-                  title: const Text(
-                    'Export Transactions to CSV',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  subtitle: const Text(
-                    'RFC 4180 format for Excel & Google Sheets',
-                  ),
-                  trailing: const Icon(Icons.chevron_right, size: 20),
-                  onTap: () => showExportCsvSheet(context, ref),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 28),
-
-          // Sign Out Button
-          OutlinedButton.icon(
-            onPressed: () async {
-              await ref.read(authProvider.notifier).logout();
-              if (context.mounted) context.go('/login');
-            },
-            icon: const Icon(Icons.logout),
-            label: const Text(
-              'Sign Out',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            style: OutlinedButton.styleFrom(
-              minimumSize: const Size.fromHeight(50),
-              foregroundColor: theme.colorScheme.onSurface,
-              side: BorderSide(color: theme.colorScheme.outlineVariant),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Delete Account Button (Google Play Compliance)
-          TextButton.icon(
-            onPressed: () async {
-              final hasPassword = ref.read(authProvider).hasPassword;
-              _deleteAccountPasswordController.clear();
-              final confirmed = await showDialog<bool>(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  title: const Text('Delete Account?'),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Are you sure you want to permanently delete your KASYABA account?\n\n'
-                        'This action is irreversible and will immediately erase all your financial records, accounts, transactions, and budgets.',
-                      ),
-                      if (hasPassword) ...[
-                        const SizedBox(height: 20),
-                        TextField(
-                          controller: _deleteAccountPasswordController,
-                          obscureText: true,
-                          decoration: const InputDecoration(
-                            labelText: 'Confirm your password',
-                            border: OutlineInputBorder(),
-                          ),
+                        'Appearance & Theme',
+                        style: TextStyle(
+                          fontFamily: 'DM Sans',
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                          color: DashboardTokens.periwinkleGray,
                         ),
-                      ],
+                      ),
+                      const SizedBox(height: 2),
+                      const Text(
+                        'Choose your lighting atmosphere',
+                        style: TextStyle(
+                          fontFamily: 'DM Sans',
+                          fontSize: 14,
+                          fontWeight: FontWeight.w400,
+                          color: DashboardTokens.periwinkleGraySubtitle,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          _buildThemeOption(
+                            label: 'Dark',
+                            icon: Icons.dark_mode_rounded,
+                            isSelected: currentThemeMode == ThemeMode.dark,
+                            onTap: () => ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.dark),
+                          ),
+                          const SizedBox(width: 8),
+                          _buildThemeOption(
+                            label: 'Light',
+                            icon: Icons.light_mode_rounded,
+                            isSelected: currentThemeMode == ThemeMode.light,
+                            onTap: () => ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.light),
+                          ),
+                          const SizedBox(width: 8),
+                          _buildThemeOption(
+                            label: 'System',
+                            icon: Icons.brightness_auto_rounded,
+                            isSelected: currentThemeMode == ThemeMode.system,
+                            onTap: () => ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.system),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx, false),
-                      child: const Text('Cancel'),
-                    ),
-                    FilledButton(
-                      onPressed: () => Navigator.pop(ctx, true),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: theme.colorScheme.error,
-                      ),
-                      child: const Text('Delete Permanently'),
-                    ),
-                  ],
                 ),
-              );
+              ),
+              const SizedBox(height: 24),
 
-              if (confirmed != true) return;
-
-              try {
-                await ref
-                    .read(authProvider.notifier)
-                    .deleteAccount(
-                      password: hasPassword
-                          ? _deleteAccountPasswordController.text
-                          : null,
-                    );
-                if (context.mounted) {
-                  context.go('/login');
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Your account and data have been completely deleted.',
+              // Sign out Button
+              FadeSlideEntrance.staggered(
+                index: 8,
+                child: SpringTouch(
+                  onTap: () async {
+                    await ref.read(authProvider.notifier).logout();
+                    if (context.mounted) context.go('/login');
+                  },
+                  child: Container(
+                    height: 56,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(28),
+                      border: Border.all(
+                        color: DashboardTokens.kashmirBlue,
+                        width: 1,
                       ),
                     ),
-                  );
-                }
-              } catch (error) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        friendlyErrorMessage(
-                          error,
-                          fallback:
-                              'Failed to delete account. Please check your password and try again.',
+                    alignment: Alignment.center,
+                    child: const Text(
+                      'Sign out',
+                      style: TextStyle(
+                        fontFamily: 'DM Sans',
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: DashboardTokens.periwinkleGray,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+
+              // Delete account and data Danger text button
+              FadeSlideEntrance.staggered(
+                index: 9,
+                child: Center(
+                  child: SpringTouch(
+                    onTap: () => context.push('/settings/delete-account'),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                      child: Text(
+                        'Delete account and data',
+                        style: TextStyle(
+                          fontFamily: 'DM Sans',
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: DashboardTokens.apricot,
                         ),
                       ),
                     ),
-                  );
-                }
-              }
-            },
-            icon: Icon(
-              Icons.delete_forever_outlined,
-              color: theme.colorScheme.error,
-              size: 20,
-            ),
-            label: Text(
-              'Delete Account and Data',
-              style: TextStyle(
-                color: theme.colorScheme.error,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          const SizedBox(height: 120),
-        ],
-      ),
-    );
-  }
-}
-
-
-// ─────────────────────────────────────────────────────────────
-//  Tactile Appearance & Theme Selector
-// ─────────────────────────────────────────────────────────────
-
-class _ThemeSelectorCard extends StatelessWidget {
-  final ThemeMode currentMode;
-  final bool isDark;
-  final ValueChanged<ThemeMode> onThemeChanged;
-
-  const _ThemeSelectorCard({
-    required this.currentMode,
-    required this.isDark,
-    required this.onThemeChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ModernCard(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: AppColors.emerald500.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: AppColors.emerald500.withValues(alpha: 0.25),
                   ),
-                ),
-                child: const Icon(
-                  Icons.palette_outlined,
-                  color: AppColors.emerald500,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Appearance & Theme',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                        color: isDark ? AppColors.textDark : AppColors.textLight,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Choose your lighting atmosphere',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isDark ? AppColors.textMuted : AppColors.textMutedL,
-                      ),
-                    ),
-                  ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: isDark ? AppColors.surface700 : AppColors.lightInputFill,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: isDark ? AppColors.subtleBorder : AppColors.lightBorderHairline,
-                width: 1,
-              ),
-            ),
-            child: Row(
-              children: [
-                _ThemeSegmentButton(
-                  icon: Icons.dark_mode_rounded,
-                  label: 'Dark',
-                  isSelected: currentMode == ThemeMode.dark,
-                  isDark: isDark,
-                  onTap: () => onThemeChanged(ThemeMode.dark),
-                ),
-                const SizedBox(width: 4),
-                _ThemeSegmentButton(
-                  icon: Icons.light_mode_rounded,
-                  label: 'Light',
-                  isSelected: currentMode == ThemeMode.light,
-                  isDark: isDark,
-                  onTap: () => onThemeChanged(ThemeMode.light),
-                ),
-                const SizedBox(width: 4),
-                _ThemeSegmentButton(
-                  icon: Icons.brightness_auto_rounded,
-                  label: 'System',
-                  isSelected: currentMode == ThemeMode.system,
-                  isDark: isDark,
-                  onTap: () => onThemeChanged(ThemeMode.system),
-                ),
-              ],
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
-}
 
-class _ThemeSegmentButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool isSelected;
-  final bool isDark;
-  final VoidCallback onTap;
-
-  const _ThemeSegmentButton({
-    required this.icon,
-    required this.label,
-    required this.isSelected,
-    required this.isDark,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final activeBg = isDark ? const Color(0xFF27272A) : Colors.white;
-    final activeTextColor = isDark ? Colors.white : AppColors.textLight;
-    final inactiveTextColor = isDark ? AppColors.textMuted : AppColors.textMutedL;
-
+  Widget _buildThemeOption({
+    required String label,
+    required IconData icon,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
     return Expanded(
-      child: PressableScale(
-        onTap: () {
-          AppHaptics.selectionClick();
-          onTap();
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOutCubic,
-          padding: const EdgeInsets.symmetric(vertical: 9),
+      child: SpringTouch(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: isSelected ? activeBg : Colors.transparent,
-            borderRadius: BorderRadius.circular(9),
-            border: isSelected
-                ? Border.all(
-                    color: isDark ? AppColors.subtleBorder : AppColors.lightBorderHairline,
-                    width: 1,
-                  )
-                : null,
-            boxShadow: isSelected && !isDark
-                ? [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.06),
-                      blurRadius: 4,
-                      offset: const Offset(0, 1),
-                    ),
-                  ]
-                : null,
+            color: isSelected ? DashboardTokens.periwinkleGray : DashboardTokens.ebony,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isSelected ? Colors.transparent : DashboardTokens.poloBlue22,
+            ),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+          child: Column(
             children: [
               Icon(
                 icon,
-                size: 16,
-                color: isSelected ? AppColors.emerald500 : inactiveTextColor,
+                size: 18,
+                color: isSelected ? DashboardTokens.ebony : DashboardTokens.periwinkleGraySubtitle,
               ),
-              const SizedBox(width: 6),
+              const SizedBox(height: 4),
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: isSelected ? activeTextColor : inactiveTextColor,
+                  fontFamily: 'DM Sans',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: isSelected ? DashboardTokens.ebony : DashboardTokens.periwinkleGraySubtitle,
                 ),
               ),
             ],
