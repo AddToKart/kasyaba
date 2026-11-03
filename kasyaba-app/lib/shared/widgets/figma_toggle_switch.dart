@@ -61,3 +61,4 @@ class FigmaToggleSwitch extends StatelessWidget {
     );
   }
 }
+

@@ -120,10 +120,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
                     // Mode Switcher Pill
                     Container(
+                      height: 52,
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
                         color: DashboardTokens.bigStone,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(26),
                         border: Border.all(
                           color: DashboardTokens.poloBlue22,
                         ),
@@ -133,13 +134,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           Expanded(
                             child: SpringTouch(
                               onTap: () => setModalState(() => isCalculatorMode = false),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 10),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                curve: Curves.easeOutCubic,
                                 decoration: BoxDecoration(
                                   color: !isCalculatorMode
                                       ? DashboardTokens.periwinkleGray
                                       : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(22),
                                 ),
                                 alignment: Alignment.center,
                                 child: Text(
@@ -164,13 +166,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                   recomputeBreakdown();
                                 });
                               },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 10),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                curve: Curves.easeOutCubic,
                                 decoration: BoxDecoration(
                                   color: isCalculatorMode
                                       ? DashboardTokens.periwinkleGray
                                       : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(22),
                                 ),
                                 alignment: Alignment.center,
                                 child: Text(
@@ -190,137 +193,236 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 18),
 
                     if (!isCalculatorMode) ...[
                       // Monthly Net Salary Input Card
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: DashboardTokens.bigStone,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: DashboardTokens.poloBlue22,
-                            width: 1,
-                          ),
-                        ),
-                        child: TextFormField(
-                          controller: _salaryController,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          style: const TextStyle(
-                            fontFamily: 'DM Sans',
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: DashboardTokens.periwinkleGray,
-                          ),
-                          decoration: const InputDecoration(
-                            labelText: 'Monthly Net Take-Home Salary',
-                            labelStyle: TextStyle(
-                              fontFamily: 'DM Sans',
-                              color: DashboardTokens.periwinkleGraySubtitle,
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.only(left: 6, bottom: 8),
+                            child: Text(
+                              'Monthly Net Take-Home Salary',
+                              style: TextStyle(
+                                fontFamily: 'DM Sans',
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: DashboardTokens.periwinkleGraySubtitle,
+                              ),
                             ),
-                            prefixText: '₱ ',
-                            prefixStyle: TextStyle(
-                              fontFamily: 'DM Sans',
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: DashboardTokens.periwinkleGray,
-                            ),
-                            border: InputBorder.none,
-                            enabledBorder: InputBorder.none,
-                            focusedBorder: InputBorder.none,
                           ),
-                        ),
+                          Container(
+                            height: 58,
+                            padding: const EdgeInsets.symmetric(horizontal: 21),
+                            decoration: BoxDecoration(
+                              color: DashboardTokens.bigStone,
+                              borderRadius: BorderRadius.circular(28),
+                              border: Border.all(
+                                color: DashboardTokens.poloBlue22,
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                const Text(
+                                  '₱ ',
+                                  style: TextStyle(
+                                    fontFamily: 'DM Sans',
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w700,
+                                    color: DashboardTokens.periwinkleGray,
+                                  ),
+                                ),
+                                Expanded(
+                                  child: TextFormField(
+                                    controller: _salaryController,
+                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                    style: const TextStyle(
+                                      fontFamily: 'DM Sans',
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                      color: DashboardTokens.periwinkleGray,
+                                    ),
+                                    cursorColor: DashboardTokens.periwinkleGray,
+                                    decoration: const InputDecoration(
+                                      hintText: '45000.00',
+                                      hintStyle: TextStyle(
+                                        fontFamily: 'DM Sans',
+                                        fontSize: 16,
+                                        color: DashboardTokens.poloBlue40,
+                                      ),
+                                      filled: false,
+                                      fillColor: Colors.transparent,
+                                      border: InputBorder.none,
+                                      enabledBorder: InputBorder.none,
+                                      focusedBorder: InputBorder.none,
+                                      errorBorder: InputBorder.none,
+                                      focusedErrorBorder: InputBorder.none,
+                                      contentPadding: EdgeInsets.zero,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ] else ...[
                       // Gross Basic Salary Input Card
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: DashboardTokens.bigStone,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: DashboardTokens.poloBlue22,
-                            width: 1,
-                          ),
-                        ),
-                        child: TextFormField(
-                          controller: _grossSalaryController,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          onChanged: (_) => setModalState(recomputeBreakdown),
-                          style: const TextStyle(
-                            fontFamily: 'DM Sans',
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: DashboardTokens.periwinkleGray,
-                          ),
-                          decoration: const InputDecoration(
-                            labelText: 'Monthly Gross Basic Salary',
-                            labelStyle: TextStyle(
-                              fontFamily: 'DM Sans',
-                              color: DashboardTokens.periwinkleGraySubtitle,
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.only(left: 6, bottom: 8),
+                            child: Text(
+                              'Monthly Gross Basic Salary',
+                              style: TextStyle(
+                                fontFamily: 'DM Sans',
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: DashboardTokens.periwinkleGraySubtitle,
+                              ),
                             ),
-                            prefixText: '₱ ',
-                            prefixStyle: TextStyle(
-                              fontFamily: 'DM Sans',
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: DashboardTokens.periwinkleGray,
-                            ),
-                            border: InputBorder.none,
-                            enabledBorder: InputBorder.none,
-                            focusedBorder: InputBorder.none,
                           ),
-                        ),
+                          Container(
+                            height: 58,
+                            padding: const EdgeInsets.symmetric(horizontal: 21),
+                            decoration: BoxDecoration(
+                              color: DashboardTokens.bigStone,
+                              borderRadius: BorderRadius.circular(28),
+                              border: Border.all(
+                                color: DashboardTokens.poloBlue22,
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                const Text(
+                                  '₱ ',
+                                  style: TextStyle(
+                                    fontFamily: 'DM Sans',
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w700,
+                                    color: DashboardTokens.periwinkleGray,
+                                  ),
+                                ),
+                                Expanded(
+                                  child: TextFormField(
+                                    controller: _grossSalaryController,
+                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                    onChanged: (_) => setModalState(recomputeBreakdown),
+                                    style: const TextStyle(
+                                      fontFamily: 'DM Sans',
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                      color: DashboardTokens.periwinkleGray,
+                                    ),
+                                    cursorColor: DashboardTokens.periwinkleGray,
+                                    decoration: const InputDecoration(
+                                      hintText: '50000.00',
+                                      hintStyle: TextStyle(
+                                        fontFamily: 'DM Sans',
+                                        fontSize: 16,
+                                        color: DashboardTokens.poloBlue40,
+                                      ),
+                                      filled: false,
+                                      fillColor: Colors.transparent,
+                                      border: InputBorder.none,
+                                      enabledBorder: InputBorder.none,
+                                      focusedBorder: InputBorder.none,
+                                      errorBorder: InputBorder.none,
+                                      focusedErrorBorder: InputBorder.none,
+                                      contentPadding: EdgeInsets.zero,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
                       // Non-taxable Allowances Input Card
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: DashboardTokens.bigStone,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: DashboardTokens.poloBlue22,
-                            width: 1,
-                          ),
-                        ),
-                        child: TextFormField(
-                          controller: _allowancesController,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          onChanged: (_) => setModalState(recomputeBreakdown),
-                          style: const TextStyle(
-                            fontFamily: 'DM Sans',
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: DashboardTokens.periwinkleGray,
-                          ),
-                          decoration: const InputDecoration(
-                            labelText: 'Non-Taxable Allowances',
-                            labelStyle: TextStyle(
-                              fontFamily: 'DM Sans',
-                              color: DashboardTokens.periwinkleGraySubtitle,
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.only(left: 6, bottom: 8),
+                            child: Text(
+                              'Non-Taxable Allowances',
+                              style: TextStyle(
+                                fontFamily: 'DM Sans',
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: DashboardTokens.periwinkleGraySubtitle,
+                              ),
                             ),
-                            prefixText: '₱ ',
-                            prefixStyle: TextStyle(
-                              fontFamily: 'DM Sans',
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: DashboardTokens.periwinkleGray,
-                            ),
-                            border: InputBorder.none,
-                            enabledBorder: InputBorder.none,
-                            focusedBorder: InputBorder.none,
                           ),
-                        ),
+                          Container(
+                            height: 58,
+                            padding: const EdgeInsets.symmetric(horizontal: 21),
+                            decoration: BoxDecoration(
+                              color: DashboardTokens.bigStone,
+                              borderRadius: BorderRadius.circular(28),
+                              border: Border.all(
+                                color: DashboardTokens.poloBlue22,
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                const Text(
+                                  '₱ ',
+                                  style: TextStyle(
+                                    fontFamily: 'DM Sans',
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w700,
+                                    color: DashboardTokens.periwinkleGray,
+                                  ),
+                                ),
+                                Expanded(
+                                  child: TextFormField(
+                                    controller: _allowancesController,
+                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                    onChanged: (_) => setModalState(recomputeBreakdown),
+                                    style: const TextStyle(
+                                      fontFamily: 'DM Sans',
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                      color: DashboardTokens.periwinkleGray,
+                                    ),
+                                    cursorColor: DashboardTokens.periwinkleGray,
+                                    decoration: const InputDecoration(
+                                      hintText: '0.00',
+                                      hintStyle: TextStyle(
+                                        fontFamily: 'DM Sans',
+                                        fontSize: 16,
+                                        color: DashboardTokens.poloBlue40,
+                                      ),
+                                      filled: false,
+                                      fillColor: Colors.transparent,
+                                      border: InputBorder.none,
+                                      enabledBorder: InputBorder.none,
+                                      focusedBorder: InputBorder.none,
+                                      errorBorder: InputBorder.none,
+                                      focusedErrorBorder: InputBorder.none,
+                                      contentPadding: EdgeInsets.zero,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                       if (liveBreakdown != null) ...[
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 14),
                         Container(
-                          padding: const EdgeInsets.all(16),
+                          padding: const EdgeInsets.all(19),
                           decoration: BoxDecoration(
                             color: DashboardTokens.bigStone,
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(28),
                             border: Border.all(color: DashboardTokens.poloBlue22),
                           ),
                           child: Column(
@@ -336,7 +438,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                   letterSpacing: 0.8,
                                 ),
                               ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 10),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
@@ -344,13 +446,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                     'Computed Net Pay:',
                                     style: TextStyle(
                                       fontFamily: 'DM Sans',
+                                      fontSize: 14,
                                       color: DashboardTokens.periwinkleGraySubtitle,
                                     ),
                                   ),
                                   Text(
                                     CurrencyFormatter.format(liveBreakdown!.netMonthlyPay),
                                     style: const TextStyle(
-                                      fontFamily: 'DM Sans',
+                                      fontFamily: 'Bricolage Grotesque',
+                                      fontSize: 18,
                                       fontWeight: FontWeight.w700,
                                       color: DashboardTokens.bermuda,
                                     ),
@@ -362,107 +466,143 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         ),
                       ],
                     ],
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 14),
 
                     // Payday Frequency Dropdown Card
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: DashboardTokens.bigStone,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: DashboardTokens.poloBlue22,
-                          width: 1,
-                        ),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: paydayFreq,
-                          dropdownColor: DashboardTokens.bigStone,
-                          icon: const Icon(
-                            Icons.keyboard_arrow_down_rounded,
-                            color: DashboardTokens.periwinkleGray,
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.only(left: 6, bottom: 8),
+                          child: Text(
+                            'Payout Frequency',
+                            style: TextStyle(
+                              fontFamily: 'DM Sans',
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: DashboardTokens.periwinkleGraySubtitle,
+                            ),
                           ),
-                          style: const TextStyle(
-                            fontFamily: 'DM Sans',
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: DashboardTokens.periwinkleGray,
-                          ),
-                          items: const [
-                            DropdownMenuItem(
-                              value: 'semi-monthly',
-                              child: Text('Semi-monthly (Twice a month)'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'monthly',
-                              child: Text('Monthly (Once a month)'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'weekly',
-                              child: Text('Weekly (Every 7 days)'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'bi-weekly',
-                              child: Text('Bi-weekly (Every 14 days)'),
-                            ),
-                          ],
-                          onChanged: (val) {
-                            if (val != null) setModalState(() => paydayFreq = val);
-                          },
                         ),
-                      ),
+                        Container(
+                          height: 58,
+                          padding: const EdgeInsets.symmetric(horizontal: 21),
+                          decoration: BoxDecoration(
+                            color: DashboardTokens.bigStone,
+                            borderRadius: BorderRadius.circular(28),
+                            border: Border.all(
+                              color: DashboardTokens.poloBlue22,
+                              width: 1,
+                            ),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: paydayFreq,
+                              dropdownColor: DashboardTokens.bigStone,
+                              icon: const Icon(
+                                Icons.keyboard_arrow_down_rounded,
+                                color: DashboardTokens.periwinkleGray,
+                              ),
+                              style: const TextStyle(
+                                fontFamily: 'DM Sans',
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: DashboardTokens.periwinkleGray,
+                              ),
+                              items: const [
+                                DropdownMenuItem(
+                                  value: 'semi-monthly',
+                                  child: Text('Semi-monthly (Twice a month)'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'monthly',
+                                  child: Text('Monthly (Once a month)'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'weekly',
+                                  child: Text('Weekly (Every 7 days)'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'bi-weekly',
+                                  child: Text('Bi-weekly (Every 14 days)'),
+                                ),
+                              ],
+                              onChanged: (val) {
+                                if (val != null) setModalState(() => paydayFreq = val);
+                              },
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 14),
 
                     // Payday Schedule Dropdown Card
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: DashboardTokens.bigStone,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: DashboardTokens.poloBlue22,
-                          width: 1,
-                        ),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: paydaySched,
-                          dropdownColor: DashboardTokens.bigStone,
-                          icon: const Icon(
-                            Icons.keyboard_arrow_down_rounded,
-                            color: DashboardTokens.periwinkleGray,
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.only(left: 6, bottom: 8),
+                          child: Text(
+                            'Payout Schedule',
+                            style: TextStyle(
+                              fontFamily: 'DM Sans',
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: DashboardTokens.periwinkleGraySubtitle,
+                            ),
                           ),
-                          style: const TextStyle(
-                            fontFamily: 'DM Sans',
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: DashboardTokens.periwinkleGray,
-                          ),
-                          items: const [
-                            DropdownMenuItem(
-                              value: '15th & 30th',
-                              child: Text('15th & 30th (Standard PH)'),
-                            ),
-                            DropdownMenuItem(
-                              value: '10th & 25th',
-                              child: Text('10th & 25th'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'End of Month',
-                              child: Text('End of Month (Last working day)'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'Custom / Other',
-                              child: Text('Custom / Other'),
-                            ),
-                          ],
-                          onChanged: (val) {
-                            if (val != null) setModalState(() => paydaySched = val);
-                          },
                         ),
-                      ),
+                        Container(
+                          height: 58,
+                          padding: const EdgeInsets.symmetric(horizontal: 21),
+                          decoration: BoxDecoration(
+                            color: DashboardTokens.bigStone,
+                            borderRadius: BorderRadius.circular(28),
+                            border: Border.all(
+                              color: DashboardTokens.poloBlue22,
+                              width: 1,
+                            ),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: paydaySched,
+                              dropdownColor: DashboardTokens.bigStone,
+                              icon: const Icon(
+                                Icons.keyboard_arrow_down_rounded,
+                                color: DashboardTokens.periwinkleGray,
+                              ),
+                              style: const TextStyle(
+                                fontFamily: 'DM Sans',
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: DashboardTokens.periwinkleGray,
+                              ),
+                              items: const [
+                                DropdownMenuItem(
+                                  value: '15th & 30th',
+                                  child: Text('15th & 30th (Standard PH)'),
+                                ),
+                                DropdownMenuItem(
+                                  value: '10th & 25th',
+                                  child: Text('10th & 25th'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'End of Month',
+                                  child: Text('End of Month (Last working day)'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'Custom / Other',
+                                  child: Text('Custom / Other'),
+                                ),
+                              ],
+                              onChanged: (val) {
+                                if (val != null) setModalState(() => paydaySched = val);
+                              },
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 20),
 
