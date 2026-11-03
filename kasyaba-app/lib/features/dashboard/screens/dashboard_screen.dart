@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import '../../../app/theme/app_motion.dart';
 import '../../../core/auth/auth_provider.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
@@ -507,14 +508,21 @@ class _QuickStartChecklistCard extends StatelessWidget {
         (step1Done ? 1 : 0) + (step2Done ? 1 : 0) + (step3Done ? 1 : 0);
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: DashboardTokens.bigStone,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: DashboardTokens.bermuda.withValues(alpha: 0.4),
+          color: DashboardTokens.bermuda.withValues(alpha: 0.35),
           width: 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: DashboardTokens.ebony.withValues(alpha: 0.35),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -631,14 +639,14 @@ class _QuickStartChecklistCard extends StatelessWidget {
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
           color: isCompleted
               ? Colors.white.withValues(alpha: 0.02)
               : DashboardTokens.ebony.withValues(alpha: 0.4),
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isCompleted ? Colors.transparent : DashboardTokens.poloBlue22,
           ),
@@ -682,10 +690,10 @@ class _QuickStartChecklistCard extends StatelessWidget {
             if (actionLabel != null) ...[
               const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
                   color: DashboardTokens.bermuda.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: DashboardTokens.bermuda.withValues(alpha: 0.35),
                   ),
@@ -731,11 +739,21 @@ class _DeficitAlertCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final formattedPayday = DateFormat('MMM d').format(nextPayday);
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: DashboardTokens.bigStone,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: DashboardTokens.apricot.withValues(alpha: 0.4)),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: DashboardTokens.apricot.withValues(alpha: 0.35),
+          width: 1.0,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: DashboardTokens.ebony.withValues(alpha: 0.35),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -743,77 +761,135 @@ class _DeficitAlertCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(6),
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
-                  color: DashboardTokens.apricot.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(8),
+                  color: DashboardTokens.apricot.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: DashboardTokens.apricot.withValues(alpha: 0.35),
+                    width: 1.0,
+                  ),
                 ),
+                alignment: Alignment.center,
                 child: const Icon(
                   Icons.warning_amber_rounded,
-                  size: 16,
+                  size: 20,
                   color: DashboardTokens.apricot,
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  'PAY PERIOD DEFICIT',
-                  style: GoogleFonts.dmSans(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.8,
-                    color: DashboardTokens.apricot,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'PAY PERIOD DEFICIT',
+                      style: GoogleFonts.dmSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.9,
+                        color: DashboardTokens.apricot,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Safe spend paused (₱0.00/day)',
+                      style: GoogleFonts.bricolageGrotesque(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: DashboardTokens.periwinkleGray,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Text(
             'Your upcoming bills and savings commitments exceed your current cash by ${CurrencyFormatter.format(deficitAmount)}. Kasyaba has paused daily spending (₱0.00/day) until your next payday on $formattedPayday to protect you from running out of funds.',
             style: GoogleFonts.dmSans(
-              fontSize: 12,
+              fontSize: 13,
               color: DashboardTokens.periwinkleGraySubtitle,
-              height: 1.4,
+              height: 1.45,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           Row(
             children: [
               Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: onAddIncome,
-                  icon: const Icon(Icons.add_rounded, size: 14),
-                  label: const Text(
-                    '+ Add Income',
-                    style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: DashboardTokens.periwinkleGray,
-                    side: const BorderSide(color: DashboardTokens.poloBlue22),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                child: GestureDetector(
+                  onTap: () {
+                    AppHaptics.mediumImpact();
+                    onAddIncome();
+                  },
+                  behavior: HitTestBehavior.opaque,
+                  child: Container(
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: DashboardTokens.periwinkleGray,
+                      borderRadius: BorderRadius.circular(24),
                     ),
-                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.add_rounded,
+                          size: 18,
+                          color: DashboardTokens.ebony,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Add Income',
+                          style: GoogleFonts.dmSans(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: DashboardTokens.ebony,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: onAdjustGoals,
-                  icon: const Icon(Icons.tune_rounded, size: 14),
-                  label: const Text(
-                    'Adjust Goals',
-                    style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: DashboardTokens.periwinkleGray,
-                    side: const BorderSide(color: DashboardTokens.poloBlue22),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                child: GestureDetector(
+                  onTap: () {
+                    AppHaptics.selectionClick();
+                    onAdjustGoals();
+                  },
+                  behavior: HitTestBehavior.opaque,
+                  child: Container(
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: DashboardTokens.poloBlue22,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: DashboardTokens.poloBlue30,
+                        width: 1.0,
+                      ),
                     ),
-                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.tune_rounded,
+                          size: 17,
+                          color: DashboardTokens.periwinkleGray,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Adjust Goals',
+                          style: GoogleFonts.dmSans(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: DashboardTokens.periwinkleGray,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -860,18 +936,38 @@ class _DashboardErrorCard extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: DashboardTokens.bigStone,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: DashboardTokens.apricot.withValues(alpha: 0.4)),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: DashboardTokens.apricot.withValues(alpha: 0.35)),
+        boxShadow: [
+          BoxShadow(
+            color: DashboardTokens.ebony.withValues(alpha: 0.35),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(
-                Icons.error_outline_rounded,
-                color: DashboardTokens.apricot,
-                size: 24,
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: DashboardTokens.apricot.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: DashboardTokens.apricot.withValues(alpha: 0.35),
+                    width: 1,
+                  ),
+                ),
+                alignment: Alignment.center,
+                child: const Icon(
+                  Icons.error_outline_rounded,
+                  color: DashboardTokens.apricot,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -886,14 +982,41 @@ class _DashboardErrorCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 14),
           Align(
             alignment: Alignment.centerRight,
-            child: TextButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh_rounded, size: 18),
-              label: const Text('Retry'),
-              style: TextButton.styleFrom(foregroundColor: DashboardTokens.apricot),
+            child: GestureDetector(
+              onTap: () {
+                AppHaptics.selectionClick();
+                onRetry();
+              },
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                height: 42,
+                padding: const EdgeInsets.symmetric(horizontal: 18),
+                decoration: BoxDecoration(
+                  color: DashboardTokens.apricot.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(21),
+                  border: Border.all(
+                    color: DashboardTokens.apricot.withValues(alpha: 0.35),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.refresh_rounded, size: 16, color: DashboardTokens.apricot),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Retry',
+                      style: GoogleFonts.dmSans(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: DashboardTokens.apricot,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ],

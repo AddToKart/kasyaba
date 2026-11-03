@@ -210,7 +210,7 @@ void main() {
 
       // Deficit alert SHOULD be displayed
       expect(find.text('PAY PERIOD DEFICIT'), findsOneWidget);
-      expect(find.text('+ Add Income'), findsOneWidget);
+      expect(find.text('Add Income'), findsOneWidget);
       expect(find.text('Adjust Goals'), findsOneWidget);
     });
   });
