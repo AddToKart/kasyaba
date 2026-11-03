@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import '../../../shared/widgets/motion_components.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/deterministic_math.dart';
 import 'dashboard_tokens.dart';
@@ -136,9 +137,9 @@ class HeroSafeSpendCard extends StatelessWidget {
                     ],
                   ),
                   // Eye Toggle (19x19, r=15)
-                  GestureDetector(
+                  SpringTouch(
+                    scaleDown: 0.85,
                     onTap: onToggleVisibility,
-                    behavior: HitTestBehavior.opaque,
                     child: Container(
                       width: 36,
                       height: 36,
@@ -159,9 +160,9 @@ class HeroSafeSpendCard extends StatelessWidget {
               const SizedBox(height: 6),
 
               // Daily Safe Spend Amount Row
-              GestureDetector(
+              SpringTouch(
+                scaleDown: 0.98,
                 onTap: onTapBreakdown,
-                behavior: HitTestBehavior.opaque,
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.baseline,
                   textBaseline: TextBaseline.alphabetic,
@@ -246,9 +247,9 @@ class HeroSafeSpendCard extends StatelessWidget {
                 children: [
                   // Button 1: Expense (border: Kashmir Blue, height: 54, r=27)
                   Expanded(
-                    child: GestureDetector(
+                    child: SpringTouch(
+                      scaleDown: 0.94,
                       onTap: onExpense,
-                      behavior: HitTestBehavior.opaque,
                       child: Container(
                         height: 54,
                         decoration: BoxDecoration(
@@ -288,9 +289,9 @@ class HeroSafeSpendCard extends StatelessWidget {
 
                   // Button 2: Income (fill: Periwinkle Gray, height: 54, r=27, text: Ebony)
                   Expanded(
-                    child: GestureDetector(
+                    child: SpringTouch(
+                      scaleDown: 0.94,
                       onTap: onIncome,
-                      behavior: HitTestBehavior.opaque,
                       child: Container(
                         height: 54,
                         decoration: BoxDecoration(

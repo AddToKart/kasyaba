@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_motion.dart';
+import '../../../shared/widgets/motion_components.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
@@ -93,20 +94,26 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _SafeSpendHeroCard(
-                        safeSpendCalc: safeSpendCalc,
-                        totalBalance: dashboard.totalBalance,
-                        onTestPurchaseTap: () {
-                          AppHaptics.selectionClick();
-                          showKasyaBaAffordabilitySheet(context);
-                        },
+                      FadeSlideEntrance.staggered(
+                        index: 0,
+                        child: _SafeSpendHeroCard(
+                          safeSpendCalc: safeSpendCalc,
+                          totalBalance: dashboard.totalBalance,
+                          onTestPurchaseTap: () {
+                            AppHaptics.selectionClick();
+                            showKasyaBaAffordabilitySheet(context);
+                          },
+                        ),
                       ),
                       const SizedBox(height: 20),
 
                       // ── 3. Allocation Card (Node 92:57) ──────────────
-                      _AllocationCard(
-                        safeSpendCalc: safeSpendCalc,
-                        totalBalance: dashboard.totalBalance,
+                      FadeSlideEntrance.staggered(
+                        index: 1,
+                        child: _AllocationCard(
+                          safeSpendCalc: safeSpendCalc,
+                          totalBalance: dashboard.totalBalance,
+                        ),
                       ),
                       const SizedBox(height: 16),
 
@@ -115,16 +122,19 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                         loading: () => const SizedBox.shrink(),
                         error: (_, _) => const SizedBox.shrink(),
                         data: (overview) {
-                          return _AssumptionsCard(
-                            overview: overview,
-                            isExpanded: _isAssumptionsExpanded,
-                            onToggleExpand: () {
-                              AppHaptics.selectionClick();
-                              setState(() {
-                                _isAssumptionsExpanded =
-                                    !_isAssumptionsExpanded;
-                              });
-                            },
+                          return FadeSlideEntrance.staggered(
+                            index: 2,
+                            child: _AssumptionsCard(
+                              overview: overview,
+                              isExpanded: _isAssumptionsExpanded,
+                              onToggleExpand: () {
+                                AppHaptics.selectionClick();
+                                setState(() {
+                                  _isAssumptionsExpanded =
+                                      !_isAssumptionsExpanded;
+                                });
+                              },
+                            ),
                           );
                         },
                       ),
@@ -316,20 +326,22 @@ class _SafeSpendHeroCard extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 height: 56,
-                child: FilledButton(
-                  onPressed: onTestPurchaseTap,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: DashboardTokens.periwinkleGray,
-                    foregroundColor: DashboardTokens.ebony,
-                    shape: RoundedRectangleBorder(
+                child: SpringTouch(
+                  scaleDown: 0.96,
+                  onTap: onTestPurchaseTap,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: DashboardTokens.periwinkleGray,
                       borderRadius: BorderRadius.circular(28),
                     ),
-                  ),
-                  child: Text(
-                    'Test a purchase',
-                    style: GoogleFonts.dmSans(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                    alignment: Alignment.center,
+                    child: Text(
+                      'Test a purchase',
+                      style: GoogleFonts.dmSans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: DashboardTokens.ebony,
+                      ),
                     ),
                   ),
                 ),

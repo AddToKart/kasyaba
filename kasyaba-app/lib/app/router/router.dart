@@ -21,6 +21,7 @@ import '../../features/bills/screens/add_bill_screen.dart';
 import '../../features/alerts/screens/alerts_screen.dart';
 import '../../features/settings/screens/settings_screen.dart';
 import '../../features/splash/screens/splash_screen.dart';
+import '../../shared/widgets/motion_components.dart';
 import '../../core/auth/auth_provider.dart';
 import '../../core/providers/api_providers.dart';
 import 'app_shell.dart';
@@ -70,88 +71,136 @@ final routerProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(
             path: '/dashboard',
-            builder: (context, state) => const DashboardScreen(),
+            pageBuilder: (context, state) => MotionPageTransitions.fadeTransition(
+              key: state.pageKey,
+              child: const DashboardScreen(),
+            ),
           ),
           GoRoute(
             path: '/transactions',
-            builder: (context, state) => const TransactionsScreen(),
+            pageBuilder: (context, state) => MotionPageTransitions.fadeTransition(
+              key: state.pageKey,
+              child: const TransactionsScreen(),
+            ),
           ),
           GoRoute(
             path: '/planning',
-            builder: (context, state) => const PlanningScreen(),
+            pageBuilder: (context, state) => MotionPageTransitions.fadeTransition(
+              key: state.pageKey,
+              child: const PlanningScreen(),
+            ),
           ),
           GoRoute(
             path: '/planning/breakdown',
-            builder: (context, state) {
+            pageBuilder: (context, state) {
               final extraCalc = state.extra as DailySafeSpendCalculation?;
-              return MathBreakdownScreen(calculation: extraCalc);
+              return MotionPageTransitions.slideUpTransition(
+                key: state.pageKey,
+                child: MathBreakdownScreen(calculation: extraCalc),
+              );
             },
           ),
           GoRoute(
             path: '/goals',
-            builder: (context, state) => const GoalsScreen(),
+            pageBuilder: (context, state) => MotionPageTransitions.fadeTransition(
+              key: state.pageKey,
+              child: const GoalsScreen(),
+            ),
           ),
           GoRoute(
             path: '/bills',
-            builder: (context, state) => const BillsScreen(),
+            pageBuilder: (context, state) => MotionPageTransitions.fadeTransition(
+              key: state.pageKey,
+              child: const BillsScreen(),
+            ),
           ),
           GoRoute(
             path: '/settings',
-            builder: (context, state) => const SettingsScreen(),
+            pageBuilder: (context, state) => MotionPageTransitions.fadeTransition(
+              key: state.pageKey,
+              child: const SettingsScreen(),
+            ),
           ),
           GoRoute(
             path: '/budgets',
-            builder: (context, state) => const BudgetsScreen(),
+            pageBuilder: (context, state) => MotionPageTransitions.fadeTransition(
+              key: state.pageKey,
+              child: const BudgetsScreen(),
+            ),
           ),
           GoRoute(
             path: '/alerts',
-            builder: (context, state) => const AlertsScreen(),
+            pageBuilder: (context, state) => MotionPageTransitions.fadeTransition(
+              key: state.pageKey,
+              child: const AlertsScreen(),
+            ),
           ),
         ],
       ),
       // Sub-routes without bottom navigation bar
       GoRoute(
         path: '/transactions/add',
-        builder: (context, state) =>
-            AddTransactionScreen(initialType: state.extra as String?),
+        pageBuilder: (context, state) => MotionPageTransitions.slideUpTransition(
+          key: state.pageKey,
+          child: AddTransactionScreen(initialType: state.extra as String?),
+        ),
       ),
       GoRoute(
         path: '/transactions/edit',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final transaction = state.extra;
           if (transaction is! TransactionEntry) {
-            return const Scaffold(
-              body: Center(child: Text('Transaction details unavailable.')),
+            return MotionPageTransitions.slideUpTransition(
+              key: state.pageKey,
+              child: const Scaffold(
+                body: Center(child: Text('Transaction details unavailable.')),
+              ),
             );
           }
-          return AddTransactionScreen(transaction: transaction);
+          return MotionPageTransitions.slideUpTransition(
+            key: state.pageKey,
+            child: AddTransactionScreen(transaction: transaction),
+          );
         },
       ),
       GoRoute(
         path: '/transfers/add',
-        builder: (context, state) => const AddTransferScreen(),
+        pageBuilder: (context, state) => MotionPageTransitions.slideUpTransition(
+          key: state.pageKey,
+          child: const AddTransferScreen(),
+        ),
       ),
       GoRoute(
         path: '/accounts',
-        builder: (context, state) => const AccountsScreen(),
+        pageBuilder: (context, state) => MotionPageTransitions.slideUpTransition(
+          key: state.pageKey,
+          child: const AccountsScreen(),
+        ),
       ),
       GoRoute(
         path: '/bills/add',
-        builder: (context, state) =>
-            AddBillScreen(initialName: state.extra as String?),
+        pageBuilder: (context, state) => MotionPageTransitions.slideUpTransition(
+          key: state.pageKey,
+          child: AddBillScreen(initialName: state.extra as String?),
+        ),
       ),
       GoRoute(
         path: '/goals/new',
-        builder: (context, state) =>
-            CreateGoalScreen(existingGoal: state.extra as SavingsGoal?),
+        pageBuilder: (context, state) => MotionPageTransitions.slideUpTransition(
+          key: state.pageKey,
+          child: CreateGoalScreen(existingGoal: state.extra as SavingsGoal?),
+        ),
       ),
       GoRoute(
         path: '/goals/:id',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final id = state.pathParameters['id']!;
-          return GoalDetailScreen(
-            goalId: id,
-            initialGoal: state.extra as SavingsGoal?,
+          return MotionPageTransitions.slideUpTransition(
+            key: state.pageKey,
+            child: GoalDetailScreen(
+              goalId: id,
+              initialGoal: state.extra as SavingsGoal?,
+            ),
           );
         },
       ),

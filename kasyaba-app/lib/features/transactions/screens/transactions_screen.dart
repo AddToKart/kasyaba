@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_motion.dart';
+import '../../../shared/widgets/motion_components.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/auth/auth_provider.dart';
 import '../../../core/database/cache_service.dart';
@@ -670,8 +671,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     ),
                     Row(
                       children: [
-                        GestureDetector(
-                          behavior: HitTestBehavior.opaque,
+                        SpringTouch(
+                          scaleDown: 0.94,
                           onTap: () {
                             AppHaptics.selectionClick();
                             context.push('/bills');
@@ -698,8 +699,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        GestureDetector(
-                          behavior: HitTestBehavior.opaque,
+                        SpringTouch(
+                          scaleDown: 0.94,
                           onTap: () {
                             AppHaptics.selectionClick();
                             context.push('/bills/add');
@@ -1191,10 +1192,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         ? DashboardTokens.apricot
         : (isTransfer ? DashboardTokens.periwinkleGray : DashboardTokens.bermuda);
 
-    return InkWell(
+    return SpringTouch(
+      scaleDown: 0.98,
       onTap: () => _showTransactionActions(context, ref, t),
       onLongPress: () => _showTransactionActions(context, ref, t),
-      borderRadius: BorderRadius.circular(16),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 13),
         child: Row(

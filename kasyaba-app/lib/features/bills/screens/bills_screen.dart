@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_motion.dart';
+import '../../../shared/widgets/motion_components.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
@@ -393,8 +394,8 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                 // ── Top Header Row (Back + Title + Plus Button) (Node 106:2510) ──
                 Row(
                   children: [
-                    GestureDetector(
-                      behavior: HitTestBehavior.opaque,
+                    SpringTouch(
+                      scaleDown: 0.90,
                       onTap: () {
                         AppHaptics.selectionClick();
                         _handleBack();
@@ -429,8 +430,8 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                         ),
                       ),
                     ),
-                    GestureDetector(
-                      behavior: HitTestBehavior.opaque,
+                    SpringTouch(
+                      scaleDown: 0.88,
                       onTap: () {
                         AppHaptics.selectionClick();
                         context.push('/bills/add');
@@ -470,8 +471,8 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                         ),
                       ),
                     ),
-                    GestureDetector(
-                      behavior: HitTestBehavior.opaque,
+                    SpringTouch(
+                      scaleDown: 0.94,
                       onTap: () {
                         AppHaptics.selectionClick();
                         setState(() => _isMonthView = !_isMonthView);
@@ -665,8 +666,8 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                       spacing: 8,
                       runSpacing: 10,
                       children: _quickAddPresets.map((preset) {
-                        return GestureDetector(
-                          behavior: HitTestBehavior.opaque,
+                        return SpringTouch(
+                          scaleDown: 0.92,
                           onTap: () {
                             AppHaptics.selectionClick();
                             context.push('/bills/add', extra: preset);
@@ -883,8 +884,8 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
       statusColor = DashboardTokens.periwinkleGraySubtitle;
     }
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
+    return SpringTouch(
+      scaleDown: 0.98,
       onTap: () => _showBillActionSheet(bill),
       child: Container(
         padding: const EdgeInsets.all(17),

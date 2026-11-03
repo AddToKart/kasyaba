@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../shared/widgets/motion_components.dart';
 import '../theme/app_motion.dart';
 import '../../features/dashboard/widgets/dashboard_tokens.dart';
 
@@ -209,14 +210,14 @@ class _NavItem extends StatelessWidget {
         : DashboardTokens.periwinkleGraySubtitle;
 
     return Expanded(
-      child: GestureDetector(
+      child: SpringTouch(
+        scaleDown: 0.92,
         onTap: () {
           AppHaptics.selectionClick();
           onTap();
         },
-        behavior: HitTestBehavior.opaque,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
+          duration: const Duration(milliseconds: 220),
           curve: Curves.easeOutCubic,
           height: 54,
           decoration: BoxDecoration(
@@ -230,11 +231,16 @@ class _NavItem extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
-              SvgPicture.asset(
-                destination.svgAsset,
-                width: 20,
-                height: 20,
-                colorFilter: ColorFilter.mode(fgColor, BlendMode.srcIn),
+              AnimatedScale(
+                scale: isSelected ? 1.08 : 1.0,
+                duration: const Duration(milliseconds: 240),
+                curve: Curves.easeOutBack,
+                child: SvgPicture.asset(
+                  destination.svgAsset,
+                  width: 20,
+                  height: 20,
+                  colorFilter: ColorFilter.mode(fgColor, BlendMode.srcIn),
+                ),
               ),
               const SizedBox(height: 3),
               Padding(

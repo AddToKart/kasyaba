@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../../app/theme/app_motion.dart';
+import '../../../shared/widgets/motion_components.dart';
 import '../../../core/auth/auth_provider.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
@@ -306,26 +307,29 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     ],
 
                     // ── Hero Balance Card: "Safe to spend today" ──
-                    dashboardAsync.when(
-                      loading: () => const _DashboardCardSkeleton(height: 220),
-                      error: (e, _) => _DashboardErrorCard(
-                        message: friendlyErrorMessage(e),
-                        onRetry: () => ref.invalidate(dashboardProvider),
-                      ),
-                      data: (data) => HeroSafeSpendCard(
-                        totalBalance: (data.totalBalance as num).toDouble(),
-                        safeSpendCalc: safeSpendCalc,
-                        isVisible: _isBalanceVisible,
-                        onToggleVisibility: () => setState(
-                          () => _isBalanceVisible = !_isBalanceVisible,
+                    FadeSlideEntrance.staggered(
+                      index: 0,
+                      child: dashboardAsync.when(
+                        loading: () => const _DashboardCardSkeleton(height: 220),
+                        error: (e, _) => _DashboardErrorCard(
+                          message: friendlyErrorMessage(e),
+                          onRetry: () => ref.invalidate(dashboardProvider),
                         ),
-                        onExpense: () =>
-                            context.go('/transactions/add', extra: 'expense'),
-                        onIncome: () =>
-                            context.go('/transactions/add', extra: 'income'),
-                        onTapBreakdown: () => _showSafeSpendBreakdownSheet(
-                          context,
-                          safeSpendCalc,
+                        data: (data) => HeroSafeSpendCard(
+                          totalBalance: (data.totalBalance as num).toDouble(),
+                          safeSpendCalc: safeSpendCalc,
+                          isVisible: _isBalanceVisible,
+                          onToggleVisibility: () => setState(
+                            () => _isBalanceVisible = !_isBalanceVisible,
+                          ),
+                          onExpense: () =>
+                              context.go('/transactions/add', extra: 'expense'),
+                          onIncome: () =>
+                              context.go('/transactions/add', extra: 'income'),
+                          onTapBreakdown: () => _showSafeSpendBreakdownSheet(
+                            context,
+                            safeSpendCalc,
+                          ),
                         ),
                       ),
                     ),
@@ -333,81 +337,102 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
                     // ── Quick Start Checklist (New Users) OR Deficit Alert (Existing Users) ──
                     if (dashboardAsync.hasValue && isBrandNewUser && !_isQuickStartDismissed) ...[
-                      _QuickStartChecklistCard(
-                        totalBalance: totalBalance,
-                        income: (dashboardData?.income ?? 0.0).toDouble(),
-                        salaryAmount: userProfileAsync.valueOrNull?.salaryAmount,
-                        paydaySchedule: userProfileAsync.valueOrNull?.paydaySchedule,
-                        activeGoalsCount: goalsAsync.valueOrNull?.length ?? 0,
-                        activeBillsCount: billsAsync.valueOrNull?.length ?? 0,
-                        onDismiss: () => setState(() => _isQuickStartDismissed = true),
-                        onAddBalance: () => context.go('/transactions/add', extra: 'income'),
-                        onConfigurePayday: () => context.go('/settings'),
-                        onAddGoalOrBill: () => context.go('/goals'),
+                      FadeSlideEntrance.staggered(
+                        index: 1,
+                        child: _QuickStartChecklistCard(
+                          totalBalance: totalBalance,
+                          income: (dashboardData?.income ?? 0.0).toDouble(),
+                          salaryAmount: userProfileAsync.valueOrNull?.salaryAmount,
+                          paydaySchedule: userProfileAsync.valueOrNull?.paydaySchedule,
+                          activeGoalsCount: goalsAsync.valueOrNull?.length ?? 0,
+                          activeBillsCount: billsAsync.valueOrNull?.length ?? 0,
+                          onDismiss: () => setState(() => _isQuickStartDismissed = true),
+                          onAddBalance: () => context.go('/transactions/add', extra: 'income'),
+                          onConfigurePayday: () => context.go('/settings'),
+                          onAddGoalOrBill: () => context.go('/goals'),
+                        ),
                       ),
                       const SizedBox(height: 14),
                     ] else if (!isBrandNewUser && safeSpendCalc.dailySafeSpend == 0.0 && safeSpendCalc.numerator < 0) ...[
-                      _DeficitAlertCard(
-                        deficitAmount: safeSpendCalc.numerator.abs(),
-                        nextPayday: safeSpendCalc.nextPayday,
-                        onAddIncome: () => context.go('/transactions/add', extra: 'income'),
-                        onAdjustGoals: () => context.go('/goals'),
+                      FadeSlideEntrance.staggered(
+                        index: 1,
+                        child: _DeficitAlertCard(
+                          deficitAmount: safeSpendCalc.numerator.abs(),
+                          nextPayday: safeSpendCalc.nextPayday,
+                          onAddIncome: () => context.go('/transactions/add', extra: 'income'),
+                          onAdjustGoals: () => context.go('/goals'),
+                        ),
                       ),
                       const SizedBox(height: 14),
                     ],
 
                     // ── 3 Metric Quick Cards (Saved, Budget used, Buffer) ──
-                    dashboardAsync.when(
-                      loading: () => const _DashboardCardSkeleton(height: 72),
-                      error: (_, _) => const SizedBox.shrink(),
-                      data: (data) => QuickStatsRow(
-                        savings: (data.savings as num).toDouble(),
-                        budgetPercent: (budgetStatusAsync.valueOrNull?.overallPercent ??
-                                (data.budgetUsedPercent as num).toDouble()),
-                        runwayDays: runwayDays,
-                        onSavedTap: () => context.go('/goals'),
-                        onBudgetTap: () => context.go('/budgets'),
-                        onBufferTap: () => _showBufferHealthSheet(context, data, runwayDays),
+                    FadeSlideEntrance.staggered(
+                      index: 2,
+                      child: dashboardAsync.when(
+                        loading: () => const _DashboardCardSkeleton(height: 72),
+                        error: (_, _) => const SizedBox.shrink(),
+                        data: (data) => QuickStatsRow(
+                          savings: (data.savings as num).toDouble(),
+                          budgetPercent: (budgetStatusAsync.valueOrNull?.overallPercent ??
+                                  (data.budgetUsedPercent as num).toDouble()),
+                          runwayDays: runwayDays,
+                          onSavedTap: () => context.go('/goals'),
+                          onBudgetTap: () => context.go('/budgets'),
+                          onBufferTap: () => _showBufferHealthSheet(context, data, runwayDays),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 14),
 
                     // ── "KasyaBa?" Purchase Affordability CTA ──
-                    KasyaBaAffordabilityCard(
-                      onTap: () => showKasyaBaAffordabilitySheet(context),
+                    FadeSlideEntrance.staggered(
+                      index: 3,
+                      child: KasyaBaAffordabilityCard(
+                        onTap: () => showKasyaBaAffordabilitySheet(context),
+                      ),
                     ),
                     const SizedBox(height: 14),
 
                     // ── "Month-end forecast" Card ──
-                    dashboardAsync.when(
-                      loading: () => const _DashboardCardSkeleton(height: 285),
-                      error: (_, _) => const SizedBox.shrink(),
-                      data: (data) => MonthEndForecastCard(
-                        data: data,
-                        onTap: () => context.go('/planning'),
+                    FadeSlideEntrance.staggered(
+                      index: 4,
+                      child: dashboardAsync.when(
+                        loading: () => const _DashboardCardSkeleton(height: 285),
+                        error: (_, _) => const SizedBox.shrink(),
+                        data: (data) => MonthEndForecastCard(
+                          data: data,
+                          onTap: () => context.go('/planning'),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 14),
 
                     // ── "Spending this month" Card ──
-                    dashboardAsync.when(
-                      loading: () => const _DashboardCardSkeleton(height: 180),
-                      error: (_, _) => const SizedBox.shrink(),
-                      data: (data) => SpendingThisMonthCard(
-                        data: data,
-                        onTap: () => context.go('/transactions'),
+                    FadeSlideEntrance.staggered(
+                      index: 5,
+                      child: dashboardAsync.when(
+                        loading: () => const _DashboardCardSkeleton(height: 180),
+                        error: (_, _) => const SizedBox.shrink(),
+                        data: (data) => SpendingThisMonthCard(
+                          data: data,
+                          onTap: () => context.go('/transactions'),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 14),
 
                     // ── "More" Hub Card (Goals, Bills, Recent Activity) ──
-                    DashboardMoreCard(
-                      goals: goalsAsync.valueOrNull ?? const [],
-                      bills: billsAsync.valueOrNull ?? const [],
-                      transactions: transactions,
-                      onGoalsTap: () => context.go('/goals'),
-                      onBillsTap: () => context.go('/bills'),
-                      onTransactionsTap: () => context.go('/transactions'),
+                    FadeSlideEntrance.staggered(
+                      index: 6,
+                      child: DashboardMoreCard(
+                        goals: goalsAsync.valueOrNull ?? const [],
+                        bills: billsAsync.valueOrNull ?? const [],
+                        transactions: transactions,
+                        onGoalsTap: () => context.go('/goals'),
+                        onBillsTap: () => context.go('/bills'),
+                        onTransactionsTap: () => context.go('/transactions'),
+                      ),
                     ),
                   ],
                 ),

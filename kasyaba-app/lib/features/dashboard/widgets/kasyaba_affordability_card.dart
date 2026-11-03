@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../shared/widgets/motion_components.dart';
 import 'dashboard_tokens.dart';
 
 class KasyaBaAffordabilityCard extends StatelessWidget {
@@ -13,9 +14,9 @@ class KasyaBaAffordabilityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return SpringTouch(
+      scaleDown: 0.97,
       onTap: onTap,
-      behavior: HitTestBehavior.opaque,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(

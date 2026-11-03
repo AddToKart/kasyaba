@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_motion.dart';
+import '../../../shared/widgets/motion_components.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../dashboard/widgets/dashboard_tokens.dart';
@@ -130,7 +131,8 @@ class GoalsScreen extends ConsumerWidget {
                           color: DashboardTokens.periwinkleGray,
                         ),
                       ),
-                      GestureDetector(
+                      SpringTouch(
+                        scaleDown: 0.88,
                         onTap: () {
                           AppHaptics.lightImpact();
                           Navigator.of(context).push(
@@ -544,7 +546,8 @@ class GoalsScreen extends ConsumerWidget {
                                             ),
                                             const SizedBox(width: 12),
                                             // Deposit button (Figma Node 11:2015)
-                                            GestureDetector(
+                                            SpringTouch(
+                                              scaleDown: 0.94,
                                               onTap: () {
                                                 AppHaptics.lightImpact();
                                                 GoalDepositSheet.show(

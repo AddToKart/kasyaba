@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_motion.dart';
+import '../../../shared/widgets/motion_components.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
@@ -373,8 +374,8 @@ class _AddBillScreenState extends ConsumerState<AddBillScreen> {
                   // ── Top Header Row (Back Button + Title) (Node 11:1515) ─────
                   Row(
                     children: [
-                      GestureDetector(
-                        behavior: HitTestBehavior.opaque,
+                      SpringTouch(
+                        scaleDown: 0.90,
                         onTap: () {
                           AppHaptics.selectionClick();
                           _handleClose();
@@ -691,8 +692,8 @@ class _AddBillScreenState extends ConsumerState<AddBillScreen> {
                   const SizedBox(height: 24),
 
                   // ── CTA Button (Node 11:1570) ───────────────────────────────
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
+                  SpringTouch(
+                    scaleDown: 0.96,
                     onTap: _isSubmitting ? null : _handleSave,
                     child: Container(
                       height: 56,

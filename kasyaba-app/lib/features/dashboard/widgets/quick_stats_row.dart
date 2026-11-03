@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../shared/widgets/motion_components.dart';
 import '../../../core/utils/currency_formatter.dart';
 import 'dashboard_tokens.dart';
 
@@ -86,9 +87,9 @@ class _QuickStatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return SpringTouch(
+      scaleDown: 0.94,
       onTap: onTap,
-      behavior: HitTestBehavior.opaque,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 15),
         decoration: BoxDecoration(
