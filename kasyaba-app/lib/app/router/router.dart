@@ -14,6 +14,8 @@ import '../../features/planning/screens/math_breakdown_screen.dart';
 import '../../core/utils/deterministic_math.dart';
 import '../../features/budgets/screens/budgets_screen.dart';
 import '../../features/savings/screens/goals_screen.dart';
+import '../../features/savings/screens/create_goal_screen.dart';
+import '../../features/savings/screens/goal_detail_screen.dart';
 import '../../features/bills/screens/bills_screen.dart';
 import '../../features/alerts/screens/alerts_screen.dart';
 import '../../features/settings/screens/settings_screen.dart';
@@ -131,6 +133,21 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/accounts',
         builder: (context, state) => const AccountsScreen(),
+      ),
+      GoRoute(
+        path: '/goals/new',
+        builder: (context, state) =>
+            CreateGoalScreen(existingGoal: state.extra as SavingsGoal?),
+      ),
+      GoRoute(
+        path: '/goals/:id',
+        builder: (context, state) {
+          final id = state.pathParameters['id']!;
+          return GoalDetailScreen(
+            goalId: id,
+            initialGoal: state.extra as SavingsGoal?,
+          );
+        },
       ),
     ],
   );

@@ -913,6 +913,13 @@ final goalsProvider = FutureProvider<List<SavingsGoal>>((ref) async {
   }
 });
 
+final goalDetailProvider =
+    FutureProvider.family<Map<String, dynamic>, String>((ref, goalId) async {
+  final dio = ref.watch(dioProvider);
+  final res = await dio.get('/goals/$goalId');
+  return res.data['data'] as Map<String, dynamic>;
+});
+
 // -----------------------------------------------------------------------------
 // Bills Model & Provider
 // -----------------------------------------------------------------------------
@@ -1269,6 +1276,34 @@ class TransactionMutator {
     _ref.invalidate(planningProvider);
   }
 
+  Future<void> updateGoal({
+    required String goalId,
+    required String name,
+    required double targetAmount,
+    DateTime? targetDate,
+  }) async {
+    final data = {
+      'name': name,
+      'targetAmount': targetAmount.toStringAsFixed(2),
+      if (targetDate != null) 'targetDate': _dateOnlyPayload(targetDate),
+    };
+
+    await _dio.patch('/goals/$goalId', data: data);
+
+    _ref.invalidate(goalsProvider);
+    _ref.invalidate(dashboardProvider);
+    _ref.invalidate(planningProvider);
+    _ref.invalidate(goalDetailProvider(goalId));
+  }
+
+  Future<void> deleteGoal(String goalId) async {
+    await _dio.delete('/goals/$goalId');
+
+    _ref.invalidate(goalsProvider);
+    _ref.invalidate(dashboardProvider);
+    _ref.invalidate(planningProvider);
+  }
+
   Future<void> addGoalContribution({
     required String goalId,
     required double amount,
@@ -1376,6 +1411,8 @@ final transactionMutatorProvider = Provider<TransactionMutator>((ref) {
   final dio = ref.watch(dioProvider);
   return TransactionMutator(dio, ref);
 });
+
+final budgetRepositoryProvider = transactionMutatorProvider;
 
 // -----------------------------------------------------------------------------
 // User Profile & Purchase Checker Models & Providers

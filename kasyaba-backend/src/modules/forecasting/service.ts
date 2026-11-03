@@ -672,7 +672,7 @@ export async function generateAlertsFromSnapshot(userId: string): Promise<void> 
     await alertService.createAlert({
       userId,
       snapshotId: currentSnapshot.id,
-      type: 'info',
+      type: 'month_end',
       severity: 'info',
       title: 'Welcome to Kasyaba',
       message: 'Add your salary and payday to see your forecast.',

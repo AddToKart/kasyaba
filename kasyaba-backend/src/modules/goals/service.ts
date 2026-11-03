@@ -79,7 +79,16 @@ export async function listGoals(userId: string) {
 }
 
 export async function getGoal(userId: string, id: string) {
-  const goal = await prisma.savingsGoal.findFirst({ where: { id, userId } });
+  const goal = await prisma.savingsGoal.findFirst({
+    where: { id, userId },
+    include: {
+      contributions: {
+        where: { userId },
+        orderBy: { contributedAt: 'desc' },
+        include: { account: { select: { id: true, name: true } } },
+      },
+    },
+  });
   if (!goal) throw new NotFoundError('Savings goal not found');
   return goal;
 }
@@ -100,6 +109,12 @@ export async function updateGoal(userId: string, id: string, input: UpdateGoalIn
   const data: any = { ...input };
   if (input.targetDate !== undefined) data.targetDate = input.targetDate ? new Date(input.targetDate) : null;
   return prisma.savingsGoal.update({ where: { id }, data });
+}
+
+export async function deleteGoal(userId: string, id: string) {
+  await getGoal(userId, id);
+  await prisma.savingsContribution.deleteMany({ where: { goalId: id, userId } });
+  return prisma.savingsGoal.delete({ where: { id } });
 }
 
 export async function addContribution(userId: string, goalId: string, input: CreateContributionInput) {

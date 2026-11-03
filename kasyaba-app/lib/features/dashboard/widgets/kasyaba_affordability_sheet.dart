@@ -26,6 +26,10 @@ void showKasyaBaAffordabilitySheet(BuildContext context) {
   );
 }
 
+class KasyabaAffordabilitySheet {
+  static void show(BuildContext context) => showKasyaBaAffordabilitySheet(context);
+}
+
 class _KasyaBaAffordabilitySheetModal extends ConsumerStatefulWidget {
   const _KasyaBaAffordabilitySheetModal();
 
@@ -138,7 +142,7 @@ class _KasyaBaAffordabilitySheetModalState
 
     // Minimal, refined clearance so action buttons and simulation results sit cleanly
     // just above the floating dock with balanced spacing (~16dp breathing room).
-    const dockClearance = 98.0;
+    const dockClearance = 105.0;
     final effectiveBottomPadding = bottomInset > 0
         ? (bottomInset + 20.0)
         : dockClearance;

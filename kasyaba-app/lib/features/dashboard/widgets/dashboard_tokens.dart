@@ -17,6 +17,7 @@ class DashboardTokens {
   static const Color poloBlue = Color(0xFF8FB2CE); // #8FB2CE (segment 2, projected stroke)
   static const Color poloBlue30 = Color(0x4D8FB2CE); // rgba(143, 178, 206, 0.3) (hero border, nav border)
   static const Color poloBlue22 = Color(0x388FB2CE); // rgba(143, 178, 206, 0.22) (card borders, dividers)
+  static const Color poloBlue20 = Color(0x338FB2CE); // rgba(143, 178, 206, 0.2) (progress track fill)
   static const Color poloBlue16 = Color(0x298FB2CE); // rgba(143, 178, 206, 0.16) (subtle dividers)
   static const Color kashmirBlue = Color(0xFF4F7596); // #4F7596 (expense border, radial gradient, segment 3)
   static const Color sanJuan = Color(0xFF2F5578); // #2F5578 (segment 4)
