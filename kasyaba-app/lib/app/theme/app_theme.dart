@@ -353,6 +353,33 @@ class AppTheme {
         elevation: 8,
       ),
 
+      popupMenuTheme: PopupMenuThemeData(
+        color: KasyabaTokens.bigStone,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: KasyabaTokens.poloBlue22, width: 1),
+        ),
+        textStyle: GoogleFonts.dmSans(
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+          color: KasyabaTokens.periwinkleGray,
+        ),
+        elevation: 12,
+      ),
+
+      dropdownMenuTheme: DropdownMenuThemeData(
+        menuStyle: MenuStyle(
+          backgroundColor: const WidgetStatePropertyAll(KasyabaTokens.bigStone),
+          shape: WidgetStatePropertyAll(
+            RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              side: const BorderSide(color: KasyabaTokens.poloBlue22, width: 1),
+            ),
+          ),
+          elevation: const WidgetStatePropertyAll(12),
+        ),
+      ),
+
       textTheme: GoogleFonts.dmSansTextTheme(
         const TextTheme(
           displayLarge: TextStyle(

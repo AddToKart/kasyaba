@@ -101,258 +101,251 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             padding: EdgeInsets.fromLTRB(20, 0, 20, 24 + bottomInset),
             child: Form(
               key: formKey,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      'Salary & Payday Settings',
-                      style: GoogleFonts.bricolageGrotesque(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                        color: KasyabaTokens.periwinkleGray,
-                      ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Salary & Payday Settings',
+                    style: GoogleFonts.bricolageGrotesque(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      color: KasyabaTokens.periwinkleGray,
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Set your salary and payout schedule so Kasyaba can accurately compute your daily safe-to-spend and forecast your money.',
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Set your salary and payout schedule so Kasyaba can accurately compute your daily safe-to-spend and forecast your money.',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 14,
+                      color: KasyabaTokens.periwinkleGraySubtitle,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  SlidingSegmentedPill(
+                    items: const ['Direct Net Pay', 'PH Statutory Calc'],
+                    selectedIndex: isCalculatorMode ? 1 : 0,
+                    height: 52,
+                    borderRadius: 26,
+                    pillRadius: 22,
+                    backgroundColor: KasyabaTokens.bigStone,
+                    activeColor: KasyabaTokens.periwinkleGray,
+                    activeTextColor: KasyabaTokens.ebony,
+                    inactiveTextColor: KasyabaTokens.periwinkleGraySubtitle,
+                    fontSize: 13,
+                    onChanged: (index) {
+                      AppHaptics.selectionClick();
+                      setModalState(() {
+                        isCalculatorMode = index == 1;
+                        if (isCalculatorMode) {
+                          recomputeBreakdown();
+                        }
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    child: Text(
+                      !isCalculatorMode
+                          ? 'Enter the actual take-home pay deposited into your account each month.'
+                          : 'Enter your basic salary before deductions. Kasyaba will automatically compute PH SSS, PhilHealth, Pag-IBIG, and tax deductions.',
+                      key: ValueKey(isCalculatorMode),
                       style: GoogleFonts.dmSans(
-                        fontSize: 14,
+                        fontSize: 13,
                         color: KasyabaTokens.periwinkleGraySubtitle,
+                        height: 1.35,
                       ),
                     ),
-                    const SizedBox(height: 18),
-                    SlidingSegmentedPill(
-                      items: const ['Direct Net Pay', 'PH Statutory Calc'],
-                      selectedIndex: isCalculatorMode ? 1 : 0,
-                      height: 52,
-                      borderRadius: 26,
-                      pillRadius: 22,
-                      backgroundColor: KasyabaTokens.bigStone,
-                      activeColor: KasyabaTokens.periwinkleGray,
-                      activeTextColor: KasyabaTokens.ebony,
-                      inactiveTextColor: KasyabaTokens.periwinkleGraySubtitle,
-                      fontSize: 13,
-                      onChanged: (index) {
-                        AppHaptics.selectionClick();
-                        setModalState(() {
-                          isCalculatorMode = index == 1;
-                          if (isCalculatorMode) {
-                            recomputeBreakdown();
-                          }
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 10),
-                    AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 200),
-                      child: Text(
-                        !isCalculatorMode
-                            ? 'Enter the actual take-home pay deposited into your account each month.'
-                            : 'Enter your basic salary before deductions. Kasyaba will automatically compute PH SSS, PhilHealth, Pag-IBIG, and tax deductions.',
-                        key: ValueKey(isCalculatorMode),
-                        style: GoogleFonts.dmSans(
-                          fontSize: 13,
-                          color: KasyabaTokens.periwinkleGraySubtitle,
-                          height: 1.35,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    AnimatedSize(
-                      duration: const Duration(milliseconds: 260),
-                      curve: Curves.easeOutCubic,
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 220),
-                        switchInCurve: Curves.easeOutCubic,
-                        switchOutCurve: Curves.easeInCubic,
-                        child: !isCalculatorMode
-                            ? KeyedSubtree(
-                                key: const ValueKey('direct_mode'),
-                                child: _sheetInputField(
-                                  label: 'Monthly Net Take-Home Salary',
-                                  controller: _salaryController,
-                                  hint: '0.00',
-                                ),
-                              )
-                            : KeyedSubtree(
-                                key: const ValueKey('calculator_mode'),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _sheetInputField(
-                                      label: 'Monthly Gross Basic Salary',
-                                      controller: _grossSalaryController,
-                                      hint: '0.00',
-                                      onChanged: (_) =>
-                                          setModalState(recomputeBreakdown),
-                                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  AnimatedSize(
+                    duration: const Duration(milliseconds: 260),
+                    curve: Curves.easeOutCubic,
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 220),
+                      switchInCurve: Curves.easeOutCubic,
+                      switchOutCurve: Curves.easeInCubic,
+                      child: !isCalculatorMode
+                          ? KeyedSubtree(
+                              key: const ValueKey('direct_mode'),
+                              child: _sheetInputField(
+                                label: 'Monthly Net Take-Home Salary',
+                                controller: _salaryController,
+                                hint: '0.00',
+                              ),
+                            )
+                          : KeyedSubtree(
+                              key: const ValueKey('calculator_mode'),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _sheetInputField(
+                                    label: 'Monthly Gross Basic Salary',
+                                    controller: _grossSalaryController,
+                                    hint: '0.00',
+                                    onChanged: (_) =>
+                                        setModalState(recomputeBreakdown),
+                                  ),
+                                  const SizedBox(height: 14),
+                                  _sheetInputField(
+                                    label: 'Non-Taxable Allowances',
+                                    controller: _allowancesController,
+                                    hint: '0.00',
+                                    onChanged: (_) =>
+                                        setModalState(recomputeBreakdown),
+                                  ),
+                                  if (liveBreakdown != null) ...[
                                     const SizedBox(height: 14),
-                                    _sheetInputField(
-                                      label: 'Non-Taxable Allowances',
-                                      controller: _allowancesController,
-                                      hint: '0.00',
-                                      onChanged: (_) =>
-                                          setModalState(recomputeBreakdown),
-                                    ),
-                                    if (liveBreakdown != null) ...[
-                                      const SizedBox(height: 14),
-                                      Container(
-                                        padding: const EdgeInsets.all(19),
-                                        decoration: BoxDecoration(
-                                          color: KasyabaTokens.bigStone,
-                                          borderRadius: BorderRadius.circular(
-                                            KasyabaTokens.radiusCard,
-                                          ),
-                                          border: Border.all(
-                                            color: KasyabaTokens.poloBlue22,
-                                          ),
+                                    Container(
+                                      padding: const EdgeInsets.all(19),
+                                      decoration: BoxDecoration(
+                                        color: KasyabaTokens.cello60,
+                                        borderRadius: BorderRadius.circular(
+                                          KasyabaTokens.radiusCard,
                                         ),
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              'ESTIMATED NET PAYSLIP (PH 2026)',
-                                              style: GoogleFonts.dmSans(
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.w700,
-                                                color: KasyabaTokens
-                                                    .periwinkleGraySubtitle,
-                                                letterSpacing: 0.8,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 10),
-                                            Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment
-                                                      .spaceBetween,
-                                              children: [
-                                                Text(
-                                                  'Computed Net Pay:',
-                                                  style: GoogleFonts.dmSans(
-                                                    fontSize: 14,
-                                                    color: KasyabaTokens
-                                                        .periwinkleGraySubtitle,
-                                                  ),
-                                                ),
-                                                Text(
-                                                  CurrencyFormatter.format(
-                                                    liveBreakdown!.netMonthlyPay,
-                                                  ),
-                                                  style: GoogleFonts
-                                                      .bricolageGrotesque(
-                                                    fontSize: 18,
-                                                    fontWeight: FontWeight.w700,
-                                                    color:
-                                                        KasyabaTokens.bermuda,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            const SizedBox(height: 8),
-                                            _buildBreakdownItem(
-                                              'Gross Basic',
-                                              liveBreakdown!.grossBasicSalary,
-                                            ),
-                                            _buildBreakdownItem(
-                                              'SSS Contribution',
-                                              -liveBreakdown!.sssContribution,
-                                            ),
-                                            _buildBreakdownItem(
-                                              'PhilHealth',
-                                              -liveBreakdown!
-                                                  .philHealthContribution,
-                                            ),
-                                            _buildBreakdownItem(
-                                              'Pag-IBIG',
-                                              -liveBreakdown!
-                                                  .pagIbigContribution,
-                                            ),
-                                            _buildBreakdownItem(
-                                              'Withholding Tax',
-                                              -liveBreakdown!.withholdingTax,
-                                            ),
-                                            if (liveBreakdown!
-                                                    .nonTaxableAllowances >
-                                                0)
-                                              _buildBreakdownItem(
-                                                'Allowances',
-                                                liveBreakdown!
-                                                    .nonTaxableAllowances,
-                                              ),
-                                          ],
+                                        border: Border.all(
+                                          color: KasyabaTokens.poloBlue30,
                                         ),
                                       ),
-                                    ],
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'ESTIMATED NET PAYSLIP (PH 2026)',
+                                            style: GoogleFonts.dmSans(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w700,
+                                              color: KasyabaTokens
+                                                  .periwinkleGraySubtitle,
+                                              letterSpacing: 0.8,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 10),
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment
+                                                    .spaceBetween,
+                                            children: [
+                                              Text(
+                                                'Computed Net Pay:',
+                                                style: GoogleFonts.dmSans(
+                                                  fontSize: 14,
+                                                  color: KasyabaTokens
+                                                      .periwinkleGraySubtitle,
+                                                ),
+                                              ),
+                                              Text(
+                                                CurrencyFormatter.format(
+                                                  liveBreakdown!.netMonthlyPay,
+                                                ),
+                                                style: GoogleFonts
+                                                    .bricolageGrotesque(
+                                                  fontSize: 18,
+                                                  fontWeight: FontWeight.w700,
+                                                  color:
+                                                      KasyabaTokens.bermuda,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 8),
+                                          _buildBreakdownItem(
+                                            'Gross Basic',
+                                            liveBreakdown!.grossBasicSalary,
+                                          ),
+                                          _buildBreakdownItem(
+                                            'SSS Contribution',
+                                            -liveBreakdown!.sssContribution,
+                                          ),
+                                          _buildBreakdownItem(
+                                            'PhilHealth',
+                                            -liveBreakdown!
+                                                .philHealthContribution,
+                                          ),
+                                          _buildBreakdownItem(
+                                            'Pag-IBIG',
+                                            -liveBreakdown!
+                                                .pagIbigContribution,
+                                          ),
+                                          _buildBreakdownItem(
+                                            'Withholding Tax',
+                                            -liveBreakdown!.withholdingTax,
+                                          ),
+                                          if (liveBreakdown!
+                                                  .nonTaxableAllowances >
+                                              0)
+                                            _buildBreakdownItem(
+                                              'Allowances',
+                                              liveBreakdown!
+                                                  .nonTaxableAllowances,
+                                            ),
+                                        ],
+                                      ),
+                                    ),
                                   ],
-                                ),
+                                ],
                               ),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  _sheetDropdown(
+                    label: 'Payout Frequency',
+                    value: paydayFreq,
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'semi-monthly',
+                        child: Text('Semi-monthly (Twice a month)'),
                       ),
-                    ),
-                    const SizedBox(height: 14),
-                    _sheetDropdown(
-                      context: sheetContext,
-                      label: 'Payout Frequency',
-                      value: paydayFreq,
-                      options: const [
-                        (
-                          value: 'semi-monthly',
-                          title: 'Semi-monthly (Twice a month)',
-                          subtitle: 'Standard PH schedule: 15th & 30th payouts',
-                        ),
-                        (
-                          value: 'monthly',
-                          title: 'Monthly (Once a month)',
-                          subtitle: 'Paid once per calendar month',
-                        ),
-                        (
-                          value: 'weekly',
-                          title: 'Weekly (Every 7 days)',
-                          subtitle: 'Paid once every week',
-                        ),
-                        (
-                          value: 'bi-weekly',
-                          title: 'Bi-weekly (Every 14 days)',
-                          subtitle: 'Paid every two weeks (26 paydays/year)',
-                        ),
-                      ],
-                      onChanged: (value) {
+                      DropdownMenuItem(
+                        value: 'monthly',
+                        child: Text('Monthly (Once a month)'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'weekly',
+                        child: Text('Weekly (Every 7 days)'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'bi-weekly',
+                        child: Text('Bi-weekly (Every 14 days)'),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
                         setModalState(() => paydayFreq = value);
-                      },
-                    ),
-                    const SizedBox(height: 14),
-                    _sheetDropdown(
-                      context: sheetContext,
-                      label: 'Payout Schedule',
-                      value: paydaySched,
-                      options: const [
-                        (
-                          value: '15th & 30th',
-                          title: '15th & 30th (Standard PH)',
-                          subtitle: 'Standard mid-month and month-end paydays',
-                        ),
-                        (
-                          value: '10th & 25th',
-                          title: '10th & 25th',
-                          subtitle: 'Common alternative semi-monthly cycle',
-                        ),
-                        (
-                          value: 'End of Month',
-                          title: 'End of Month (Last working day)',
-                          subtitle: 'Single monthly payout at month end',
-                        ),
-                        (
-                          value: 'Custom / Other',
-                          title: 'Custom / Other',
-                          subtitle: 'Customized schedule or irregular paydays',
-                        ),
-                      ],
-                      onChanged: (value) {
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 14),
+                  _sheetDropdown(
+                    label: 'Payout Schedule',
+                    value: paydaySched,
+                    items: const [
+                      DropdownMenuItem(
+                        value: '15th & 30th',
+                        child: Text('15th & 30th (Standard PH)'),
+                      ),
+                      DropdownMenuItem(
+                        value: '10th & 25th',
+                        child: Text('10th & 25th'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'End of Month',
+                        child: Text('End of Month (Last working day)'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Custom / Other',
+                        child: Text('Custom / Other'),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
                         setModalState(() => paydaySched = value);
-                      },
-                    ),
+                      }
+                    },
+                  ),
                     const SizedBox(height: 20),
                     PillButton(
                       label: 'Save settings',
@@ -415,12 +408,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ],
                 ),
               ),
-            ),
-          );
-        },
-      ),
-    );
-  }
+            );
+          },
+        ),
+      );
+    }
 
   Widget _sheetInputField({
     required String label,
@@ -525,17 +517,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Widget _sheetDropdown({
-    required BuildContext context,
     required String label,
     required String value,
-    required List<({String value, String title, String subtitle})> options,
-    required ValueChanged<String> onChanged,
+    required List<DropdownMenuItem<String>> items,
+    required ValueChanged<String?> onChanged,
   }) {
-    final selectedOption = options.firstWhere(
-      (opt) => opt.value == value,
-      orElse: () => options.first,
-    );
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -550,147 +536,37 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
           ),
         ),
-        SpringTouch(
-          onTap: () {
-            AppHaptics.selectionClick();
-            _showOptionPickerSheet(
-              context: context,
-              title: label,
-              currentValue: value,
-              options: options,
-              onSelected: onChanged,
-            );
-          },
-          child: Container(
-            height: 58,
-            padding: const EdgeInsets.symmetric(horizontal: 21),
-            decoration: BoxDecoration(
-              color: KasyabaTokens.bigStone,
-              borderRadius: BorderRadius.circular(KasyabaTokens.radiusCard),
-              border: Border.all(color: KasyabaTokens.poloBlue22, width: 1),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    selectedOption.title,
-                    style: GoogleFonts.dmSans(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: KasyabaTokens.periwinkleGray,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const Icon(
-                  Icons.keyboard_arrow_down_rounded,
-                  color: KasyabaTokens.periwinkleGray,
-                  size: 24,
-                ),
-              ],
+        Container(
+          height: 58,
+          padding: const EdgeInsets.symmetric(horizontal: 21),
+          decoration: BoxDecoration(
+            color: KasyabaTokens.bigStone,
+            borderRadius: BorderRadius.circular(KasyabaTokens.radiusCard),
+            border: Border.all(color: KasyabaTokens.poloBlue22, width: 1),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: value,
+              isExpanded: true,
+              borderRadius: BorderRadius.circular(20),
+              dropdownColor: KasyabaTokens.bigStone,
+              elevation: 12,
+              icon: const Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: KasyabaTokens.periwinkleGray,
+                size: 24,
+              ),
+              style: GoogleFonts.dmSans(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: KasyabaTokens.periwinkleGray,
+              ),
+              items: items,
+              onChanged: onChanged,
             ),
           ),
         ),
       ],
-    );
-  }
-
-  Future<void> _showOptionPickerSheet({
-    required BuildContext context,
-    required String title,
-    required String currentValue,
-    required List<({String value, String title, String subtitle})> options,
-    required ValueChanged<String> onSelected,
-  }) async {
-    await showKasyabaSheet<void>(
-      context: context,
-      builder: (ctx) => AppSheet(
-        color: KasyabaTokens.ebony,
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 36),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              title,
-              style: GoogleFonts.bricolageGrotesque(
-                fontSize: 22,
-                fontWeight: FontWeight.w700,
-                color: KasyabaTokens.periwinkleGray,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Select an option from the list below',
-              style: GoogleFonts.dmSans(
-                fontSize: 14,
-                color: KasyabaTokens.periwinkleGraySubtitle,
-              ),
-            ),
-            const SizedBox(height: 18),
-            ...options.map((opt) {
-              final isSelected = opt.value == currentValue;
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: SpringTouch(
-                  onTap: () {
-                    AppHaptics.selectionClick();
-                    onSelected(opt.value);
-                    Navigator.of(ctx).pop();
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-                    decoration: BoxDecoration(
-                      color: isSelected ? KasyabaTokens.cello60 : KasyabaTokens.bigStone,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: isSelected ? KasyabaTokens.poloBlue30 : KasyabaTokens.poloBlue22,
-                        width: 1,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                opt.title,
-                                style: GoogleFonts.dmSans(
-                                  fontSize: 15,
-                                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                                  color: KasyabaTokens.periwinkleGray,
-                                ),
-                              ),
-                              if (opt.subtitle.isNotEmpty) ...[
-                                const SizedBox(height: 2),
-                                Text(
-                                  opt.subtitle,
-                                  style: GoogleFonts.dmSans(
-                                    fontSize: 12,
-                                    color: KasyabaTokens.periwinkleGraySubtitle,
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                        if (isSelected)
-                          const Icon(
-                            Icons.check_circle_rounded,
-                            color: KasyabaTokens.casablanca,
-                            size: 20,
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            }),
-          ],
-        ),
-      ),
     );
   }
 
