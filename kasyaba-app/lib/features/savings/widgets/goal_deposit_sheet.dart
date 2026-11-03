@@ -11,11 +11,15 @@ import '../../dashboard/widgets/dashboard_tokens.dart';
 ///  Goal Deposit Modal (Figma Node 42:6619)
 /// ─────────────────────────────────────────────────────────────
 void showGoalDepositSheet(BuildContext context, SavingsGoal goal) {
+  final topPadding = MediaQuery.paddingOf(context).top;
+  final screenHeight = MediaQuery.sizeOf(context).height;
+
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
     barrierColor: Colors.black.withValues(alpha: 0.72),
+    constraints: BoxConstraints(maxHeight: screenHeight - topPadding - 32),
     builder: (ctx) => _GoalDepositModal(goal: goal),
   );
 }
@@ -99,7 +103,16 @@ class _GoalDepositModalState extends ConsumerState<_GoalDepositModal> {
   Widget build(BuildContext context) {
     final accountsAsync = ref.watch(accountsProvider);
     final balancesAsync = ref.watch(accountBalancesProvider);
+    final topPadding = MediaQuery.paddingOf(context).top;
+    final screenHeight = MediaQuery.sizeOf(context).height;
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    final maxAllowedHeight = screenHeight - topPadding - 32;
+
+    // Calibrated clearance so CTA button sits cleanly above the persistent floating dock
+    const dockClearance = 105.0;
+    final effectiveBottomPadding = bottomInset > 0
+        ? (bottomInset + 20.0)
+        : dockClearance;
 
     final accounts = accountsAsync.valueOrNull ?? [];
     if (_selectedAccountId == null && accounts.isNotEmpty) {
@@ -126,210 +139,245 @@ class _GoalDepositModalState extends ConsumerState<_GoalDepositModal> {
         ? ((projectedCurrent / widget.goal.targetAmount) * 100).clamp(0, 100).toInt()
         : 0;
 
-    return Container(
-      decoration: const BoxDecoration(
-        color: DashboardTokens.bigStone,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-        border: Border(
-          top: BorderSide(color: DashboardTokens.poloBlue30, width: 1.0),
+    return Theme(
+      data: Theme.of(context).copyWith(
+        inputDecorationTheme: const InputDecorationTheme(
+          filled: false,
+          fillColor: Colors.transparent,
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          errorBorder: InputBorder.none,
+          disabledBorder: InputBorder.none,
+          contentPadding: EdgeInsets.zero,
         ),
       ),
-      padding: EdgeInsets.fromLTRB(20, 15, 20, bottomInset + 28),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // ── Drag handle ──────────────────────────────────────────
-            Center(
-              child: Container(
-                width: 44,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: DashboardTokens.poloBlue.withValues(alpha: 0.4),
-                  borderRadius: BorderRadius.circular(3),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: maxAllowedHeight),
+        child: Container(
+          clipBehavior: Clip.antiAlias,
+          decoration: const BoxDecoration(
+            color: DashboardTokens.bigStone,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+            border: Border(
+              top: BorderSide(color: DashboardTokens.poloBlue30, width: 1.0),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // ── Fixed Top Pinned Drag Handle ─────────────────────────
+              Padding(
+                padding: const EdgeInsets.only(top: 15, bottom: 8),
+                child: Center(
+                  child: Container(
+                    width: 44,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: DashboardTokens.poloBlue.withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
 
-            // ── Title ────────────────────────────────────────────────
-            Text(
-              'Deposit to ${widget.goal.name}',
-              style: GoogleFonts.bricolageGrotesque(
-                color: DashboardTokens.periwinkleGray,
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // ── Amount Display & Input ───────────────────────────────
-            Center(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  Text(
-                    '₱',
-                    style: GoogleFonts.bricolageGrotesque(
-                      color: DashboardTokens.periwinkleGraySubtitle,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  IntrinsicWidth(
-                    child: TextField(
-                      controller: _amountController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      textAlign: TextAlign.center,
-                      autofocus: true,
-                      onChanged: (_) => setState(() {}),
-                      style: GoogleFonts.bricolageGrotesque(
-                        color: DashboardTokens.periwinkleGray,
-                        fontSize: 44,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      decoration: const InputDecoration(
-                        isDense: true,
-                        contentPadding: EdgeInsets.zero,
-                        border: InputBorder.none,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 10),
-
-            // ── Projected Impact Subtitle ────────────────────────────
-            Center(
-              child: RichText(
-                textAlign: TextAlign.center,
-                text: TextSpan(
-                  style: GoogleFonts.dmSans(
-                    color: DashboardTokens.periwinkleGraySubtitle,
-                    fontSize: 14,
-                  ),
-                  children: [
-                    TextSpan(
-                      text: '${widget.goal.name}: ${CurrencyFormatter.format(widget.goal.currentAmount, decimalDigits: 0)} → ',
-                    ),
-                    TextSpan(
-                      text: '${CurrencyFormatter.format(projectedCurrent, decimalDigits: 0)} ($projectedPercent%)',
-                      style: GoogleFonts.dmSans(
-                        color: DashboardTokens.bermuda,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 18),
-
-            // ── From Wallet Card (Node 11:1881) ──────────────────────
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 21, vertical: 18.5),
-              decoration: BoxDecoration(
-                color: DashboardTokens.bigStone,
-                borderRadius: BorderRadius.circular(28),
-                border: Border.all(color: DashboardTokens.poloBlue22),
-              ),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 72,
-                    child: Text(
-                      'From',
-                      style: GoogleFonts.dmSans(
-                        color: DashboardTokens.periwinkleGraySubtitle,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      selectedAccount.name,
-                      style: GoogleFonts.dmSans(
-                        color: DashboardTokens.periwinkleGray,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  Text(
-                    CurrencyFormatter.format(selectedBalance),
-                    style: GoogleFonts.dmSans(
-                      color: DashboardTokens.periwinkleGraySubtitle,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // ── Explanatory Note ─────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Text(
-                'This money is set aside for the goal and comes out of your safe-to-spend.',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.dmSans(
-                  color: DashboardTokens.periwinkleGraySubtitle,
-                  fontSize: 14,
-                  height: 1.4,
-                ),
-              ),
-            ),
-            if (_errorMessage != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                _errorMessage!,
-                textAlign: TextAlign.center,
-                style: GoogleFonts.dmSans(
-                  color: DashboardTokens.apricot,
-                  fontSize: 13,
-                ),
-              ),
-            ],
-            const SizedBox(height: 20),
-
-            // ── CTA Button ───────────────────────────────────────────
-            SizedBox(
-              height: 56,
-              child: FilledButton(
-                onPressed: _isSubmitting ? null : _handleSaveDeposit,
-                style: FilledButton.styleFrom(
-                  backgroundColor: DashboardTokens.periwinkleGray,
-                  foregroundColor: DashboardTokens.ebony,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(28),
-                  ),
-                ),
-                child: _isSubmitting
-                    ? const SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          color: DashboardTokens.ebony,
-                        ),
-                      )
-                    : Text(
-                        'Save deposit',
-                        style: GoogleFonts.dmSans(
-                          fontSize: 16,
+              // ── Scrollable Modal Content ─────────────────────────────
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.fromLTRB(20, 8, 20, effectiveBottomPadding),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Title
+                      Text(
+                        'Deposit to ${widget.goal.name}',
+                        style: GoogleFonts.bricolageGrotesque(
+                          color: DashboardTokens.periwinkleGray,
+                          fontSize: 22,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+                      const SizedBox(height: 16),
+
+                      // ── Amount Display & Seamless Input ──────────────────
+                      Center(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            Text(
+                              '₱',
+                              style: GoogleFonts.bricolageGrotesque(
+                                color: DashboardTokens.periwinkleGraySubtitle,
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            IntrinsicWidth(
+                              child: TextField(
+                                controller: _amountController,
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                textAlign: TextAlign.center,
+                                autofocus: true,
+                                onChanged: (_) => setState(() {}),
+                                style: GoogleFonts.bricolageGrotesque(
+                                  color: DashboardTokens.periwinkleGray,
+                                  fontSize: 44,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                decoration: const InputDecoration(
+                                  isDense: true,
+                                  filled: false,
+                                  fillColor: Colors.transparent,
+                                  border: InputBorder.none,
+                                  enabledBorder: InputBorder.none,
+                                  focusedBorder: InputBorder.none,
+                                  errorBorder: InputBorder.none,
+                                  disabledBorder: InputBorder.none,
+                                  contentPadding: EdgeInsets.zero,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+
+                      // ── Projected Impact Subtitle ────────────────────────
+                      Center(
+                        child: RichText(
+                          textAlign: TextAlign.center,
+                          text: TextSpan(
+                            style: GoogleFonts.dmSans(
+                              color: DashboardTokens.periwinkleGraySubtitle,
+                              fontSize: 14,
+                            ),
+                            children: [
+                              TextSpan(
+                                text: '${widget.goal.name}: ${CurrencyFormatter.format(widget.goal.currentAmount, decimalDigits: 0)} → ',
+                              ),
+                              TextSpan(
+                                text: '${CurrencyFormatter.format(projectedCurrent, decimalDigits: 0)} ($projectedPercent%)',
+                                style: GoogleFonts.dmSans(
+                                  color: DashboardTokens.bermuda,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+
+                      // ── From Wallet Card (Node 11:1881) ──────────────────
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 21, vertical: 18.5),
+                        decoration: BoxDecoration(
+                          color: DashboardTokens.bigStone,
+                          borderRadius: BorderRadius.circular(28),
+                          border: Border.all(color: DashboardTokens.poloBlue22),
+                        ),
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              width: 72,
+                              child: Text(
+                                'From',
+                                style: GoogleFonts.dmSans(
+                                  color: DashboardTokens.periwinkleGraySubtitle,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: Text(
+                                selectedAccount.name,
+                                style: GoogleFonts.dmSans(
+                                  color: DashboardTokens.periwinkleGray,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              CurrencyFormatter.format(selectedBalance),
+                              style: GoogleFonts.dmSans(
+                                color: DashboardTokens.periwinkleGraySubtitle,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // ── Explanatory Note ─────────────────────────────────
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Text(
+                          'This money is set aside for the goal and comes out of your safe-to-spend.',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.dmSans(
+                            color: DashboardTokens.periwinkleGraySubtitle,
+                            fontSize: 14,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                      if (_errorMessage != null) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          _errorMessage!,
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.dmSans(
+                            color: DashboardTokens.apricot,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 20),
+
+                      // ── CTA Button ───────────────────────────────────────
+                      SizedBox(
+                        height: 56,
+                        child: FilledButton(
+                          onPressed: _isSubmitting ? null : _handleSaveDeposit,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: DashboardTokens.periwinkleGray,
+                            foregroundColor: DashboardTokens.ebony,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(28),
+                            ),
+                          ),
+                          child: _isSubmitting
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                    color: DashboardTokens.ebony,
+                                  ),
+                                )
+                              : Text(
+                                  'Save deposit',
+                                  style: GoogleFonts.dmSans(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
