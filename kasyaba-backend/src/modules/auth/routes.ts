@@ -3,6 +3,7 @@ import { Request, Response, NextFunction } from "express";
 import rateLimit from "express-rate-limit";
 import { authenticate } from "../../middleware/auth";
 import { validate } from "../../middleware/validate";
+import { ValidationError } from "../../lib/errors";
 import {
   registerSchema,
   loginSchema,
@@ -12,6 +13,7 @@ import {
   deleteAccountSchema,
   restoreSchema,
   forgotPasswordSchema,
+  verifyOtpSchema,
   resetPasswordSchema,
   changePasswordSchema,
 } from "./validation";
@@ -115,8 +117,23 @@ export function registerRoutes(router: Router) {
       try {
         await authService.requestPasswordReset(req.body.email);
         sendSuccess(res, {
-          message: "If that email is registered, a password reset link has been sent.",
+          message: "If that email is registered, a password reset code has been sent.",
         });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  // POST /api/v1/auth/verify-otp
+  router.post(
+    "/api/v1/auth/verify-otp",
+    loginLimiter,
+    validate(verifyOtpSchema),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const result = await authService.verifyOtp(req.body.email, req.body.otp);
+        sendSuccess(res, result);
       } catch (err) {
         next(err);
       }
@@ -130,11 +147,28 @@ export function registerRoutes(router: Router) {
     validate(resetPasswordSchema),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        await authService.resetPassword(
-          req.body.email,
-          req.body.token,
-          req.body.newPassword,
-        );
+        const token =
+          req.body.token ??
+          req.headers.authorization?.replace(/^Bearer\s+/i, "");
+        if (!token) {
+          throw new ValidationError("Password reset token is required", {
+            token: "Password reset token is required",
+          });
+        }
+
+        if (req.body.email) {
+          await authService.resetPassword(
+            req.body.email,
+            token,
+            req.body.newPassword,
+          );
+        } else {
+          await authService.resetPassword(
+            token,
+            req.body.newPassword,
+          );
+        }
+
         sendSuccess(res, {
           message: "Password has been reset successfully.",
         });

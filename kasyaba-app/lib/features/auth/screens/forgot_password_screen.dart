@@ -43,6 +43,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         setState(() {
           _isSubmitted = true;
         });
+        context.push('/otp-verification', extra: {'email': email});
       }
     } catch (_) {
       // Error message is stored in authState.error
@@ -150,21 +151,51 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                                       ),
                                     ),
                                   ),
-                                  child: Row(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      const Icon(
-                                        Icons.check_circle_rounded,
-                                        color: KasyabaTokens.bermuda,
-                                        size: 20,
+                                      Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.check_circle_rounded,
+                                            color: KasyabaTokens.bermuda,
+                                            size: 20,
+                                          ),
+                                          const SizedBox(width: 10),
+                                          Expanded(
+                                            child: Text(
+                                              'Reset code sent! Please check your inbox.',
+                                              style: GoogleFonts.dmSans(
+                                                color: KasyabaTokens.bermuda,
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                      const SizedBox(width: 10),
-                                      Expanded(
+                                      const SizedBox(height: 8),
+                                      GestureDetector(
+                                        onTap: () {
+                                          final email = (formGroup
+                                                  .control('email')
+                                                  .value as String?) ??
+                                              '';
+                                          context.push(
+                                            '/otp-verification',
+                                            extra: {'email': email},
+                                          );
+                                        },
+                                        behavior: HitTestBehavior.opaque,
                                         child: Text(
-                                          'Reset link sent! Please check your inbox.',
+                                          'Enter verification code →',
                                           style: GoogleFonts.dmSans(
                                             color: KasyabaTokens.bermuda,
                                             fontSize: 13,
-                                            fontWeight: FontWeight.w600,
+                                            fontWeight: FontWeight.w700,
+                                            decoration:
+                                                TextDecoration.underline,
                                           ),
                                         ),
                                       ),

@@ -254,7 +254,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  /// Sends a password reset link to the given [email].
+  /// Sends a password reset link or verification code to the given [email].
   Future<void> requestPasswordReset(String email) async {
     final operation = ++_authOperation;
     state = state.copyWith(isLoading: true, error: null);
@@ -268,12 +268,86 @@ class AuthNotifier extends StateNotifier<AuthState> {
     } on DioException catch (e) {
       if (!mounted || operation != _authOperation) return;
       final error =
-          e.response?.data?['error']?['message'] ?? 'Failed to send reset link';
+          e.response?.data?['error']?['message'] ?? 'Failed to send reset code';
       state = state.copyWith(isLoading: false, error: error);
       rethrow;
     } catch (_) {
       if (!mounted || operation != _authOperation) return;
-      state = state.copyWith(isLoading: false, error: 'Failed to send reset link');
+      state = state.copyWith(isLoading: false, error: 'Failed to send reset code');
+      rethrow;
+    }
+  }
+
+  /// Verifies a 6-digit OTP code for the given [email].
+  /// Returns the short-lived reset token (JWT) on success.
+  Future<String> verifyOtp({
+    required String email,
+    required String otp,
+  }) async {
+    final operation = ++_authOperation;
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      final response = await _dio.post(
+        '/auth/verify-otp',
+        data: {
+          'email': email.trim().toLowerCase(),
+          'otp': otp.trim(),
+        },
+      );
+      if (!mounted || operation != _authOperation) return '';
+      state = state.copyWith(isLoading: false);
+      final resetToken = response.data['data']?['resetToken'] as String?;
+      if (resetToken == null || resetToken.isEmpty) {
+        throw const FormatException('Missing reset token in verification response.');
+      }
+      return resetToken;
+    } on DioException catch (e) {
+      if (!mounted || operation != _authOperation) rethrow;
+      final error =
+          e.response?.data?['error']?['message'] ?? 'Invalid verification code';
+      state = state.copyWith(isLoading: false, error: error);
+      rethrow;
+    } catch (_) {
+      if (!mounted || operation != _authOperation) rethrow;
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Invalid verification code',
+      );
+      rethrow;
+    }
+  }
+
+  /// Completes password reset using the 5-minute [resetToken] and [newPassword].
+  Future<void> resetPassword({
+    required String resetToken,
+    required String newPassword,
+  }) async {
+    final operation = ++_authOperation;
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      await _dio.post(
+        '/auth/reset-password',
+        options: Options(
+          headers: {'Authorization': 'Bearer $resetToken'},
+        ),
+        data: {
+          'newPassword': newPassword,
+        },
+      );
+      if (!mounted || operation != _authOperation) return;
+      state = state.copyWith(isLoading: false);
+    } on DioException catch (e) {
+      if (!mounted || operation != _authOperation) return;
+      final error =
+          e.response?.data?['error']?['message'] ?? 'Failed to reset password';
+      state = state.copyWith(isLoading: false, error: error);
+      rethrow;
+    } catch (_) {
+      if (!mounted || operation != _authOperation) return;
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Failed to reset password',
+      );
       rethrow;
     }
   }

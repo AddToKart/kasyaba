@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kasyaba/features/auth/screens/login_screen.dart';
 import 'package:kasyaba/features/auth/screens/register_screen.dart';
 import 'package:kasyaba/features/auth/screens/forgot_password_screen.dart';
+import 'package:kasyaba/features/auth/screens/otp_verification_screen.dart';
+import 'package:kasyaba/features/auth/screens/new_password_screen.dart';
 import 'package:kasyaba/features/auth/widgets/auth_widgets.dart';
 
 void main() {
@@ -158,5 +160,51 @@ void main() {
 
     // Primary Action Button
     expect(find.text('Send reset link'), findsOneWidget);
+  });
+
+  testWidgets('OtpVerificationScreen renders verification code title, cells, expiry, and action button',
+      (tester) async {
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(
+          home: OtpVerificationScreen(email: 'test@kasyaba.app'),
+        ),
+      ),
+    );
+
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(find.text('Verification Code'), findsOneWidget);
+    expect(
+      find.text('Enter the 6-digit code sent to test@kasyaba.app.'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Code expires in'), findsOneWidget);
+    expect(find.textContaining('Resend'), findsOneWidget);
+    expect(find.text('Verify code'), findsOneWidget);
+  });
+
+  testWidgets('NewPasswordScreen renders new password, confirm password, and action button',
+      (tester) async {
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(
+          home: NewPasswordScreen(
+            email: 'test@kasyaba.app',
+            resetToken: 'mock-token',
+          ),
+        ),
+      ),
+    );
+
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(find.text('New password'), findsOneWidget);
+    expect(find.text('Set a strong password to secure your Kasyaba account.'), findsOneWidget);
+    expect(find.text('NEW PASSWORD'), findsOneWidget);
+    expect(find.text('CONFIRM PASSWORD'), findsOneWidget);
+    expect(find.text('Reset password'), findsOneWidget);
   });
 }

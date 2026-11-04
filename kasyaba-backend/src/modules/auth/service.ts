@@ -2,7 +2,8 @@ import crypto from "crypto";
 import * as argon2 from "argon2";
 import { OAuth2Client } from "google-auth-library";
 import { prisma } from "../../config/database";
-import { signAccessToken } from "../../middleware/auth";
+import { signAccessToken, signResetToken, verifyResetToken } from "../../middleware/auth";
+import { sendOtpEmail } from "../../lib/email";
 import {
   AppError,
   ConflictError,
@@ -708,30 +709,121 @@ export async function requestPasswordReset(email: string): Promise<void> {
     // Return early to prevent user email enumeration
     return;
   }
+
+  // Invalidate any existing unused OTPs for this user
+  await prisma.passwordResetOtp.deleteMany({
+    where: { userId: user.id },
+  });
+
+  // Generate a secure 6-digit numeric OTP (100000 - 999999)
+  const otp = crypto.randomInt(100000, 1000000).toString();
+  const otpHash = hashToken(otp);
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+  await prisma.passwordResetOtp.create({
+    data: {
+      userId: user.id,
+      otpHash,
+      expiresAt,
+    },
+  });
+
+  // Send email via Resend (skips gracefully if RESEND_API_KEY is not configured)
+  await sendOtpEmail(user.email, otp);
 }
 
-export async function resetPassword(
+export async function verifyOtp(
   email: string,
-  _token: string,
-  newPassword: string,
-): Promise<void> {
+  otp: string,
+): Promise<{ resetToken: string }> {
   const normalizedEmail = email.trim().toLowerCase();
   const user = await prisma.user.findUnique({
     where: { email: normalizedEmail },
   });
   if (!user) {
-    throw new NotFoundError("User not found");
+    throw new ValidationError("Invalid or expired verification code");
+  }
+
+  const normalizedOtp = otp.trim();
+  const incomingHash = hashToken(normalizedOtp);
+
+  const otpRecord = await prisma.passwordResetOtp.findFirst({
+    where: {
+      userId: user.id,
+      usedAt: null,
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (!otpRecord) {
+    throw new ValidationError("No active verification code found");
+  }
+
+  if (otpRecord.expiresAt < new Date()) {
+    throw new ValidationError("Verification code has expired");
+  }
+
+  if (otpRecord.otpHash !== incomingHash) {
+    throw new ValidationError("Invalid or expired verification code");
+  }
+
+  // Mark OTP as used
+  await prisma.passwordResetOtp.update({
+    where: { id: otpRecord.id },
+    data: { usedAt: new Date() },
+  });
+
+  const resetToken = await signResetToken({
+    sub: user.id,
+    email: user.email,
+  });
+
+  return { resetToken };
+}
+
+export async function resetPassword(
+  param1: string,
+  param2?: string,
+  param3?: string,
+): Promise<void> {
+  let userId: string;
+  let newPassword: string;
+
+  if (param3 !== undefined) {
+    // Called with (email, token, newPassword)
+    const email = param1.trim().toLowerCase();
+    const token = param2;
+    newPassword = param3;
+
+    if (token && token.split(".").length === 3) {
+      const payload = await verifyResetToken(token);
+      userId = payload.sub;
+    } else {
+      const user = await prisma.user.findUnique({
+        where: { email },
+      });
+      if (!user) {
+        throw new NotFoundError("User not found");
+      }
+      userId = user.id;
+    }
+  } else {
+    // Called with (resetToken, newPassword)
+    const resetToken = param1;
+    newPassword = param2!;
+    const payload = await verifyResetToken(resetToken);
+    userId = payload.sub;
   }
 
   const passwordHash = await argon2.hash(newPassword);
   await prisma.user.update({
-    where: { id: user.id },
+    where: { id: userId },
     data: { passwordHash },
   });
 
   // Revoke previous sessions on password reset
   await prisma.authSession.updateMany({
-    where: { userId: user.id, revokedAt: null },
+    where: { userId, revokedAt: null },
     data: { revokedAt: new Date() },
   });
 }

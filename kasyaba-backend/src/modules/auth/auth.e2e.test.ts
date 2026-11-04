@@ -357,7 +357,7 @@ describe('Auth Endpoints E2E Integration Tests', () => {
         .send({ email: 'user@example.com' });
 
       expect(res.status).toBe(200);
-      expect(res.body.data.message).toContain('password reset link');
+      expect(res.body.data.message).toContain('password reset code');
       expect(authService.requestPasswordReset).toHaveBeenCalledWith('user@example.com');
     });
 
@@ -365,6 +365,72 @@ describe('Auth Endpoints E2E Integration Tests', () => {
       const res = await request(app)
         .post('/api/v1/auth/forgot-password')
         .send({ email: 'not-an-email' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('successfully verifies OTP on POST /api/v1/auth/verify-otp', async () => {
+      vi.mocked(authService.verifyOtp).mockResolvedValueOnce({
+        resetToken: 'mock-reset-token-5min',
+      });
+
+      const res = await request(app)
+        .post('/api/v1/auth/verify-otp')
+        .send({ email: 'user@example.com', otp: '123456' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.resetToken).toBe('mock-reset-token-5min');
+      expect(authService.verifyOtp).toHaveBeenCalledWith('user@example.com', '123456');
+    });
+
+    it('rejects invalid OTP format on POST /api/v1/auth/verify-otp', async () => {
+      const res = await request(app)
+        .post('/api/v1/auth/verify-otp')
+        .send({ email: 'user@example.com', otp: '123' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('resets password on POST /api/v1/auth/reset-password with Bearer token', async () => {
+      vi.mocked(authService.resetPassword).mockResolvedValueOnce();
+
+      const res = await request(app)
+        .post('/api/v1/auth/reset-password')
+        .set('Authorization', 'Bearer mock-reset-token-5min')
+        .send({ newPassword: 'NewSecurePassword123!' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.message).toContain('Password has been reset successfully');
+      expect(authService.resetPassword).toHaveBeenCalledWith(
+        'mock-reset-token-5min',
+        'NewSecurePassword123!',
+      );
+    });
+
+    it('resets password on POST /api/v1/auth/reset-password with token in body', async () => {
+      vi.mocked(authService.resetPassword).mockResolvedValueOnce();
+
+      const res = await request(app)
+        .post('/api/v1/auth/reset-password')
+        .send({
+          token: 'mock-reset-token-5min',
+          newPassword: 'NewSecurePassword123!',
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.message).toContain('Password has been reset successfully');
+      expect(authService.resetPassword).toHaveBeenCalledWith(
+        'mock-reset-token-5min',
+        'NewSecurePassword123!',
+      );
+    });
+
+    it('rejects POST /api/v1/auth/reset-password when token is missing', async () => {
+      const res = await request(app)
+        .post('/api/v1/auth/reset-password')
+        .send({ newPassword: 'NewSecurePassword123!' });
 
       expect(res.status).toBe(400);
       expect(res.body.error.code).toBe('VALIDATION_ERROR');
