@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../app/theme/app_motion.dart';
 import '../../dashboard/widgets/dashboard_tokens.dart';
+import '../../../core/app_info.dart';
 import '../../../shared/widgets/app_sheet.dart';
 import '../../../shared/widgets/motion_components.dart';
 import '../../../shared/widgets/pill_button.dart';
@@ -13,8 +14,6 @@ import '../../../shared/widgets/pill_button.dart';
 /// ─────────────────────────────────────────────────────────────
 class PrivacyAndAboutScreen extends StatelessWidget {
   const PrivacyAndAboutScreen({super.key});
-
-  static const String kAppVersion = '0.1.0 (Build 1)';
 
   static void showTermsSheet(BuildContext context) {
     AppHaptics.selectionClick();
@@ -287,7 +286,7 @@ class PrivacyAndAboutScreen extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         child: _buildKeyValueRow(
                           label: 'Version',
-                          value: kAppVersion,
+                          value: kAppVersionLabel,
                         ),
                       ),
                       _buildDivider(),

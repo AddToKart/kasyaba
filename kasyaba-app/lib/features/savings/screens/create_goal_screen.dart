@@ -205,7 +205,11 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
                           behavior: HitTestBehavior.opaque,
                           onTap: () {
                             AppHaptics.selectionClick();
-                            Navigator.of(context).pop();
+                            if (context.canPop()) {
+                              context.pop();
+                            } else {
+                              context.go('/goals');
+                            }
                           },
                           child: Container(
                             width: 50,

@@ -450,6 +450,14 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       return b.status.toLowerCase() != 'paid';
     }).toList()..sort((a, b) => a.dueDate.compareTo(b.dueDate));
 
+    // Only surface bills that actually fall inside the displayed week so the
+    // "No upcoming bills this week" copy stays truthful.
+    final weekEndExclusive = weekDays.last.add(const Duration(days: 1));
+    final weekBills = upcomingBills.where((b) {
+      final due = _dateOnly(b.dueDate);
+      return !due.isBefore(weekDays.first) && due.isBefore(weekEndExclusive);
+    }).toList();
+
     return Theme(
       data: Theme.of(context).copyWith(
         inputDecorationTheme: const InputDecorationTheme(
