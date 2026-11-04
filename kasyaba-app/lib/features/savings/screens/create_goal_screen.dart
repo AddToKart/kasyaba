@@ -193,7 +193,7 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
         body: KasyabaBackground(
           child: SizedBox.expand(
             child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(20, topPadding + 14, 20, 110),
+              padding: EdgeInsets.fromLTRB(20, topPadding + 14, 20, DashboardTokens.dockClearance),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [

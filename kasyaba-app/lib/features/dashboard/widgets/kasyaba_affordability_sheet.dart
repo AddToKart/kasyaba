@@ -10,6 +10,7 @@ import '../../../core/providers/api_providers.dart';
 import '../../../core/providers/preference_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/deterministic_math.dart';
+import '../../../shared/widgets/app_sheet.dart';
 import '../../../shared/widgets/app_state_widgets.dart';
 import 'dashboard_tokens.dart';
 import 'kasyaba_safe_spend_breakdown_sheet.dart';
@@ -18,16 +19,8 @@ import 'kasyaba_safe_spend_breakdown_sheet.dart';
 ///  KasyaBa? Purchase Simulator Modal (Nodes 85:1409, 103:158, 103:321)
 /// ─────────────────────────────────────────────────────────────
 void showKasyaBaAffordabilitySheet(BuildContext context) {
-  final topPadding = MediaQuery.paddingOf(context).top;
-  final screenHeight = MediaQuery.sizeOf(context).height;
-
-  showModalBottomSheet(
+  showKasyabaSheet<void>(
     context: context,
-    useRootNavigator: true,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    barrierColor: Colors.black.withValues(alpha: 0.75),
-    constraints: BoxConstraints(maxHeight: screenHeight - topPadding - 32),
     builder: (ctx) => const _KasyaBaAffordabilitySheetModal(),
   );
 }
@@ -158,75 +151,40 @@ class _KasyaBaAffordabilitySheetModalState
       );
     }
 
-    final topPadding = MediaQuery.paddingOf(context).top;
-    final screenHeight = MediaQuery.sizeOf(context).height;
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-    final maxAllowedHeight = screenHeight - topPadding - 32;
 
-    // Minimal, refined clearance so action buttons and simulation results sit cleanly
+    // Calibrated clearance so action buttons and simulation results sit cleanly
     // just above the floating dock with balanced spacing (~16dp breathing room).
-    const dockClearance = 105.0;
     final effectiveBottomPadding = bottomInset > 0
         ? (bottomInset + 20.0)
-        : dockClearance;
+        : DashboardTokens.dockClearance;
 
-    return ConstrainedBox(
-      constraints: BoxConstraints(maxHeight: maxAllowedHeight),
-      child: Container(
-        clipBehavior: Clip.antiAlias,
-        decoration: const BoxDecoration(
-          color: DashboardTokens.ebony,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-          border: Border(
-            top: BorderSide(color: DashboardTokens.poloBlue22, width: 1.0),
-          ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // ── Fixed Top Pinned Drag Handle (Always visible when scrolling) ──
-            Padding(
-              padding: const EdgeInsets.only(top: 12, bottom: 8),
-              child: Center(
-                child: Container(
-                  width: 48,
-                  height: 4.5,
-                  decoration: BoxDecoration(
-                    color: DashboardTokens.poloBlue40,
-                    borderRadius: BorderRadius.circular(2.5),
-                  ),
-                ),
-              ),
+    return AppSheet(
+      color: DashboardTokens.ebony,
+      padding: EdgeInsets.fromLTRB(20, 6, 20, effectiveBottomPadding),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // ── Modal Header (Figma Node 85:1409 Carbon Copy) ────
+          Text(
+            'Evaluate affordability',
+            style: GoogleFonts.bricolageGrotesque(
+              color: DashboardTokens.periwinkleGray,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              letterSpacing: -0.3,
             ),
-
-            // ── Scrollable Modal Content ─────────────────────────
-            Flexible(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(20, 6, 20, effectiveBottomPadding),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // ── Modal Header (Figma Node 85:1409 Carbon Copy) ────
-                    Text(
-                      'Evaluate affordability',
-                      style: GoogleFonts.bricolageGrotesque(
-                        color: DashboardTokens.periwinkleGray,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: -0.3,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Deterministic calculation of life–energy work hours, cash flow, and installment impact.',
-                      style: GoogleFonts.dmSans(
-                        color: DashboardTokens.periwinkleGraySubtitle,
-                        fontSize: 13,
-                        height: 1.35,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Deterministic calculation of life–energy work hours, cash flow, and installment impact.',
+            style: GoogleFonts.dmSans(
+              color: DashboardTokens.periwinkleGraySubtitle,
+              fontSize: 13,
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 20),
 
                     // ── Card Container with Inputs & Mode Switch ─────────
                     Container(
@@ -643,11 +601,6 @@ class _KasyaBaAffordabilitySheetModalState
                     ),
                   ],
                 ),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

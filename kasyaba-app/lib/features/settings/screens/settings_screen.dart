@@ -594,7 +594,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         child: SafeArea(
           bottom: false,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, KasyabaTokens.dockClearance),
             children: [
               FadeSlideEntrance.staggered(
                 index: 0,

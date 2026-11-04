@@ -6,6 +6,7 @@ import '../../../app/theme/app_motion.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../../../shared/widgets/app_sheet.dart';
 import '../../../shared/widgets/kasyaba_toast.dart';
 import '../../../shared/widgets/pill_button.dart';
 import '../../dashboard/widgets/dashboard_tokens.dart';
@@ -14,16 +15,8 @@ import '../../dashboard/widgets/dashboard_tokens.dart';
 ///  Goal Deposit Modal (Figma Node 42:6619)
 /// ─────────────────────────────────────────────────────────────
 void showGoalDepositSheet(BuildContext context, SavingsGoal goal) {
-  final topPadding = MediaQuery.paddingOf(context).top;
-  final screenHeight = MediaQuery.sizeOf(context).height;
-
-  showModalBottomSheet(
+  showKasyabaSheet<void>(
     context: context,
-    useRootNavigator: true,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    barrierColor: Colors.black.withValues(alpha: 0.72),
-    constraints: BoxConstraints(maxHeight: screenHeight - topPadding - 32),
     builder: (ctx) => _GoalDepositModal(goal: goal),
   );
 }
@@ -123,16 +116,12 @@ class _GoalDepositModalState extends ConsumerState<_GoalDepositModal> {
   Widget build(BuildContext context) {
     final accountsAsync = ref.watch(accountsProvider);
     final balancesAsync = ref.watch(accountBalancesProvider);
-    final topPadding = MediaQuery.paddingOf(context).top;
-    final screenHeight = MediaQuery.sizeOf(context).height;
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-    final maxAllowedHeight = screenHeight - topPadding - 32;
 
-    // Calibrated clearance so CTA button sits cleanly above the persistent floating dock
-    const dockClearance = 105.0;
+    // Calibrated clearance so CTA button sits cleanly above the floating dock
     final effectiveBottomPadding = bottomInset > 0
         ? (bottomInset + 20.0)
-        : dockClearance;
+        : DashboardTokens.dockClearance;
 
     final accounts = accountsAsync.valueOrNull ?? const <Account>[];
     final effectiveAccountId = _effectiveAccountId(accounts);
@@ -177,59 +166,23 @@ class _GoalDepositModalState extends ConsumerState<_GoalDepositModal> {
           contentPadding: EdgeInsets.zero,
         ),
       ),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxHeight: maxAllowedHeight),
-        child: Container(
-          clipBehavior: Clip.antiAlias,
-          decoration: const BoxDecoration(
-            color: DashboardTokens.bigStone,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-            border: Border(
-              top: BorderSide(color: DashboardTokens.poloBlue30, width: 1.0),
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // ── Fixed Top Pinned Drag Handle ─────────────────────────
-              Padding(
-                padding: const EdgeInsets.only(top: 15, bottom: 8),
-                child: Center(
-                  child: Container(
-                    width: 44,
-                    height: 5,
-                    decoration: BoxDecoration(
-                      color: DashboardTokens.poloBlue.withValues(alpha: 0.4),
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                  ),
-                ),
+      child: AppSheet(
+        color: DashboardTokens.bigStone,
+        padding: EdgeInsets.fromLTRB(20, 8, 20, effectiveBottomPadding),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Title
+            Text(
+              'Deposit to ${widget.goal.name}',
+              style: GoogleFonts.bricolageGrotesque(
+                color: DashboardTokens.periwinkleGray,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
               ),
-
-              // ── Scrollable Modal Content ─────────────────────────────
-              Flexible(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(
-                    20,
-                    8,
-                    20,
-                    effectiveBottomPadding,
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // Title
-                      Text(
-                        'Deposit to ${widget.goal.name}',
-                        style: GoogleFonts.bricolageGrotesque(
-                          color: DashboardTokens.periwinkleGray,
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
+            ),
+            const SizedBox(height: 16),
 
                       // ── Amount Display & Seamless Input ──────────────────
                       Center(
@@ -402,12 +355,7 @@ class _GoalDepositModalState extends ConsumerState<_GoalDepositModal> {
                         onPressed: canSubmit ? _handleSaveDeposit : null,
                         isLoading: _isSubmitting,
                       ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
+          ],
         ),
       ),
     );

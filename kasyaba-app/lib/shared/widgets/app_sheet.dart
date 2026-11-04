@@ -57,9 +57,12 @@ class AppSheet extends StatelessWidget {
                   ),
                 ),
               Flexible(
-                child: SingleChildScrollView(
-                  padding: padding,
-                  child: child,
+                child: Material(
+                  type: MaterialType.transparency,
+                  child: SingleChildScrollView(
+                    padding: padding,
+                    child: child,
+                  ),
                 ),
               ),
             ],

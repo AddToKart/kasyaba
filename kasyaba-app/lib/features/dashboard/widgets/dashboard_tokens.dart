@@ -42,4 +42,7 @@ class DashboardTokens {
 
   // Gradients
   static const RadialGradient canvasGradient = KasyabaTokens.canvasGradient;
+
+  // Sizing
+  static const double dockClearance = KasyabaTokens.dockClearance;
 }

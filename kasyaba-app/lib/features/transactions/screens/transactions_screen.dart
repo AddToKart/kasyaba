@@ -15,6 +15,7 @@ import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/category_icon_helper.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../../../shared/widgets/app_sheet.dart';
 import '../../../shared/widgets/app_state_widgets.dart';
 import '../../../shared/widgets/kasyaba_date_picker.dart';
 import '../../../shared/widgets/kasyaba_toast.dart';
@@ -42,17 +43,12 @@ Future<void> _showTransactionActions(
   TransactionEntry transaction,
 ) async {
   if (transaction.isSyncFailed) {
-    final action = await showModalBottomSheet<String>(
+    final action = await showKasyabaSheet<String>(
       context: context,
-      useRootNavigator: true,
-      backgroundColor: DashboardTokens.bigStone,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      showDragHandle: true,
-      builder: (sheetContext) => SafeArea(
+      builder: (sheetContext) => AppSheet(
+        color: DashboardTokens.bigStone,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -136,7 +132,7 @@ Future<void> _showTransactionActions(
                 ),
                 onTap: () => Navigator.of(sheetContext).pop('delete'),
               ),
-            ],
+              ],
           ),
         ),
       ),
@@ -191,15 +187,10 @@ Future<void> _showTransactionActions(
     return;
   }
 
-  final action = await showModalBottomSheet<String>(
+  final action = await showKasyabaSheet<String>(
     context: context,
-    useRootNavigator: true,
-    backgroundColor: DashboardTokens.bigStone,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-    ),
-    showDragHandle: true,
-    builder: (sheetContext) => SafeArea(
+    builder: (sheetContext) => AppSheet(
+      color: DashboardTokens.bigStone,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -482,7 +473,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
             gradient: DashboardTokens.canvasGradient,
           ),
           child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(20, topPadding + 12, 20, 110),
+            padding: EdgeInsets.fromLTRB(20, topPadding + 12, 20, DashboardTokens.dockClearance),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [

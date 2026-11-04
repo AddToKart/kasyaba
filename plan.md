@@ -15,6 +15,22 @@
 - **Phase 4 / Step C:** `KasyabaTokens` single source of truth (DashboardTokens kept as adapter), dark `ThemeData` rebuilt on the navy system with DM Sans, shared kit created (`KasyabaBackground`, `KasyabaCard`, `PillButton`, `LabelRowField`, `AppSheet`, `showKasyabaSheet`, `showKasyabaConfirmDialog`, `KasyabaEmptyState`, `KasyabaErrorCard`, `KasyabaLoadingSkeleton`, `kasyabaDatePickerTheme`). Legacy splash/reconcile/backup-sheets/offline-banner/release-error surfaces restyled; 18 raw SnackBars migrated to `KasyabaToast`; string font families replaced; ledger legacy surfaces removed.
 - **Phase 5 / Step gates:** analyze clean at every gate; unit + widget suites green; debug APK builds; backend compiles.
 
+## QA verification (automated, 2026-11-04)
+
+**Gates:** `flutter analyze` clean · `flutter test` **189/189** · `flutter build apk --debug` OK · backend `vitest` **145/145** · backend `tsc --noEmit` clean.
+
+**New QA suites (85 tests):**
+- Engine/invalidation (unit): full mutation→provider matrix verified end-to-end with a fake Dio `HttpClientAdapter`, fake secure storage, and a no-op drift executor — transactions hub, goals (incl. family-scoped `goalDetail`), bills, profile, accounts, budgets; payload fidelity; JSON parsing; offline queue + filtered pagination merge.
+- Widget flows: salary-sheet ₱0 blocker regression, goal-deposit guard (no fake wallet/balance), affordability error guard, sheet-chrome unification (all migrated sheets + 320px keyboard inset), dock-clearance token wiring (120) on every tab, and 22 screen mount smokes.
+
+**Bugs found by QA and fixed:**
+1. Six sheets switched to `showKasyabaSheet` but not wrapped in `AppSheet` (transparent background → bare content over scrim): transactions action sheets ×2, bills mark-paid, add-transaction account + category pickers, add-bill category picker. All now have unified r32 chrome.
+2. `AppSheet` lacked a `Material` ancestor, triggering ListTile ink assertions → added transparent `Material` inside the sheet scroll.
+3. `addBill` missed `alertsProvider` invalidation (plan P3-08) → fixed and locked with a test.
+4. Filtered pagination `totalCount` counted out-of-range pending entries → now counts only merged entries; locked with a test.
+
+**QA gaps (next cycle):** offline replay/retry/restore invalidation chains, `watchPendingSyncTransactions` live emissions, real-device IME/keyboard behavior, CI wiring for the new suites.
+
 **Remaining follow-ups (intentionally not blocking):**
 - P3-01/P3-13: dedicated provider-invalidation matrix test + CI wiring (current coverage is formula/prefs/widget-level).
 - P4-15: custom lint guard banning raw `Color(0x…)`/`Colors.*` outside the tokens file.

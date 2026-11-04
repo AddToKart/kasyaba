@@ -10,6 +10,7 @@ import '../../../shared/widgets/motion_components.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../../../shared/widgets/app_sheet.dart';
 import '../../../shared/widgets/kasyaba_date_picker.dart';
 import '../../../shared/widgets/kasyaba_toast.dart';
 import '../../../shared/widgets/pill_button.dart';
@@ -199,32 +200,17 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
       return;
     }
 
-    await showModalBottomSheet<String>(
+    await showKasyabaSheet<String>(
       context: context,
-      useRootNavigator: true,
-      backgroundColor: DashboardTokens.bigStone,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
       builder: (sheetContext) {
-        return SafeArea(
+        return AppSheet(
+          color: DashboardTokens.bigStone,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Center(
-                  child: Container(
-                    width: 36,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: DashboardTokens.poloBlue22,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
                 Text(
                   isDestination
                       ? 'Select Destination Account'
@@ -236,9 +222,8 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                Flexible(
-                  child: ListView.separated(
-                    shrinkWrap: true,
+                ListView.separated(
+                  shrinkWrap: true,
                     itemCount: accounts.length,
                     separatorBuilder: (_, _) =>
                         Divider(height: 1, color: DashboardTokens.poloBlue16),
@@ -283,11 +268,10 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                         },
                       );
                     },
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
+        ),
         );
       },
     ).then((chosenId) {
@@ -672,7 +656,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
             gradient: DashboardTokens.canvasGradient,
           ),
           child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(20, topPadding + 14, 20, 110),
+            padding: EdgeInsets.fromLTRB(20, topPadding + 14, 20, DashboardTokens.dockClearance),
             child: Form(
               key: _formKey,
               child: Column(
@@ -1470,32 +1454,17 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     final categories = (fetched == null || fetched.isEmpty)
         ? defaultCategoriesList
         : fetched;
-    showModalBottomSheet<Category>(
+    showKasyabaSheet<Category>(
       context: context,
-      useRootNavigator: true,
-      backgroundColor: DashboardTokens.bigStone,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
       builder: (sheetContext) {
-        return SafeArea(
+        return AppSheet(
+          color: DashboardTokens.bigStone,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Center(
-                  child: Container(
-                    width: 36,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: DashboardTokens.poloBlue22,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
                 Text(
                   'Select Category',
                   style: GoogleFonts.bricolageGrotesque(
@@ -1505,31 +1474,29 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                Flexible(
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    itemCount: categories.length,
-                    separatorBuilder: (_, _) =>
-                        Divider(height: 1, color: DashboardTokens.poloBlue16),
-                    itemBuilder: (ctx, idx) {
-                      final c = categories[idx];
-                      return ListTile(
-                        title: Text(
-                          c.name,
-                          style: GoogleFonts.dmSans(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: DashboardTokens.periwinkleGray,
-                          ),
-                        ),
-                        onTap: () => Navigator.of(sheetContext).pop(c),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
+                ListView.separated(
+                  shrinkWrap: true,
+                itemCount: categories.length,
+                separatorBuilder: (_, _) =>
+                    Divider(height: 1, color: DashboardTokens.poloBlue16),
+                itemBuilder: (ctx, idx) {
+                  final c = categories[idx];
+                  return ListTile(
+                    title: Text(
+                      c.name,
+                      style: GoogleFonts.dmSans(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: DashboardTokens.periwinkleGray,
+                      ),
+                    ),
+                    onTap: () => Navigator.of(sheetContext).pop(c),
+                  );
+                },
+              ),
+            ],
           ),
+        ),
         );
       },
     ).then((cat) {

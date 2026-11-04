@@ -9,6 +9,7 @@ import '../../../core/utils/category_icon_helper.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../dashboard/widgets/dashboard_tokens.dart';
 import '../../../shared/widgets/app_dialog.dart';
+import '../../../shared/widgets/app_sheet.dart';
 import '../../../shared/widgets/app_state_widgets.dart';
 import '../../../shared/widgets/kasyaba_toast.dart';
 import '../../../shared/widgets/motion_components.dart';
@@ -19,13 +20,7 @@ final _uuidPattern = RegExp(
 );
 
 void _showCreateBudgetSheet(BuildContext context) {
-  showModalBottomSheet<void>(
-    context: context,
-    useRootNavigator: true,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (ctx) => const _CreateBudgetSheet(),
-  );
+  showKasyabaSheet<void>(context: context, builder: (ctx) => const _CreateBudgetSheet());
 }
 
 /// ─────────────────────────────────────────────────────────────
@@ -58,7 +53,7 @@ class BudgetsScreen extends ConsumerWidget {
                   backgroundColor: DashboardTokens.bigStone,
                   onRefresh: () async => ref.invalidate(budgetStatusProvider),
                   child: ListView(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, DashboardTokens.dockClearance),
                     children: [
                       // Header Row: 50x50 Squircle Back Button + Title + 50x50 Squircle Add
                       FadeSlideEntrance.staggered(
@@ -777,33 +772,15 @@ class _CreateBudgetSheetState extends ConsumerState<_CreateBudgetSheet> {
         .toList();
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: DashboardTokens.ebony,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        border: Border.all(color: DashboardTokens.poloBlue22, width: 1),
-      ),
-      padding: EdgeInsets.fromLTRB(20, 20, 20, 24 + bottomInset),
-      child: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Handle
-              Center(
-                child: Container(
-                  width: 38,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: DashboardTokens.poloBlue30,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 18),
-
+    return AppSheet(
+      color: DashboardTokens.ebony,
+      padding: EdgeInsets.fromLTRB(20, 6, 20, 24 + bottomInset),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
               // Title & Subtitle
               Text(
                 'Create budget',
@@ -982,8 +959,7 @@ class _CreateBudgetSheetState extends ConsumerState<_CreateBudgetSheet> {
                 isLoading: _isSubmitting,
                 onPressed: _isSubmitting ? null : _submit,
               ),
-            ],
-          ),
+          ],
         ),
       ),
     );

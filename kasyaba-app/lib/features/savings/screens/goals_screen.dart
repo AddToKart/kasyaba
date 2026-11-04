@@ -93,7 +93,7 @@ class GoalsScreen extends ConsumerWidget {
               physics: const AlwaysScrollableScrollPhysics(
                 parent: BouncingScrollPhysics(),
               ),
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 110),
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, DashboardTokens.dockClearance),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [

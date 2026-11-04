@@ -9,6 +9,7 @@ import '../../../shared/widgets/motion_components.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../../../shared/widgets/app_sheet.dart';
 import '../../../shared/widgets/app_state_widgets.dart';
 import '../../../shared/widgets/kasyaba_date_picker.dart';
 import '../../../shared/widgets/kasyaba_toast.dart';
@@ -110,37 +111,19 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
     String? selectedAccount = accounts.isNotEmpty ? accounts.first.id : null;
     var isSubmitting = false;
 
-    showModalBottomSheet<void>(
+    showKasyabaSheet<void>(
       context: context,
-      useRootNavigator: true,
-      backgroundColor: DashboardTokens.bigStone,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
       builder: (sheetContext) {
         return StatefulBuilder(
           builder: (ctx, setSheetState) {
-            return SafeArea(
+            return AppSheet(
+              color: DashboardTokens.bigStone,
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 16,
-                ),
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Center(
-                      child: Container(
-                        width: 36,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: DashboardTokens.poloBlue22,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -395,11 +378,11 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                                   ),
                                 ),
                         ),
-                      ),
+                       ),
+                     ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
             );
           },
         );
@@ -468,7 +451,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
             gradient: DashboardTokens.canvasGradient,
           ),
           child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(20, topPadding + 14, 20, 110),
+            padding: EdgeInsets.fromLTRB(20, topPadding + 14, 20, DashboardTokens.dockClearance),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [

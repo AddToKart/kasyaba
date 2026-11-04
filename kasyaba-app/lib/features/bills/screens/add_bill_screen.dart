@@ -8,6 +8,7 @@ import '../../../app/theme/app_motion.dart';
 import '../../../shared/widgets/motion_components.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
+import '../../../shared/widgets/app_sheet.dart';
 import '../../../shared/widgets/kasyaba_date_picker.dart';
 import '../../../shared/widgets/kasyaba_toast.dart';
 import '../../../shared/widgets/pill_button.dart';
@@ -115,31 +116,17 @@ class _AddBillScreenState extends ConsumerState<AddBillScreen> {
       return;
     }
 
-    final chosen = await showModalBottomSheet<Category>(
+    final chosen = await showKasyabaSheet<Category>(
       context: context,
-      backgroundColor: DashboardTokens.bigStone,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
       builder: (sheetContext) {
-        return SafeArea(
+        return AppSheet(
+          color: DashboardTokens.bigStone,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Center(
-                  child: Container(
-                    width: 36,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: DashboardTokens.poloBlue22,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
                 Text(
                   'Select Category',
                   style: GoogleFonts.bricolageGrotesque(
@@ -149,9 +136,8 @@ class _AddBillScreenState extends ConsumerState<AddBillScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                Flexible(
-                  child: ListView.separated(
-                    shrinkWrap: true,
+                ListView.separated(
+                  shrinkWrap: true,
                     itemCount: categories.length + 1,
                     separatorBuilder: (_, _) =>
                         Divider(height: 1, color: DashboardTokens.poloBlue16),
@@ -204,11 +190,10 @@ class _AddBillScreenState extends ConsumerState<AddBillScreen> {
                         onTap: () => Navigator.of(sheetContext).pop(category),
                       );
                     },
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
+        ),
         );
       },
     );
@@ -302,7 +287,7 @@ class _AddBillScreenState extends ConsumerState<AddBillScreen> {
             gradient: DashboardTokens.canvasGradient,
           ),
           child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(20, topPadding + 14, 20, 110),
+            padding: EdgeInsets.fromLTRB(20, topPadding + 14, 20, DashboardTokens.dockClearance),
             child: Form(
               key: _formKey,
               child: Column(

@@ -849,7 +849,7 @@ final paginatedTransactionsProvider = FutureProvider<PaginatedTransactions>((
       items: combinedItems,
       page: filter.page,
       limit: filter.limit,
-      totalCount: totalCount + pendingEntries.length,
+      totalCount: totalCount + filteredPendingEntries.length,
     );
   } catch (_) {
     if (pendingEntries.isNotEmpty) {
@@ -1426,6 +1426,7 @@ class TransactionMutator {
     _ref.invalidate(billsProvider);
     _ref.invalidate(dashboardProvider);
     _ref.invalidate(planningProvider);
+    _ref.invalidate(alertsProvider);
   }
 
   Future<void> markBillPaid({

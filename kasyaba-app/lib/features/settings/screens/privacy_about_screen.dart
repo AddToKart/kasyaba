@@ -112,7 +112,7 @@ class PrivacyAndAboutScreen extends StatelessWidget {
         child: SafeArea(
           bottom: false,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, DashboardTokens.dockClearance),
             children: [
               // Header: 50x50 Squircle Back + Title (Figma Node 11:1062)
               FadeSlideEntrance.staggered(

@@ -125,7 +125,7 @@ class AccountsScreen extends ConsumerWidget {
           bottom: false,
           child: accountsAsync.when(
             loading: () => ListView(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, KasyabaTokens.dockClearance),
               children: const [
                 _AccountsHeader(),
                 SizedBox(height: 20),
@@ -133,7 +133,7 @@ class AccountsScreen extends ConsumerWidget {
               ],
             ),
             error: (error, _) => ListView(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, KasyabaTokens.dockClearance),
               children: [
                 const _AccountsHeader(),
                 const SizedBox(height: 20),
@@ -151,7 +151,7 @@ class AccountsScreen extends ConsumerWidget {
             ),
             data: (accounts) {
               return ListView(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, KasyabaTokens.dockClearance),
                 children: [
                   const _AccountsHeader(),
                   const SizedBox(height: 20),

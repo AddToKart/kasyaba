@@ -60,5 +60,5 @@ class KasyabaTokens {
   static const double radiusSheetTop = 32.0;
   static const double radiusDock = 34.0;
   static const double screenPaddingH = 20.0;
-  static const double dockClearance = 105.0;
+  static const double dockClearance = 120.0;
 }

@@ -65,6 +65,40 @@ export function registerRoutes(router: Router) {
     );
   });
 
+  router.get('/terms', (_req: Request, res: Response) => {
+    res.type('html').send(
+      renderPage(
+        'Terms of Service',
+        `
+        <h1>KASYABA Terms of Service</h1>
+        <p class="updated">Last updated: October 5, 2026</p>
+        <p>By using KASYABA, you agree to these Terms of Service. Please read them carefully.</p>
+
+        <h2>1. Purpose & Scope</h2>
+        <p>KASYABA provides deterministic personal financial calculations (safe-to-spend, cash buffer, payday countdown, installment math) and private ledger synchronization.</p>
+
+        <h2>2. No Financial Advice</h2>
+        <p>KASYABA is a personal budgeting tool and financial calculator, not a registered investment advisor, bank, or tax counselor. Calculations are based solely on the data you enter.</p>
+
+        <h2>3. Data Ownership & Control</h2>
+        <p>You own 100% of your financial data. You may export or purge your records at any time without penalty or lock-in.</p>
+
+        <h2>4. Hybrid Architecture & Privacy</h2>
+        <p>All daily financial math runs locally on your device. Your financial ledger syncs to your private authenticated account over encrypted channels for cross-device access and backup. We do not sell your data or feed it into third-party AI models.</p>
+
+        <h2>5. Account Security</h2>
+        <p>You are responsible for safeguarding your credentials. If you suspect unauthorized access, reset your password immediately or email support.</p>
+
+        <h2>6. Termination & Deletion</h2>
+        <p>You can delete your account at any time via Settings &rarr; Delete Account or via <a href="/account-deletion">/account-deletion</a>. All associated records will be permanently removed.</p>
+
+        <h2>7. Contact</h2>
+        <p>Questions: <a href="mailto:${escapeHtml(env.SUPPORT_EMAIL)}">${escapeHtml(env.SUPPORT_EMAIL)}</a></p>
+        `,
+      ),
+    );
+  });
+
   router.get('/account-deletion', (_req: Request, res: Response) => {
     res.type('html').send(
       renderPage(

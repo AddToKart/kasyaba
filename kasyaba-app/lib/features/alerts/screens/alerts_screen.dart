@@ -44,7 +44,7 @@ class AlertsScreen extends ConsumerWidget {
             ref.invalidate(alertsProvider);
           },
           child: ListView(
-            padding: EdgeInsets.fromLTRB(20, topPadding, 20, 110),
+            padding: EdgeInsets.fromLTRB(20, topPadding, 20, DashboardTokens.dockClearance),
             children: [
               // ── Header (Node 11:2427) ──────────────────────────
               FadeSlideEntrance.staggered(

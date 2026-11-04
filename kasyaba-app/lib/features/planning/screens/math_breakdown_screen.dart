@@ -201,7 +201,7 @@ class MathBreakdownScreen extends ConsumerWidget {
                 // ── Scrollable Card Content ─────────────────────────
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 110),
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, DashboardTokens.dockClearance),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [

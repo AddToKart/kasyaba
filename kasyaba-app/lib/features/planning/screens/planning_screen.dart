@@ -69,7 +69,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
             ref.invalidate(dashboardProvider);
           },
           child: ListView(
-            padding: EdgeInsets.fromLTRB(20, topPadding, 20, 110),
+            padding: EdgeInsets.fromLTRB(20, topPadding, 20, DashboardTokens.dockClearance),
             children: [
               // ── 1. Page Header (Node 92:38) ────────────────────────
               _ForecastingHeader(
