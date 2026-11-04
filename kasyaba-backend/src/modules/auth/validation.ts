@@ -32,6 +32,35 @@ export const deleteAccountSchema = z.object({
   password: z.string().min(1).max(128).optional(),
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z
+    .string()
+    .email('Invalid email address')
+    .max(254)
+    .transform((e) => e.toLowerCase()),
+});
+
+export const resetPasswordSchema = z.object({
+  email: z
+    .string()
+    .email('Invalid email address')
+    .max(254)
+    .transform((e) => e.toLowerCase()),
+  token: z.string().min(1, 'Reset token is required'),
+  newPassword: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .max(128, 'Password must be at most 128 characters'),
+});
+
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'Current password is required').max(128),
+  newPassword: z
+    .string()
+    .min(8, 'New password must be at least 8 characters')
+    .max(128, 'New password must be at most 128 characters'),
+});
+
 const moneySchema = z
   .string()
   .regex(/^(?:0|[1-9]\d{0,11})(?:\.\d{1,2})?$/, 'Invalid amount format');
@@ -65,3 +94,6 @@ export type GoogleAuthInput = z.infer<typeof googleAuthSchema>;
 export type RefreshInput = z.infer<typeof refreshSchema>;
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 export type RestoreInput = z.infer<typeof restoreSchema>;
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;

@@ -348,7 +348,54 @@ describe('Auth Endpoints E2E Integration Tests', () => {
     });
   });
 
+  describe('Password Management Routes', () => {
+    it('returns success on POST /api/v1/auth/forgot-password with valid email', async () => {
+      vi.mocked(authService.requestPasswordReset).mockResolvedValueOnce();
+
+      const res = await request(app)
+        .post('/api/v1/auth/forgot-password')
+        .send({ email: 'user@example.com' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.message).toContain('password reset link');
+      expect(authService.requestPasswordReset).toHaveBeenCalledWith('user@example.com');
+    });
+
+    it('rejects invalid email on POST /api/v1/auth/forgot-password', async () => {
+      const res = await request(app)
+        .post('/api/v1/auth/forgot-password')
+        .send({ email: 'not-an-email' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('changes password on POST /api/v1/auth/change-password with valid auth', async () => {
+      const validToken = await signAccessToken({ sub: 'user-123', email: 'test@kasyaba.app' });
+      vi.mocked(authService.changePassword).mockResolvedValueOnce();
+
+      const res = await request(app)
+        .post('/api/v1/auth/change-password')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({ currentPassword: 'OldPassword123!', newPassword: 'NewPassword123!' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.message).toContain('Password updated');
+      expect(authService.changePassword).toHaveBeenCalledWith('user-123', {
+        currentPassword: 'OldPassword123!',
+        newPassword: 'NewPassword123!',
+      });
+    });
+  });
+
   describe('Public Legal & Health Check Routes', () => {
+    it('serves Terms of Service page at /terms', async () => {
+      const res = await request(app).get('/terms');
+      expect(res.status).toBe(200);
+      expect(res.text).toContain('Terms of Service');
+      expect(res.text).toContain('KASYABA');
+    });
+
     it('serves Privacy Policy page at /privacy', async () => {
       const res = await request(app).get('/privacy');
       expect(res.status).toBe(200);

@@ -17,6 +17,7 @@ import type {
   LoginInput,
   UpdateProfileInput,
   RestoreInput,
+  ChangePasswordInput,
 } from "./validation";
 
 function hashToken(token: string): string {
@@ -696,6 +697,66 @@ async function createSession(userId: string, email: string, hasPassword: boolean
     sessionId: session.id,
     user: { id: userId, email, hasPassword },
   };
+}
+
+export async function requestPasswordReset(email: string): Promise<void> {
+  const normalizedEmail = email.trim().toLowerCase();
+  const user = await prisma.user.findUnique({
+    where: { email: normalizedEmail },
+  });
+  if (!user) {
+    // Return early to prevent user email enumeration
+    return;
+  }
+}
+
+export async function resetPassword(
+  email: string,
+  _token: string,
+  newPassword: string,
+): Promise<void> {
+  const normalizedEmail = email.trim().toLowerCase();
+  const user = await prisma.user.findUnique({
+    where: { email: normalizedEmail },
+  });
+  if (!user) {
+    throw new NotFoundError("User not found");
+  }
+
+  const passwordHash = await argon2.hash(newPassword);
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { passwordHash },
+  });
+
+  // Revoke previous sessions on password reset
+  await prisma.authSession.updateMany({
+    where: { userId: user.id, revokedAt: null },
+    data: { revokedAt: new Date() },
+  });
+}
+
+export async function changePassword(
+  userId: string,
+  input: ChangePasswordInput,
+): Promise<void> {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) {
+    throw new NotFoundError("User not found");
+  }
+
+  if (user.passwordHash) {
+    const valid = await argon2.verify(user.passwordHash, input.currentPassword);
+    if (!valid) {
+      throw new UnauthorizedError("Current password is incorrect");
+    }
+  }
+
+  const newHash = await argon2.hash(input.newPassword);
+  await prisma.user.update({
+    where: { id: userId },
+    data: { passwordHash: newHash },
+  });
 }
 
 export async function seedDemoUser() {

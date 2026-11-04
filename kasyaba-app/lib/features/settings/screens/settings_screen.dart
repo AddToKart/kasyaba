@@ -420,6 +420,362 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       );
     }
 
+  Widget _sheetTextInputField({
+    required String label,
+    required TextEditingController controller,
+    required String hint,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 6, bottom: 8),
+          child: Text(
+            label,
+            style: GoogleFonts.dmSans(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: KasyabaTokens.periwinkleGraySubtitle,
+            ),
+          ),
+        ),
+        Container(
+          height: 58,
+          padding: const EdgeInsets.symmetric(horizontal: 21),
+          decoration: BoxDecoration(
+            color: KasyabaTokens.bigStone,
+            borderRadius: BorderRadius.circular(KasyabaTokens.radiusCard),
+            border: Border.all(color: KasyabaTokens.poloBlue22, width: 1),
+          ),
+          alignment: Alignment.center,
+          child: TextField(
+            controller: controller,
+            style: GoogleFonts.dmSans(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: KasyabaTokens.periwinkleGray,
+            ),
+            decoration: InputDecoration(
+              isDense: true,
+              border: InputBorder.none,
+              hintText: hint,
+              hintStyle: GoogleFonts.dmSans(
+                fontSize: 15,
+                color: KasyabaTokens.poloBlue40,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _sheetPasswordInputField({
+    required String label,
+    required TextEditingController controller,
+    required String hint,
+    required bool obscure,
+    required VoidCallback onToggleObscure,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 6, bottom: 8),
+          child: Text(
+            label,
+            style: GoogleFonts.dmSans(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: KasyabaTokens.periwinkleGraySubtitle,
+            ),
+          ),
+        ),
+        Container(
+          height: 58,
+          padding: const EdgeInsets.symmetric(horizontal: 21),
+          decoration: BoxDecoration(
+            color: KasyabaTokens.bigStone,
+            borderRadius: BorderRadius.circular(KasyabaTokens.radiusCard),
+            border: Border.all(color: KasyabaTokens.poloBlue22, width: 1),
+          ),
+          alignment: Alignment.center,
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: controller,
+                  obscureText: obscure,
+                  style: GoogleFonts.dmSans(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: KasyabaTokens.periwinkleGray,
+                  ),
+                  decoration: InputDecoration(
+                    isDense: true,
+                    border: InputBorder.none,
+                    hintText: hint,
+                    hintStyle: GoogleFonts.dmSans(
+                      fontSize: 15,
+                      color: KasyabaTokens.poloBlue40,
+                    ),
+                  ),
+                ),
+              ),
+              GestureDetector(
+                onTap: onToggleObscure,
+                behavior: HitTestBehavior.opaque,
+                child: Icon(
+                  obscure
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                  color: KasyabaTokens.poloBlue,
+                  size: 20,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showEditProfileSheet(String currentName) {
+    AppHaptics.selectionClick();
+    final nameController = TextEditingController(text: currentName);
+    var isSubmitting = false;
+
+    showKasyabaSheet<void>(
+      context: context,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (ctx, setModalState) {
+          final bottomInset = MediaQuery.viewInsetsOf(ctx).bottom;
+
+          return AppSheet(
+            color: KasyabaTokens.ebony,
+            padding: EdgeInsets.fromLTRB(20, 0, 20, 20 + bottomInset),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Edit Profile',
+                  style: GoogleFonts.bricolageGrotesque(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    color: KasyabaTokens.periwinkleGray,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Update your display name as it appears in Kasyaba.',
+                  style: GoogleFonts.dmSans(
+                    fontSize: 14,
+                    color: KasyabaTokens.periwinkleGraySubtitle,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                _sheetTextInputField(
+                  label: 'FULL NAME',
+                  controller: nameController,
+                  hint: 'e.g. Juan Dela Cruz',
+                ),
+                const SizedBox(height: 24),
+                PillButton(
+                  label: isSubmitting ? 'Saving...' : 'Save Changes',
+                  onPressed: isSubmitting
+                      ? null
+                      : () async {
+                          final trimmed = nameController.text.trim();
+                          if (trimmed.isEmpty) {
+                            KasyabaToast.showError(
+                              sheetContext,
+                              'Name cannot be empty.',
+                            );
+                            return;
+                          }
+                          setModalState(() => isSubmitting = true);
+                          try {
+                            await ref
+                                .read(transactionMutatorProvider)
+                                .updateProfile(displayName: trimmed);
+                            ref
+                                .read(authProvider.notifier)
+                                .setDisplayName(trimmed);
+                            if (sheetContext.mounted) {
+                              Navigator.of(sheetContext).pop();
+                            }
+                            if (mounted) {
+                              KasyabaToast.showSuccess(
+                                context,
+                                'Profile updated successfully.',
+                              );
+                            }
+                          } catch (error) {
+                            if (sheetContext.mounted) {
+                              KasyabaToast.showError(
+                                sheetContext,
+                                friendlyErrorMessage(
+                                  error,
+                                  fallback: 'Could not update profile.',
+                                ),
+                              );
+                            }
+                          } finally {
+                            if (sheetContext.mounted) {
+                              setModalState(() => isSubmitting = false);
+                            }
+                          }
+                        },
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showChangePasswordSheet() {
+    AppHaptics.selectionClick();
+    final currentPasswordController = TextEditingController();
+    final newPasswordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
+    var isSubmitting = false;
+    var obscureCurrent = true;
+    var obscureNew = true;
+    var obscureConfirm = true;
+
+    showKasyabaSheet<void>(
+      context: context,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (ctx, setModalState) {
+          final bottomInset = MediaQuery.viewInsetsOf(ctx).bottom;
+
+          return AppSheet(
+            color: KasyabaTokens.ebony,
+            padding: EdgeInsets.fromLTRB(20, 0, 20, 20 + bottomInset),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Change Password',
+                  style: GoogleFonts.bricolageGrotesque(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    color: KasyabaTokens.periwinkleGray,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Choose a strong password with at least 8 characters.',
+                  style: GoogleFonts.dmSans(
+                    fontSize: 14,
+                    color: KasyabaTokens.periwinkleGraySubtitle,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                _sheetPasswordInputField(
+                  label: 'CURRENT PASSWORD',
+                  controller: currentPasswordController,
+                  hint: 'Enter your current password',
+                  obscure: obscureCurrent,
+                  onToggleObscure: () =>
+                      setModalState(() => obscureCurrent = !obscureCurrent),
+                ),
+                const SizedBox(height: 14),
+                _sheetPasswordInputField(
+                  label: 'NEW PASSWORD',
+                  controller: newPasswordController,
+                  hint: 'At least 8 characters',
+                  obscure: obscureNew,
+                  onToggleObscure: () =>
+                      setModalState(() => obscureNew = !obscureNew),
+                ),
+                const SizedBox(height: 14),
+                _sheetPasswordInputField(
+                  label: 'CONFIRM NEW PASSWORD',
+                  controller: confirmPasswordController,
+                  hint: 'Re-enter your new password',
+                  obscure: obscureConfirm,
+                  onToggleObscure: () =>
+                      setModalState(() => obscureConfirm = !obscureConfirm),
+                ),
+                const SizedBox(height: 24),
+                PillButton(
+                  label: isSubmitting ? 'Updating...' : 'Update Password',
+                  onPressed: isSubmitting
+                      ? null
+                      : () async {
+                          final currentPass = currentPasswordController.text;
+                          final newPass = newPasswordController.text;
+                          final confirmPass = confirmPasswordController.text;
+
+                          if (currentPass.isEmpty) {
+                            KasyabaToast.showError(
+                              sheetContext,
+                              'Please enter your current password.',
+                            );
+                            return;
+                          }
+                          if (newPass.length < 8) {
+                            KasyabaToast.showError(
+                              sheetContext,
+                              'New password must be at least 8 characters.',
+                            );
+                            return;
+                          }
+                          if (newPass != confirmPass) {
+                            KasyabaToast.showError(
+                              sheetContext,
+                              'New passwords do not match.',
+                            );
+                            return;
+                          }
+
+                          setModalState(() => isSubmitting = true);
+                          try {
+                            await ref
+                                .read(authProvider.notifier)
+                                .changePassword(
+                                  currentPassword: currentPass,
+                                  newPassword: newPass,
+                                );
+                            if (sheetContext.mounted) {
+                              Navigator.of(sheetContext).pop();
+                            }
+                            if (mounted) {
+                              KasyabaToast.showSuccess(
+                                context,
+                                'Password updated successfully.',
+                              );
+                            }
+                          } catch (error) {
+                            if (sheetContext.mounted) {
+                              KasyabaToast.showError(
+                                sheetContext,
+                                friendlyErrorMessage(
+                                  error,
+                                  fallback: 'Failed to update password.',
+                                ),
+                              );
+                            }
+                          } finally {
+                            if (sheetContext.mounted) {
+                              setModalState(() => isSubmitting = false);
+                            }
+                          }
+                        },
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _sheetInputField({
     required String label,
     required TextEditingController controller,
@@ -670,6 +1026,32 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           ],
                         ),
                       ),
+                      const SizedBox(width: 8),
+                      Tooltip(
+                        message: 'Edit profile name',
+                        child: SpringTouch(
+                          onTap: () => _showEditProfileSheet(displayName),
+                          child: Container(
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              color: KasyabaTokens.bigStone,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: KasyabaTokens.poloBlue22,
+                                width: 1,
+                              ),
+                            ),
+                            child: const Center(
+                              child: Icon(
+                                Icons.edit_outlined,
+                                size: 16,
+                                color: KasyabaTokens.bermuda,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -720,11 +1102,27 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               const SizedBox(height: 20),
               FadeSlideEntrance.staggered(
                 index: 5,
-                child: _sectionHeader('YOUR DATA'),
+                child: _sectionHeader('SECURITY'),
               ),
               const SizedBox(height: 6),
               FadeSlideEntrance.staggered(
                 index: 6,
+                child: _settingsCard([
+                  _SettingsRow(
+                    title: 'Change password',
+                    subtitle: 'Update your account login password',
+                    onTap: _showChangePasswordSheet,
+                  ),
+                ]),
+              ),
+              const SizedBox(height: 20),
+              FadeSlideEntrance.staggered(
+                index: 7,
+                child: _sectionHeader('YOUR DATA'),
+              ),
+              const SizedBox(height: 6),
+              FadeSlideEntrance.staggered(
+                index: 8,
                 child: _settingsCard([
                   _SettingsRow(
                     title: 'Backup and export',

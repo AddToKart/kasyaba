@@ -278,6 +278,44 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  /// Updates the current authenticated user's password.
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final operation = ++_authOperation;
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      await _dio.post(
+        '/auth/change-password',
+        data: {
+          'currentPassword': currentPassword,
+          'newPassword': newPassword,
+        },
+      );
+      if (!mounted || operation != _authOperation) return;
+      state = state.copyWith(isLoading: false);
+    } on DioException catch (e) {
+      if (!mounted || operation != _authOperation) return;
+      final error =
+          e.response?.data?['error']?['message'] ?? 'Failed to update password';
+      state = state.copyWith(isLoading: false, error: error);
+      rethrow;
+    } catch (_) {
+      if (!mounted || operation != _authOperation) return;
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Failed to update password',
+      );
+      rethrow;
+    }
+  }
+
+  /// Locally updates the cached display name so UI reflects edits instantly.
+  void setDisplayName(String name) {
+    state = state.copyWith(displayName: name);
+  }
+
   /// Fetches a portable JSON export of the signed-in user's financial data.
   Future<Map<String, dynamic>> exportData() async {
     final response = await _dio.get('/auth/export');

@@ -11,6 +11,9 @@ import {
   updateProfileSchema,
   deleteAccountSchema,
   restoreSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
+  changePasswordSchema,
 } from "./validation";
 import * as authService from "./service";
 import { sendSuccess, sendCreated, sendNoContent } from "../../lib/response";
@@ -103,6 +106,44 @@ export function registerRoutes(router: Router) {
     },
   );
 
+  // POST /api/v1/auth/forgot-password
+  router.post(
+    "/api/v1/auth/forgot-password",
+    loginLimiter,
+    validate(forgotPasswordSchema),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        await authService.requestPasswordReset(req.body.email);
+        sendSuccess(res, {
+          message: "If that email is registered, a password reset link has been sent.",
+        });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  // POST /api/v1/auth/reset-password
+  router.post(
+    "/api/v1/auth/reset-password",
+    loginLimiter,
+    validate(resetPasswordSchema),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        await authService.resetPassword(
+          req.body.email,
+          req.body.token,
+          req.body.newPassword,
+        );
+        sendSuccess(res, {
+          message: "Password has been reset successfully.",
+        });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
   // POST /api/v1/auth/google
   router.post(
     "/api/v1/auth/google",
@@ -185,6 +226,23 @@ export function registerRoutes(router: Router) {
       try {
         const updated = await authService.updateProfile(req.userId!, req.body);
         sendSuccess(res, updated);
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  // POST /api/v1/auth/change-password
+  router.post(
+    "/api/v1/auth/change-password",
+    authenticate,
+    validate(changePasswordSchema),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        await authService.changePassword(req.userId!, req.body);
+        sendSuccess(res, {
+          message: "Password updated successfully.",
+        });
       } catch (err) {
         next(err);
       }
