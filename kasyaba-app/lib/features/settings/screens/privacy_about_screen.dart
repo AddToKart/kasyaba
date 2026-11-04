@@ -16,7 +16,7 @@ class PrivacyAndAboutScreen extends StatelessWidget {
 
   static const String kAppVersion = '0.1.0 (Build 1)';
 
-  void _showTermsSheet(BuildContext context) {
+  static void showTermsSheet(BuildContext context) {
     AppHaptics.selectionClick();
     showKasyabaSheet<void>(
       context: context,
@@ -40,7 +40,7 @@ class PrivacyAndAboutScreen extends StatelessWidget {
               '1. Purpose: Kasyaba provides deterministic personal financial calculations (safe-to-spend, cash buffer, payday countdown, installment math).\n\n'
               '2. No Financial Advice: Kasyaba is a financial calculation and budgeting tool, not a registered investment or banking advisor.\n\n'
               '3. Data Ownership: You own 100% of your financial data. You may export or purge your records at any time without penalty.\n\n'
-              '4. Service Availability: Kasyaba runs offline-first so you can manage your finances even without an internet connection.',
+              '4. Hybrid Architecture: All daily math runs locally on your device. Your financial ledger syncs to your private authenticated account for cross-device access and backup.',
               style: GoogleFonts.dmSans(
                 fontSize: 14,
                 color: DashboardTokens.periwinkleGraySubtitle,
@@ -58,7 +58,7 @@ class PrivacyAndAboutScreen extends StatelessWidget {
     );
   }
 
-  void _showPrivacyPolicySheet(BuildContext context) {
+  static void showPrivacyPolicySheet(BuildContext context) {
     AppHaptics.selectionClick();
     showKasyabaSheet<void>(
       context: context,
@@ -79,10 +79,10 @@ class PrivacyAndAboutScreen extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              '• Zero AI: Kasyaba never shares or submits your numbers, salary, or account transactions to third-party AI models (OpenAI, Gemini, etc.).\n\n'
-              '• Local-First Engine: All daily safe-to-spend math, payday countdowns, and budgets run deterministically right on your device.\n\n'
-              '• Secure Sync & Backup: When connected, your records sync to your private Kasyaba backend account using encrypted sessions so you can access your wallets across devices.\n\n'
-              '• No Tracking or Selling: We never track your activity, never profile your spending, and never sell your personal information.',
+              '• Zero AI & No Trackers: Kasyaba never shares or submits your numbers, salary, or account transactions to third-party AI models (OpenAI, Gemini, etc.) or ad networks.\n\n'
+              '• Local-First Edge Engine: All daily safe-to-spend math, payday countdowns, and tax deductions run deterministically right on your device.\n\n'
+              '• Secure Sync & Backup: When connected, your records sync to your private Kasyaba backend account using encrypted sessions (TLS 1.3 & AES-256) so you can access your wallets across devices.\n\n'
+              '• Data Privacy Act (RA 10173): We respect your privacy rights. We never track your activity, never profile your spending, and never sell your personal information.',
               style: GoogleFonts.dmSans(
                 fontSize: 14,
                 color: DashboardTokens.periwinkleGraySubtitle,
@@ -125,7 +125,7 @@ class PrivacyAndAboutScreen extends StatelessWidget {
                         if (context.canPop()) {
                           context.pop();
                         } else {
-                          context.go('/profile');
+                          context.go('/settings');
                         }
                       },
                       child: Container(
@@ -188,7 +188,7 @@ class PrivacyAndAboutScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Every calculation runs on your device. Kasyaba does not send your money data to an AI or to any server.',
+                        'Every calculation runs on your device. Your data is never shared with third-party advertisers, trackers, or commercial AI models.',
                         style: GoogleFonts.dmSans(
                           fontSize: 14,
                           color: DashboardTokens.periwinkleGray,
@@ -234,17 +234,17 @@ class PrivacyAndAboutScreen extends StatelessWidget {
                     children: [
                       _buildKeyValueRow(
                         label: 'Your records',
-                        value: 'On your device only',
+                        value: 'Local-first & private sync',
                       ),
                       const SizedBox(height: 12),
                       _buildKeyValueRow(
                         label: 'Calculations',
-                        value: 'Same inputs, same answer',
+                        value: '100% on-device math',
                       ),
                       const SizedBox(height: 12),
                       _buildKeyValueRow(
                         label: 'AI',
-                        value: 'None',
+                        value: 'None (100% deterministic)',
                       ),
                     ],
                   ),
@@ -294,13 +294,13 @@ class PrivacyAndAboutScreen extends StatelessWidget {
                       _buildActionRow(
                         title: 'Terms of service',
                         actionText: 'Read',
-                        onTap: () => _showTermsSheet(context),
+                        onTap: () => showTermsSheet(context),
                       ),
                       _buildDivider(),
                       _buildActionRow(
                         title: 'Privacy policy',
                         actionText: 'Read',
-                        onTap: () => _showPrivacyPolicySheet(context),
+                        onTap: () => showPrivacyPolicySheet(context),
                       ),
                     ],
                   ),

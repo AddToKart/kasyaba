@@ -473,7 +473,13 @@ class _AccountsHeader extends StatelessWidget {
       child: Row(
         children: [
           SpringTouch(
-            onTap: () => context.pop(),
+            onTap: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/settings');
+              }
+            },
             child: Container(
               width: 50,
               height: 50,

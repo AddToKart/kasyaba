@@ -28,14 +28,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _salaryController = TextEditingController();
   final _grossSalaryController = TextEditingController();
   final _allowancesController = TextEditingController();
-  final _minThresholdController = TextEditingController();
 
   @override
   void dispose() {
     _salaryController.dispose();
     _grossSalaryController.dispose();
     _allowancesController.dispose();
-    _minThresholdController.dispose();
     super.dispose();
   }
 
@@ -68,11 +66,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _salaryController.clear();
     _grossSalaryController.clear();
     _allowancesController.clear();
-    _minThresholdController.clear();
 
     _salaryController.text = profile.salaryAmount?.toStringAsFixed(2) ?? '';
-    _minThresholdController.text =
-        profile.minimumBalanceThreshold?.toStringAsFixed(2) ?? '0';
     final formKey = GlobalKey<FormState>();
     var isSubmitting = false;
     var isCalculatorMode = false;
@@ -347,26 +342,38 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     },
                   ),
                     const SizedBox(height: 20),
-                    PillButton(
+                     PillButton(
                       label: 'Save settings',
                       isLoading: isSubmitting,
                       onPressed: isSubmitting
                           ? null
                           : () async {
-                              double? finalSalary;
-                              if (isCalculatorMode && liveBreakdown != null) {
+                              final double? finalSalary;
+                              if (isCalculatorMode) {
+                                final gross = double.tryParse(
+                                  _grossSalaryController.text.trim(),
+                                );
+                                if (gross == null || gross <= 0) {
+                                  KasyabaToast.showError(
+                                    sheetContext,
+                                    'Enter a monthly gross basic salary greater than zero.',
+                                  );
+                                  return;
+                                }
+                                recomputeBreakdown();
                                 finalSalary = liveBreakdown!.netMonthlyPay;
                               } else {
                                 finalSalary = double.tryParse(
                                   _salaryController.text.trim(),
                                 );
+                                if (finalSalary == null || finalSalary <= 0) {
+                                  KasyabaToast.showError(
+                                    sheetContext,
+                                    'Enter your monthly net salary.',
+                                  );
+                                  return;
+                                }
                               }
-
-                              final threshold =
-                                  double.tryParse(
-                                    _minThresholdController.text.trim(),
-                                  ) ??
-                                  0.0;
 
                               setModalState(() => isSubmitting = true);
                               try {
@@ -376,7 +383,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                       salaryAmount: finalSalary,
                                       paydayFrequency: paydayFreq,
                                       paydaySchedule: paydaySched,
-                                      minimumBalanceThreshold: threshold,
                                     );
                                 if (sheetContext.mounted) {
                                   Navigator.of(sheetContext).pop();

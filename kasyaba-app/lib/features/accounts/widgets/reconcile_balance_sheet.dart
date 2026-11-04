@@ -95,13 +95,14 @@ class _ReconcileBalanceSheetState extends ConsumerState<ReconcileBalanceSheet> {
       }
 
       if (mounted) {
-        Navigator.of(context).pop();
+        // Toast first: the sheet's own context unmounts right after the pop.
         KasyabaToast.showSuccess(
           context,
           '${account.name} reconciled to $formattedActual',
           subtitle:
               '${discrepancy < 0 ? '-' : '+'}${CurrencyFormatter.format(discrepancy.abs())} logged',
         );
+        Navigator.of(context).pop();
       }
     } catch (error) {
       if (mounted) {
@@ -194,15 +195,10 @@ class _ReconcileBalanceSheetState extends ConsumerState<ReconcileBalanceSheet> {
         return AppSheet(
           color: KasyabaTokens.ebony,
           padding: _sheetPadding(context),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxHeight: MediaQuery.sizeOf(context).height * 0.84,
-            ),
-            child: SingleChildScrollView(
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Row(
@@ -600,8 +596,6 @@ class _ReconcileBalanceSheetState extends ConsumerState<ReconcileBalanceSheet> {
                   ],
                 ),
               ),
-            ),
-          ),
         );
       },
     );

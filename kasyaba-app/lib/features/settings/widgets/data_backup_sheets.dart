@@ -158,7 +158,8 @@ class _ExportBackupSheetState extends ConsumerState<_ExportBackupSheet> {
   Future<void> _copyJson(String content) async {
     try {
       await Clipboard.setData(ClipboardData(text: content));
-      await _recordBackupTimestamp(ref);
+      // Clipboard copies are not backups; timestamps are only recorded when a
+      // backup file is actually saved to the device.
       if (!mounted) return;
       KasyabaToast.showSuccess(context, 'Backup JSON copied to clipboard.');
       Navigator.of(context).pop();
@@ -192,12 +193,7 @@ class _ExportBackupSheetState extends ConsumerState<_ExportBackupSheet> {
             MediaQuery.viewInsetsOf(context).bottom +
             MediaQuery.paddingOf(context).bottom,
       ),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.sizeOf(context).height * 0.84,
-        ),
-        child: SingleChildScrollView(
-          child: Column(
+      child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -328,8 +324,6 @@ class _ExportBackupSheetState extends ConsumerState<_ExportBackupSheet> {
               ],
             ],
           ),
-        ),
-      ),
     );
   }
 }
@@ -440,12 +434,7 @@ class _RestoreBackupSheetState extends ConsumerState<_RestoreBackupSheet> {
             MediaQuery.viewInsetsOf(context).bottom +
             MediaQuery.paddingOf(context).bottom,
       ),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.sizeOf(context).height * 0.84,
-        ),
-        child: SingleChildScrollView(
-          child: Column(
+      child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -617,11 +606,9 @@ class _RestoreBackupSheetState extends ConsumerState<_RestoreBackupSheet> {
                     ? _handleRestore
                     : null,
               ),
-            ],
-          ),
-        ),
-      ),
-    );
+             ],
+           ),
+     );
   }
 }
 
@@ -830,12 +817,7 @@ class _ExportCsvSheetState extends ConsumerState<_ExportCsvSheet> {
             MediaQuery.viewInsetsOf(context).bottom +
             MediaQuery.paddingOf(context).bottom,
       ),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.sizeOf(context).height * 0.84,
-        ),
-        child: SingleChildScrollView(
-          child: Column(
+      child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -905,8 +887,6 @@ class _ExportCsvSheetState extends ConsumerState<_ExportCsvSheet> {
               ],
             ],
           ),
-        ),
-      ),
     );
   }
 }

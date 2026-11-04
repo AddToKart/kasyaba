@@ -10,6 +10,7 @@ import '../../../core/providers/api_providers.dart';
 import '../../../core/providers/preference_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/deterministic_math.dart';
+import '../../../shared/widgets/app_state_widgets.dart';
 import '../../dashboard/widgets/dashboard_tokens.dart';
 
 /// ─────────────────────────────────────────────────────────────
@@ -23,10 +24,14 @@ class MathBreakdownScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final userProfile = ref.watch(userProfileProvider).valueOrNull;
-    final bills = ref.watch(billsProvider).valueOrNull ?? [];
-    final goals = ref.watch(goalsProvider).valueOrNull ?? [];
-    final dashboard = ref.watch(dashboardProvider).valueOrNull;
-    final accountBalances = ref.watch(accountBalancesProvider).valueOrNull;
+    final billsAsync = ref.watch(billsProvider);
+    final goalsAsync = ref.watch(goalsProvider);
+    final dashboardAsync = ref.watch(dashboardProvider);
+    final balancesAsync = ref.watch(accountBalancesProvider);
+    final bills = billsAsync.valueOrNull ?? [];
+    final goals = goalsAsync.valueOrNull ?? [];
+    final dashboard = dashboardAsync.valueOrNull;
+    final accountBalances = balancesAsync.valueOrNull;
     final excludedAccountIds = ref.watch(excludedAccountsProvider);
 
     final calc =
@@ -41,6 +46,80 @@ class MathBreakdownScreen extends ConsumerWidget {
           goals: goals,
           profile: userProfile,
         );
+
+    // Never present zero-based math when the live inputs failed to load.
+    final hasInputFailure = calculation == null &&
+        (dashboardAsync.hasError ||
+            balancesAsync.hasError ||
+            billsAsync.hasError ||
+            goalsAsync.hasError);
+
+    if (hasInputFailure) {
+      return Scaffold(
+        backgroundColor: DashboardTokens.ebony,
+        body: SafeArea(
+          bottom: false,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            children: [
+              Align(
+                alignment: Alignment.centerLeft,
+                child: GestureDetector(
+                  onTap: () {
+                    AppHaptics.selectionClick();
+                    if (Navigator.of(context).canPop()) {
+                      Navigator.of(context).pop();
+                    } else {
+                      context.go('/planning');
+                    }
+                  },
+                  behavior: HitTestBehavior.opaque,
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: DashboardTokens.bigStone,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: DashboardTokens.poloBlue22,
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.chevron_left_rounded,
+                      color: DashboardTokens.periwinkleGray,
+                      size: 26,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'How we calculate',
+                style: GoogleFonts.bricolageGrotesque(
+                  color: DashboardTokens.periwinkleGray,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: -0.3,
+                ),
+              ),
+              const SizedBox(height: 16),
+              KasyabaErrorCard(
+                message:
+                    'We could not load your live balances, bills, and goals, so this breakdown is unavailable right now.',
+                onRetry: () {
+                  ref.invalidate(dashboardProvider);
+                  ref.invalidate(accountBalancesProvider);
+                  ref.invalidate(billsProvider);
+                  ref.invalidate(goalsProvider);
+                  ref.invalidate(userProfileProvider);
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     final hasSafeSpend = calc.dailySafeSpend > 0;
     final accentColor = hasSafeSpend

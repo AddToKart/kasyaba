@@ -232,8 +232,43 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 20),
+                      ] else ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: DashboardTokens.ebony,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: DashboardTokens.apricot.withValues(
+                                alpha: 0.4,
+                              ),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.info_outline_rounded,
+                                size: 18,
+                                color: DashboardTokens.apricot,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  'Add a wallet first to record bill payments.',
+                                  style: GoogleFonts.dmSans(
+                                    fontSize: 13,
+                                    color: DashboardTokens.apricot,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
+                      const SizedBox(height: 20),
 
                       GestureDetector(
                         behavior: HitTestBehavior.opaque,

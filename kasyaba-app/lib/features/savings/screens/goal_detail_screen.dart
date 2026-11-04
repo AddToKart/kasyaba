@@ -63,7 +63,11 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
           'Goal deleted',
           subtitle: '${goal.name} was removed.',
         );
-        Navigator.of(context).pop();
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/goals');
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -136,7 +140,11 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
           behavior: HitTestBehavior.opaque,
           onTap: () {
             AppHaptics.selectionClick();
-            Navigator.of(context).pop();
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/goals');
+            }
           },
           child: Container(
             width: 50,

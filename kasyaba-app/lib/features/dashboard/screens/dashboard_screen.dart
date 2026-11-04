@@ -99,9 +99,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     showKasyabaSheet(
       context: context,
       builder: (sheetContext) => AppSheet(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-          child: Column(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+        child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -225,7 +224,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
               FilledButton.icon(
                 onPressed: () {
-                  Navigator.of(context).pop();
+                  Navigator.of(sheetContext).pop();
                   context.go('/alerts');
                 },
                 icon: const Icon(Icons.notifications_outlined, size: 18),
@@ -243,7 +242,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               const SizedBox(height: 8),
             ],
           ),
-        ),
       ),
     );
   }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:reactive_forms/reactive_forms.dart';
+import '../../../app/theme/app_motion.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../app/theme/kasyaba_tokens.dart';
 
@@ -963,6 +964,200 @@ class AuthErrorBanner extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ── Terms of Service & Privacy Policy Checkbox (Figma Luxury Squircle) ──
+class AuthTermsCheckbox extends StatelessWidget {
+  final String formControlName;
+  final VoidCallback onTapTerms;
+  final VoidCallback onTapPrivacy;
+
+  const AuthTermsCheckbox({
+    super.key,
+    required this.formControlName,
+    required this.onTapTerms,
+    required this.onTapPrivacy,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return ReactiveFormField<bool, bool>(
+      formControlName: formControlName,
+      builder: (field) {
+        final isChecked = field.value ?? false;
+        final hasError = field.control.touched && field.control.hasErrors;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            InkWell(
+              onTap: () {
+                AppHaptics.selectionClick();
+                field.control.value = !isChecked;
+                field.control.markAsTouched();
+              },
+              borderRadius: BorderRadius.circular(8),
+              splashColor: Colors.transparent,
+              highlightColor: Colors.transparent,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Squircle Checkbox
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeOutCubic,
+                      width: 22,
+                      height: 22,
+                      margin: const EdgeInsets.only(top: 1, right: 12),
+                      decoration: BoxDecoration(
+                        color: isChecked
+                            ? KasyabaTokens.bermuda
+                            : (isDark
+                                ? AuthFigmaTokens.bigStone
+                                : AppColors.lightCardSurface),
+                        borderRadius: BorderRadius.circular(7),
+                        border: Border.all(
+                          color: hasError
+                              ? KasyabaTokens.apricot
+                              : (isChecked
+                                  ? KasyabaTokens.bermuda
+                                  : (isDark
+                                      ? AuthFigmaTokens.poloBlue28
+                                      : AppColors.lightBorderHairline)),
+                          width: 1.5,
+                        ),
+                        boxShadow: isChecked
+                            ? [
+                                BoxShadow(
+                                  color: KasyabaTokens.bermuda.withValues(
+                                    alpha: 0.35,
+                                  ),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ]
+                            : null,
+                      ),
+                      child: isChecked
+                          ? const Center(
+                              child: Icon(
+                                Icons.check_rounded,
+                                size: 16,
+                                color: KasyabaTokens.ebony,
+                              ),
+                            )
+                          : null,
+                    ),
+
+                    // Label with interactive links
+                    Expanded(
+                      child: Text.rich(
+                        TextSpan(
+                          text: 'I agree to the ',
+                          style: GoogleFonts.dmSans(
+                            fontSize: 13,
+                            color: isDark
+                                ? AuthFigmaTokens.poloBlue
+                                : AppColors.lightTextSecondary,
+                            height: 1.4,
+                          ),
+                          children: [
+                            WidgetSpan(
+                              alignment: PlaceholderAlignment.baseline,
+                              baseline: TextBaseline.alphabetic,
+                              child: GestureDetector(
+                                onTap: onTapTerms,
+                                child: Text(
+                                  'Terms & Conditions',
+                                  style: GoogleFonts.dmSans(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: isDark
+                                        ? AuthFigmaTokens.periwinkleGray
+                                        : AppColors.lightTextPrimary,
+                                    decoration: TextDecoration.underline,
+                                    decorationColor: isDark
+                                        ? AuthFigmaTokens.poloBlue
+                                        : AppColors.lightTextSecondary,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const TextSpan(text: ' and '),
+                            WidgetSpan(
+                              alignment: PlaceholderAlignment.baseline,
+                              baseline: TextBaseline.alphabetic,
+                              child: GestureDetector(
+                                onTap: onTapPrivacy,
+                                child: Text(
+                                  'Privacy Policy',
+                                  style: GoogleFonts.dmSans(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: isDark
+                                        ? AuthFigmaTokens.periwinkleGray
+                                        : AppColors.lightTextPrimary,
+                                    decoration: TextDecoration.underline,
+                                    decorationColor: isDark
+                                        ? AuthFigmaTokens.poloBlue
+                                        : AppColors.lightTextSecondary,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Inline validation error matching user reference image
+            AnimatedSize(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOutCubic,
+              child: hasError
+                  ? Padding(
+                      padding: const EdgeInsets.only(left: 34, top: 4),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.only(top: 1),
+                            child: Icon(
+                              Icons.error_outline_rounded,
+                              size: 13,
+                              color: KasyabaTokens.apricot,
+                            ),
+                          ),
+                          const SizedBox(width: 5),
+                          Expanded(
+                            child: Text(
+                              'You must accept the Terms & Conditions to proceed',
+                              style: GoogleFonts.dmSans(
+                                color: KasyabaTokens.apricot,
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w600,
+                                height: 1.3,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          ],
+        );
+      },
     );
   }
 }

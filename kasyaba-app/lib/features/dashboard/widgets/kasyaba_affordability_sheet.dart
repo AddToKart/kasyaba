@@ -112,9 +112,14 @@ class _KasyaBaAffordabilitySheetModalState
     final userProfile = ref.watch(userProfileProvider).valueOrNull;
     final bills = ref.watch(billsProvider).valueOrNull ?? [];
     final goals = ref.watch(goalsProvider).valueOrNull ?? [];
-    final dashboard = ref.watch(dashboardProvider).valueOrNull;
-    final accountBalances = ref.watch(accountBalancesProvider).valueOrNull;
+    final dashboardAsync = ref.watch(dashboardProvider);
+    final balancesAsync = ref.watch(accountBalancesProvider);
+    final dashboard = dashboardAsync.valueOrNull;
+    final accountBalances = balancesAsync.valueOrNull;
     final excludedAccountIds = ref.watch(excludedAccountsProvider);
+
+    // Never serve a ₱0-based simulation when live data failed to load.
+    final hasInputError = dashboardAsync.hasError || balancesAsync.hasError;
 
     final adjustedBalance = adjustedLiquidBalance(
       dashboardTotalBalance: dashboard?.totalBalance ?? 0.0,
@@ -543,7 +548,7 @@ class _KasyaBaAffordabilitySheetModalState
                       width: double.infinity,
                       height: 56,
                       child: FilledButton(
-                        onPressed: _isLoading || rawAmount <= 0
+                        onPressed: _isLoading || rawAmount <= 0 || hasInputError
                             ? null
                             : _evaluate,
                         style: FilledButton.styleFrom(
@@ -572,6 +577,17 @@ class _KasyaBaAffordabilitySheetModalState
                               ),
                       ),
                     ),
+
+                    if (hasInputError) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        'Live account data is unavailable. Reconnect and try again.',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 13,
+                          color: DashboardTokens.apricot,
+                        ),
+                      ),
+                    ],
 
                     if (_errorMessage != null) ...[
                       const SizedBox(height: 12),
@@ -612,11 +628,13 @@ class _KasyaBaAffordabilitySheetModalState
                                   safeSpendCalc: safeSpendCalc,
                                   installmentComp: installmentComp,
                                   onViewMathBreakdown: () {
-                                    Navigator.of(context).pop();
+                                    // Push the breakdown first so it survives
+                                    // the sheet popping beneath it.
                                     showSafeSpendBreakdownSheet(
                                       context,
                                       safeSpendCalc,
                                     );
+                                    Navigator.of(context).pop();
                                   },
                                 ),
                               ],

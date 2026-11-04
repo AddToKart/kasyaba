@@ -146,7 +146,11 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
       }
 
       if (mounted) {
-        Navigator.of(context).pop();
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/goals');
+        }
       }
     } catch (e) {
       if (mounted) {

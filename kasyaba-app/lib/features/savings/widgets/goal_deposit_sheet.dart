@@ -98,12 +98,13 @@ class _GoalDepositModalState extends ConsumerState<_GoalDepositModal> {
             accountId: accountId,
           );
       if (mounted) {
-        Navigator.of(context).pop();
+        // Toast first: this sheet's context unmounts right after the pop.
         KasyabaToast.showSuccess(
           context,
           'Deposited ${CurrencyFormatter.format(amount)}',
           subtitle: 'Added to ${widget.goal.name}',
         );
+        Navigator.of(context).pop();
       }
     } catch (e) {
       if (mounted) {

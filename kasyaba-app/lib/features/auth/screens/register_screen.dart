@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:reactive_forms/reactive_forms.dart';
+import '../../../app/theme/app_motion.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/auth/auth_provider.dart';
+import '../../settings/screens/privacy_about_screen.dart';
 import '../widgets/auth_widgets.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -27,6 +29,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
       ),
       'confirmPassword': FormControl<String>(
         validators: [Validators.required],
+      ),
+      'agreeToTerms': FormControl<bool>(
+        value: false,
+        validators: [Validators.requiredTrue],
       ),
     },
     validators: [Validators.mustMatch('password', 'confirmPassword')],
@@ -83,7 +89,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
   Future<void> _handleRegister() async {
     if (ref.read(authProvider).isLoading) return;
     formGroup.markAllAsTouched();
-    if (!formGroup.valid) return;
+    if (!formGroup.valid) {
+      AppHaptics.heavyImpact();
+      return;
+    }
     try {
       await ref.read(authProvider.notifier).register(
             formGroup.control('email').value as String,
@@ -286,7 +295,20 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                                       );
                                     },
                                   ),
-                                  const SizedBox(height: 14),
+                                  const SizedBox(height: 16),
+
+                                  // Terms & Conditions Checkbox (Figma Luxury Squircle)
+                                  AuthTermsCheckbox(
+                                    formControlName: 'agreeToTerms',
+                                    onTapTerms: () =>
+                                        PrivacyAndAboutScreen.showTermsSheet(
+                                          context,
+                                        ),
+                                    onTapPrivacy: () =>
+                                        PrivacyAndAboutScreen
+                                            .showPrivacyPolicySheet(context),
+                                  ),
+                                  const SizedBox(height: 18),
 
                                   // Continue Button (Node 11:774-775, height: 56, r: 28)
                                   AuthPrimaryPillButton(

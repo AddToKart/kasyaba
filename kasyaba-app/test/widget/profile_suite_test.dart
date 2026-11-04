@@ -305,7 +305,7 @@ void main() {
       expect(find.text('Your numbers stay yours'), findsOneWidget);
       expect(
         find.text(
-          'Every calculation runs on your device. Kasyaba does not send your money data to an AI or to any server.',
+          'Every calculation runs on your device. Your data is never shared with third-party advertisers, trackers, or commercial AI models.',
         ),
         findsOneWidget,
       );
@@ -313,11 +313,11 @@ void main() {
       // Verify "What we keep" section
       expect(find.text('What we keep'), findsOneWidget);
       expect(find.text('Your records'), findsOneWidget);
-      expect(find.text('On your device only'), findsOneWidget);
+      expect(find.text('Local-first & private sync'), findsOneWidget);
       expect(find.text('Calculations'), findsOneWidget);
-      expect(find.text('Same inputs, same answer'), findsOneWidget);
+      expect(find.text('100% on-device math'), findsOneWidget);
       expect(find.text('AI'), findsOneWidget);
-      expect(find.text('None'), findsOneWidget);
+      expect(find.text('None (100% deterministic)'), findsOneWidget);
 
       // Verify "About" section
       expect(find.text('About'), findsOneWidget);

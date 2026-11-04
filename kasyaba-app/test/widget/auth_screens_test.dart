@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kasyaba/features/auth/screens/login_screen.dart';
 import 'package:kasyaba/features/auth/screens/register_screen.dart';
 import 'package:kasyaba/features/auth/screens/forgot_password_screen.dart';
+import 'package:kasyaba/features/auth/widgets/auth_widgets.dart';
 
 void main() {
   testWidgets('LoginScreen renders brand lockup, explicit labels, demo button, and trust footer',
@@ -102,6 +103,32 @@ void main() {
     // Password strength and match indicators are wired to the form
     expect(find.text('Strong password'), findsOneWidget);
     expect(find.text('Passwords match'), findsOneWidget);
+
+    // Terms & Conditions checkbox rendered
+    expect(find.text('Terms & Conditions'), findsOneWidget);
+    expect(find.text('Privacy Policy'), findsOneWidget);
+
+    // Tapping Continue without checking triggers validation message
+    await tester.ensureVisible(find.text('Continue'));
+    await tester.tap(find.text('Continue'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(
+      find.text('You must accept the Terms & Conditions to proceed'),
+      findsOneWidget,
+    );
+
+    // Tapping the checkbox clears the validation error
+    await tester.tap(find.descendant(
+      of: find.byType(AuthTermsCheckbox),
+      matching: find.byType(AnimatedContainer),
+    ));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(
+      find.text('You must accept the Terms & Conditions to proceed'),
+      findsNothing,
+    );
   });
 
   testWidgets('ForgotPasswordScreen renders exact Figma elements, back button, inline field, and action button',
