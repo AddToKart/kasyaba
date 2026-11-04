@@ -904,6 +904,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                     day.day == _selectedCalendarDay.day;
                                 final hasBill = bills.any(
                                   (b) =>
+                                      b.status.toLowerCase() != 'paid' &&
                                       b.dueDate.year == day.year &&
                                       b.dueDate.month == day.month &&
                                       b.dueDate.day == day.day,
@@ -996,8 +997,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                             ] else if (billsAsync.isLoading &&
                                 bills.isEmpty) ...[
                               const KasyabaLoadingSkeleton(lines: 2),
-                            ] else if (upcomingBills.isNotEmpty) ...[
-                              _buildBillItemRow(upcomingBills.first),
+                            ] else if (weekBills.isNotEmpty) ...[
+                              _buildBillItemRow(weekBills.first),
                             ] else ...[
                               Padding(
                                 padding: const EdgeInsets.symmetric(

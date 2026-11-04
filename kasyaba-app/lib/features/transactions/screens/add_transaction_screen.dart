@@ -811,7 +811,22 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                           ],
                         ),
                         const SizedBox(height: 10),
-                        // Balance Preview Subtitle
+                        // Balance Preview Subtitle — suppressed until a real
+                        // wallet exists so it never shows fabricated values.
+                        if (accounts.isEmpty)
+                          RichText(
+                            textAlign: TextAlign.center,
+                            text: TextSpan(
+                              style: GoogleFonts.dmSans(
+                                fontSize: 14,
+                                color: DashboardTokens.periwinkleGraySubtitle,
+                              ),
+                              children: [
+                                const TextSpan(text: 'Add a wallet to track\nits balance live'),
+                              ],
+                            ),
+                          )
+                        else
                         RichText(
                           textAlign: TextAlign.center,
                           text: TextSpan(
