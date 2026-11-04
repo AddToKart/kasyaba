@@ -49,7 +49,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
 
     final topPadding = math.max(
       56.0,
-      MediaQuery.of(context).padding.top + 16.0,
+      MediaQuery.paddingOf(context).top + 16.0,
     );
 
     return Scaffold(

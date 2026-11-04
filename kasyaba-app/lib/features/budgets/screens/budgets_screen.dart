@@ -8,9 +8,11 @@ import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/category_icon_helper.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../dashboard/widgets/dashboard_tokens.dart';
+import '../../../shared/widgets/app_dialog.dart';
 import '../../../shared/widgets/app_state_widgets.dart';
 import '../../../shared/widgets/kasyaba_toast.dart';
 import '../../../shared/widgets/motion_components.dart';
+import '../../../shared/widgets/pill_button.dart';
 
 final _uuidPattern = RegExp(
   r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$',
@@ -636,103 +638,13 @@ class BudgetsScreen extends ConsumerWidget {
                 ),
                 onSelected: (action) async {
                   if (action == 'delete') {
-                    final confirmed = await showModalBottomSheet<bool>(
-                      context: context,
-                      useRootNavigator: true,
-                      backgroundColor: Colors.transparent,
-                      builder: (sheetCtx) => Container(
-                        decoration: BoxDecoration(
-                          color: DashboardTokens.ebony,
-                          borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(28),
-                          ),
-                          border: Border.all(color: DashboardTokens.poloBlue22),
-                        ),
-                        padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Center(
-                              child: Container(
-                                width: 38,
-                                height: 4,
-                                decoration: BoxDecoration(
-                                  color: DashboardTokens.poloBlue30,
-                                  borderRadius: BorderRadius.circular(2),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 18),
-                            Text(
-                              'Delete $categoryName budget?',
-                              style: GoogleFonts.bricolageGrotesque(
-                                fontSize: 22,
-                                fontWeight: FontWeight.w700,
-                                color: DashboardTokens.periwinkleGray,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'This will remove this monthly spending limit.',
-                              style: GoogleFonts.dmSans(
-                                fontSize: 14,
-                                color: DashboardTokens.periwinkleGraySubtitle,
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: SpringTouch(
-                                    onTap: () => Navigator.pop(sheetCtx, false),
-                                    child: Container(
-                                      height: 52,
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(26),
-                                        border: Border.all(
-                                          color: DashboardTokens.kashmirBlue,
-                                        ),
-                                      ),
-                                      alignment: Alignment.center,
-                                      child: Text(
-                                        'Cancel',
-                                        style: GoogleFonts.dmSans(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w700,
-                                          color: DashboardTokens.periwinkleGray,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: SpringTouch(
-                                    onTap: () => Navigator.pop(sheetCtx, true),
-                                    child: Container(
-                                      height: 52,
-                                      decoration: BoxDecoration(
-                                        color: DashboardTokens.apricot,
-                                        borderRadius: BorderRadius.circular(26),
-                                      ),
-                                      alignment: Alignment.center,
-                                      child: Text(
-                                        'Delete',
-                                        style: GoogleFonts.dmSans(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w700,
-                                          color: DashboardTokens.ebony,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
+                    final confirmed = await showKasyabaConfirmDialog(
+                      context,
+                      title: 'Delete $categoryName budget?',
+                      message:
+                          'This will remove this monthly spending limit. Your transaction history stays intact.',
+                      confirmLabel: 'Delete',
+                      destructive: true,
                     );
 
                     if (confirmed == true && context.mounted) {
@@ -1065,35 +977,10 @@ class _CreateBudgetSheetState extends ConsumerState<_CreateBudgetSheet> {
               const SizedBox(height: 24),
 
               // Submit Button
-              SpringTouch(
-                onTap: _isSubmitting ? null : _submit,
-                child: Container(
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: DashboardTokens.periwinkleGray,
-                    borderRadius: BorderRadius.circular(28),
-                  ),
-                  alignment: Alignment.center,
-                  child: _isSubmitting
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation(
-                              DashboardTokens.ebony,
-                            ),
-                          ),
-                        )
-                      : Text(
-                          'Create Budget',
-                          style: GoogleFonts.dmSans(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: DashboardTokens.ebony,
-                          ),
-                        ),
-                ),
+              PillButton(
+                label: 'Create Budget',
+                isLoading: _isSubmitting,
+                onPressed: _isSubmitting ? null : _submit,
               ),
             ],
           ),

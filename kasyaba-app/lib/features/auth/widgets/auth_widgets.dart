@@ -13,8 +13,11 @@ import '../../../app/theme/kasyaba_tokens.dart';
 class AuthFigmaTokens {
   AuthFigmaTokens._();
 
-  // Color Fills & Strokes
-  static const Color ebony = Color(0xFF0A1220); // Base canvas & button text
+  // Color Fills & Strokes — aliased to KasyabaTokens wherever the value is
+  // identical so a change in the token file propagates here automatically.
+  // Auth-specific alpha variants (cello55, poloBlue28/35) stay literal because
+  // `.withValues` is not const-evaluable.
+  static const Color ebony = KasyabaTokens.ebony;
   static const Color ebony55 = Color(
     0x8C0A1220,
   ); // rgba(10, 18, 32, 0.55) - Input fields
@@ -27,15 +30,9 @@ class AuthFigmaTokens {
   static const Color poloBlue35 = Color(
     0x598FB2CE,
   ); // rgba(143, 178, 206, 0.35) - Input border
-  static const Color poloBlue = Color(
-    0xFF8FB2CE,
-  ); // Labels, subtitles, link text, logo bar 2
-  static const Color periwinkleGray = Color(
-    0xFFC9DCEA,
-  ); // Primary button, headings, logo bar 1
-  static const Color kashmirBlue = Color(
-    0xFF4F7596,
-  ); // Logo bar 3, Create account underline
+  static const Color poloBlue = KasyabaTokens.poloBlue;
+  static const Color periwinkleGray = KasyabaTokens.periwinkleGray;
+  static const Color kashmirBlue = KasyabaTokens.kashmirBlue;
   static const Color boulder = Color(0xFF757575); // Input placeholder
   static const Color white = Color(0xFFFFFFFF);
 
@@ -43,26 +40,25 @@ class AuthFigmaTokens {
   static const Color radialGlow1 = Color(
     0xCC4F7596,
   ); // rgba(79, 117, 150, 0.8) at 85% 8%
-  static const Color radialGlow2 = Color(
-    0xFF1E3A56,
-  ); // rgba(30, 58, 86, 1.0) at 0% 100%
+  static const Color radialGlow2 = KasyabaTokens.cello;
   static const Color radialGlow3 = Color(
     0xAB1E3A56,
   ); // rgba(30, 58, 86, 0.67) at 100% 75%
+  static const Color kashmirBlue0 = Color(
+    0x004F7596,
+  ); // transparent stop of kashmirBlue fades
+  static const Color cello0 = Color(
+    0x001E3A56,
+  ); // transparent stop of cello fades
 
   // Forgot Password (Node 11:3028) Tokens
-  static const Color bigStone = Color(
-    0xFF16293F,
-  ); // Base input & back button fill on Forgot Pass
-  static const Color poloBlue22 = Color(
-    0x388FB2CE,
-  ); // rgba(143, 178, 206, 0.22) - Border on Forgot Pass
-  static const Color periwinkleGraySubtitle = Color(
-    0xFFB4CDE0,
-  ); // Subtitle and label on Forgot Pass
+  static const Color bigStone = KasyabaTokens.bigStone;
+  static const Color poloBlue22 = KasyabaTokens.poloBlue22;
+  static const Color periwinkleGraySubtitle =
+      KasyabaTokens.periwinkleGraySubtitle;
   static const Color radialForgotPass = Color(
     0xAB4F7596,
-  ); // rgba(79, 117, 150, 0.67) at 90% 0%
+  ); // rgba(79, 117, 150, 0.67) at 90% 0% — kept literal (const requirement)
 }
 
 // ── Squircle Back Button (Node 11:3033 & 11:743) ──
@@ -251,7 +247,7 @@ class _AuthCapsuleInlineFieldState extends State<AuthCapsuleInlineField> {
                   hintStyle: GoogleFonts.dmSans(
                     color: isDark
                         ? AuthFigmaTokens.periwinkleGray.withValues(alpha: 0.45)
-                        : const Color(0xFF94A3B8),
+                        : AppColors.lightTextTertiary,
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                   ),
@@ -309,7 +305,7 @@ class AuthBackground extends StatelessWidget {
               gradient: RadialGradient(
                 center: Alignment(0.70, -0.84),
                 radius: 0.70,
-                colors: [AuthFigmaTokens.radialGlow1, Color(0x004F7596)],
+                colors: [AuthFigmaTokens.radialGlow1, AuthFigmaTokens.kashmirBlue0],
                 stops: [0.0, 1.0],
               ),
             ),
@@ -320,7 +316,7 @@ class AuthBackground extends StatelessWidget {
               gradient: RadialGradient(
                 center: Alignment(-1.0, 1.0),
                 radius: 0.70,
-                colors: [AuthFigmaTokens.radialGlow2, Color(0x001E3A56)],
+                colors: [AuthFigmaTokens.radialGlow2, AuthFigmaTokens.cello0],
                 stops: [0.0, 1.0],
               ),
             ),
@@ -331,7 +327,7 @@ class AuthBackground extends StatelessWidget {
               gradient: RadialGradient(
                 center: Alignment(1.0, 0.50),
                 radius: 0.70,
-                colors: [AuthFigmaTokens.radialGlow3, Color(0x001E3A56)],
+                colors: [AuthFigmaTokens.radialGlow3, AuthFigmaTokens.cello0],
                 stops: [0.0, 1.0],
               ),
             ),
@@ -383,7 +379,7 @@ class AuthForgotPassBackground extends StatelessWidget {
               gradient: RadialGradient(
                 center: Alignment(0.80, -1.0),
                 radius: 0.70,
-                colors: [AuthFigmaTokens.radialForgotPass, Color(0x004F7596)],
+                colors: [AuthFigmaTokens.radialForgotPass, AuthFigmaTokens.kashmirBlue0],
                 stops: [0.0, 1.0],
               ),
             ),
@@ -629,7 +625,7 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final unfocusedIconColor = isDark
         ? AuthFigmaTokens.poloBlue
-        : const Color(0xFF64748B);
+        : AppColors.lightTextSecondary;
     final focusedIconColor = isDark
         ? AuthFigmaTokens.periwinkleGray
         : KasyabaTokens.poloBlue;
@@ -676,7 +672,7 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
               hintStyle: GoogleFonts.dmSans(
                 color: isDark
                     ? AuthFigmaTokens.boulder
-                    : const Color(0xFF94A3B8),
+                    : AppColors.lightTextTertiary,
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
               ),

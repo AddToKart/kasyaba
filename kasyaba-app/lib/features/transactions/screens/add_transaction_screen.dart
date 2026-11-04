@@ -814,6 +814,15 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                         // Balance Preview Subtitle — suppressed until a real
                         // wallet exists so it never shows fabricated values.
                         if (accounts.isEmpty)
+                          Text(
+                            'Add a wallet to track its balance live',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.dmSans(
+                              fontSize: 14,
+                              color: DashboardTokens.periwinkleGraySubtitle,
+                            ),
+                          )
+                        else
                           RichText(
                             textAlign: TextAlign.center,
                             text: TextSpan(
@@ -822,34 +831,21 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                                 color: DashboardTokens.periwinkleGraySubtitle,
                               ),
                               children: [
-                                const TextSpan(text: 'Add a wallet to track\nits balance live'),
+                                TextSpan(
+                                  text: _isTransfer
+                                      ? '${displayAccount.name}: ${CurrencyFormatter.format(currentAccountBalance)} → '
+                                      : 'Balance after: ${CurrencyFormatter.format(currentAccountBalance)} → ',
+                                ),
+                                TextSpan(
+                                  text: CurrencyFormatter.format(afterBalance),
+                                  style: GoogleFonts.dmSans(
+                                    fontWeight: FontWeight.bold,
+                                    color: DashboardTokens.periwinkleGray,
+                                  ),
+                                ),
                               ],
                             ),
-                          )
-                        else
-                        RichText(
-                          textAlign: TextAlign.center,
-                          text: TextSpan(
-                            style: GoogleFonts.dmSans(
-                              fontSize: 14,
-                              color: DashboardTokens.periwinkleGraySubtitle,
-                            ),
-                            children: [
-                              TextSpan(
-                                text: _isTransfer
-                                    ? '${displayAccount.name}: ${CurrencyFormatter.format(currentAccountBalance)} → '
-                                    : 'Balance after: ${CurrencyFormatter.format(currentAccountBalance)} → ',
-                              ),
-                              TextSpan(
-                                text: CurrencyFormatter.format(afterBalance),
-                                style: GoogleFonts.dmSans(
-                                  fontWeight: FontWeight.bold,
-                                  color: DashboardTokens.periwinkleGray,
-                                ),
-                              ),
-                            ],
                           ),
-                        ),
                       ],
                     ),
                   ),

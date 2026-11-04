@@ -454,7 +454,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     // "No upcoming bills this week" copy stays truthful.
     final weekEndExclusive = weekDays.last.add(const Duration(days: 1));
     final weekBills = upcomingBills.where((b) {
-      final due = _dateOnly(b.dueDate);
+      final db = b.dueDate;
+      final due = DateTime(db.year, db.month, db.day);
       return !due.isBefore(weekDays.first) && due.isBefore(weekEndExclusive);
     }).toList();
 

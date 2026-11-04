@@ -25,7 +25,7 @@ class AlertsScreen extends ConsumerWidget {
     final alertsAsync = ref.watch(alertsProvider);
     final topPadding = math.max(
       56.0,
-      MediaQuery.of(context).padding.top + 16.0,
+      MediaQuery.paddingOf(context).top + 16.0,
     );
 
     return Scaffold(
