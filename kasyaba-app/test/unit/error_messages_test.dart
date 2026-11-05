@@ -63,6 +63,23 @@ void main() {
       );
     });
 
+    test('prefers server message over generic session message on 401 if present', () {
+      final error = DioException(
+        requestOptions: options(),
+        response: Response(
+          requestOptions: options(),
+          statusCode: 401,
+          data: {
+            'error': {'message': 'Current password is incorrect'},
+          },
+        ),
+      );
+      expect(
+        friendlyErrorMessage(error),
+        'Current password is incorrect',
+      );
+    });
+
     test('falls back for non-Dio errors', () {
       expect(
         friendlyErrorMessage(StateError('boom')),

@@ -846,7 +846,9 @@ export async function changePassword(
   if (user.passwordHash) {
     const valid = await argon2.verify(user.passwordHash, input.currentPassword);
     if (!valid) {
-      throw new UnauthorizedError("Current password is incorrect");
+      throw new ValidationError("Current password is incorrect", {
+        currentPassword: "Current password is incorrect",
+      });
     }
 
     const isSame = await argon2.verify(user.passwordHash, input.newPassword);
