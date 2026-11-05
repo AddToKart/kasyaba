@@ -837,10 +837,23 @@ export async function changePassword(
     throw new NotFoundError("User not found");
   }
 
+  if (input.currentPassword === input.newPassword) {
+    throw new ValidationError(
+      "New password must be different from your current password",
+    );
+  }
+
   if (user.passwordHash) {
     const valid = await argon2.verify(user.passwordHash, input.currentPassword);
     if (!valid) {
       throw new UnauthorizedError("Current password is incorrect");
+    }
+
+    const isSame = await argon2.verify(user.passwordHash, input.newPassword);
+    if (isSame) {
+      throw new ValidationError(
+        "New password must be different from your current password",
+      );
     }
   }
 

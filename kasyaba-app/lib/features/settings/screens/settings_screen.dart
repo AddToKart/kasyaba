@@ -754,6 +754,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             );
                             return;
                           }
+                          if (currentPass == newPass) {
+                            KasyabaToast.showError(
+                              sheetContext,
+                              'New password must be different from your current password.',
+                            );
+                            return;
+                          }
 
                           setModalState(() => isSubmitting = true);
                           try {
@@ -971,7 +978,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         child: SafeArea(
           bottom: false,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, KasyabaTokens.dockClearance),
+            padding: EdgeInsets.fromLTRB(
+              20,
+              16,
+              20,
+              KasyabaTokens.dockClearance +
+                  MediaQuery.paddingOf(context).bottom +
+                  24,
+            ),
             children: [
               FadeSlideEntrance.staggered(
                 index: 0,

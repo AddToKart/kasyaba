@@ -66,13 +66,18 @@ export const resetPasswordSchema = z.object({
     .max(128, 'Password must be at most 128 characters'),
 });
 
-export const changePasswordSchema = z.object({
-  currentPassword: z.string().min(1, 'Current password is required').max(128),
-  newPassword: z
-    .string()
-    .min(8, 'New password must be at least 8 characters')
-    .max(128, 'New password must be at most 128 characters'),
-});
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'Current password is required').max(128),
+    newPassword: z
+      .string()
+      .min(8, 'New password must be at least 8 characters')
+      .max(128, 'New password must be at most 128 characters'),
+  })
+  .refine((data) => data.currentPassword !== data.newPassword, {
+    message: 'New password must be different from your current password',
+    path: ['newPassword'],
+  });
 
 const moneySchema = z
   .string()

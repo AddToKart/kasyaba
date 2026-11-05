@@ -452,6 +452,18 @@ describe('Auth Endpoints E2E Integration Tests', () => {
         newPassword: 'NewPassword123!',
       });
     });
+
+    it('rejects same password on POST /api/v1/auth/change-password', async () => {
+      const validToken = await signAccessToken({ sub: 'user-123', email: 'test@kasyaba.app' });
+
+      const res = await request(app)
+        .post('/api/v1/auth/change-password')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({ currentPassword: 'SamePassword123!', newPassword: 'SamePassword123!' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
   });
 
   describe('Public Legal & Health Check Routes', () => {
