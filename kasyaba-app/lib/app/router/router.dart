@@ -76,7 +76,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/otp-verification',
         builder: (context, state) {
           final extra = state.extra as Map<String, dynamic>?;
-          final email = (extra?['email'] as String?) ??
+          final email =
+              (extra?['email'] as String?) ??
               state.uri.queryParameters['email'] ??
               '';
           return OtpVerificationScreen(email: email);
@@ -86,10 +87,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/new-password',
         builder: (context, state) {
           final extra = state.extra as Map<String, dynamic>?;
-          final email = (extra?['email'] as String?) ??
+          final email =
+              (extra?['email'] as String?) ??
               state.uri.queryParameters['email'] ??
               '';
-          final resetToken = (extra?['resetToken'] as String?) ??
+          final resetToken =
+              (extra?['resetToken'] as String?) ??
               state.uri.queryParameters['token'] ??
               '';
           return NewPasswordScreen(email: email, resetToken: resetToken);
@@ -103,24 +106,27 @@ final routerProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(
             path: '/dashboard',
-            pageBuilder: (context, state) => MotionPageTransitions.fadeTransition(
-              key: state.pageKey,
-              child: const DashboardScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                MotionPageTransitions.fadeTransition(
+                  key: state.pageKey,
+                  child: const DashboardScreen(),
+                ),
           ),
           GoRoute(
             path: '/transactions',
-            pageBuilder: (context, state) => MotionPageTransitions.fadeTransition(
-              key: state.pageKey,
-              child: const TransactionsScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                MotionPageTransitions.fadeTransition(
+                  key: state.pageKey,
+                  child: const TransactionsScreen(),
+                ),
           ),
           GoRoute(
             path: '/planning',
-            pageBuilder: (context, state) => MotionPageTransitions.fadeTransition(
-              key: state.pageKey,
-              child: const PlanningScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                MotionPageTransitions.fadeTransition(
+                  key: state.pageKey,
+                  child: const PlanningScreen(),
+                ),
           ),
           GoRoute(
             path: '/planning/breakdown',
@@ -134,48 +140,54 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/goals',
-            pageBuilder: (context, state) => MotionPageTransitions.fadeTransition(
-              key: state.pageKey,
-              child: const GoalsScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                MotionPageTransitions.fadeTransition(
+                  key: state.pageKey,
+                  child: const GoalsScreen(),
+                ),
           ),
           GoRoute(
             path: '/bills',
-            pageBuilder: (context, state) => MotionPageTransitions.fadeTransition(
-              key: state.pageKey,
-              child: const BillsScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                MotionPageTransitions.fadeTransition(
+                  key: state.pageKey,
+                  child: const BillsScreen(),
+                ),
           ),
           GoRoute(
             path: '/settings',
-            pageBuilder: (context, state) => MotionPageTransitions.fadeTransition(
-              key: state.pageKey,
-              child: const SettingsScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                MotionPageTransitions.fadeTransition(
+                  key: state.pageKey,
+                  child: const SettingsScreen(),
+                ),
           ),
           GoRoute(
             path: '/budgets',
-            pageBuilder: (context, state) => MotionPageTransitions.fadeTransition(
-              key: state.pageKey,
-              child: const BudgetsScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                MotionPageTransitions.fadeTransition(
+                  key: state.pageKey,
+                  child: const BudgetsScreen(),
+                ),
           ),
           GoRoute(
             path: '/alerts',
-            pageBuilder: (context, state) => MotionPageTransitions.fadeTransition(
-              key: state.pageKey,
-              child: const AlertsScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                MotionPageTransitions.fadeTransition(
+                  key: state.pageKey,
+                  child: const AlertsScreen(),
+                ),
           ),
         ],
       ),
       // Sub-routes without bottom navigation bar
       GoRoute(
         path: '/transactions/add',
-        pageBuilder: (context, state) => MotionPageTransitions.slideUpTransition(
-          key: state.pageKey,
-          child: AddTransactionScreen(initialType: state.extra as String?),
-        ),
+        pageBuilder: (context, state) =>
+            MotionPageTransitions.slideUpTransition(
+              key: state.pageKey,
+              child: AddTransactionScreen(initialType: state.extra as String?),
+            ),
       ),
       GoRoute(
         path: '/transactions/edit',
@@ -217,52 +229,61 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/accounts',
-        pageBuilder: (context, state) => MotionPageTransitions.slideUpTransition(
-          key: state.pageKey,
-          child: const AccountsScreen(),
-        ),
+        pageBuilder: (context, state) =>
+            MotionPageTransitions.slideUpTransition(
+              key: state.pageKey,
+              child: const AccountsScreen(),
+            ),
       ),
       GoRoute(
         path: '/settings/notifications',
-        pageBuilder: (context, state) => MotionPageTransitions.slideUpTransition(
-          key: state.pageKey,
-          child: const NotificationSettingsScreen(),
-        ),
+        pageBuilder: (context, state) =>
+            MotionPageTransitions.slideUpTransition(
+              key: state.pageKey,
+              child: const NotificationSettingsScreen(),
+            ),
       ),
       GoRoute(
         path: '/settings/backup',
-        pageBuilder: (context, state) => MotionPageTransitions.slideUpTransition(
-          key: state.pageKey,
-          child: const BackupExportScreen(),
-        ),
+        pageBuilder: (context, state) =>
+            MotionPageTransitions.slideUpTransition(
+              key: state.pageKey,
+              child: const BackupExportScreen(),
+            ),
       ),
       GoRoute(
         path: '/settings/delete-account',
-        pageBuilder: (context, state) => MotionPageTransitions.slideUpTransition(
-          key: state.pageKey,
-          child: const DeleteAccountScreen(),
-        ),
+        pageBuilder: (context, state) =>
+            MotionPageTransitions.slideUpTransition(
+              key: state.pageKey,
+              child: const DeleteAccountScreen(),
+            ),
       ),
       GoRoute(
         path: '/settings/privacy',
-        pageBuilder: (context, state) => MotionPageTransitions.slideUpTransition(
-          key: state.pageKey,
-          child: const PrivacyAndAboutScreen(),
-        ),
+        pageBuilder: (context, state) =>
+            MotionPageTransitions.slideUpTransition(
+              key: state.pageKey,
+              child: const PrivacyAndAboutScreen(),
+            ),
       ),
       GoRoute(
         path: '/bills/add',
-        pageBuilder: (context, state) => MotionPageTransitions.slideUpTransition(
-          key: state.pageKey,
-          child: AddBillScreen(initialName: state.extra as String?),
-        ),
+        pageBuilder: (context, state) =>
+            MotionPageTransitions.slideUpTransition(
+              key: state.pageKey,
+              child: AddBillScreen(initialName: state.extra as String?),
+            ),
       ),
       GoRoute(
         path: '/goals/new',
-        pageBuilder: (context, state) => MotionPageTransitions.slideUpTransition(
-          key: state.pageKey,
-          child: CreateGoalScreen(existingGoal: state.extra as SavingsGoal?),
-        ),
+        pageBuilder: (context, state) =>
+            MotionPageTransitions.slideUpTransition(
+              key: state.pageKey,
+              child: CreateGoalScreen(
+                existingGoal: state.extra as SavingsGoal?,
+              ),
+            ),
       ),
       GoRoute(
         path: '/goals/:id',
