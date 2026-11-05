@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 11 and below: Auto Backup / full-backup rules.
+
+  Kasyaba keeps auth tokens in flutter_secure_storage (EncryptedSharedPreferences
+  under shared_prefs/) and the plaintext ledger snapshot cache in the app's
+  documents/files directory (kasyaba_cache.db). None of that may leave the
+  device through cloud backup or adb backup.
+
+  android:allowBackup="false" is the primary control; these exclusions are
+  defense-in-depth and also constrain device-to-device transfer where the OEM
+  still performs it. Excluding the root/file/database/sharedpref domains keeps
+  tokens, the Drift ledger cache, and preferences out of backups while leaving
+  normal on-device operation untouched.
+-->
+<full-backup-content>
+    <exclude domain="root" path="." />
+    <exclude domain="file" path="." />
+    <exclude domain="database" path="." />
+    <exclude domain="sharedpref" path="." />
+    <exclude domain="external" path="." />
+    <exclude domain="device_root" path="." />
+    <exclude domain="device_file" path="." />
+    <exclude domain="device_database" path="." />
+    <exclude domain="device_sharedpref" path="." />
+</full-backup-content>

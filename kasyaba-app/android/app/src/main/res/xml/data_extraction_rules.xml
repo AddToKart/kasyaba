@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 12+ (API 31+) backup and device-transfer rules.
+
+  Cloud backup and device-to-device transfer are governed separately here.
+  Exclude every app data domain because Kasyaba's device layer contains:
+    * flutter_secure_storage tokens (EncryptedSharedPreferences in shared_prefs/)
+    * the plaintext Drift ledger cache (files/ -> kasyaba_cache.db)
+    * cached policy text and local preferences
+  Server data remains the source of truth and is re-fetched after sign-in, so
+  excluding device copies does not lose ledger data.
+
+  android:allowBackup="false" remains the primary cloud-backup control. Android
+  12+ may still perform device-to-device transfer on some OEMs; the explicit
+  device-transfer exclusions below prevent tokens and the ledger cache from
+  moving to a new device.
+-->
+<data-extraction-rules>
+    <cloud-backup disableIfNoEncryptionCapabilities="true">
+        <exclude domain="root" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="external" path="." />
+        <exclude domain="device_root" path="." />
+        <exclude domain="device_file" path="." />
+        <exclude domain="device_database" path="." />
+        <exclude domain="device_sharedpref" path="." />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="external" path="." />
+        <exclude domain="device_root" path="." />
+        <exclude domain="device_file" path="." />
+        <exclude domain="device_database" path="." />
+        <exclude domain="device_sharedpref" path="." />
+    </device-transfer>
+</data-extraction-rules>
