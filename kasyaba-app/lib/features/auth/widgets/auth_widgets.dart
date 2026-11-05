@@ -603,12 +603,14 @@ class AuthReactiveField extends StatefulWidget {
 class _AuthReactiveFieldState extends State<AuthReactiveField> {
   final FocusNode _focusNode = FocusNode();
   bool _isFocused = false;
-  late bool _obscured;
+  bool? _isObscured;
+
+  bool get _obscured =>
+      _isObscured ?? (widget.isPasswordField || widget.obscureText);
 
   @override
   void initState() {
     super.initState();
-    _obscured = widget.isPasswordField || widget.obscureText;
     _focusNode.addListener(() {
       if (mounted) {
         setState(() {
@@ -622,7 +624,7 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
   void didUpdateWidget(AuthReactiveField oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.obscureText != oldWidget.obscureText && !widget.isPasswordField) {
-      _obscured = widget.obscureText;
+      _isObscured = widget.obscureText;
     }
   }
 
@@ -645,7 +647,7 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
     Widget? suffix = widget.suffixIcon;
     if (widget.isPasswordField && suffix == null) {
       suffix = GestureDetector(
-        onTap: () => setState(() => _obscured = !_obscured),
+        onTap: () => setState(() => _isObscured = !_obscured),
         behavior: HitTestBehavior.opaque,
         child: Padding(
           padding: const EdgeInsets.only(right: 18, left: 10),
