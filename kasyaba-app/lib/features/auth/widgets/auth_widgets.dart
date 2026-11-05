@@ -647,9 +647,9 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
         ),
         const SizedBox(height: 7),
 
-        // Input container (height: 54, r: 27)
-        SizedBox(
-          height: 54,
+        // Input container (height: 56, r: 28 capsule)
+        ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 56),
           child: ReactiveTextField<dynamic>(
             formControlName: widget.formControlName,
             focusNode: _focusNode,
@@ -682,7 +682,7 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
                   : AppColors.lightInputFill,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 22,
-                vertical: 15.5,
+                vertical: 17,
               ),
               prefixIcon: widget.prefixIcon != null
                   ? Icon(
@@ -692,8 +692,12 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
                     )
                   : null,
               suffixIcon: widget.suffixIcon,
+              suffixIconConstraints: const BoxConstraints(
+                minWidth: 44,
+                minHeight: 44,
+              ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(27),
+                borderRadius: BorderRadius.circular(28),
                 borderSide: BorderSide(
                   color: isDark
                       ? AuthFigmaTokens.poloBlue35
@@ -702,25 +706,30 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
                 ),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(27),
+                borderRadius: BorderRadius.circular(28),
                 borderSide: BorderSide(
                   color: isDark ? AuthFigmaTokens.poloBlue : focusedIconColor,
                   width: 1.5,
                 ),
               ),
               errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(27),
+                borderRadius: BorderRadius.circular(28),
                 borderSide: const BorderSide(
                   color: KasyabaTokens.apricot,
                   width: 1.0,
                 ),
               ),
               focusedErrorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(27),
+                borderRadius: BorderRadius.circular(28),
                 borderSide: const BorderSide(
                   color: KasyabaTokens.apricot,
                   width: 1.5,
                 ),
+              ),
+              errorStyle: GoogleFonts.dmSans(
+                color: KasyabaTokens.apricot,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
               ),
             ),
             validationMessages: widget.validationMessages,

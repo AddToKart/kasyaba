@@ -24,9 +24,6 @@ class NewPasswordScreen extends ConsumerStatefulWidget {
 }
 
 class _NewPasswordScreenState extends ConsumerState<NewPasswordScreen> {
-  bool _obscureNew = true;
-  bool _obscureConfirm = true;
-
   final formGroup = FormGroup(
     {
       'newPassword': FormControl<String>(
@@ -193,20 +190,7 @@ class _NewPasswordScreenState extends ConsumerState<NewPasswordScreen> {
                                       formControlName: 'newPassword',
                                       label: 'New password',
                                       hintText: '••••••••',
-                                      obscureText: _obscureNew,
-                                      suffixIcon: IconButton(
-                                        icon: Icon(
-                                          _obscureNew
-                                              ? Icons.visibility_off_outlined
-                                              : Icons.visibility_outlined,
-                                          color: isDark
-                                              ? AuthFigmaTokens.poloBlue
-                                              : AppColors.lightTextSecondary,
-                                          size: 20,
-                                        ),
-                                        onPressed: () => setState(
-                                            () => _obscureNew = !_obscureNew),
-                                      ),
+                                      obscureText: true,
                                       textInputAction: TextInputAction.next,
                                       validationMessages: {
                                         ValidationMessage.required: (_) =>
@@ -234,21 +218,7 @@ class _NewPasswordScreenState extends ConsumerState<NewPasswordScreen> {
                                       formControlName: 'confirmPassword',
                                       label: 'Confirm password',
                                       hintText: '••••••••',
-                                      obscureText: _obscureConfirm,
-                                      suffixIcon: IconButton(
-                                        icon: Icon(
-                                          _obscureConfirm
-                                              ? Icons.visibility_off_outlined
-                                              : Icons.visibility_outlined,
-                                          color: isDark
-                                              ? AuthFigmaTokens.poloBlue
-                                              : AppColors.lightTextSecondary,
-                                          size: 20,
-                                        ),
-                                        onPressed: () => setState(() =>
-                                            _obscureConfirm =
-                                                !_obscureConfirm),
-                                      ),
+                                      obscureText: true,
                                       textInputAction: TextInputAction.done,
                                       onSubmitted: _handleResetPassword,
                                       validationMessages: {
