@@ -34,13 +34,13 @@ import '../../core/providers/api_providers.dart';
 import 'app_shell.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authProvider);
+  final isLoggedIn = ref.watch(authProvider.select((s) => s.isAuthenticated));
+  final isInitializing =
+      ref.watch(authProvider.select((s) => s.isInitializing));
 
   return GoRouter(
     initialLocation: '/splash',
     redirect: (context, state) {
-      final isInitializing = authState.isInitializing;
-      final isLoggedIn = authState.isAuthenticated;
       final isSplash = state.matchedLocation == '/splash';
       final isAuthRoute =
           state.matchedLocation == '/login' ||
