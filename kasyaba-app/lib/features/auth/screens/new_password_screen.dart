@@ -190,7 +190,7 @@ class _NewPasswordScreenState extends ConsumerState<NewPasswordScreen> {
                                       formControlName: 'newPassword',
                                       label: 'New password',
                                       hintText: '••••••••',
-                                      obscureText: true,
+                                      isPasswordField: true,
                                       textInputAction: TextInputAction.next,
                                       validationMessages: {
                                         ValidationMessage.required: (_) =>
@@ -218,7 +218,7 @@ class _NewPasswordScreenState extends ConsumerState<NewPasswordScreen> {
                                       formControlName: 'confirmPassword',
                                       label: 'Confirm password',
                                       hintText: '••••••••',
-                                      obscureText: true,
+                                      isPasswordField: true,
                                       textInputAction: TextInputAction.done,
                                       onSubmitted: _handleResetPassword,
                                       validationMessages: {

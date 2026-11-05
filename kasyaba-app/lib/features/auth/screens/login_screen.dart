@@ -252,7 +252,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                     formControlName: 'password',
                                     label: 'Password',
                                     hintText: '••••••••',
-                                    obscureText: true,
+                                    isPasswordField: true,
                                     textInputAction: TextInputAction.done,
                                     onSubmitted: _handleLogin,
                                     validationMessages: {

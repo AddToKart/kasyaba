@@ -206,5 +206,14 @@ void main() {
     expect(find.text('NEW PASSWORD'), findsOneWidget);
     expect(find.text('CONFIRM PASSWORD'), findsOneWidget);
     expect(find.text('Reset password'), findsOneWidget);
+
+    // Visibility toggle eye icon
+    final eyeIcons = find.byIcon(Icons.visibility_off_outlined);
+    expect(eyeIcons, findsNWidgets(2));
+
+    // Tap first eye icon to reveal password
+    await tester.tap(eyeIcons.first);
+    await tester.pump();
+    expect(find.byIcon(Icons.visibility_outlined), findsOneWidget);
   });
 }

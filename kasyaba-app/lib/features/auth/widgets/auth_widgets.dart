@@ -574,6 +574,7 @@ class AuthReactiveField extends StatefulWidget {
   final String hintText;
   final IconData? prefixIcon;
   final bool obscureText;
+  final bool isPasswordField;
   final Widget? suffixIcon;
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
@@ -587,6 +588,7 @@ class AuthReactiveField extends StatefulWidget {
     required this.hintText,
     this.prefixIcon,
     this.obscureText = false,
+    this.isPasswordField = false,
     this.suffixIcon,
     this.keyboardType,
     this.textInputAction,
@@ -601,10 +603,12 @@ class AuthReactiveField extends StatefulWidget {
 class _AuthReactiveFieldState extends State<AuthReactiveField> {
   final FocusNode _focusNode = FocusNode();
   bool _isFocused = false;
+  late bool _obscured;
 
   @override
   void initState() {
     super.initState();
+    _obscured = widget.isPasswordField || widget.obscureText;
     _focusNode.addListener(() {
       if (mounted) {
         setState(() {
@@ -612,6 +616,14 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
         });
       }
     });
+  }
+
+  @override
+  void didUpdateWidget(AuthReactiveField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.obscureText != oldWidget.obscureText && !widget.isPasswordField) {
+      _obscured = widget.obscureText;
+    }
   }
 
   @override
@@ -629,6 +641,30 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
     final focusedIconColor = isDark
         ? AuthFigmaTokens.periwinkleGray
         : KasyabaTokens.poloBlue;
+
+    Widget? suffix = widget.suffixIcon;
+    if (widget.isPasswordField && suffix == null) {
+      suffix = GestureDetector(
+        onTap: () => setState(() => _obscured = !_obscured),
+        behavior: HitTestBehavior.opaque,
+        child: Padding(
+          padding: const EdgeInsets.only(right: 18, left: 10),
+          child: Icon(
+            _obscured
+                ? Icons.visibility_off_outlined
+                : Icons.visibility_outlined,
+            color: _isFocused
+                ? (isDark
+                    ? AuthFigmaTokens.periwinkleGray
+                    : AuthFigmaTokens.poloBlue)
+                : (isDark
+                    ? AuthFigmaTokens.poloBlue
+                    : AppColors.lightTextSecondary),
+            size: 20,
+          ),
+        ),
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -653,7 +689,7 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
           child: ReactiveTextField<dynamic>(
             formControlName: widget.formControlName,
             focusNode: _focusNode,
-            obscureText: widget.obscureText,
+            obscureText: widget.isPasswordField ? _obscured : widget.obscureText,
             keyboardType: widget.keyboardType,
             textInputAction: widget.textInputAction,
             onSubmitted: widget.onSubmitted != null
@@ -691,7 +727,7 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
                       size: 20,
                     )
                   : null,
-              suffixIcon: widget.suffixIcon,
+              suffixIcon: suffix,
               suffixIconConstraints: const BoxConstraints(
                 minWidth: 44,
                 minHeight: 44,

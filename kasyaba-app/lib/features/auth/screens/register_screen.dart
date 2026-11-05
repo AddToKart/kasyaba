@@ -240,7 +240,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                                     formControlName: 'password',
                                     label: 'Password',
                                     hintText: 'At least 8 characters',
-                                    obscureText: true,
+                                    isPasswordField: true,
                                     textInputAction: TextInputAction.next,
                                     validationMessages: {
                                       ValidationMessage.required: (_) =>
@@ -268,7 +268,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                                     formControlName: 'confirmPassword',
                                     label: 'Confirm password',
                                     hintText: 'Re-enter your password',
-                                    obscureText: true,
+                                    isPasswordField: true,
                                     textInputAction: TextInputAction.done,
                                     onSubmitted: _handleRegister,
                                     validationMessages: {
