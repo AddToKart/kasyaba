@@ -565,6 +565,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     AppHaptics.selectionClick();
     final nameController = TextEditingController(text: currentName);
     var isSubmitting = false;
+    String? sheetError;
 
     showKasyabaSheet<void>(
       context: context,
@@ -595,7 +596,44 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     color: KasyabaTokens.periwinkleGraySubtitle,
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
+                if (sheetError != null) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 11,
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      color: KasyabaTokens.apricot15,
+                      border: Border.all(
+                        color: KasyabaTokens.apricot.withValues(alpha: 0.35),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.error_outline_rounded,
+                          color: KasyabaTokens.apricot,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            sheetError!,
+                            style: GoogleFonts.dmSans(
+                              color: KasyabaTokens.apricot,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                ],
                 _sheetTextInputField(
                   label: 'FULL NAME',
                   controller: nameController,
@@ -609,13 +647,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       : () async {
                           final trimmed = nameController.text.trim();
                           if (trimmed.isEmpty) {
-                            KasyabaToast.showError(
-                              sheetContext,
-                              'Name cannot be empty.',
+                            setModalState(
+                              () => sheetError = 'Name cannot be empty.',
                             );
                             return;
                           }
-                          setModalState(() => isSubmitting = true);
+                          setModalState(() {
+                            isSubmitting = true;
+                            sheetError = null;
+                          });
                           try {
                             await ref
                                 .read(transactionMutatorProvider)
@@ -634,9 +674,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             }
                           } catch (error) {
                             if (sheetContext.mounted) {
-                              KasyabaToast.showError(
-                                sheetContext,
-                                friendlyErrorMessage(
+                              setModalState(
+                                () => sheetError = friendlyErrorMessage(
                                   error,
                                   fallback: 'Could not update profile.',
                                 ),
@@ -666,6 +705,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     var obscureCurrent = true;
     var obscureNew = true;
     var obscureConfirm = true;
+    String? sheetError;
 
     showKasyabaSheet<void>(
       context: context,
@@ -696,7 +736,44 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     color: KasyabaTokens.periwinkleGraySubtitle,
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
+                if (sheetError != null) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 11,
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      color: KasyabaTokens.apricot15,
+                      border: Border.all(
+                        color: KasyabaTokens.apricot.withValues(alpha: 0.35),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.error_outline_rounded,
+                          color: KasyabaTokens.apricot,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            sheetError!,
+                            style: GoogleFonts.dmSans(
+                              color: KasyabaTokens.apricot,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                ],
                 _sheetPasswordInputField(
                   label: 'CURRENT PASSWORD',
                   controller: currentPasswordController,
@@ -734,35 +811,38 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           final confirmPass = confirmPasswordController.text;
 
                           if (currentPass.isEmpty) {
-                            KasyabaToast.showError(
-                              sheetContext,
-                              'Please enter your current password.',
+                            setModalState(
+                              () => sheetError =
+                                  'Please enter your current password.',
                             );
                             return;
                           }
                           if (newPass.length < 8) {
-                            KasyabaToast.showError(
-                              sheetContext,
-                              'New password must be at least 8 characters.',
+                            setModalState(
+                              () => sheetError =
+                                  'New password must be at least 8 characters.',
                             );
                             return;
                           }
                           if (newPass != confirmPass) {
-                            KasyabaToast.showError(
-                              sheetContext,
-                              'New passwords do not match.',
+                            setModalState(
+                              () => sheetError =
+                                  'New passwords do not match.',
                             );
                             return;
                           }
                           if (currentPass == newPass) {
-                            KasyabaToast.showError(
-                              sheetContext,
-                              'New password must be different from your current password.',
+                            setModalState(
+                              () => sheetError =
+                                  'New password must be different from your current password.',
                             );
                             return;
                           }
 
-                          setModalState(() => isSubmitting = true);
+                          setModalState(() {
+                            isSubmitting = true;
+                            sheetError = null;
+                          });
                           try {
                             await ref
                                 .read(authProvider.notifier)
@@ -781,9 +861,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             }
                           } catch (error) {
                             if (sheetContext.mounted) {
-                              KasyabaToast.showError(
-                                sheetContext,
-                                friendlyErrorMessage(
+                              setModalState(
+                                () => sheetError = friendlyErrorMessage(
                                   error,
                                   fallback: 'Failed to update password.',
                                 ),
