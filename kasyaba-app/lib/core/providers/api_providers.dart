@@ -1412,11 +1412,17 @@ class TransactionMutator {
     String? categoryId,
     int reminderLeadDays = 1,
   }) async {
-    final data = {
+    final normalizedRecurrence = recurrence.toLowerCase() == 'once'
+        ? 'none'
+        : recurrence.toLowerCase();
+
+    final data = <String, dynamic>{
       'name': name,
       'defaultAmount': amount.toStringAsFixed(2),
       'startsOn': _dateOnlyPayload(startsOn),
-      'recurrence': recurrence,
+      'recurrence': normalizedRecurrence,
+      if (normalizedRecurrence == 'monthly') 'dayOfMonth': startsOn.day,
+      if (normalizedRecurrence == 'weekly') 'dayOfWeek': startsOn.weekday % 7,
       if (categoryId != null && categoryId.isNotEmpty) 'categoryId': categoryId,
       'reminderLeadDays': reminderLeadDays,
     };

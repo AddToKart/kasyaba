@@ -15,7 +15,15 @@ String friendlyErrorMessage(
   if (status != null) {
     final data = error.response?.data;
     if (data is Map && data['error'] is Map) {
-      final message = data['error']['message']?.toString();
+      final errorMap = data['error'] as Map;
+      final fields = errorMap['fields'];
+      if (fields is Map && fields.isNotEmpty) {
+        final firstFieldMessage = fields.values.first?.toString();
+        if (firstFieldMessage != null && firstFieldMessage.isNotEmpty) {
+          return firstFieldMessage;
+        }
+      }
+      final message = errorMap['message']?.toString();
       if (message != null && message.isNotEmpty && status < 500) {
         return message;
       }

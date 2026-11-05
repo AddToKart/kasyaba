@@ -80,6 +80,28 @@ void main() {
       );
     });
 
+    test('prefers specific field error message over generic validation message', () {
+      final error = DioException(
+        requestOptions: options(),
+        response: Response(
+          requestOptions: options(),
+          statusCode: 400,
+          data: {
+            'error': {
+              'message': 'The request contains invalid fields.',
+              'fields': {
+                'recurrence': 'Invalid recurrence format',
+              },
+            },
+          },
+        ),
+      );
+      expect(
+        friendlyErrorMessage(error),
+        'Invalid recurrence format',
+      );
+    });
+
     test('falls back for non-Dio errors', () {
       expect(
         friendlyErrorMessage(StateError('boom')),

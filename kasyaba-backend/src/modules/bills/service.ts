@@ -31,7 +31,7 @@ async function findAccessibleCategory(userId: string, categoryId?: string | null
 
 export async function createBillTemplate(userId: string, input: CreateBillTemplateInput) {
   if (input.categoryId) await findAccessibleCategory(userId, input.categoryId);
-  return prisma.billTemplate.create({
+  const template = await prisma.billTemplate.create({
     data: {
       userId,
       name: input.name,
@@ -46,6 +46,8 @@ export async function createBillTemplate(userId: string, input: CreateBillTempla
       isActive: input.isActive,
     },
   });
+  await generateBillInstances(userId);
+  return template;
 }
 
 export async function updateBillTemplate(userId: string, id: string, input: UpdateBillTemplateInput) {

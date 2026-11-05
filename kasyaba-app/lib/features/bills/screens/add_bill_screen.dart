@@ -228,11 +228,17 @@ class _AddBillScreenState extends ConsumerState<AddBillScreen> {
     try {
       AppHaptics.mediumImpact();
       final mutator = ref.read(transactionMutatorProvider);
+      final recurrencePayload = switch (_repeats.toLowerCase()) {
+        'once' => 'none',
+        'weekly' => 'weekly',
+        'monthly' => 'monthly',
+        _ => 'monthly',
+      };
       await mutator.addBill(
         name: name,
         amount: amount,
         startsOn: _dueDate,
-        recurrence: _repeats.toLowerCase(),
+        recurrence: recurrencePayload,
         categoryId: _selectedCategoryId,
         reminderLeadDays: _remindLeadDays[_remindMe] ?? 1,
       );

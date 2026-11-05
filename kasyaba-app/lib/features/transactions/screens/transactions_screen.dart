@@ -31,6 +31,7 @@ String? _billRecurrenceLabel(String? recurrence) {
     case 'one-time':
     case 'one_time':
     case 'onetime':
+    case 'none':
       return 'One-time';
     default:
       return null;
