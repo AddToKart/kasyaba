@@ -433,35 +433,45 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           child: Text(
             label,
             style: GoogleFonts.dmSans(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.0,
               color: KasyabaTokens.periwinkleGraySubtitle,
             ),
           ),
         ),
-        Container(
-          height: 58,
-          padding: const EdgeInsets.symmetric(horizontal: 21),
-          decoration: BoxDecoration(
-            color: KasyabaTokens.bigStone,
-            borderRadius: BorderRadius.circular(KasyabaTokens.radiusCard),
-            border: Border.all(color: KasyabaTokens.poloBlue22, width: 1),
+        TextField(
+          controller: controller,
+          style: GoogleFonts.dmSans(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+            color: KasyabaTokens.periwinkleGray,
           ),
-          alignment: Alignment.center,
-          child: TextField(
-            controller: controller,
-            style: GoogleFonts.dmSans(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: KasyabaTokens.periwinkleGray,
+          decoration: InputDecoration(
+            isDense: true,
+            hintText: hint,
+            hintStyle: GoogleFonts.dmSans(
+              fontSize: 15,
+              color: KasyabaTokens.poloBlue40,
             ),
-            decoration: InputDecoration(
-              isDense: true,
-              border: InputBorder.none,
-              hintText: hint,
-              hintStyle: GoogleFonts.dmSans(
-                fontSize: 15,
-                color: KasyabaTokens.poloBlue40,
+            filled: true,
+            fillColor: KasyabaTokens.bigStone,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 22,
+              vertical: 17,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(28),
+              borderSide: const BorderSide(
+                color: KasyabaTokens.poloBlue22,
+                width: 1.0,
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(28),
+              borderSide: const BorderSide(
+                color: KasyabaTokens.poloBlue,
+                width: 1.5,
               ),
             ),
           ),
@@ -485,46 +495,39 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           child: Text(
             label,
             style: GoogleFonts.dmSans(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.0,
               color: KasyabaTokens.periwinkleGraySubtitle,
             ),
           ),
         ),
-        Container(
-          height: 58,
-          padding: const EdgeInsets.symmetric(horizontal: 21),
-          decoration: BoxDecoration(
-            color: KasyabaTokens.bigStone,
-            borderRadius: BorderRadius.circular(KasyabaTokens.radiusCard),
-            border: Border.all(color: KasyabaTokens.poloBlue22, width: 1),
+        TextField(
+          controller: controller,
+          obscureText: obscure,
+          style: GoogleFonts.dmSans(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+            color: KasyabaTokens.periwinkleGray,
           ),
-          alignment: Alignment.center,
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: controller,
-                  obscureText: obscure,
-                  style: GoogleFonts.dmSans(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: KasyabaTokens.periwinkleGray,
-                  ),
-                  decoration: InputDecoration(
-                    isDense: true,
-                    border: InputBorder.none,
-                    hintText: hint,
-                    hintStyle: GoogleFonts.dmSans(
-                      fontSize: 15,
-                      color: KasyabaTokens.poloBlue40,
-                    ),
-                  ),
-                ),
-              ),
-              GestureDetector(
-                onTap: onToggleObscure,
-                behavior: HitTestBehavior.opaque,
+          decoration: InputDecoration(
+            isDense: true,
+            hintText: hint,
+            hintStyle: GoogleFonts.dmSans(
+              fontSize: 15,
+              color: KasyabaTokens.poloBlue40,
+            ),
+            filled: true,
+            fillColor: KasyabaTokens.bigStone,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 22,
+              vertical: 17,
+            ),
+            suffixIcon: GestureDetector(
+              onTap: onToggleObscure,
+              behavior: HitTestBehavior.opaque,
+              child: Padding(
+                padding: const EdgeInsets.only(right: 18, left: 10),
                 child: Icon(
                   obscure
                       ? Icons.visibility_off_outlined
@@ -533,7 +536,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   size: 20,
                 ),
               ),
-            ],
+            ),
+            suffixIconConstraints: const BoxConstraints(
+              minWidth: 44,
+              minHeight: 44,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(28),
+              borderSide: const BorderSide(
+                color: KasyabaTokens.poloBlue22,
+                width: 1.0,
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(28),
+              borderSide: const BorderSide(
+                color: KasyabaTokens.poloBlue,
+                width: 1.5,
+              ),
+            ),
           ),
         ),
       ],
