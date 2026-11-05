@@ -1068,7 +1068,7 @@ void main() {
     test(
       'transactionFilterProvider forwards from/to and merges only in-range pending entries',
       () async {
-        stack.cache.seedTransaction(
+        await stack.cache.seedTransaction(
           id: 'offline-in-range',
           type: 'expense',
           userId: _userId,
@@ -1080,7 +1080,7 @@ void main() {
           },
           createdAt: DateTime(2026, 5, 15),
         );
-        stack.cache.seedTransaction(
+        await stack.cache.seedTransaction(
           id: 'offline-out-of-range',
           type: 'expense',
           userId: _userId,

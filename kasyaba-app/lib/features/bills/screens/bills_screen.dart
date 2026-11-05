@@ -6,13 +6,17 @@ import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_motion.dart';
 import '../../../shared/widgets/motion_components.dart';
+import '../../../core/connectivity/connectivity_service.dart';
+import '../../../core/database/cache_service.dart';
 import '../../../core/errors/error_messages.dart';
+import '../../../core/offline/offline_capabilities.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../shared/widgets/app_sheet.dart';
 import '../../../shared/widgets/app_state_widgets.dart';
 import '../../../shared/widgets/kasyaba_date_picker.dart';
 import '../../../shared/widgets/kasyaba_toast.dart';
+import '../../../shared/widgets/offline_status.dart';
 import '../../dashboard/widgets/dashboard_tokens.dart';
 
 DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
@@ -171,6 +175,12 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
     final accounts = ref.read(accountsProvider).valueOrNull ?? [];
     String? selectedAccount = accounts.isNotEmpty ? accounts.first.id : null;
     var isSubmitting = false;
+    final isOnline = ref.read(isOnlineProvider);
+    final canMarkPaid =
+        isOnline || !OfflineCapabilities.isQueueable(OfflineAction.markBillPaid);
+    final canMarkUnpaid =
+        isOnline ||
+        !OfflineCapabilities.isQueueable(OfflineAction.markBillUnpaid);
 
     showKasyabaSheet<void>(
       context: context,
@@ -226,6 +236,15 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                       ],
                     ),
                     const SizedBox(height: 20),
+
+                    if (!isOnline && !isCancelled) ...[
+                      NeedsInternetNotice(
+                        message: isPaid
+                            ? 'Marking a bill as unpaid needs an internet connection.'
+                            : 'Marking bills as paid needs an internet connection.',
+                      ),
+                      const SizedBox(height: 16),
+                    ],
 
                     if (isCancelled) ...[
                       Container(
@@ -350,9 +369,14 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                       ],
                       const SizedBox(height: 20),
 
-                      GestureDetector(
+                      Opacity(
+                        opacity: canMarkPaid ? 1 : 0.5,
+                        child: GestureDetector(
                         behavior: HitTestBehavior.opaque,
-                        onTap: isSubmitting || selectedAccount == null
+                        onTap:
+                            !canMarkPaid ||
+                                isSubmitting ||
+                                selectedAccount == null
                             ? null
                             : () async {
                                 setSheetState(() => isSubmitting = true);
@@ -414,10 +438,13 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                                 ),
                         ),
                       ),
+                      ),
                     ] else ...[
-                      GestureDetector(
+                      Opacity(
+                        opacity: canMarkUnpaid ? 1 : 0.5,
+                        child: GestureDetector(
                         behavior: HitTestBehavior.opaque,
-                        onTap: isSubmitting
+                        onTap: !canMarkUnpaid || isSubmitting
                             ? null
                             : () async {
                                 setSheetState(() => isSubmitting = true);
@@ -476,6 +503,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                                 ),
                         ),
                        ),
+                      ),
                      ],
                     ],
                   ),
@@ -491,6 +519,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
   Widget build(BuildContext context) {
     final topPadding = MediaQuery.paddingOf(context).top;
     final billsAsync = ref.watch(billsProvider);
+    final isOnline = ref.watch(isOnlineProvider);
     final allBills = billsAsync.valueOrNull ?? [];
     final today = _dateOnly(DateTime.now());
 
@@ -674,6 +703,13 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                 ),
                 const SizedBox(height: 14),
 
+                if (!isOnline) ...[
+                  const OfflineStatusBadge(
+                    snapshotKey: CacheService.snapshotKeyBills,
+                  ),
+                  const SizedBox(height: 10),
+                ],
+
                 // ── Calendar Component (Adaptive: Week Strip vs. Full Month) ─
                 FadeSlideEntrance.staggered(
                   index: 1,
@@ -811,13 +847,19 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       if (billsAsync.hasError && allBills.isEmpty) ...[
-                        KasyabaErrorCard(
-                          message: friendlyErrorMessage(
-                            billsAsync.error,
-                            fallback: 'Could not load bills.',
+                        if (!isOnline)
+                          const NeedsInternetNotice(
+                            message:
+                                "Bills aren't saved on this device — reconnect to load them.",
+                          )
+                        else
+                          KasyabaErrorCard(
+                            message: friendlyErrorMessage(
+                              billsAsync.error,
+                              fallback: 'Could not load bills.',
+                            ),
+                            onRetry: () => ref.invalidate(billsProvider),
                           ),
-                          onRetry: () => ref.invalidate(billsProvider),
-                        ),
                       ] else if (billsAsync.isLoading && allBills.isEmpty) ...[
                         const Padding(
                           padding: EdgeInsets.symmetric(vertical: 40),

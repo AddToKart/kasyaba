@@ -10,6 +10,7 @@ import '../../../app/theme/app_motion.dart';
 import '../../../shared/widgets/motion_components.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/auth/auth_provider.dart';
+import '../../../core/connectivity/connectivity_service.dart';
 import '../../../core/database/cache_service.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
@@ -19,6 +20,7 @@ import '../../../shared/widgets/app_sheet.dart';
 import '../../../shared/widgets/app_state_widgets.dart';
 import '../../../shared/widgets/kasyaba_date_picker.dart';
 import '../../../shared/widgets/kasyaba_toast.dart';
+import '../../../shared/widgets/offline_status.dart';
 import '../../dashboard/widgets/dashboard_tokens.dart';
 
 String? _billRecurrenceLabel(String? recurrence) {
@@ -184,6 +186,72 @@ Future<void> _showTransactionActions(
       'Stored locally',
       subtitle: 'Will automatically sync once connected.',
       icon: Icons.cloud_queue_rounded,
+    );
+    return;
+  }
+
+  if (!ref.read(isOnlineProvider)) {
+    await showKasyabaSheet<void>(
+      context: context,
+      builder: (sheetContext) => AppSheet(
+        color: DashboardTokens.bigStone,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                transaction.isTransfer
+                    ? 'Transfer options'
+                    : 'Transaction options',
+                style: GoogleFonts.bricolageGrotesque(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: DashboardTokens.periwinkleGray,
+                ),
+              ),
+              const SizedBox(height: 12),
+              const NeedsInternetNotice(
+                message:
+                    'Editing or deleting transactions needs an internet connection.',
+              ),
+              const SizedBox(height: 8),
+              if (!transaction.isTransfer)
+                ListTile(
+                  enabled: false,
+                  leading: const Icon(
+                    Icons.edit_rounded,
+                    color: DashboardTokens.periwinkleGraySubtitle,
+                  ),
+                  title: Text(
+                    'Edit transaction',
+                    style: GoogleFonts.dmSans(
+                      fontWeight: FontWeight.bold,
+                      color: DashboardTokens.periwinkleGraySubtitle,
+                    ),
+                  ),
+                ),
+              ListTile(
+                enabled: false,
+                leading: const Icon(
+                  Icons.delete_outline_rounded,
+                  color: DashboardTokens.periwinkleGraySubtitle,
+                ),
+                title: Text(
+                  transaction.isTransfer
+                      ? 'Delete transfer'
+                      : 'Delete transaction',
+                  style: GoogleFonts.dmSans(
+                    fontWeight: FontWeight.bold,
+                    color: DashboardTokens.periwinkleGraySubtitle,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
     return;
   }
@@ -377,6 +445,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     final topPadding = MediaQuery.paddingOf(context).top;
     final paginatedAsync = ref.watch(paginatedTransactionsProvider);
     final billsAsync = ref.watch(billsProvider);
+    final isOnline = ref.watch(isOnlineProvider);
+    final activeFilter = ref.watch(transactionFilterProvider);
 
     final transactions = paginatedAsync.valueOrNull?.items ?? [];
     final bills = billsAsync.valueOrNull ?? [];
@@ -595,6 +665,17 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                 ),
 
                 const SizedBox(height: 14),
+
+                if (!isOnline) ...[
+                  OfflineStatusBadge(
+                    snapshotKey: CacheService.transactionsKey(
+                      page: activeFilter.page,
+                      from: activeFilter.fromDate,
+                      to: activeFilter.toDate,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
 
                 // ── Month Selector & Net Row (Node 82:516) ──────────────────
                 FadeSlideEntrance.staggered(
@@ -1103,14 +1184,20 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       if (paginatedAsync.hasError && transactions.isEmpty) ...[
-                        KasyabaErrorCard(
-                          message: friendlyErrorMessage(
-                            paginatedAsync.error,
-                            fallback: 'Could not load transactions.',
+                        if (!isOnline)
+                          const NeedsInternetNotice(
+                            message:
+                                "This month isn't saved on this device — reconnect to load it.",
+                          )
+                        else
+                          KasyabaErrorCard(
+                            message: friendlyErrorMessage(
+                              paginatedAsync.error,
+                              fallback: 'Could not load transactions.',
+                            ),
+                            onRetry: () =>
+                                ref.invalidate(paginatedTransactionsProvider),
                           ),
-                          onRetry: () =>
-                              ref.invalidate(paginatedTransactionsProvider),
-                        ),
                       ] else if (paginatedAsync.isLoading &&
                           transactions.isEmpty) ...[
                         const Padding(

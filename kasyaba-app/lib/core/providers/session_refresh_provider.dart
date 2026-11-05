@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../auth/auth_provider.dart';
+import '../database/cache_service.dart';
 import 'api_providers.dart';
 
 /// Invalidates every finance-data provider that can outlive a session.
@@ -28,7 +31,19 @@ void invalidateFinanceData(Ref ref) {
 /// (login, logout, account switch, or session expiry).
 final sessionDataResetProvider = Provider<void>((ref) {
   ref.listen<String?>(authProvider.select((s) => s.userId), (prev, next) {
-    if (prev != next) invalidateFinanceData(ref);
+    if (prev == next) return;
+    invalidateFinanceData(ref);
+    // Retention (D4): sign-out and session expiry clear read snapshots for
+    // the user who just left, but the offline queue survives so captured
+    // mutations are not silently lost.
+    if (next == null && prev != null) {
+      unawaited(
+        ref
+            .read(cacheServiceProvider)
+            .deleteSnapshotsFor(prev)
+            .catchError((_) {}),
+      );
+    }
   });
 });
 

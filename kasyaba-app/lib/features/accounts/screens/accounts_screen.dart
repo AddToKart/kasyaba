@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../app/theme/kasyaba_tokens.dart';
+import '../../../core/connectivity/connectivity_service.dart';
+import '../../../core/database/cache_service.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/providers/preference_providers.dart';
@@ -17,6 +19,7 @@ import '../../../shared/widgets/kasyaba_background.dart';
 import '../../../shared/widgets/kasyaba_card.dart';
 import '../../../shared/widgets/kasyaba_toast.dart';
 import '../../../shared/widgets/motion_components.dart';
+import '../../../shared/widgets/offline_status.dart';
 import '../../../shared/widgets/pill_button.dart';
 import '../widgets/reconcile_balance_sheet.dart';
 
@@ -39,6 +42,13 @@ class AccountsScreen extends ConsumerWidget {
     Account account,
     int accountCount,
   ) async {
+    if (!ref.read(isOnlineProvider)) {
+      KasyabaToast.showInfo(
+        context,
+        'Archiving accounts needs an internet connection.',
+      );
+      return;
+    }
     if (accountCount <= 1) {
       KasyabaToast.showInfo(context, 'Keep at least one active account.');
       return;
@@ -118,6 +128,7 @@ class AccountsScreen extends ConsumerWidget {
     final accountsAsync = ref.watch(accountsProvider);
     final balancesAsync = ref.watch(accountBalancesProvider);
     final excludedAccountIds = ref.watch(excludedAccountsProvider);
+    final isOnline = ref.watch(isOnlineProvider);
 
     return Scaffold(
       backgroundColor: KasyabaTokens.ebony,
@@ -155,7 +166,18 @@ class AccountsScreen extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, KasyabaTokens.dockClearance),
                 children: [
                   const _AccountsHeader(),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 10),
+                  const OfflineStatusBadge(
+                    snapshotKey: CacheService.snapshotKeyAccounts,
+                  ),
+                  const SizedBox(height: 10),
+                  if (!isOnline) ...[
+                    const NeedsInternetNotice(
+                      message:
+                          'Adding or archiving accounts needs an internet connection.',
+                    ),
+                    const SizedBox(height: 14),
+                  ],
                   FadeSlideEntrance.staggered(
                     index: 1,
                     child: Container(
@@ -219,7 +241,9 @@ class AccountsScreen extends ConsumerWidget {
                               'Add a cash wallet, bank account, or e-wallet to start tracking your money.',
                           action: PillButton(
                             label: 'Add account',
-                            onPressed: () => _showAddAccountSheet(context),
+                            onPressed: isOnline
+                                ? () => _showAddAccountSheet(context)
+                                : null,
                             height: 48,
                             expand: false,
                           ),
@@ -264,6 +288,7 @@ class AccountsScreen extends ConsumerWidget {
                                 isIncluded: !excludedAccountIds.contains(
                                   accounts[i].id,
                                 ),
+                                isOnline: isOnline,
                               ),
                             ],
                           ],
@@ -292,7 +317,9 @@ class AccountsScreen extends ConsumerWidget {
                       index: 4,
                       child: PillButton(
                         label: 'Add account',
-                        onPressed: () => _showAddAccountSheet(context),
+                        onPressed: isOnline
+                            ? () => _showAddAccountSheet(context)
+                            : null,
                       ),
                     ),
                   ],
@@ -312,6 +339,7 @@ class AccountsScreen extends ConsumerWidget {
     required String balanceLabel,
     required int accountCount,
     required bool isIncluded,
+    required bool isOnline,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 14),
@@ -409,6 +437,7 @@ class AccountsScreen extends ConsumerWidget {
                   ),
                   PopupMenuItem(
                     value: 'archive',
+                    enabled: isOnline,
                     child: Row(
                       children: [
                         const Icon(
@@ -418,7 +447,9 @@ class AccountsScreen extends ConsumerWidget {
                         ),
                         const SizedBox(width: 10),
                         Text(
-                          'Archive account',
+                          isOnline
+                              ? 'Archive account'
+                              : 'Archive (needs internet)',
                           style: GoogleFonts.dmSans(
                             color: KasyabaTokens.apricot,
                           ),
@@ -533,6 +564,13 @@ class _AddAccountSheetState extends ConsumerState<_AddAccountSheet> {
 
   Future<void> _submit() async {
     if (_isSubmitting) return;
+    if (!ref.read(isOnlineProvider)) {
+      KasyabaToast.showInfo(
+        context,
+        'Adding accounts needs an internet connection.',
+      );
+      return;
+    }
 
     final name = _nameController.text.trim();
     final balance = double.tryParse(_balanceController.text.trim());
@@ -572,6 +610,7 @@ class _AddAccountSheetState extends ConsumerState<_AddAccountSheet> {
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    final isOnline = ref.watch(isOnlineProvider);
 
     return AppSheet(
       color: KasyabaTokens.ebony,
@@ -675,9 +714,15 @@ class _AddAccountSheetState extends ConsumerState<_AddAccountSheet> {
             ),
           ),
           const SizedBox(height: 20),
+          if (!isOnline) ...[
+            const NeedsInternetNotice(
+              message: 'Creating an account needs an internet connection.',
+            ),
+            const SizedBox(height: 12),
+          ],
           PillButton(
             label: 'Add account',
-            onPressed: _submit,
+            onPressed: isOnline ? _submit : null,
             isLoading: _isSubmitting,
           ),
         ],

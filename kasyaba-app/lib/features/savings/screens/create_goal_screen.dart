@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_motion.dart';
+import '../../../core/connectivity/connectivity_service.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
@@ -13,6 +14,7 @@ import '../../../core/utils/validated_input.dart';
 import '../../../shared/widgets/kasyaba_background.dart';
 import '../../../shared/widgets/kasyaba_date_picker.dart';
 import '../../../shared/widgets/motion_components.dart';
+import '../../../shared/widgets/offline_status.dart';
 import '../../../shared/widgets/pill_button.dart';
 import '../../dashboard/widgets/dashboard_tokens.dart';
 
@@ -103,6 +105,13 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
   }
 
   Future<void> _handleSubmit() async {
+    if (!ref.read(isOnlineProvider)) {
+      setState(
+        () => _errorMessage =
+            'Creating or editing goals needs an internet connection.',
+      );
+      return;
+    }
     final name = _nameController.text.trim();
     final target = _targetAmount;
     final initialSaved = _alreadySaved;
@@ -171,6 +180,7 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
   Widget build(BuildContext context) {
     final topPadding = MediaQuery.paddingOf(context).top;
     final isEditing = widget.existingGoal != null;
+    final isOnline = ref.watch(isOnlineProvider);
 
     final dateText = _targetDate != null
         ? DateFormat('MMM yyyy').format(_targetDate!)
@@ -570,12 +580,23 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
                   ],
                   const SizedBox(height: 24),
 
+                  if (!isOnline) ...[
+                    NeedsInternetNotice(
+                      message: isEditing
+                          ? 'Editing a goal needs an internet connection.'
+                          : 'Creating a goal needs an internet connection.',
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
                   // ── CTA Button (Node 11:1860) ───────────────────────────
                   FadeSlideEntrance.staggered(
                     index: 3,
                     child: PillButton(
                       label: isEditing ? 'Save changes' : 'Create goal',
-                      onPressed: _isSubmitting ? null : _handleSubmit,
+                      onPressed: _isSubmitting || !isOnline
+                          ? null
+                          : _handleSubmit,
                       isLoading: _isSubmitting,
                     ),
                   ),

@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../app/theme/kasyaba_tokens.dart';
 import '../../../core/auth/auth_provider.dart';
+import '../../../core/database/cache_service.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../shared/widgets/kasyaba_toast.dart';
 import '../../../shared/widgets/motion_components.dart';
@@ -45,6 +46,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
 
     setState(() => _isDeleting = true);
     final hasPassword = ref.read(authProvider).hasPassword;
+    final userId = ref.read(authProvider).userId;
 
     try {
       await ref
@@ -52,6 +54,13 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
           .deleteAccount(
             password: hasPassword ? _passwordController.text : null,
           );
+      if (userId != null) {
+        // Server deletion succeeded: wipe this device's snapshots and queue
+        // too. Local cleanup is best effort and must not mask the success.
+        try {
+          await ref.read(cacheServiceProvider).deleteAllForUser(userId);
+        } catch (_) {}
+      }
       if (mounted) {
         KasyabaToast.showSuccess(
           context,
@@ -86,7 +95,12 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
         child: SafeArea(
           bottom: false,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, KasyabaTokens.dockClearance),
+            padding: const EdgeInsets.fromLTRB(
+              20,
+              16,
+              20,
+              KasyabaTokens.dockClearance,
+            ),
             children: [
               FadeSlideEntrance.staggered(
                 index: 0,

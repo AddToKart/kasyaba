@@ -5,9 +5,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/kasyaba_tokens.dart';
+import '../../../core/connectivity/connectivity_service.dart';
 import '../../../core/storage/secure_storage_service.dart';
 import '../../../shared/widgets/kasyaba_card.dart';
 import '../../../shared/widgets/motion_components.dart';
+import '../../../shared/widgets/offline_status.dart';
 import '../../../shared/widgets/pill_button.dart';
 import '../widgets/data_backup_sheets.dart';
 
@@ -47,6 +49,7 @@ class _BackupExportScreenState extends ConsumerState<BackupExportScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isOnline = ref.watch(isOnlineProvider);
     return Scaffold(
       backgroundColor: KasyabaTokens.ebony,
       body: Container(
@@ -93,6 +96,13 @@ class _BackupExportScreenState extends ConsumerState<BackupExportScreen> {
                 ),
               ),
               const SizedBox(height: 20),
+              if (!isOnline) ...[
+                const NeedsInternetNotice(
+                  message:
+                      'Backup, restore, and CSV export need a connection. Your saved data stays readable offline.',
+                ),
+                const SizedBox(height: 14),
+              ],
               FadeSlideEntrance.staggered(
                 index: 1,
                 child: KasyabaCard(
@@ -142,10 +152,12 @@ class _BackupExportScreenState extends ConsumerState<BackupExportScreen> {
                       'Saves everything: accounts, transactions, goals and bills (JSON).',
                   actionLabel: 'Create backup',
                   primary: true,
-                  onPressed: () async {
-                    await showExportBackupSheet(context, ref);
-                    if (mounted) _loadLastBackup();
-                  },
+                  onPressed: !isOnline
+                      ? null
+                      : () async {
+                          await showExportBackupSheet(context, ref);
+                          if (mounted) _loadLastBackup();
+                        },
                 ),
               ),
               const SizedBox(height: 14),
@@ -158,7 +170,7 @@ class _BackupExportScreenState extends ConsumerState<BackupExportScreen> {
                       'Load a backup file. We check it before changing anything.',
                   actionLabel: 'Choose file',
                   primary: false,
-                  onPressed: () => showRestoreBackupSheet(context, ref),
+                  onPressed: isOnline ? () => showRestoreBackupSheet(context, ref) : null,
                 ),
               ),
               const SizedBox(height: 14),
@@ -171,7 +183,7 @@ class _BackupExportScreenState extends ConsumerState<BackupExportScreen> {
                       'Your transactions as a spreadsheet for Excel or Google Sheets.',
                   actionLabel: 'Export transactions',
                   primary: false,
-                  onPressed: () => showExportCsvSheet(context, ref),
+                  onPressed: isOnline ? () => showExportCsvSheet(context, ref) : null,
                 ),
               ),
             ],
@@ -188,7 +200,7 @@ class _BackupActionCard extends StatelessWidget {
   final String description;
   final String actionLabel;
   final bool primary;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   const _BackupActionCard({
     required this.icon,

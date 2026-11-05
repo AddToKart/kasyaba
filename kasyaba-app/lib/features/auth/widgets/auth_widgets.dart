@@ -841,7 +841,7 @@ class AuthTrustFooter extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Text(
-      'Calculated on your device. Your numbers stay yours.',
+      'Server-backed security. Instant on-device math.',
       textAlign: TextAlign.center,
       style: GoogleFonts.dmSans(
         color: isDark ? AuthFigmaTokens.poloBlue : AppColors.lightTextSecondary,

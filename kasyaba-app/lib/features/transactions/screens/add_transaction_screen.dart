@@ -7,13 +7,16 @@ import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_motion.dart';
 import '../../../shared/widgets/motion_components.dart';
+import '../../../core/connectivity/connectivity_service.dart';
 import '../../../core/errors/error_messages.dart';
+import '../../../core/offline/offline_capabilities.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/validated_input.dart';
 import '../../../shared/widgets/app_sheet.dart';
 import '../../../shared/widgets/kasyaba_date_picker.dart';
 import '../../../shared/widgets/kasyaba_toast.dart';
+import '../../../shared/widgets/offline_status.dart';
 import '../../../shared/widgets/pill_button.dart';
 import '../../dashboard/widgets/dashboard_tokens.dart';
 
@@ -320,6 +323,13 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
 
   Future<void> _handleSave() async {
     if (_isSubmitting) return;
+    if (widget.transaction != null && !ref.read(isOnlineProvider)) {
+      KasyabaToast.showInfo(
+        context,
+        'Editing a transaction needs an internet connection.',
+      );
+      return;
+    }
     if (!_formKey.currentState!.validate()) return;
 
     final accounts = ref.read(accountsProvider).valueOrNull ?? [];
@@ -565,6 +575,13 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
   @override
   Widget build(BuildContext context) {
     final topPadding = MediaQuery.paddingOf(context).top;
+    final isOnline = ref.watch(isOnlineProvider);
+    final isEditing = widget.transaction != null;
+    final queueableAction = switch (_mode) {
+      TransactionTypeMode.expense => OfflineAction.addExpense,
+      TransactionTypeMode.income => OfflineAction.addIncome,
+      TransactionTypeMode.transfer => OfflineAction.addTransfer,
+    };
     final accounts = ref.watch(accountsProvider).valueOrNull ?? [];
     final balances = ref.watch(accountBalancesProvider).valueOrNull ?? {};
 
@@ -859,10 +876,24 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
 
                   const SizedBox(height: 24),
 
+                  // ── Offline capability note ───────────────────────────────
+                  if (!isOnline) ...[
+                    if (isEditing)
+                      const NeedsInternetNotice(
+                        message:
+                            'Editing a transaction needs an internet connection.',
+                      )
+                    else if (OfflineCapabilities.isQueueable(queueableAction))
+                      const OfflineQueuedNote(),
+                    const SizedBox(height: 12),
+                  ],
+
                   // ── CTA Button ────────────────────────────────────────────
                   PillButton(
                     label: buttonLabel,
-                    onPressed: _isSubmitting ? null : _handleSave,
+                    onPressed: _isSubmitting || (isEditing && !isOnline)
+                        ? null
+                        : _handleSave,
                     isLoading: _isSubmitting,
                   ),
                 ],

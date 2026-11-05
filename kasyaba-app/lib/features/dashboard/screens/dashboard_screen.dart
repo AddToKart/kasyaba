@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../../app/theme/app_motion.dart';
 import '../../../shared/widgets/motion_components.dart';
 import '../../../core/auth/auth_provider.dart';
+import '../../../core/database/cache_service.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
@@ -13,6 +14,7 @@ import '../../../core/providers/preference_providers.dart';
 import '../../../core/utils/deterministic_math.dart';
 import '../../../shared/widgets/app_sheet.dart';
 import '../../../shared/widgets/app_state_widgets.dart';
+import '../../../shared/widgets/offline_status.dart';
 import '../widgets/dashboard_tokens.dart';
 import '../widgets/dashboard_header.dart';
 import '../widgets/hero_safe_spend_card.dart';
@@ -343,7 +345,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       displayName: displayName,
                       onNotificationsTap: () => context.go('/alerts'),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 10),
+                    const OfflineStatusBadge(
+                      snapshotKey: CacheService.snapshotKeyDashboard,
+                    ),
+                    const SizedBox(height: 4),
 
                     // ── Offline / Pending Sync Status Banner ──
                     if ((dashboardData?.isFromCache ?? false) ||

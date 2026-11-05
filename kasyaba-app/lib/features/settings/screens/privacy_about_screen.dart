@@ -1,20 +1,64 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/theme/app_motion.dart';
+import '../../../core/app_info.dart';
 import '../../dashboard/widgets/dashboard_tokens.dart';
 import '../../../shared/widgets/app_sheet.dart';
+import '../../../shared/widgets/kasyaba_toast.dart';
 import '../../../shared/widgets/motion_components.dart';
 import '../../../shared/widgets/pill_button.dart';
+
+/// Opens a hosted legal page in the platform browser. The in-app summary stays
+/// readable offline; only this external action needs a connection.
+Future<void> _openHostedUrl(BuildContext context, String url) async {
+  var hasConnection = true;
+  try {
+    final results = await Connectivity().checkConnectivity();
+    hasConnection = results.any((result) => result != ConnectivityResult.none);
+  } catch (_) {
+    // Connectivity is unavailable (e.g. widget tests) — attempt to open anyway.
+  }
+
+  if (!hasConnection) {
+    if (context.mounted) {
+      KasyabaToast.showError(
+        context,
+        'You are offline.',
+        subtitle:
+            'Reconnect to open the full hosted policy. The summary above still works offline.',
+      );
+    }
+    return;
+  }
+
+  var opened = false;
+  try {
+    opened = await launchUrl(
+      Uri.parse(url),
+      mode: LaunchMode.externalApplication,
+    );
+  } catch (_) {
+    opened = false;
+  }
+
+  if (!opened && context.mounted) {
+    KasyabaToast.showError(
+      context,
+      'Could not open the link.',
+      subtitle: 'Check your connection and try again.',
+    );
+  }
+}
 
 /// ─────────────────────────────────────────────────────────────
 ///  Privacy and About Screen (1:1 Figma Node 42:6959)
 /// ─────────────────────────────────────────────────────────────
 class PrivacyAndAboutScreen extends StatelessWidget {
   const PrivacyAndAboutScreen({super.key});
-
-  static const String kAppVersion = '0.1.0 (Build 1)';
 
   static void showTermsSheet(BuildContext context) {
     AppHaptics.selectionClick();
@@ -40,7 +84,7 @@ class PrivacyAndAboutScreen extends StatelessWidget {
               '1. Purpose: Kasyaba provides deterministic personal financial calculations (safe-to-spend, cash buffer, payday countdown, installment math).\n\n'
               '2. No Financial Advice: Kasyaba is a financial calculation and budgeting tool, not a registered investment or banking advisor.\n\n'
               '3. Data Ownership: You own 100% of your financial data. You may export or purge your records at any time without penalty.\n\n'
-              '4. Hybrid Architecture: All daily math runs locally on your device. Your financial ledger syncs to your private authenticated account for cross-device access and backup.',
+              '4. Online-first architecture: your ledger syncs to your private authenticated account; day-to-day math runs on-device for instant feedback; planning, health scoring, and forecast verdicts are computed on our server.',
               style: GoogleFonts.dmSans(
                 fontSize: 14,
                 color: DashboardTokens.periwinkleGraySubtitle,
@@ -80,8 +124,8 @@ class PrivacyAndAboutScreen extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               '• Zero AI & No Trackers: Kasyaba never shares or submits your numbers, salary, or account transactions to third-party AI models (OpenAI, Gemini, etc.) or ad networks.\n\n'
-              '• Local-First Edge Engine: All daily safe-to-spend math, payday countdowns, and tax deductions run deterministically right on your device.\n\n'
-              '• Secure Sync & Backup: When connected, your records sync to your private Kasyaba backend account using encrypted sessions (TLS 1.3 & AES-256) so you can access your wallets across devices.\n\n'
+              '• Online-first + on-device math: Your ledger lives on our server. Daily safe-to-spend math, payday countdowns, statutory deductions, and simulator math run deterministically on your device for instant feedback. Planning, health scores, snapshots, and forecast verdicts are computed on our server.\n\n'
+              '• Secure Sync & Backup: Your records are encrypted in transit (HTTPS/TLS) and sync to your private Kasyaba account so you can access your wallets across devices.\n\n'
               '• Data Privacy Act (RA 10173): We respect your privacy rights. We never track your activity, never profile your spending, and never sell your personal information.',
               style: GoogleFonts.dmSans(
                 fontSize: 14,
@@ -89,9 +133,31 @@ class PrivacyAndAboutScreen extends StatelessWidget {
                 height: 1.5,
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 12),
+            Text(
+              'This summary is available offline. The full hosted policy has the complete details.',
+              style: GoogleFonts.dmSans(
+                fontSize: 12,
+                color: DashboardTokens.periwinkleGraySubtitle,
+                height: 1.45,
+              ),
+            ),
+            const SizedBox(height: 20),
+            PillButton(
+              label: 'Read full policy',
+              icon: Icons.open_in_new_rounded,
+              onPressed: () => _openHostedUrl(ctx, kPrivacyPolicyUrl),
+            ),
+            const SizedBox(height: 10),
+            PillButton(
+              label: 'Terms',
+              variant: PillButtonVariant.secondary,
+              onPressed: () => _openHostedUrl(ctx, kTermsUrl),
+            ),
+            const SizedBox(height: 10),
             PillButton(
               label: 'Close',
+              variant: PillButtonVariant.secondary,
               onPressed: () => Navigator.of(ctx).pop(),
             ),
           ],
@@ -188,7 +254,7 @@ class PrivacyAndAboutScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Every calculation runs on your device. Your data is never shared with third-party advertisers, trackers, or commercial AI models.',
+                        'Your ledger lives on our server. Day-to-day money math runs instantly on your device. Your data is never shared with third-party advertisers, trackers, or commercial AI models.',
                         style: GoogleFonts.dmSans(
                           fontSize: 14,
                           color: DashboardTokens.periwinkleGray,
@@ -234,12 +300,12 @@ class PrivacyAndAboutScreen extends StatelessWidget {
                     children: [
                       _buildKeyValueRow(
                         label: 'Your records',
-                        value: 'Local-first & private sync',
+                        value: 'Server-backed with offline cache',
                       ),
                       const SizedBox(height: 12),
                       _buildKeyValueRow(
                         label: 'Calculations',
-                        value: '100% on-device math',
+                        value: 'Daily math on-device; planning & forecasts on server',
                       ),
                       const SizedBox(height: 12),
                       _buildKeyValueRow(
@@ -287,7 +353,7 @@ class PrivacyAndAboutScreen extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         child: _buildKeyValueRow(
                           label: 'Version',
-                          value: kAppVersion,
+                          value: kAppVersionLabel,
                         ),
                       ),
                       _buildDivider(),
@@ -318,7 +384,7 @@ class PrivacyAndAboutScreen extends StatelessWidget {
     required String value,
   }) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
@@ -328,12 +394,16 @@ class PrivacyAndAboutScreen extends StatelessWidget {
             color: DashboardTokens.periwinkleGraySubtitle,
           ),
         ),
-        Text(
-          value,
-          style: GoogleFonts.dmSans(
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-            color: DashboardTokens.periwinkleGray,
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            style: GoogleFonts.dmSans(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: DashboardTokens.periwinkleGray,
+            ),
           ),
         ),
       ],

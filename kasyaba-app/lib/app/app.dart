@@ -97,7 +97,8 @@ class _KasyabaAppState extends ConsumerState<KasyabaApp>
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'No internet connection',
+                            'Offline — showing saved data. Changes you record '
+                            'will sync when you reconnect.',
                             style: GoogleFonts.dmSans(
                               color: KasyabaTokens.periwinkleGray,
                               fontSize: 13,

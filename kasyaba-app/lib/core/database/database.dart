@@ -1,13 +1,20 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart';
 
 part 'database.g.dart';
 
-class CachedDashboard extends Table {
-  IntColumn get id => integer().autoIncrement()();
+class CachedSnapshots extends Table {
+  TextColumn get userId => text()();
+
+  TextColumn get key => text()();
 
   TextColumn get json => text()();
 
-  DateTimeColumn get updatedAt => dateTime()();
+  DateTimeColumn get fetchedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {userId, key};
 }
 
 class OfflineTransactions extends Table {
@@ -35,12 +42,12 @@ class OfflineTransactions extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-@DriftDatabase(tables: [CachedDashboard, OfflineTransactions])
+@DriftDatabase(tables: [CachedSnapshots, OfflineTransactions])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -53,6 +60,43 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(offlineTransactions, offlineTransactions.retryCount);
         await m.addColumn(offlineTransactions, offlineTransactions.lastError);
         await m.addColumn(offlineTransactions, offlineTransactions.failedAt);
+      }
+      if (from < 4) {
+        await m.createTable(cachedSnapshots);
+        // Migrate the single legacy dashboard row into the unified snapshot
+        // store. The old table stored an envelope {userId, data}; only that
+        // payload can be attributed to a user, so malformed rows are dropped.
+        final legacyRows = await customSelect(
+          'SELECT json, updated_at FROM cached_dashboard',
+        ).get();
+        for (final row in legacyRows) {
+          final rawJson = row.read<String>('json');
+          final updatedAt = row.read<DateTime>('updated_at');
+          try {
+            final decoded =
+                const JsonDecoder().convert(rawJson) as Map<String, dynamic>;
+            final userId = decoded['userId']?.toString();
+            final data = decoded['data'];
+            if (userId == null ||
+                userId.isEmpty ||
+                data is! Map<String, dynamic>) {
+              continue;
+            }
+            await into(cachedSnapshots).insertOnConflictUpdate(
+              CachedSnapshotsCompanion.insert(
+                userId: userId,
+                key: 'dashboard',
+                json: const JsonEncoder().convert(data),
+                fetchedAt: updatedAt,
+              ),
+            );
+          } on FormatException {
+            continue;
+          } on TypeError {
+            continue;
+          }
+        }
+        await customStatement('DROP TABLE IF EXISTS cached_dashboard');
       }
     },
   );

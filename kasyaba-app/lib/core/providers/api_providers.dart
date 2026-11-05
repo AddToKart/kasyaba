@@ -7,14 +7,27 @@ import 'package:dio/dio.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:uuid/uuid.dart';
 import '../api/api_client.dart';
+import '../api/category_resolver.dart';
 import '../auth/auth_provider.dart';
+import '../connectivity/connectivity_service.dart';
 
 part 'api_providers.freezed.dart';
 part 'api_providers.g.dart';
 
-final _uuidPattern = RegExp(
-  r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$',
-);
+/// Reads a snapshot defensively so a device-storage failure can never mask the
+/// original network error a provider is already handling.
+Future<String?> _readSnapshot(
+  CacheService cacheService,
+  String userId,
+  String key,
+) async {
+  try {
+    final snapshot = await cacheService.getSnapshot(userId, key);
+    return snapshot?.json;
+  } catch (_) {
+    return null;
+  }
+}
 
 String _dateOnlyPayload(DateTime date) {
   final local = date.toLocal();
@@ -36,15 +49,6 @@ DateTime _parseTransactionDate(dynamic value) {
   return DateTime.tryParse(raw) ?? DateTime.now();
 }
 
-String _categoryKey(String value) =>
-    value.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
-
-bool _categoryNamesMatch(String left, String right) {
-  final a = _categoryKey(left);
-  final b = _categoryKey(right);
-  return a == b || a.startsWith(b) || b.startsWith(a);
-}
-
 // -----------------------------------------------------------------------------
 // Financial Account Model & Provider
 // -----------------------------------------------------------------------------
@@ -62,13 +66,48 @@ class Account with _$Account {
 
 final accountsProvider = FutureProvider<List<Account>>((ref) async {
   final dio = ref.watch(dioProvider);
-  final response = await dio.get('/accounts');
-  final data = response.data['data'] as List<dynamic>;
-  return data.map((e) => Account.fromJson(e as Map<String, dynamic>)).toList();
+  final cacheService = ref.watch(cacheServiceProvider);
+  final userId = ref.watch(authProvider).userId;
+  try {
+    final response = await dio.get('/accounts');
+    final data = response.data['data'] as List<dynamic>;
+    if (userId != null) {
+      unawaited(
+        cacheService
+            .putSnapshot(
+              userId: userId,
+              key: CacheService.snapshotKeyAccounts,
+              json: jsonEncode(data),
+            )
+            .catchError((_) {}),
+      );
+    }
+    return data
+        .map((e) => Account.fromJson(e as Map<String, dynamic>))
+        .toList();
+  } catch (_) {
+    final snapshot = userId == null
+        ? null
+        : await _readSnapshot(
+            cacheService,
+            userId,
+            CacheService.snapshotKeyAccounts,
+          );
+    if (snapshot != null) {
+      try {
+        final data = jsonDecode(snapshot) as List<dynamic>;
+        return data
+            .map((e) => Account.fromJson(e as Map<String, dynamic>))
+            .toList();
+      } catch (_) {}
+    }
+    rethrow;
+  }
 });
 
-final accountBalancesProvider =
-    FutureProvider<Map<String, double>>((ref) async {
+final accountBalancesProvider = FutureProvider<Map<String, double>>((
+  ref,
+) async {
   final dio = ref.watch(dioProvider);
   final accounts = await ref.watch(accountsProvider.future);
   final cacheService = ref.watch(cacheServiceProvider);
@@ -96,10 +135,11 @@ final accountBalancesProvider =
           final amount =
               double.tryParse(payload['amount']?.toString() ?? '0') ?? 0.0;
 
-          final dateStr = (payload['spentAt'] ??
-                  payload['receivedAt'] ??
-                  payload['transferredAt'])
-              ?.toString();
+          final dateStr =
+              (payload['spentAt'] ??
+                      payload['receivedAt'] ??
+                      payload['transferredAt'])
+                  ?.toString();
           final txDate = dateStr != null
               ? DateTime.tryParse(dateStr) ?? tx.createdAt
               : tx.createdAt;
@@ -129,6 +169,13 @@ final accountBalancesProvider =
             }
             if (toId != null && map.containsKey(toId)) {
               map[toId] = (map[toId] ?? 0.0) + amount;
+            }
+          } else if (tx.type == 'goal_contribution') {
+            // A queued goal deposit is funded from a wallet, so it lowers that
+            // wallet's balance even before the server replays the contribution.
+            final accId = payload['accountId']?.toString();
+            if (accId != null && map.containsKey(accId)) {
+              map[accId] = (map[accId] ?? 0.0) - amount;
             }
           }
         } catch (_) {}
@@ -206,9 +253,22 @@ final List<Category> defaultCategoriesList = [
 
 final categoriesProvider = FutureProvider<List<Category>>((ref) async {
   final dio = ref.watch(dioProvider);
+  final cacheService = ref.watch(cacheServiceProvider);
+  final userId = ref.watch(authProvider).userId;
   try {
     final response = await dio.get('/expense-categories');
     final data = response.data['data'] as List<dynamic>;
+    if (userId != null) {
+      unawaited(
+        cacheService
+            .putSnapshot(
+              userId: userId,
+              key: CacheService.snapshotKeyCategories,
+              json: jsonEncode(data),
+            )
+            .catchError((_) {}),
+      );
+    }
     var categories = data
         .map((e) => Category.fromJson(e as Map<String, dynamic>))
         .toList();
@@ -217,6 +277,22 @@ final categoriesProvider = FutureProvider<List<Category>>((ref) async {
     }
     return categories;
   } catch (_) {
+    final snapshot = userId == null
+        ? null
+        : await _readSnapshot(
+            cacheService,
+            userId,
+            CacheService.snapshotKeyCategories,
+          );
+    if (snapshot != null) {
+      try {
+        final data = jsonDecode(snapshot) as List<dynamic>;
+        final categories = data
+            .map((e) => Category.fromJson(e as Map<String, dynamic>))
+            .toList();
+        return categories.isEmpty ? defaultCategoriesList : categories;
+      } catch (_) {}
+    }
     rethrow;
   }
 });
@@ -527,16 +603,16 @@ DashboardData applyPendingOfflineMutations(
       final amount =
           double.tryParse(payload['amount']?.toString() ?? '0') ?? 0.0;
 
-      final dateStr = (payload['spentAt'] ??
-              payload['receivedAt'] ??
-              payload['transferredAt'])
-          ?.toString();
+      final dateStr =
+          (payload['spentAt'] ??
+                  payload['receivedAt'] ??
+                  payload['transferredAt'])
+              ?.toString();
       final txDate = dateStr != null
           ? DateTime.tryParse(dateStr) ?? tx.createdAt
           : tx.createdAt;
       final txDay = DateTime(txDate.year, txDate.month, txDate.day);
-      final isPosted =
-          payload['status'] != 'planned' && !txDay.isAfter(today);
+      final isPosted = payload['status'] != 'planned' && !txDay.isAfter(today);
 
       if (tx.type == 'expense') {
         predictedExpenseDelta += amount;
@@ -582,8 +658,16 @@ final dashboardProvider = FutureProvider<DashboardData>((ref) async {
     final data = DashboardData.fromJson(
       response.data['data'] as Map<String, dynamic>,
     );
-    // Update cache with fresh data (fire-and-forget)
-    unawaited(cacheService.cacheDashboard(data, userId).catchError((_) {}));
+    // Update the unified snapshot store with fresh data (fire-and-forget).
+    unawaited(
+      cacheService
+          .putSnapshot(
+            userId: userId,
+            key: CacheService.snapshotKeyDashboard,
+            json: jsonEncode(data.toJson()),
+          )
+          .catchError((_) {}),
+    );
 
     final pending = await cacheService.getAllOfflineTransactions(userId);
     if (pending.isNotEmpty) {
@@ -591,26 +675,52 @@ final dashboardProvider = FutureProvider<DashboardData>((ref) async {
     }
     return data;
   } catch (e) {
-    // Try cached data as fallback
-    final cached = await cacheService.getCachedDashboard(userId);
-    if (cached != null) {
-      final pending = await cacheService.getAllOfflineTransactions(userId);
-      return applyPendingOfflineMutations(
-        cached.copyWith(isFromCache: true),
-        pending,
-      );
+    // Try the unified snapshot store as fallback.
+    final snapshot = await _readSnapshot(
+      cacheService,
+      userId,
+      CacheService.snapshotKeyDashboard,
+    );
+    if (snapshot != null) {
+      try {
+        final cached = DashboardData.fromJson(
+          jsonDecode(snapshot) as Map<String, dynamic>,
+        );
+        final pending = await cacheService.getAllOfflineTransactions(userId);
+        return applyPendingOfflineMutations(
+          cached.copyWith(isFromCache: true),
+          pending,
+        );
+      } catch (_) {}
     }
     throw StateError('Dashboard data is unavailable. Please try again.');
   }
 });
 
-final pendingSyncTransactionsProvider =
-    StreamProvider<List<OfflineTransaction>>((ref) {
+/// Fetched-at timestamp for a cached snapshot key, or null when no snapshot
+/// exists. UI uses this to surface cache age without changing value types.
+final cachedSnapshotMetaProvider = FutureProvider.family<DateTime?, String>((
+  ref,
+  key,
+) async {
   final cacheService = ref.watch(cacheServiceProvider);
   final userId = ref.watch(authProvider).userId;
-  if (userId == null) return const Stream.empty();
-  return cacheService.watchPendingSyncTransactions(userId);
+  if (userId == null) return null;
+  try {
+    final snapshot = await cacheService.getSnapshot(userId, key);
+    return snapshot?.fetchedAt;
+  } catch (_) {
+    return null;
+  }
 });
+
+final pendingSyncTransactionsProvider =
+    StreamProvider<List<OfflineTransaction>>((ref) {
+      final cacheService = ref.watch(cacheServiceProvider);
+      final userId = ref.watch(authProvider).userId;
+      if (userId == null) return const Stream.empty();
+      return cacheService.watchPendingSyncTransactions(userId);
+    });
 
 final pendingSyncCountProvider = Provider<int>((ref) {
   final pending = ref.watch(pendingSyncTransactionsProvider).valueOrNull ?? [];
@@ -664,29 +774,29 @@ TransactionEntry offlineTransactionToEntry(OfflineTransaction ot) {
     final type = ot.type;
     final isExpense = type == 'expense';
     final amount = double.tryParse(data['amount']?.toString() ?? '0') ?? 0.0;
-    final dateStr = (data['spentAt'] ??
-            data['receivedAt'] ??
-            data['transferredAt'])
-        ?.toString();
+    final dateStr =
+        (data['spentAt'] ?? data['receivedAt'] ?? data['transferredAt'])
+            ?.toString();
     final date = dateStr != null
         ? DateTime.tryParse(dateStr) ?? ot.createdAt
         : ot.createdAt;
     final title = isExpense
         ? ((data['description'] != null &&
-                data['description'].toString().isNotEmpty)
-            ? data['description'].toString()
-            : (data['merchant']?.toString() ??
-                (data['notes']?.toString() ??
-                    (isFailed ? 'Failed Expense' : 'Expense'))))
+                  data['description'].toString().isNotEmpty)
+              ? data['description'].toString()
+              : (data['merchant']?.toString() ??
+                    (data['notes']?.toString() ??
+                        (isFailed ? 'Failed Expense' : 'Expense'))))
         : (type == 'income'
-            ? ((data['source'] != null && data['source'].toString().isNotEmpty)
-                ? data['source'].toString()
-                : (data['notes']?.toString() ??
-                    (isFailed ? 'Failed Income' : 'Income')))
-            : (isFailed ? 'Failed Transfer' : 'Transfer'));
+              ? ((data['source'] != null &&
+                        data['source'].toString().isNotEmpty)
+                    ? data['source'].toString()
+                    : (data['notes']?.toString() ??
+                          (isFailed ? 'Failed Income' : 'Income')))
+              : (isFailed ? 'Failed Transfer' : 'Transfer'));
     final categoryName = isExpense
         ? (data['categoryName']?.toString() ??
-            (isFailed ? 'Sync Failed' : 'Pending Sync'))
+              (isFailed ? 'Sync Failed' : 'Pending Sync'))
         : (type == 'income' ? 'Income' : 'Transfer');
     return TransactionEntry(
       id: ot.id,
@@ -795,50 +905,53 @@ final paginatedTransactionsProvider = FutureProvider<PaginatedTransactions>((
     params['to'] = filter.toDate!.toIso8601String().split('T')[0];
   }
 
+  final snapshotKey = CacheService.transactionsKey(
+    page: filter.page,
+    from: filter.fromDate,
+    to: filter.toDate,
+  );
+
   try {
     final response = await dio.get('/transactions', queryParameters: params);
     final rawItems = response.data['data'] as List<dynamic>? ?? [];
-    final items = rawItems
-        .map((raw) => raw as Map<String, dynamic>)
-        .map((item) {
-          final type = item['type']?.toString() ?? 'expense';
-          return TransactionEntry(
-            id: item['id']?.toString() ?? '',
-            title: item['title']?.toString() ?? 'Transaction',
-            amount: double.tryParse(item['amount']?.toString() ?? '0') ?? 0.0,
-            isExpense: type == 'expense',
-            date: _parseTransactionDate(item['date']),
-            categoryName: item['categoryName']?.toString() ?? 'Transaction',
-            type: type,
-            status: item['status']?.toString() ?? 'posted',
-            accountId: item['accountId']?.toString(),
-            categoryId: item['categoryId']?.toString(),
-            notes: item['notes']?.toString(),
-          );
-        })
-        .toList();
+    final items = rawItems.map((raw) => raw as Map<String, dynamic>).map((
+      item,
+    ) {
+      final type = item['type']?.toString() ?? 'expense';
+      return TransactionEntry(
+        id: item['id']?.toString() ?? '',
+        title: item['title']?.toString() ?? 'Transaction',
+        amount: double.tryParse(item['amount']?.toString() ?? '0') ?? 0.0,
+        isExpense: type == 'expense',
+        date: _parseTransactionDate(item['date']),
+        categoryName: item['categoryName']?.toString() ?? 'Transaction',
+        type: type,
+        status: item['status']?.toString() ?? 'posted',
+        accountId: item['accountId']?.toString(),
+        categoryId: item['categoryId']?.toString(),
+        notes: item['notes']?.toString(),
+      );
+    }).toList();
     final totalCount =
         (response.data['meta']?['total'] as num?)?.toInt() ?? items.length;
 
+    if (userId != null) {
+      unawaited(
+        cacheService
+            .putSnapshot(
+              userId: userId,
+              key: snapshotKey,
+              json: jsonEncode({
+                'items': items.map((entry) => entry.toJson()).toList(),
+                'totalCount': totalCount,
+              }),
+            )
+            .catchError((_) {}),
+      );
+    }
+
     final filteredPendingEntries = filter.page == 1
-        ? pendingEntries.where((entry) {
-            final entryDay = DateTime(
-              entry.date.year,
-              entry.date.month,
-              entry.date.day,
-            );
-            if (filter.fromDate != null) {
-              final from = filter.fromDate!;
-              final fromDay = DateTime(from.year, from.month, from.day);
-              if (entryDay.isBefore(fromDay)) return false;
-            }
-            if (filter.toDate != null) {
-              final to = filter.toDate!;
-              final toDay = DateTime(to.year, to.month, to.day);
-              if (entryDay.isAfter(toDay)) return false;
-            }
-            return true;
-          }).toList()
+        ? _filterPendingEntries(pendingEntries, filter)
         : const <TransactionEntry>[];
 
     final combinedItems = filter.page == 1
@@ -852,17 +965,72 @@ final paginatedTransactionsProvider = FutureProvider<PaginatedTransactions>((
       totalCount: totalCount + filteredPendingEntries.length,
     );
   } catch (_) {
-    if (pendingEntries.isNotEmpty) {
+    final snapshot = userId == null
+        ? null
+        : await _readSnapshot(cacheService, userId, snapshotKey);
+    if (snapshot != null) {
+      try {
+        final decoded = jsonDecode(snapshot) as Map<String, dynamic>;
+        final cachedItems = (decoded['items'] as List<dynamic>? ?? [])
+            .map(
+              (raw) => TransactionEntry.fromJson(raw as Map<String, dynamic>),
+            )
+            .toList();
+        final cachedTotal =
+            (decoded['totalCount'] as num?)?.toInt() ?? cachedItems.length;
+        final filteredPendingEntries = filter.page == 1
+            ? _filterPendingEntries(pendingEntries, filter)
+            : const <TransactionEntry>[];
+        return PaginatedTransactions(
+          items: filter.page == 1
+              ? [...filteredPendingEntries, ...cachedItems]
+              : cachedItems,
+          page: filter.page,
+          limit: filter.limit,
+          totalCount: cachedTotal + filteredPendingEntries.length,
+        );
+      } catch (_) {}
+    }
+
+    if (pendingEntries.isNotEmpty && filter.page == 1) {
+      final filteredPendingEntries = _filterPendingEntries(
+        pendingEntries,
+        filter,
+      );
       return PaginatedTransactions(
-        items: pendingEntries,
+        items: filteredPendingEntries,
         page: 1,
         limit: filter.limit,
-        totalCount: pendingEntries.length,
+        totalCount: filteredPendingEntries.length,
       );
     }
     rethrow;
   }
 });
+
+List<TransactionEntry> _filterPendingEntries(
+  List<TransactionEntry> pendingEntries,
+  TransactionQueryFilter filter,
+) {
+  return pendingEntries.where((entry) {
+    final entryDay = DateTime(
+      entry.date.year,
+      entry.date.month,
+      entry.date.day,
+    );
+    if (filter.fromDate != null) {
+      final from = filter.fromDate!;
+      final fromDay = DateTime(from.year, from.month, from.day);
+      if (entryDay.isBefore(fromDay)) return false;
+    }
+    if (filter.toDate != null) {
+      final to = filter.toDate!;
+      final toDay = DateTime(to.year, to.month, to.day);
+      if (entryDay.isAfter(toDay)) return false;
+    }
+    return true;
+  }).toList();
+}
 
 final transactionsProvider = FutureProvider<List<TransactionEntry>>((
   ref,
@@ -922,22 +1090,47 @@ class SavingsGoal with _$SavingsGoal {
 
 final goalsProvider = FutureProvider<List<SavingsGoal>>((ref) async {
   final dio = ref.watch(dioProvider);
+  final cacheService = ref.watch(cacheServiceProvider);
+  final userId = ref.watch(authProvider).userId;
   try {
     final res = await dio.get('/goals');
     final data = res.data['data'] as List<dynamic>;
+    if (userId != null) {
+      unawaited(
+        cacheService
+            .putSnapshot(
+              userId: userId,
+              key: CacheService.snapshotKeyGoals,
+              json: jsonEncode(data),
+            )
+            .catchError((_) {}),
+      );
+    }
     return data
         .map((e) => SavingsGoal.fromJson(e as Map<String, dynamic>))
         .toList();
   } catch (_) {
+    final snapshot = userId == null
+        ? null
+        : await _readSnapshot(
+            cacheService,
+            userId,
+            CacheService.snapshotKeyGoals,
+          );
+    if (snapshot != null) {
+      try {
+        final data = jsonDecode(snapshot) as List<dynamic>;
+        return data
+            .map((e) => SavingsGoal.fromJson(e as Map<String, dynamic>))
+            .toList();
+      } catch (_) {}
+    }
     rethrow;
   }
 });
 
-final goalDetailProvider =
-    FutureProvider.autoDispose.family<Map<String, dynamic>, String>((
-      ref,
-      goalId,
-    ) async {
+final goalDetailProvider = FutureProvider.autoDispose
+    .family<Map<String, dynamic>, String>((ref, goalId) async {
       final dio = ref.watch(dioProvider);
       final res = await dio.get('/goals/$goalId');
       return res.data['data'] as Map<String, dynamic>;
@@ -983,15 +1176,43 @@ class BillItem with _$BillItem {
 
 final billsProvider = FutureProvider<List<BillItem>>((ref) async {
   final dio = ref.watch(dioProvider);
+  final cacheService = ref.watch(cacheServiceProvider);
+  final userId = ref.watch(authProvider).userId;
   try {
     // 500 is the server-side maximum; bills are bounded to avoid unbounded
     // history payloads as paid instances accumulate.
     final res = await dio.get('/bills', queryParameters: {'limit': 500});
     final data = res.data['data'] as List<dynamic>;
+    if (userId != null) {
+      unawaited(
+        cacheService
+            .putSnapshot(
+              userId: userId,
+              key: CacheService.snapshotKeyBills,
+              json: jsonEncode(data),
+            )
+            .catchError((_) {}),
+      );
+    }
     return data
         .map((e) => BillItem.fromJson(e as Map<String, dynamic>))
         .toList();
   } catch (_) {
+    final snapshot = userId == null
+        ? null
+        : await _readSnapshot(
+            cacheService,
+            userId,
+            CacheService.snapshotKeyBills,
+          );
+    if (snapshot != null) {
+      try {
+        final data = jsonDecode(snapshot) as List<dynamic>;
+        return data
+            .map((e) => BillItem.fromJson(e as Map<String, dynamic>))
+            .toList();
+      } catch (_) {}
+    }
     rethrow;
   }
 });
@@ -1043,10 +1264,31 @@ class TransactionMutator {
     final cacheService = _ref.read(cacheServiceProvider);
     final userId = _currentUserId();
 
-    final realCategoryId = await _resolveCategoryId(
-      categoryId: categoryId,
-      categoryName: categoryName,
-    );
+    var realCategoryId = categoryId;
+    var queueDirectly = false;
+
+    if (!isCategoryUuid(categoryId)) {
+      // Offline: never attempt the online-only name → UUID lookup. The queue
+      // keeps the display name and a placeholder id; replay resolves it.
+      if (!_ref.read(isOnlineProvider)) {
+        queueDirectly = true;
+      } else {
+        try {
+          realCategoryId = await resolveCategoryId(
+            dio: _dio,
+            categoryId: categoryId,
+            categoryName: categoryName,
+          );
+        } on CategoryResolutionException catch (error) {
+          if (!error.queueable ||
+              categoryName == null ||
+              categoryName.trim().isEmpty) {
+            rethrow;
+          }
+          queueDirectly = true;
+        }
+      }
+    }
 
     final formattedAmount = amount.toStringAsFixed(2);
     final dateIso = _dateOnlyPayload(spentAt);
@@ -1064,16 +1306,25 @@ class TransactionMutator {
     };
 
     var status = TransactionSaveStatus.saved;
-    try {
-      await _dio.post('/expenses', data: data);
-    } on DioException catch (error) {
-      if (!_canQueue(error)) rethrow;
+    if (queueDirectly) {
       await cacheService.queueTransaction(
         type: 'expense',
         userId: userId,
         data: data,
       );
       status = TransactionSaveStatus.queued;
+    } else {
+      try {
+        await _dio.post('/expenses', data: data);
+      } on DioException catch (error) {
+        if (!_canQueue(error)) rethrow;
+        await cacheService.queueTransaction(
+          type: 'expense',
+          userId: userId,
+          data: data,
+        );
+        status = TransactionSaveStatus.queued;
+      }
     }
 
     _afterTransactionMutation();
@@ -1128,16 +1379,22 @@ class TransactionMutator {
     required DateTime spentAt,
     String? notes,
   }) async {
-    final realCategoryId = await _resolveCategoryId(categoryId: categoryId);
-    await _dio.patch('/expenses/$id', data: {
-      'accountId': accountId,
-      'categoryId': realCategoryId,
-      'amount': amount.toStringAsFixed(2),
-      'description': description,
-      'spentAt': _dateOnlyPayload(spentAt),
-      'status': _statusForDate(spentAt),
-      'notes': notes ?? '',
-    });
+    final realCategoryId = await resolveCategoryId(
+      dio: _dio,
+      categoryId: categoryId,
+    );
+    await _dio.patch(
+      '/expenses/$id',
+      data: {
+        'accountId': accountId,
+        'categoryId': realCategoryId,
+        'amount': amount.toStringAsFixed(2),
+        'description': description,
+        'spentAt': _dateOnlyPayload(spentAt),
+        'status': _statusForDate(spentAt),
+        'notes': notes ?? '',
+      },
+    );
     _afterTransactionMutation();
   }
 
@@ -1149,14 +1406,17 @@ class TransactionMutator {
     required DateTime receivedAt,
     String? notes,
   }) async {
-    await _dio.patch('/income/$id', data: {
-      'accountId': accountId,
-      'amount': amount.toStringAsFixed(2),
-      'source': source,
-      'receivedAt': _dateOnlyPayload(receivedAt),
-      'status': _statusForDate(receivedAt),
-      'notes': notes ?? '',
-    });
+    await _dio.patch(
+      '/income/$id',
+      data: {
+        'accountId': accountId,
+        'amount': amount.toStringAsFixed(2),
+        'source': source,
+        'receivedAt': _dateOnlyPayload(receivedAt),
+        'status': _statusForDate(receivedAt),
+        'notes': notes ?? '',
+      },
+    );
     _afterTransactionMutation();
   }
 
@@ -1195,11 +1455,9 @@ class TransactionMutator {
       await _dio.post('/transfers', data: data);
     } on DioException catch (error) {
       if (!_canQueue(error)) rethrow;
-      await _ref.read(cacheServiceProvider).queueTransaction(
-        type: 'transfer',
-        userId: userId,
-        data: data,
-      );
+      await _ref
+          .read(cacheServiceProvider)
+          .queueTransaction(type: 'transfer', userId: userId, data: data);
       saveStatus = TransactionSaveStatus.queued;
     }
     _afterTransactionMutation();
@@ -1211,12 +1469,15 @@ class TransactionMutator {
     required String type,
     double openingBalance = 0,
   }) async {
-    await _dio.post('/accounts', data: {
-      'name': name.trim(),
-      'type': type,
-      'openingBalance': openingBalance.toStringAsFixed(2),
-      'currencyCode': 'PHP',
-    });
+    await _dio.post(
+      '/accounts',
+      data: {
+        'name': name.trim(),
+        'type': type,
+        'openingBalance': openingBalance.toStringAsFixed(2),
+        'currencyCode': 'PHP',
+      },
+    );
     _ref.invalidate(accountsProvider);
     _ref.invalidate(accountBalancesProvider);
     _ref.invalidate(dashboardProvider);
@@ -1240,13 +1501,17 @@ class TransactionMutator {
     DateTime? endsOn,
     bool isActive = true,
   }) async {
-    await _dio.post('/budgets', data: {
-      'amount': amount.toStringAsFixed(2),
-      'startsOn': _dateOnlyPayload(startsOn),
-      if (categoryId != null && categoryId.isNotEmpty) 'categoryId': categoryId,
-      if (endsOn != null) 'endsOn': _dateOnlyPayload(endsOn),
-      'isActive': isActive,
-    });
+    await _dio.post(
+      '/budgets',
+      data: {
+        'amount': amount.toStringAsFixed(2),
+        'startsOn': _dateOnlyPayload(startsOn),
+        if (categoryId != null && categoryId.isNotEmpty)
+          'categoryId': categoryId,
+        if (endsOn != null) 'endsOn': _dateOnlyPayload(endsOn),
+        'isActive': isActive,
+      },
+    );
     _ref.invalidate(budgetStatusProvider);
     _ref.invalidate(dashboardProvider);
     _ref.invalidate(alertsProvider);
@@ -1269,50 +1534,6 @@ class TransactionMutator {
     _ref.invalidate(budgetStatusProvider);
     _ref.invalidate(goalsProvider);
     _ref.invalidate(billsProvider);
-  }
-
-  Future<String> _resolveCategoryId({
-    required String categoryId,
-    String? categoryName,
-  }) async {
-    if (_uuidPattern.hasMatch(categoryId)) return categoryId;
-
-    try {
-      final response = await _dio.get('/expense-categories');
-      final categories = (response.data['data'] as List<dynamic>?) ?? [];
-      final desiredName = categoryName?.trim();
-
-      for (final raw in categories) {
-        final category = raw as Map<String, dynamic>;
-        final id = category['id']?.toString();
-        final name = category['name']?.toString();
-        if (id != null &&
-            _uuidPattern.hasMatch(id) &&
-            desiredName != null &&
-            name != null &&
-            _categoryNamesMatch(desiredName, name)) {
-          return id;
-        }
-      }
-
-      if (desiredName == null || desiredName.isEmpty) {
-        throw StateError('Choose an expense category first.');
-      }
-
-      final createResponse = await _dio.post(
-        '/expense-categories',
-        data: {'name': desiredName, 'iconKey': 'receipt'},
-      );
-      final createdId = createResponse.data['data']?['id']?.toString();
-      if (createdId == null || !_uuidPattern.hasMatch(createdId)) {
-        throw StateError('The selected expense category is unavailable.');
-      }
-      return createdId;
-    } on DioException {
-      throw StateError(
-        'Expense categories are unavailable. Try again when online.',
-      );
-    }
   }
 
   void _invalidateTransactionProviders() {
@@ -1381,17 +1602,30 @@ class TransactionMutator {
     String? accountId,
     String? notes,
   }) async {
+    final cacheService = _ref.read(cacheServiceProvider);
+    final userId = _currentUserId();
     final data = {
+      'goalId': goalId,
       'amount': amount.toStringAsFixed(2),
       if (accountId != null && accountId.isNotEmpty) 'accountId': accountId,
       // UTC ISO-8601 with an explicit Z so the server stores the correct
       // instant regardless of its own timezone.
       'contributedAt': DateTime.now().toUtc().toIso8601String(),
       if (notes != null && notes.isNotEmpty) 'notes': notes,
-      'clientMutationId': const Uuid().v4(),
+      'clientMutationId': _uuid.v4(),
     };
+    final body = Map<String, dynamic>.from(data)..remove('goalId');
 
-    await _dio.post('/goals/$goalId/contributions', data: data);
+    try {
+      await _dio.post('/goals/$goalId/contributions', data: body);
+    } on DioException catch (error) {
+      if (!_canQueue(error)) rethrow;
+      await cacheService.queueTransaction(
+        type: 'goal_contribution',
+        userId: userId,
+        data: data,
+      );
+    }
 
     _ref.invalidate(goalsProvider);
     _ref.invalidate(dashboardProvider);
@@ -1674,13 +1908,41 @@ extension AlertItemRead on AlertItem {
 
 final alertsProvider = FutureProvider<List<AlertItem>>((ref) async {
   final dio = ref.watch(dioProvider);
+  final cacheService = ref.watch(cacheServiceProvider);
+  final userId = ref.watch(authProvider).userId;
   try {
     final res = await dio.get('/alerts');
     final data = res.data['data'] as List<dynamic>;
+    if (userId != null) {
+      unawaited(
+        cacheService
+            .putSnapshot(
+              userId: userId,
+              key: CacheService.snapshotKeyAlerts,
+              json: jsonEncode(data),
+            )
+            .catchError((_) {}),
+      );
+    }
     return data
         .map((e) => AlertItem.fromJson(e as Map<String, dynamic>))
         .toList();
   } catch (_) {
+    final snapshot = userId == null
+        ? null
+        : await _readSnapshot(
+            cacheService,
+            userId,
+            CacheService.snapshotKeyAlerts,
+          );
+    if (snapshot != null) {
+      try {
+        final data = jsonDecode(snapshot) as List<dynamic>;
+        return data
+            .map((e) => AlertItem.fromJson(e as Map<String, dynamic>))
+            .toList();
+      } catch (_) {}
+    }
     rethrow;
   }
 });
@@ -1756,6 +2018,8 @@ class BudgetStatus with _$BudgetStatus {
 
 final budgetStatusProvider = FutureProvider<BudgetStatus>((ref) async {
   final dio = ref.watch(dioProvider);
+  final cacheService = ref.watch(cacheServiceProvider);
+  final userId = ref.watch(authProvider).userId;
   final now = DateTime.now();
   final monthStr = '${now.year}-${now.month.toString().padLeft(2, '0')}';
   try {
@@ -1763,8 +2027,34 @@ final budgetStatusProvider = FutureProvider<BudgetStatus>((ref) async {
       '/budgets/status',
       queryParameters: {'month': monthStr},
     );
-    return BudgetStatus.fromJson(res.data['data'] as Map<String, dynamic>);
+    final data = res.data['data'] as Map<String, dynamic>;
+    if (userId != null) {
+      unawaited(
+        cacheService
+            .putSnapshot(
+              userId: userId,
+              key: CacheService.snapshotKeyBudgets,
+              json: jsonEncode(data),
+            )
+            .catchError((_) {}),
+      );
+    }
+    return BudgetStatus.fromJson(data);
   } catch (_) {
+    final snapshot = userId == null
+        ? null
+        : await _readSnapshot(
+            cacheService,
+            userId,
+            CacheService.snapshotKeyBudgets,
+          );
+    if (snapshot != null) {
+      try {
+        return BudgetStatus.fromJson(
+          jsonDecode(snapshot) as Map<String, dynamic>,
+        );
+      } catch (_) {}
+    }
     rethrow;
   }
 });

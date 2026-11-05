@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:drift/drift.dart';
+import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kasyaba/core/api/api_client.dart';
 import 'package:kasyaba/core/auth/auth_provider.dart';
+import 'package:kasyaba/core/connectivity/connectivity_service.dart';
 import 'package:kasyaba/core/database/cache_service.dart';
 import 'package:kasyaba/core/database/database.dart';
 import 'package:kasyaba/core/database/database_provider.dart';
@@ -482,80 +485,17 @@ class FakeSecureStorage extends SecureStorageService {
   }
 }
 
-/// A permissive drift executor that is intentionally never used.
+/// Real Drift-backed cache over an in-memory SQLite database.
 ///
-/// [FakeCacheService] overrides every public [CacheService] method, so the
-/// underlying database is only needed to satisfy the constructor.
-class NoopQueryExecutor extends QueryExecutor {
-  @override
-  SqlDialect get dialect => SqlDialect.sqlite;
-
-  @override
-  Future<bool> ensureOpen(QueryExecutorUser user) async => true;
-
-  @override
-  Future<List<Map<String, Object?>>> runSelect(
-    String statement,
-    List<Object?> args,
-  ) async => const <Map<String, Object?>>[];
-
-  @override
-  Future<int> runInsert(String statement, List<Object?> args) async => 0;
-
-  @override
-  Future<int> runUpdate(String statement, List<Object?> args) async => 0;
-
-  @override
-  Future<int> runDelete(String statement, List<Object?> args) async => 0;
-
-  @override
-  Future<void> runCustom(String statement, [List<Object?>? args]) async {}
-
-  @override
-  Future<void> runBatched(BatchedStatements statements) async {}
-
-  @override
-  TransactionExecutor beginTransaction() => _NoopTransactionExecutor();
-
-  @override
-  QueryExecutor beginExclusive() => _NoopTransactionExecutor();
-
-  @override
-  Future<void> close() async {}
-}
-
-class _NoopTransactionExecutor extends NoopQueryExecutor
-    implements TransactionExecutor {
-  @override
-  bool get supportsNestedTransactions => false;
-
-  @override
-  Future<void> send() async {}
-
-  @override
-  Future<void> rollback() async {}
-}
-
-/// In-memory replacement for the offline queue.
+/// Keeping the production implementation under test means snapshot pruning,
+/// queue replay, and migration-sensitive queries behave exactly as they do on
+/// a device. [entries] is a convenience shadow of rows inserted in this test
+/// so legacy assertions can keep inspecting the queued payload synchronously.
 class FakeCacheService extends CacheService {
-  FakeCacheService([AppDatabase? database])
-    : super(database ?? AppDatabase(NoopQueryExecutor()));
+  FakeCacheService(this.database) : super(database);
 
+  final AppDatabase database;
   final List<OfflineTransaction> entries = <OfflineTransaction>[];
-  final Map<String, StreamController<List<OfflineTransaction>>> _watchers =
-      <String, StreamController<List<OfflineTransaction>>>{};
-
-  DashboardData? _cachedDashboard;
-  int _nextId = 0;
-
-  @override
-  Future<void> cacheDashboard(DashboardData data, String userId) async {
-    _cachedDashboard = data;
-  }
-
-  @override
-  Future<DashboardData?> getCachedDashboard(String userId) async =>
-      _cachedDashboard;
 
   @override
   Future<String> queueTransaction({
@@ -563,7 +503,11 @@ class FakeCacheService extends CacheService {
     required String userId,
     required Map<String, dynamic> data,
   }) async {
-    final id = 'queued-${++_nextId}';
+    final id = await super.queueTransaction(
+      type: type,
+      userId: userId,
+      data: data,
+    );
     entries.add(
       OfflineTransaction(
         id: id,
@@ -574,99 +518,37 @@ class FakeCacheService extends CacheService {
         retryCount: 0,
       ),
     );
-    _emit(userId);
     return id;
   }
 
-  /// Test helper: seeds a queued transaction without advancing mock time.
-  void seedTransaction({
+  /// Test helper: seeds a queued transaction with a caller-provided id.
+  Future<void> seedTransaction({
     required String id,
     required String type,
     required String userId,
     required Map<String, dynamic> data,
     DateTime? createdAt,
-  }) {
-    entries.add(
-      OfflineTransaction(
-        id: id,
-        userId: userId,
-        type: type,
-        json: jsonEncode(data),
-        createdAt: createdAt ?? DateTime.now(),
-        retryCount: 0,
-      ),
+  }) async {
+    final row = OfflineTransaction(
+      id: id,
+      userId: userId,
+      type: type,
+      json: jsonEncode(data),
+      createdAt: createdAt ?? DateTime.now(),
+      retryCount: 0,
     );
-    _emit(userId);
-  }
-
-  @override
-  Future<List<OfflineTransaction>> getPendingSyncTransactions(
-    String userId,
-  ) async => _pending(userId);
-
-  @override
-  Future<List<OfflineTransaction>> getAllOfflineTransactions(
-    String userId,
-  ) async => entries
-      .where((entry) => entry.userId == userId && entry.syncedAt == null)
-      .toList();
-
-  @override
-  Stream<List<OfflineTransaction>> watchPendingSyncTransactions(String userId) {
-    final controller = _watchers.putIfAbsent(userId, () {
-      late final StreamController<List<OfflineTransaction>> controller;
-      controller = StreamController<List<OfflineTransaction>>.broadcast(
-        onListen: () => controller.add(_pending(userId)),
-      );
-      return controller;
-    });
-    return controller.stream;
-  }
-
-  @override
-  Future<int> syncPendingTransactions(Dio dio, String userId) async => 0;
-
-  @override
-  Future<void> markSynced(String id) async {}
-
-  @override
-  Future<void> recordRetry(
-    OfflineTransaction transaction,
-    String message,
-  ) async {}
-
-  @override
-  Future<void> markFailed(String id, String message) async {}
-
-  @override
-  Future<void> retryFailedTransaction(String id) async {}
-
-  @override
-  Future<void> deleteOfflineTransaction(String id) async {
-    entries.removeWhere((entry) => entry.id == id);
-  }
-
-  List<OfflineTransaction> _pending(String userId) => entries
-      .where(
-        (entry) =>
-            entry.userId == userId &&
-            entry.syncedAt == null &&
-            entry.failedAt == null,
-      )
-      .toList();
-
-  void _emit(String userId) {
-    final controller = _watchers[userId];
-    if (controller != null && !controller.isClosed && controller.hasListener) {
-      controller.add(_pending(userId));
-    }
-  }
-
-  Future<void> dispose() async {
-    for (final controller in _watchers.values) {
-      await controller.close();
-    }
-    _watchers.clear();
+    await database
+        .into(database.offlineTransactions)
+        .insert(
+          OfflineTransactionsCompanion.insert(
+            id: id,
+            userId: Value(userId),
+            type: type,
+            json: row.json,
+            createdAt: row.createdAt,
+          ),
+        );
+    entries.add(row);
   }
 }
 
@@ -697,6 +579,8 @@ class FakeEngineStack {
     required this.database,
     required this.dio,
     required this.container,
+    required this.setOnline,
+    required this._closeConnectivity,
   });
 
   final FakeApiAdapter api;
@@ -705,6 +589,8 @@ class FakeEngineStack {
   final AppDatabase database;
   final Dio dio;
   final ProviderContainer container;
+  final void Function(bool online) setOnline;
+  final Future<void> Function() _closeConnectivity;
 
   final List<ProviderSubscription<dynamic>> _subscriptions =
       <ProviderSubscription<dynamic>>[];
@@ -716,8 +602,18 @@ class FakeEngineStack {
     final dio = Dio(BaseOptions(baseUrl: 'http://test'))
       ..httpClientAdapter = api;
     final storage = FakeSecureStorage.authenticated();
-    final database = AppDatabase(NoopQueryExecutor());
+    final database = AppDatabase(NativeDatabase.memory());
     final cache = FakeCacheService(database);
+
+    var online = true;
+    final connectivityChanges = StreamController<ConnectivityResult?>.broadcast(
+      sync: true,
+    );
+    Stream<ConnectivityResult?> connectivityStream() async* {
+      yield online ? ConnectivityResult.wifi : null;
+      yield* connectivityChanges.stream;
+    }
+
     final container = ProviderContainer(
       overrides: [
         dioProvider.overrideWithValue(dio),
@@ -725,6 +621,7 @@ class FakeEngineStack {
         authProvider.overrideWith(
           (ref) => AuthNotifier(dio, storage, const Stream<void>.empty()),
         ),
+        connectivityStatusProvider.overrideWith((ref) => connectivityStream()),
         databaseProvider.overrideWithValue(database),
         cacheServiceProvider.overrideWithValue(cache),
       ],
@@ -737,6 +634,11 @@ class FakeEngineStack {
       database: database,
       dio: dio,
       container: container,
+      setOnline: (value) {
+        online = value;
+        connectivityChanges.add(value ? ConnectivityResult.wifi : null);
+      },
+      closeConnectivity: connectivityChanges.close,
     );
     await stack.waitForAuthenticatedUser();
     return stack;
@@ -814,7 +716,7 @@ class FakeEngineStack {
     }
     _subscriptions.clear();
     container.dispose();
-    await cache.dispose();
+    await _closeConnectivity();
     await database.close();
     dio.close(force: true);
   }

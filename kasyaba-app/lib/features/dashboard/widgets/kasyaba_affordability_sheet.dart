@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_motion.dart';
 import '../../../app/theme/kasyaba_tokens.dart';
+import '../../../core/connectivity/connectivity_service.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/providers/preference_providers.dart';
@@ -12,6 +13,7 @@ import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/deterministic_math.dart';
 import '../../../shared/widgets/app_sheet.dart';
 import '../../../shared/widgets/app_state_widgets.dart';
+import '../../../shared/widgets/offline_status.dart';
 import 'dashboard_tokens.dart';
 import 'kasyaba_safe_spend_breakdown_sheet.dart';
 
@@ -61,6 +63,13 @@ class _KasyaBaAffordabilitySheetModalState
   }
 
   Future<void> _evaluate() async {
+    if (!ref.read(isOnlineProvider)) {
+      setState(
+        () => _errorMessage =
+            'Evaluating affordability needs an internet connection.',
+      );
+      return;
+    }
     final rawAmount = double.tryParse(_amountController.text.trim()) ?? 0.0;
     if (rawAmount <= 0) {
       setState(() => _errorMessage = 'Please enter a valid purchase amount.');
@@ -110,6 +119,7 @@ class _KasyaBaAffordabilitySheetModalState
     final dashboard = dashboardAsync.valueOrNull;
     final accountBalances = balancesAsync.valueOrNull;
     final excludedAccountIds = ref.watch(excludedAccountsProvider);
+    final isOnline = ref.watch(isOnlineProvider);
 
     // Never serve a ₱0-based simulation when live data failed to load.
     final hasInputError = dashboardAsync.hasError || balancesAsync.hasError;
@@ -506,7 +516,11 @@ class _KasyaBaAffordabilitySheetModalState
                       width: double.infinity,
                       height: 56,
                       child: FilledButton(
-                        onPressed: _isLoading || rawAmount <= 0 || hasInputError
+                        onPressed:
+                            _isLoading ||
+                                rawAmount <= 0 ||
+                                hasInputError ||
+                                !isOnline
                             ? null
                             : _evaluate,
                         style: FilledButton.styleFrom(
@@ -536,7 +550,13 @@ class _KasyaBaAffordabilitySheetModalState
                       ),
                     ),
 
-                    if (hasInputError) ...[
+                    if (!isOnline) ...[
+                      const SizedBox(height: 12),
+                      const NeedsInternetNotice(
+                        message:
+                            'Evaluating affordability needs a connection. The simulator math still works offline.',
+                      ),
+                    ] else if (hasInputError) ...[
                       const SizedBox(height: 12),
                       Text(
                         'Live account data is unavailable. Reconnect and try again.',

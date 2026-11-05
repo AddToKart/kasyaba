@@ -7,10 +7,12 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../app/theme/app_motion.dart';
 import '../../../shared/widgets/motion_components.dart';
 import '../../../core/api/api_client.dart';
+import '../../../core/database/cache_service.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../shared/widgets/app_state_widgets.dart';
 import '../../../shared/widgets/kasyaba_toast.dart';
+import '../../../shared/widgets/offline_status.dart';
 import '../../auth/widgets/auth_widgets.dart';
 import '../../dashboard/widgets/dashboard_tokens.dart';
 
@@ -59,6 +61,10 @@ class AlertsScreen extends ConsumerWidget {
                     }
                   },
                 ),
+              ),
+              const OfflineStatusBadge(
+                snapshotKey: CacheService.snapshotKeyAlerts,
+                margin: EdgeInsets.only(top: 12),
               ),
               const SizedBox(height: 20),
 

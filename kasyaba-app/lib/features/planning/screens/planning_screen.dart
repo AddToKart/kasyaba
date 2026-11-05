@@ -8,12 +8,14 @@ import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_motion.dart';
 import '../../../shared/widgets/motion_components.dart';
+import '../../../core/connectivity/connectivity_service.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/providers/preference_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/deterministic_math.dart';
 import '../../../shared/widgets/app_state_widgets.dart';
+import '../../../shared/widgets/offline_status.dart';
 import '../../dashboard/widgets/dashboard_tokens.dart';
 import '../../dashboard/widgets/kasyaba_affordability_sheet.dart';
 import '../../dashboard/widgets/kasyaba_safe_spend_breakdown_sheet.dart';
@@ -40,6 +42,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     final goalsAsync = ref.watch(goalsProvider);
     final accountBalancesAsync = ref.watch(accountBalancesProvider);
     final excludedAccountIds = ref.watch(excludedAccountsProvider);
+    final isOnline = ref.watch(isOnlineProvider);
 
     final userProfile = userProfileAsync.valueOrNull;
     final bills = billsAsync.valueOrNull ?? [];
@@ -92,13 +95,23 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
               ),
               const SizedBox(height: 24),
 
+              if (!isOnline) ...[
+                const NeedsInternetNotice(
+                  message:
+                      'Planning, health score, and forecasts need a connection.',
+                ),
+                const SizedBox(height: 16),
+              ],
+
               // ── 2. Safe to Spend Today Hero Card (Node 85:1085) ────
               dashboardAsync.when(
                 loading: () => const _HeroLoadingState(),
-                error: (err, _) => _ErrorCard(
-                  message: friendlyErrorMessage(err),
-                  onRetry: () => ref.invalidate(dashboardProvider),
-                ),
+                error: (err, _) => isOnline
+                    ? _ErrorCard(
+                        message: friendlyErrorMessage(err),
+                        onRetry: () => ref.invalidate(dashboardProvider),
+                      )
+                    : const SizedBox.shrink(),
                 data: (dashboard) {
                   final adjustedBalance = adjustedLiquidBalance(
                     dashboardTotalBalance: dashboard.totalBalance,
@@ -116,15 +129,16 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       if (hasInputError) ...[
-                        KasyabaErrorCard(
-                          message:
-                              'Could not load your bills, goals, or profile. Safe-to-spend and allocation are hidden until all inputs load.',
-                          onRetry: () {
-                            ref.invalidate(billsProvider);
-                            ref.invalidate(goalsProvider);
-                            ref.invalidate(userProfileProvider);
-                          },
-                        ),
+                        if (isOnline)
+                          KasyabaErrorCard(
+                            message:
+                                'Could not load your bills, goals, or profile. Safe-to-spend and allocation are hidden until all inputs load.',
+                            onRetry: () {
+                              ref.invalidate(billsProvider);
+                              ref.invalidate(goalsProvider);
+                              ref.invalidate(userProfileProvider);
+                            },
+                          ),
                         const SizedBox(height: 16),
                       ] else ...[
                         FadeSlideEntrance.staggered(
@@ -151,10 +165,13 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                       // ── 4. Assumptions Card (Node 92:106) ────────────
                       planningAsync.when(
                         loading: () => const KasyabaLoadingSkeleton(lines: 3),
-                        error: (err, _) => KasyabaErrorCard(
-                          message: friendlyErrorMessage(err),
-                          onRetry: () => ref.invalidate(planningProvider),
-                        ),
+                        error: (err, _) => isOnline
+                            ? KasyabaErrorCard(
+                                message: friendlyErrorMessage(err),
+                                onRetry: () =>
+                                    ref.invalidate(planningProvider),
+                              )
+                            : const SizedBox.shrink(),
                         data: (overview) {
                           return FadeSlideEntrance.staggered(
                             index: 2,

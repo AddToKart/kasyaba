@@ -43,7 +43,7 @@ void main() {
     expect(find.text('Continue with Demo Account'), findsNothing);
 
     // Bottom reassurance footnote
-    expect(find.text('Calculated on your device. Your numbers stay yours.'), findsOneWidget);
+    expect(find.text('Server-backed security. Instant on-device math.'), findsOneWidget);
 
     // Test Forgot Password dialog
     await tester.ensureVisible(find.text('Forgot password?'));
@@ -91,7 +91,7 @@ void main() {
     expect(find.text('Continue'), findsOneWidget);
 
     // Trust footer
-    expect(find.text('Calculated on your device. Your numbers stay yours.'), findsOneWidget);
+    expect(find.text('Server-backed security. Instant on-device math.'), findsOneWidget);
 
     // Fill form and check validity
     final fields = find.byType(TextField);

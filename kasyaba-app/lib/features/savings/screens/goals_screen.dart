@@ -6,6 +6,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_motion.dart';
+import '../../../core/connectivity/connectivity_service.dart';
+import '../../../core/database/cache_service.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
@@ -14,6 +16,7 @@ import '../../../shared/widgets/app_state_widgets.dart';
 import '../../../shared/widgets/kasyaba_background.dart';
 import '../../../shared/widgets/kasyaba_card.dart';
 import '../../../shared/widgets/motion_components.dart';
+import '../../../shared/widgets/offline_status.dart';
 import '../../../shared/widgets/pill_button.dart';
 import '../../dashboard/widgets/dashboard_tokens.dart';
 import '../../dashboard/widgets/kasyaba_affordability_sheet.dart';
@@ -77,6 +80,7 @@ class GoalsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final goalsAsync = ref.watch(goalsProvider);
+    final isOnline = ref.watch(isOnlineProvider);
 
     return Scaffold(
       backgroundColor: DashboardTokens.ebony,
@@ -111,31 +115,48 @@ class GoalsScreen extends ConsumerWidget {
                       ),
                       SpringTouch(
                         scaleDown: 0.88,
-                        onTap: () {
-                          AppHaptics.lightImpact();
-                          context.push('/goals/new');
-                        },
-                        child: Container(
-                          width: 48,
-                          height: 48,
-                          decoration: const BoxDecoration(
-                            color: DashboardTokens.periwinkleGray,
-                            shape: BoxShape.circle,
-                          ),
-                          alignment: Alignment.center,
-                          child: SvgPicture.asset(
-                            'assets/images/goal_plus.svg',
-                            width: 22,
-                            height: 22,
-                            colorFilter: const ColorFilter.mode(
-                              DashboardTokens.ebony,
-                              BlendMode.srcIn,
+                        onTap: isOnline
+                            ? () {
+                                AppHaptics.lightImpact();
+                                context.push('/goals/new');
+                              }
+                            : null,
+                        child: Opacity(
+                          opacity: isOnline ? 1 : 0.5,
+                          child: Container(
+                            width: 48,
+                            height: 48,
+                            decoration: const BoxDecoration(
+                              color: DashboardTokens.periwinkleGray,
+                              shape: BoxShape.circle,
+                            ),
+                            alignment: Alignment.center,
+                            child: SvgPicture.asset(
+                              'assets/images/goal_plus.svg',
+                              width: 22,
+                              height: 22,
+                              colorFilter: const ColorFilter.mode(
+                                DashboardTokens.ebony,
+                                BlendMode.srcIn,
+                              ),
                             ),
                           ),
                         ),
                       ),
                     ],
                   ),
+                  const SizedBox(height: 12),
+                  if (!isOnline) ...[
+                    const OfflineStatusBadge(
+                      snapshotKey: CacheService.snapshotKeyGoals,
+                    ),
+                    const SizedBox(height: 10),
+                    const NeedsInternetNotice(
+                      message:
+                          'Creating, editing, or deleting goals needs an internet connection. Deposits still save on this device.',
+                    ),
+                    const SizedBox(height: 4),
+                  ],
                   const SizedBox(height: 14),
 
                   goalsAsync.when(
@@ -259,7 +280,9 @@ class GoalsScreen extends ConsumerWidget {
                                     'Create a goal for an emergency fund, gadget, or trip to track progress.',
                                 action: PillButton(
                                   label: 'Add your first goal',
-                                  onPressed: () => context.push('/goals/new'),
+                                  onPressed: isOnline
+                                      ? () => context.push('/goals/new')
+                                      : null,
                                   height: 48,
                                   expand: false,
                                 ),

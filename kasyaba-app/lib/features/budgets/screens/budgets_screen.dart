@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../app/theme/kasyaba_tokens.dart';
+import '../../../core/connectivity/connectivity_service.dart';
+import '../../../core/database/cache_service.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/category_icon_helper.dart';
@@ -14,6 +16,7 @@ import '../../../shared/widgets/app_sheet.dart';
 import '../../../shared/widgets/app_state_widgets.dart';
 import '../../../shared/widgets/kasyaba_toast.dart';
 import '../../../shared/widgets/motion_components.dart';
+import '../../../shared/widgets/offline_status.dart';
 import '../../../shared/widgets/pill_button.dart';
 
 final _uuidPattern = RegExp(
@@ -34,6 +37,7 @@ class BudgetsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final budgetAsync = ref.watch(budgetStatusProvider);
     final categoriesAsync = ref.watch(categoriesProvider);
+    final isOnline = ref.watch(isOnlineProvider);
 
     final categories = categoriesAsync.valueOrNull ?? defaultCategoriesList;
     final categoryMap = {for (final c in categories) c.id: c.name};
@@ -99,28 +103,44 @@ class BudgetsScreen extends ConsumerWidget {
                               ),
                             ),
                             SpringTouch(
-                              onTap: () => _showCreateBudgetSheet(context),
-                              child: Container(
-                                width: 50,
-                                height: 50,
-                                decoration: BoxDecoration(
-                                  color: DashboardTokens.bigStone,
-                                  borderRadius: BorderRadius.circular(24),
-                                  border: Border.all(
-                                    color: DashboardTokens.poloBlue22,
-                                    width: 1,
+                              onTap: isOnline
+                                  ? () => _showCreateBudgetSheet(context)
+                                  : null,
+                              child: Opacity(
+                                opacity: isOnline ? 1 : 0.5,
+                                child: Container(
+                                  width: 50,
+                                  height: 50,
+                                  decoration: BoxDecoration(
+                                    color: DashboardTokens.bigStone,
+                                    borderRadius: BorderRadius.circular(24),
+                                    border: Border.all(
+                                      color: DashboardTokens.poloBlue22,
+                                      width: 1,
+                                    ),
                                   ),
-                                ),
-                                child: const Icon(
-                                  Icons.add_rounded,
-                                  color: DashboardTokens.periwinkleGray,
-                                  size: 26,
+                                  child: const Icon(
+                                    Icons.add_rounded,
+                                    color: DashboardTokens.periwinkleGray,
+                                    size: 26,
+                                  ),
                                 ),
                               ),
                             ),
                           ],
                         ),
                       ),
+                      const SizedBox(height: 12),
+                      if (!isOnline) ...[
+                        const OfflineStatusBadge(
+                          snapshotKey: CacheService.snapshotKeyBudgets,
+                        ),
+                        const SizedBox(height: 10),
+                        const NeedsInternetNotice(
+                          message:
+                              'Creating or deleting budgets needs an internet connection.',
+                        ),
+                      ],
                       const SizedBox(height: 20),
 
                       // Monthly Budget Overview Hero Card
@@ -425,25 +445,32 @@ class BudgetsScreen extends ConsumerWidget {
                                     ),
                                     const SizedBox(height: 20),
                                     SpringTouch(
-                                      onTap: () =>
-                                          _showCreateBudgetSheet(context),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 24,
-                                          vertical: 12,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: DashboardTokens.periwinkleGray,
-                                          borderRadius: BorderRadius.circular(
-                                            26,
+                                      onTap: isOnline
+                                          ? () => _showCreateBudgetSheet(
+                                              context,
+                                            )
+                                          : null,
+                                      child: Opacity(
+                                        opacity: isOnline ? 1 : 0.5,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 24,
+                                            vertical: 12,
                                           ),
-                                        ),
-                                        child: Text(
-                                          'Set Category Budget',
-                                          style: GoogleFonts.dmSans(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w700,
-                                            color: DashboardTokens.ebony,
+                                          decoration: BoxDecoration(
+                                            color:
+                                                DashboardTokens.periwinkleGray,
+                                            borderRadius: BorderRadius.circular(
+                                              26,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            'Set Category Budget',
+                                            style: GoogleFonts.dmSans(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w700,
+                                              color: DashboardTokens.ebony,
+                                            ),
                                           ),
                                         ),
                                       ),
@@ -489,6 +516,7 @@ class BudgetsScreen extends ConsumerWidget {
                                                     .budgets[i]
                                                     .categoryId] ??
                                                 'Uncategorized',
+                                      isOnline: isOnline,
                                     ),
                                   ],
                                 ],
@@ -502,21 +530,26 @@ class BudgetsScreen extends ConsumerWidget {
                       // Add Budget CTA Button at Bottom
                       FadeSlideEntrance.staggered(
                         index: 4,
-                        child: SpringTouch(
-                          onTap: () => _showCreateBudgetSheet(context),
-                          child: Container(
-                            height: 56,
-                            decoration: BoxDecoration(
-                              color: DashboardTokens.periwinkleGray,
-                              borderRadius: BorderRadius.circular(28),
-                            ),
-                            alignment: Alignment.center,
-                            child: Text(
-                              'New Budget',
-                              style: GoogleFonts.dmSans(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: DashboardTokens.ebony,
+                         child: SpringTouch(
+                          onTap: isOnline
+                              ? () => _showCreateBudgetSheet(context)
+                              : null,
+                          child: Opacity(
+                            opacity: isOnline ? 1 : 0.5,
+                            child: Container(
+                              height: 56,
+                              decoration: BoxDecoration(
+                                color: DashboardTokens.periwinkleGray,
+                                borderRadius: BorderRadius.circular(28),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                'New Budget',
+                                style: GoogleFonts.dmSans(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: DashboardTokens.ebony,
+                                ),
                               ),
                             ),
                           ),
@@ -538,6 +571,7 @@ class BudgetsScreen extends ConsumerWidget {
     WidgetRef ref, {
     required BudgetItemStatus budget,
     required String categoryName,
+    required bool isOnline,
   }) {
     final Color statusColor;
     final Color badgeBg;
@@ -634,6 +668,13 @@ class BudgetsScreen extends ConsumerWidget {
                 ),
                 onSelected: (action) async {
                   if (action == 'delete') {
+                    if (!isOnline) {
+                      KasyabaToast.showInfo(
+                        context,
+                        'Deleting budgets needs an internet connection.',
+                      );
+                      return;
+                    }
                     final confirmed = await showKasyabaConfirmDialog(
                       context,
                       title: 'Delete $categoryName budget?',
@@ -666,6 +707,7 @@ class BudgetsScreen extends ConsumerWidget {
                 itemBuilder: (ctx) => [
                   PopupMenuItem(
                     value: 'delete',
+                    enabled: isOnline,
                     child: Row(
                       children: [
                         Icon(
@@ -675,7 +717,9 @@ class BudgetsScreen extends ConsumerWidget {
                         ),
                         SizedBox(width: 10),
                         Text(
-                          'Delete budget',
+                          isOnline
+                              ? 'Delete budget'
+                              : 'Delete (needs internet)',
                           style: GoogleFonts.dmSans(
                             color: DashboardTokens.apricot,
                           ),
@@ -734,6 +778,13 @@ class _CreateBudgetSheetState extends ConsumerState<_CreateBudgetSheet> {
 
   Future<void> _submit() async {
     if (_isSubmitting) return;
+    if (!ref.read(isOnlineProvider)) {
+      KasyabaToast.showInfo(
+        context,
+        'Creating budgets needs an internet connection.',
+      );
+      return;
+    }
     if (!_formKey.currentState!.validate()) return;
     final amount = double.tryParse(_amountController.text.trim());
     if (amount == null || !amount.isFinite || amount <= 0) return;
@@ -768,6 +819,7 @@ class _CreateBudgetSheetState extends ConsumerState<_CreateBudgetSheet> {
   @override
   Widget build(BuildContext context) {
     final categoriesAsync = ref.watch(categoriesProvider);
+    final isOnline = ref.watch(isOnlineProvider);
     final budgetCategories = (categoriesAsync.valueOrNull ?? const <Category>[])
         .where((category) => _uuidPattern.hasMatch(category.id))
         .toList();
@@ -955,11 +1007,19 @@ class _CreateBudgetSheetState extends ConsumerState<_CreateBudgetSheet> {
               ),
               const SizedBox(height: 24),
 
+              if (!isOnline) ...[
+                const NeedsInternetNotice(
+                  message:
+                      'Creating budgets needs an internet connection. Budget limits live on the server.',
+                ),
+                const SizedBox(height: 12),
+              ],
+
               // Submit Button
               PillButton(
                 label: 'Create Budget',
                 isLoading: _isSubmitting,
-                onPressed: _isSubmitting ? null : _submit,
+                onPressed: _isSubmitting || !isOnline ? null : _submit,
               ),
           ],
         ),

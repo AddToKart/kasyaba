@@ -5,6 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_motion.dart';
+import '../../../core/connectivity/connectivity_service.dart';
+import '../../../core/database/cache_service.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
@@ -14,6 +16,7 @@ import '../../../shared/widgets/app_state_widgets.dart';
 import '../../../shared/widgets/kasyaba_background.dart';
 import '../../../shared/widgets/kasyaba_card.dart';
 import '../../../shared/widgets/kasyaba_toast.dart';
+import '../../../shared/widgets/offline_status.dart';
 import '../../../shared/widgets/pill_button.dart';
 import '../../dashboard/widgets/dashboard_tokens.dart';
 import '../widgets/goal_deposit_sheet.dart';
@@ -42,6 +45,13 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
   }
 
   Future<void> _handleDelete(SavingsGoal goal) async {
+    if (!ref.read(isOnlineProvider)) {
+      KasyabaToast.showInfo(
+        context,
+        'Deleting a goal needs an internet connection.',
+      );
+      return;
+    }
     final confirmed = await showKasyabaConfirmDialog(
       context,
       title: 'Delete ${goal.name}?',
@@ -88,6 +98,7 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
     final topPadding = MediaQuery.paddingOf(context).top;
     final goalsAsync = ref.watch(goalsProvider);
     final detailAsync = ref.watch(goalDetailProvider(widget.goalId));
+    final isOnline = ref.watch(isOnlineProvider);
 
     final goalsValue = goalsAsync.valueOrNull;
     final SavingsGoal? goal = goalsValue != null
@@ -110,7 +121,7 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
         content = const KasyabaLoadingSkeleton(lines: 4);
       }
     } else {
-      content = _buildGoalContent(goal, detailAsync);
+      content = _buildGoalContent(goal, detailAsync, isOnline);
     }
 
     return Scaffold(
@@ -123,7 +134,14 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _buildHeader(goal?.name ?? 'Goal'),
-                const SizedBox(height: 20),
+                const SizedBox(height: 10),
+                if (!isOnline) ...[
+                  const OfflineStatusBadge(
+                    snapshotKey: CacheService.snapshotKeyGoals,
+                  ),
+                  const SizedBox(height: 10),
+                ],
+                const SizedBox(height: 10),
                 content,
               ],
             ),
@@ -179,6 +197,7 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
   Widget _buildGoalContent(
     SavingsGoal goal,
     AsyncValue<Map<String, dynamic>> detailAsync,
+    bool isOnline,
   ) {
     final remaining = (goal.targetAmount - goal.currentAmount).clamp(
       0.0,
@@ -359,21 +378,33 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
         ),
         const SizedBox(height: 12),
 
+        if (!isOnline) ...[
+          const NeedsInternetNotice(
+            message:
+                'Editing or deleting a goal needs an internet connection. Deposits still save on this device.',
+          ),
+          const SizedBox(height: 12),
+        ],
+
         // ── Action Button 2: Edit goal (Node 11:1949) ────────────
         PillButton(
           label: 'Edit goal',
           variant: PillButtonVariant.secondary,
-          onPressed: () {
-            AppHaptics.selectionClick();
-            context.push('/goals/new', extra: goal);
-          },
+          onPressed: isOnline
+              ? () {
+                  AppHaptics.selectionClick();
+                  context.push('/goals/new', extra: goal);
+                }
+              : null,
         ),
         const SizedBox(height: 8),
 
         // ── Action Button 3: Delete goal (Node 11:1951) ──────────
         Center(
           child: TextButton(
-            onPressed: _isDeleting ? null : () => _handleDelete(goal),
+            onPressed: (!isOnline || _isDeleting)
+                ? null
+                : () => _handleDelete(goal),
             child: _isDeleting
                 ? const SizedBox(
                     width: 20,

@@ -305,7 +305,7 @@ void main() {
       expect(find.text('Your numbers stay yours'), findsOneWidget);
       expect(
         find.text(
-          'Every calculation runs on your device. Your data is never shared with third-party advertisers, trackers, or commercial AI models.',
+          'Your ledger lives on our server. Day-to-day money math runs instantly on your device. Your data is never shared with third-party advertisers, trackers, or commercial AI models.',
         ),
         findsOneWidget,
       );
@@ -313,16 +313,19 @@ void main() {
       // Verify "What we keep" section
       expect(find.text('What we keep'), findsOneWidget);
       expect(find.text('Your records'), findsOneWidget);
-      expect(find.text('Local-first & private sync'), findsOneWidget);
+      expect(find.text('Server-backed with offline cache'), findsOneWidget);
       expect(find.text('Calculations'), findsOneWidget);
-      expect(find.text('100% on-device math'), findsOneWidget);
+      expect(
+        find.text('Daily math on-device; planning & forecasts on server'),
+        findsOneWidget,
+      );
       expect(find.text('AI'), findsOneWidget);
       expect(find.text('None (100% deterministic)'), findsOneWidget);
 
       // Verify "About" section
       expect(find.text('About'), findsOneWidget);
       expect(find.text('Version'), findsOneWidget);
-      expect(find.text('0.1.0 (Build 1)'), findsOneWidget);
+      expect(find.text('v0.1.0 (Build 1)'), findsOneWidget);
       expect(find.text('Terms of service'), findsOneWidget);
       expect(find.text('Privacy policy'), findsOneWidget);
       expect(find.text('Read'), findsNWidgets(2));
@@ -335,11 +338,22 @@ void main() {
       await tester.tap(find.text('Close'));
       await tester.pumpAndSettle();
 
-      // Tap "Privacy policy" -> sheet opens
+      // Tap "Privacy policy" -> sheet opens with the online-first summary.
       await tester.tap(find.text('Privacy policy'));
       await tester.pumpAndSettle();
       expect(find.text('Privacy Policy'), findsOneWidget);
+      expect(
+        find.textContaining('Online-first + on-device math'),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('encrypted in transit (HTTPS/TLS)'),
+        findsOneWidget,
+      );
+      expect(find.text('Read full policy'), findsOneWidget);
+      expect(find.text('Terms'), findsOneWidget);
       expect(find.text('Close'), findsOneWidget);
+      await tester.ensureVisible(find.text('Close'));
       await tester.tap(find.text('Close'));
       await tester.pumpAndSettle();
     });

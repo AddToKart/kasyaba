@@ -6,12 +6,14 @@ import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_motion.dart';
 import '../../../shared/widgets/motion_components.dart';
+import '../../../core/connectivity/connectivity_service.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/validated_input.dart';
 import '../../../shared/widgets/app_sheet.dart';
 import '../../../shared/widgets/kasyaba_date_picker.dart';
 import '../../../shared/widgets/kasyaba_toast.dart';
+import '../../../shared/widgets/offline_status.dart';
 import '../../../shared/widgets/pill_button.dart';
 import '../../dashboard/widgets/dashboard_tokens.dart';
 
@@ -209,6 +211,13 @@ class _AddBillScreenState extends ConsumerState<AddBillScreen> {
 
   Future<void> _handleSave() async {
     if (_isSubmitting) return;
+    if (!ref.read(isOnlineProvider)) {
+      KasyabaToast.showInfo(
+        context,
+        'Creating a bill needs an internet connection.',
+      );
+      return;
+    }
     if (!_formKey.currentState!.validate()) return;
 
     final name = _nameController.text.trim();
@@ -270,6 +279,7 @@ class _AddBillScreenState extends ConsumerState<AddBillScreen> {
   @override
   Widget build(BuildContext context) {
     final topPadding = MediaQuery.paddingOf(context).top;
+    final isOnline = ref.watch(isOnlineProvider);
 
     return Theme(
       data: Theme.of(context).copyWith(
@@ -610,10 +620,18 @@ class _AddBillScreenState extends ConsumerState<AddBillScreen> {
                   ),
                   const SizedBox(height: 24),
 
+                  if (!isOnline) ...[
+                    const NeedsInternetNotice(
+                      message:
+                          'Creating a bill needs an internet connection. Bills are generated on the server.',
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
                   // ── CTA Button (Node 11:1570) ───────────────────────────────
                   PillButton(
                     label: 'Save bill',
-                    onPressed: _isSubmitting ? null : _handleSave,
+                    onPressed: _isSubmitting || !isOnline ? null : _handleSave,
                     isLoading: _isSubmitting,
                   ),
                 ],

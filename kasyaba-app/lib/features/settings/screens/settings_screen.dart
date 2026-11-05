@@ -7,6 +7,7 @@ import '../../../app/theme/app_motion.dart';
 import '../../../app/theme/kasyaba_tokens.dart';
 import '../../../core/app_info.dart';
 import '../../../core/auth/auth_provider.dart';
+import '../../../core/connectivity/connectivity_service.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
@@ -15,6 +16,7 @@ import '../../../shared/widgets/app_sheet.dart';
 import '../../../shared/widgets/app_state_widgets.dart';
 import '../../../shared/widgets/kasyaba_toast.dart';
 import '../../../shared/widgets/motion_components.dart';
+import '../../../shared/widgets/offline_status.dart';
 import '../../../shared/widgets/pill_button.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -66,6 +68,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _salaryController.clear();
     _grossSalaryController.clear();
     _allowancesController.clear();
+    final isOnline = ref.read(isOnlineProvider);
 
     _salaryController.text = profile.salaryAmount?.toStringAsFixed(2) ?? '';
     final formKey = GlobalKey<FormState>();
@@ -342,10 +345,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     },
                   ),
                     const SizedBox(height: 20),
+                    if (!isOnline) ...[
+                      const NeedsInternetNotice(
+                        message:
+                            'Saving salary and payday settings needs an internet connection.',
+                      ),
+                      const SizedBox(height: 12),
+                    ],
                      PillButton(
                       label: 'Save settings',
                       isLoading: isSubmitting,
-                      onPressed: isSubmitting
+                      onPressed: isSubmitting || !isOnline
                           ? null
                           : () async {
                               final double? finalSalary;
@@ -564,6 +574,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   void _showEditProfileSheet(String currentName) {
     AppHaptics.selectionClick();
     final nameController = TextEditingController(text: currentName);
+    final isOnline = ref.read(isOnlineProvider);
     var isSubmitting = false;
     String? sheetError;
 
@@ -640,9 +651,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   hint: 'e.g. Juan Dela Cruz',
                 ),
                 const SizedBox(height: 24),
+                if (!isOnline) ...[
+                  const NeedsInternetNotice(
+                    message:
+                        'Updating your profile needs an internet connection.',
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 PillButton(
                   label: isSubmitting ? 'Saving...' : 'Save Changes',
-                  onPressed: isSubmitting
+                  onPressed: (isSubmitting || !isOnline)
                       ? null
                       : () async {
                           final trimmed = nameController.text.trim();
@@ -1244,7 +1262,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   _divider(),
                   _SettingsRow(
                     title: 'Privacy policy',
-                    subtitle: 'Your data stays on your device',
+                    subtitle: 'Server-backed, cached on this device',
                     onTap: () => context.push('/settings/privacy'),
                   ),
                   _divider(),

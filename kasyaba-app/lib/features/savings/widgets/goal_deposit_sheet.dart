@@ -3,11 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../app/theme/app_motion.dart';
+import '../../../core/connectivity/connectivity_service.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../shared/widgets/app_sheet.dart';
 import '../../../shared/widgets/kasyaba_toast.dart';
+import '../../../shared/widgets/offline_status.dart';
 import '../../../shared/widgets/pill_button.dart';
 import '../../dashboard/widgets/dashboard_tokens.dart';
 
@@ -92,10 +94,15 @@ class _GoalDepositModalState extends ConsumerState<_GoalDepositModal> {
           );
       if (mounted) {
         // Toast first: this sheet's context unmounts right after the pop.
+        final queued = !ref.read(isOnlineProvider);
         KasyabaToast.showSuccess(
           context,
-          'Deposited ${CurrencyFormatter.format(amount)}',
-          subtitle: 'Added to ${widget.goal.name}',
+          queued
+              ? 'Deposit saved offline'
+              : 'Deposited ${CurrencyFormatter.format(amount)}',
+          subtitle: queued
+              ? "Will sync when you're online."
+              : 'Added to ${widget.goal.name}',
         );
         Navigator.of(context).pop();
       }
@@ -116,6 +123,7 @@ class _GoalDepositModalState extends ConsumerState<_GoalDepositModal> {
   Widget build(BuildContext context) {
     final accountsAsync = ref.watch(accountsProvider);
     final balancesAsync = ref.watch(accountBalancesProvider);
+    final isOnline = ref.watch(isOnlineProvider);
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
 
     // Calibrated clearance so CTA button sits cleanly above the floating dock
@@ -348,6 +356,11 @@ class _GoalDepositModalState extends ConsumerState<_GoalDepositModal> {
                         ),
                       ],
                       const SizedBox(height: 20),
+
+                      if (!isOnline) ...[
+                        const OfflineQueuedNote(),
+                        const SizedBox(height: 12),
+                      ],
 
                       // ── CTA Button ───────────────────────────────────────
                       PillButton(
