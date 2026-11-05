@@ -1,7 +1,9 @@
 # KASYABA — Online-First Alignment & Legal Compliance Plan
 
-> **Date:** 2026-11-06 · **Status:** PLAN (approved direction; not yet executed) · **Supersedes:** the offline expectations implied by the retired "local-first" draft. Complements `plan.md` (stabilization/UI), which is complete in the working tree.
+> **Date:** 2026-11-06 · **Status:** EXECUTED (code-side complete) · **Supersedes:** the offline expectations implied by the retired "local-first" draft. Complements `plan.md` (stabilization/UI), which is complete.
 >
+> **Execution status (2026-11-06):** Phases A, B, C, D and the code-side of E are implemented and committed on `redesign/figma-ui` (`245d17d` legal+privacy, `b075645` offline cache/queue/UX, `9a3cea3` Android release hardening). Gates: backend `tsc` clean + **188/188** tests; client `flutter analyze` clean + **269/269** tests; debug APK builds. **Remaining = deployment + owner/Console actions only** (see §9 runbook).
+
 > **Thesis framing:** KASYABA is a **server-backed, online-first personal finance app** with a device layer for instant interaction, offline capture, and privacy-preserving local math. Everything below is written so each policy sentence can be traced to code and a test (policy↔code verification matrix in §4.3).
 
 ---
@@ -164,3 +166,23 @@ SQLCipher/encrypted device DB · local 30-day planner · offline bill creation/c
 **Execution prerequisites (branch decision LOCKED):** the 32 unstabilized-but-uncommitted files currently on `redesign/figma-ui` (stabilization + sync-hardening pass) are committed FIRST; this plan's phases then execute on the same branch and merge to `main` when green.
 
 **Execution order:** A → B → C → D → E with F gates after each phase. Estimated to be executed with the same 4–6 sub-agent pattern used for the stabilization pass (backend legal agent, data-layer agent, queue agent, UX agent, QA agent).
+
+---
+
+## 9. Execution record & remaining release actions (2026-11-06)
+
+**Completed in code (committed):**
+- **A — Policy/copy:** backend `/privacy`, `/terms`, `/account-deletion` rewritten online-first (plaintext device cache disclosed, queue behavior, retention, 72h breach clause, softened TLS wording, CSV/JSON distinction, no Google claim, sessions-pruned claim now backed by a daily worker job); in-app Privacy & About summary rewritten + hosted-policy links (`url_launcher`) + version via `kAppVersionLabel`; banned-phrase gate (`test/unit/policy_copy_test.dart`); legal content tests (`src/modules/legal/routes.test.ts`); IP removed from request logs (`app.test.ts`); `docs/compliance/policy-code-matrix.md` produced.
+- **B — Unified snapshots:** Drift v4 `cached_snapshots` (user-scoped, fetchedAt), legacy dashboard migrated + old table dropped; snapshot write-through/fallback for dashboard/accounts/categories/bills/goals/budgets/alerts/transactions (per-filter views, max 10, pruned); `cachedSnapshotMetaProvider`; sign-out clears read caches (queue kept); account deletion wipes snapshots + queue.
+- **C — Offline capture:** shared category resolver; offline expense queues with `categoryName` and resolves/creates the UUID on replay; goal-deposit queueing with `clientMutationId`; replay posts `/goals/:id/contributions`; full finance-data invalidation after replay; retry cap retained.
+- **D — Offline UX:** `OfflineCapabilities` contract + `OfflineStatusBadge` (cache age) + `NeedsInternetNotice`; queueable actions remain enabled with inline "will sync" copy; online-only actions disabled with reasons (bills paid/unpaid, bill create, budget create/delete, account create/archive, goal create/edit/delete, profile update, affordability evaluate, backup/export/restore, delete account); planning shows a connection notice instead of a generic error; bills reminder sync re-arms from cached bills on cold-start offline; pending goal deposits reduce the wallet balance overlay; app offline banner copy updated.
+- **E — Android/release:** `compileSdk/targetSdk = 36`, `minSdk 24`; `allowBackup=false` + backup/data-extraction rules excluding all app data; https VIEW queries for policy links; `USE_EXACT_ALARM` absent; merged-manifest verified; `docs/release/play-submission-checklist.md` + demo-account seed JSON.
+- **F — Gates:** `flutter analyze` clean; `flutter test` **269 passed**; `npm run typecheck` clean; `npm test` **188 passed**; `flutter build apk --debug` OK.
+
+**Remaining (owner / post-deploy only):**
+1. Deploy backend + worker to the VPS (no public URL exists yet); verify `/privacy`, `/terms`, `/account-deletion`, `/health`.
+2. Run `npm run db:repair-bills` dry-run → `--apply` (optional stale-instance cleanup after review).
+3. Release build: create upload keystore + `android/key.properties`, enroll Play App Signing, bump `pubspec` version to `0.2.0+2`, build AAB with `--dart-define=API_BASE_URL=… --dart-define=PRIVACY_POLICY_URL=… --dart-define=TERMS_URL=…`. (AAB was intentionally skipped here — no signing secrets present.)
+4. Play Console: Data Safety form (use `docs/compliance/policy-code-matrix.md`), IARC rating, 13+ audience, App access demo credentials (seed via `kasyaba-app/docs/release/demo-account-seed.json`), listing assets, privacy/deletion URLs.
+5. Device smoke matrix (offline cold start + cache age, offline expense → reconnect replay + full refresh, offline income/transfer/goal deposit, bills offline read-only, reminder re-arm, sign-out cache clear/queue retention, in-app deletion wipe, Android 15 edge-to-edge).
+6. Optional later: verify TLS/at-rest infra and upgrade the softened wording; add OTP prune; remove/retire the dormant Google auth route decision; hash-format assertions for tokens.
