@@ -15,6 +15,38 @@
 - **Phase 4 / Step C:** `KasyabaTokens` single source of truth (DashboardTokens kept as adapter), dark `ThemeData` rebuilt on the navy system with DM Sans, shared kit created (`KasyabaBackground`, `KasyabaCard`, `PillButton`, `LabelRowField`, `AppSheet`, `showKasyabaSheet`, `showKasyabaConfirmDialog`, `KasyabaEmptyState`, `KasyabaErrorCard`, `KasyabaLoadingSkeleton`, `kasyabaDatePickerTheme`). Legacy splash/reconcile/backup-sheets/offline-banner/release-error surfaces restyled; 18 raw SnackBars migrated to `KasyabaToast`; string font families replaced; ledger legacy surfaces removed.
 - **Phase 5 / Step gates:** analyze clean at every gate; unit + widget suites green; debug APK builds; backend compiles.
 
+## Backend ↔ client sync hardening (deploy-gate pass, 2026-11-06)
+
+Findings from the read-only contract audit were fixed end-to-end:
+
+**Backend**
+- `generateBillInstances` rewritten: UTC-anchored occurrence math, derives anchors from `startsOn` when `dayOfMonth`/`dayOfWeek` are NULL, skips sub-today occurrences for recurring templates (no overdue flood), preserves a due-today instance regardless of UTC time, re-anchors monthly dates (Jan 31 → Feb 28 → Mar 31, no drift), anchors weekly generation to the start weekday, retains back-filled one-time bills, and still upserts with `update: {}` so paid/cancelled history is never clobbered.
+- `createBillTemplate` derives anchors server-side; `updateBillTemplate` trims stale unpaid future instances and regenerates.
+- `GET /bills` now orders `dueDate DESC` so upcoming bills stay inside the 500-row cap.
+- Due-today bills now included in `bill_due` alerts and dashboard `upcomingBills` (local start-of-day instead of `now`).
+- Restore: global budgets (`categoryId: null`) restored, goal contributions restored (cross-user guarded), bill anchors (`dayOfWeek`/derived `dayOfMonth`) preserved, unknown recurrence normalized, and `generateBillInstances` invoked after restore.
+- New repair CLI: `npm run db:repair-bills` (dry-run default) with `--apply` and optional `--delete-past-unpaid --older-than-days=N` for legacy NULL-anchor templates and stale unpaid instances.
+- Tests: 21 files / **175 tests** passing; `tsc --noEmit` clean.
+
+**Client**
+- Cancelled bills excluded from tabs/calendar/upcoming lists and from daily safe-spend (paid already excluded).
+- One shared local bill-status resolver (`paid / cancelled / overdue / due today / upcoming`) now drives tabs, rows, and the action sheet; mark-paid hides for cancelled bills.
+- Bills screen gained pull-to-refresh (invalidates bills/dashboard/alerts/planning/balances/budget status).
+- Reminder service delivers a deduped immediate notification when the lead-day 09:00 window has already passed for a still-upcoming bill (no more silently dropped reminders); pure helper extracted with 10 unit tests.
+- CSV export now pages `/transactions` at `limit=100` (server cap) until `meta.total`, deduped, capped at 10,000 rows.
+- Session-scoped data reset on auth identity change (`sessionDataResetProvider`) prevents cross-user cache leakage; app-resume invalidation refreshes server-derived data after hourly jobs.
+- Input guards: shared currency formatter (≤12 digits/2 decimals) and max lengths (name 200, description/notes 500) across bill/transaction/goal/budget/account forms.
+- Tests: **243 tests** passing (30 new regression tests for formatter, session reset, CSV pagination); `flutter analyze` clean; debug APK builds.
+
+**Deployment runbook (order matters)**
+1. Deploy backend (includes generator/restore fixes); ensure the worker service is running (hourly bill generation + overdue transitions).
+2. Run `npm run db:repair-bills` (dry-run) and review; then `npm run db:repair-bills -- --apply` to backfill legacy anchors.
+3. Optional, after review: `npm run db:repair-bills -- --apply --delete-past-unpaid --older-than-days=60` to remove stale unpaid recurring instances created by the pre-fix flood (never deletes paid/cancelled).
+4. Ship the client build; existing devices refresh bills on launch/resume/pull-to-refresh.
+5. Verify on device: add bill due today after 09:00 (instance visible today), overdue tab sane, reminder on lead day after 09:00, CSV with >100 transactions, logout→login shows the new user's data only.
+
+**Known by-design / remaining product gaps:** mark-paid books the expense on payment day (not due date); notification dedupe is per-session; CSV export capped at 10k rows; no template edit/archive UI yet (server routes exist); light theme remains dormant (dark frozen); real-login triggers one extra pre-auth refetch on `dashboard/transactions/balances` (optimization: `authProvider.select((s) => s.userId)`).
+
 ## QA verification (automated, 2026-11-04)
 
 **Gates:** `flutter analyze` clean · `flutter test` **189/189** · `flutter build apk --debug` OK · backend `vitest` **145/145** · backend `tsc --noEmit` clean.

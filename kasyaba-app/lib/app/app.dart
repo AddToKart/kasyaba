@@ -8,14 +8,40 @@ import '../core/database/offline_sync_service.dart';
 import '../core/notifications/bill_reminder_sync.dart';
 import '../core/notifications/notification_sync.dart';
 import '../core/providers/api_providers.dart';
+import '../core/providers/session_refresh_provider.dart';
 import '../core/providers/theme_provider.dart';
 import 'theme/app_theme.dart';
 
-class KasyabaApp extends ConsumerWidget {
+class KasyabaApp extends ConsumerStatefulWidget {
   const KasyabaApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<KasyabaApp> createState() => _KasyabaAppState();
+}
+
+class _KasyabaAppState extends ConsumerState<KasyabaApp>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      invalidateOnResume(ref);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final router = ref.watch(routerProvider);
     final isOnline = ref.watch(isOnlineProvider);
     final themeMode = ref.watch(themeModeProvider);
@@ -26,6 +52,7 @@ class KasyabaApp extends ConsumerWidget {
     ref.watch(goalMilestoneSyncProvider);
     ref.watch(weeklySummarySyncProvider);
     ref.watch(accountBootstrapProvider);
+    ref.watch(sessionDataResetProvider);
 
     return MaterialApp.router(
       title: 'Kasyaba',

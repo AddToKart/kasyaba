@@ -215,6 +215,82 @@ void main() {
       },
     );
 
+    test('excludes cancelled unpaid bills from safe spend', () {
+      final now = DateTime(2026, 10, 16);
+      final bills = [
+        BillItem(
+          id: '1',
+          name: 'Internet',
+          amount: 1500.0,
+          dueDate: DateTime(2026, 10, 25),
+          status: 'upcoming',
+        ),
+        BillItem(
+          id: '2',
+          name: 'Cancelled Gym',
+          amount: 5000.0,
+          dueDate: DateTime(2026, 10, 20),
+          status: 'cancelled',
+        ),
+        BillItem(
+          id: '3',
+          name: 'Water (Already Paid)',
+          amount: 500.0,
+          dueDate: DateTime(2026, 10, 20),
+          status: 'paid',
+        ),
+      ];
+
+      final calc = calculateDailySafeSpend(
+        totalLiquidBalance: 10000.0,
+        bills: bills,
+        goals: [],
+        profile: const UserProfile(
+          id: 'u1',
+          email: 'test@example.com',
+          paydaySchedule: '15th & 30th',
+          paydayFrequency: 'semi-monthly',
+        ),
+        now: now,
+      );
+
+      // Only the upcoming bill is reserved; cancelled and paid are ignored.
+      expect(calc.unpaidBillsDue, 1500.0);
+      expect(calc.unpaidBillsCount, 1);
+      expect(calc.numerator, 8500.0);
+      expect(calc.dailySafeSpend, closeTo(607.14, 0.01));
+    });
+
+    test('treats cancelled status case-insensitively', () {
+      final now = DateTime(2026, 10, 16);
+      final bills = [
+        BillItem(
+          id: '1',
+          name: 'Cancelled',
+          amount: 9000.0,
+          dueDate: DateTime(2026, 10, 20),
+          status: ' CANCELLED ',
+        ),
+      ];
+
+      final calc = calculateDailySafeSpend(
+        totalLiquidBalance: 10000.0,
+        bills: bills,
+        goals: [],
+        profile: const UserProfile(
+          id: 'u1',
+          email: 'test@example.com',
+          paydaySchedule: '15th & 30th',
+          paydayFrequency: 'semi-monthly',
+        ),
+        now: now,
+      );
+
+      expect(calc.unpaidBillsDue, 0.0);
+      expect(calc.unpaidBillsCount, 0);
+      expect(calc.numerator, 10000.0);
+    });
+
     test('clamps negative numerator to 0 daily safe spend', () {
       final now = DateTime(2026, 10, 16);
       final bills = [

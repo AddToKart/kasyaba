@@ -17,6 +17,36 @@ import '../../dashboard/widgets/dashboard_tokens.dart';
 
 DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
+/// Locally resolved display state for a bill.
+///
+/// Server-provided `paid` and `cancelled` are authoritative. Every other
+/// server status (`upcoming`, `overdue`) is recomputed from the bill's due
+/// date so tab membership, calendar dots, list subtitles and the action sheet
+/// always agree.
+enum BillDisplayStatus { paid, cancelled, overdue, dueToday, upcoming }
+
+BillDisplayStatus resolveBillDisplayStatus(BillItem bill, DateTime today) {
+  final status = bill.status.trim().toLowerCase();
+  if (status == 'paid') return BillDisplayStatus.paid;
+  if (status == 'cancelled') return BillDisplayStatus.cancelled;
+
+  final dueDay = _dateOnly(bill.dueDate);
+  final todayDay = _dateOnly(today);
+  if (dueDay.isBefore(todayDay)) return BillDisplayStatus.overdue;
+  if (dueDay.isAtSameMomentAs(todayDay)) return BillDisplayStatus.dueToday;
+  return BillDisplayStatus.upcoming;
+}
+
+String billDisplayStatusLabel(BillDisplayStatus status) {
+  return switch (status) {
+    BillDisplayStatus.paid => 'Paid',
+    BillDisplayStatus.cancelled => 'Cancelled',
+    BillDisplayStatus.overdue => 'Overdue',
+    BillDisplayStatus.dueToday => 'Due today',
+    BillDisplayStatus.upcoming => 'Upcoming',
+  };
+}
+
 String? _billRecurrenceLabel(String? recurrence) {
   switch (recurrence?.toLowerCase()) {
     case 'monthly':
@@ -105,9 +135,39 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
     return List.generate(7, (i) => _dateOnly(sunday.add(Duration(days: i))));
   }
 
+  /// Pull-to-refresh: bills can change server-side (hourly generation/overdue
+  /// rollover), and bills feed safe-spend, planning, alerts and budgets.
+  Future<void> _refreshAll() async {
+    ref.invalidate(billsProvider);
+    ref.invalidate(dashboardProvider);
+    ref.invalidate(alertsProvider);
+    ref.invalidate(planningProvider);
+    ref.invalidate(accountBalancesProvider);
+    ref.invalidate(budgetStatusProvider);
+
+    final futures = <Future<Object?>>[
+      ref.read(billsProvider.future),
+      ref.read(dashboardProvider.future),
+      ref.read(alertsProvider.future),
+      ref.read(planningProvider.future),
+      ref.read(accountBalancesProvider.future),
+      ref.read(budgetStatusProvider.future),
+    ];
+    for (final future in futures) {
+      try {
+        await future;
+      } catch (_) {
+        // Each provider surfaces its own error state; let the refresh finish.
+      }
+    }
+  }
+
   void _showBillActionSheet(BillItem bill) {
     AppHaptics.selectionClick();
-    final isPaid = bill.status.toLowerCase() == 'paid';
+    final today = _dateOnly(DateTime.now());
+    final displayStatus = resolveBillDisplayStatus(bill, today);
+    final isPaid = displayStatus == BillDisplayStatus.paid;
+    final isCancelled = displayStatus == BillDisplayStatus.cancelled;
     final accounts = ref.read(accountsProvider).valueOrNull ?? [];
     String? selectedAccount = accounts.isNotEmpty ? accounts.first.id : null;
     var isSubmitting = false;
@@ -142,7 +202,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                '${DateFormat('EEE, MMM d, yyyy').format(bill.dueDate)} · ${bill.status.toUpperCase()}',
+                                '${DateFormat('EEE, MMM d, yyyy').format(bill.dueDate)} · ${billDisplayStatusLabel(displayStatus).toUpperCase()}',
                                 style: GoogleFonts.dmSans(
                                   fontSize: 13,
                                   color: DashboardTokens.periwinkleGraySubtitle,
@@ -158,14 +218,50 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                             fontWeight: FontWeight.bold,
                             color: isPaid
                                 ? DashboardTokens.bermuda
-                                : DashboardTokens.periwinkleGray,
+                                : (isCancelled
+                                      ? DashboardTokens.periwinkleGraySubtitle
+                                      : DashboardTokens.periwinkleGray),
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 20),
 
-                    if (!isPaid) ...[
+                    if (isCancelled) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                        decoration: BoxDecoration(
+                          color: DashboardTokens.ebony.withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: DashboardTokens.poloBlue22,
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.info_outline_rounded,
+                              size: 18,
+                              color: DashboardTokens.periwinkleGraySubtitle,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'This bill was cancelled and no longer counts toward your safe-to-spend.',
+                                style: GoogleFonts.dmSans(
+                                  fontSize: 13,
+                                  color: DashboardTokens.periwinkleGraySubtitle,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ] else if (!isPaid) ...[
                       if (accounts.isNotEmpty) ...[
                         Text(
                           'PAY FROM ACCOUNT',
@@ -399,22 +495,31 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
     final today = _dateOnly(DateTime.now());
 
     // Keep the list, calendar dots, and month picker on the same month.
+    // Cancelled instances are inactive and appear in no tab or calendar dot;
+    // paid history stays visible in the Paid tab.
     final monthBills = allBills.where((b) {
+      if (resolveBillDisplayStatus(b, today) == BillDisplayStatus.cancelled) {
+        return false;
+      }
       return b.dueDate.year == _currentMonth.year &&
           b.dueDate.month == _currentMonth.month;
     }).toList();
 
-    // Filter bills into Upcoming, Paid, and Overdue
+    // Filter bills into Upcoming, Paid, and Overdue using the same locally
+    // resolved status as the list subtitles and action sheet.
     final List<BillItem> displayedBills = monthBills.where((b) {
-      final bDate = _dateOnly(b.dueDate);
-      final isPaid = b.status.toLowerCase() == 'paid';
-      final isOverdue = !isPaid && bDate.isBefore(today);
-      final isUpcoming = !isPaid && !isOverdue;
-
-      if (_activeFilter == 'Upcoming') return isUpcoming;
-      if (_activeFilter == 'Paid') return isPaid;
-      if (_activeFilter == 'Overdue') return isOverdue;
-      return true;
+      final status = resolveBillDisplayStatus(b, today);
+      switch (_activeFilter) {
+        case 'Paid':
+          return status == BillDisplayStatus.paid;
+        case 'Overdue':
+          return status == BillDisplayStatus.overdue;
+        case 'Upcoming':
+          return status == BillDisplayStatus.dueToday ||
+              status == BillDisplayStatus.upcoming;
+        default:
+          return false;
+      }
     }).toList()..sort((a, b) => a.dueDate.compareTo(b.dueDate));
 
     // Group bills by date for display
@@ -451,7 +556,13 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
             color: DashboardTokens.ebony,
             gradient: DashboardTokens.canvasGradient,
           ),
-          child: SingleChildScrollView(
+          child: RefreshIndicator(
+            color: DashboardTokens.periwinkleGray,
+            backgroundColor: DashboardTokens.bigStone,
+            edgeOffset: topPadding,
+            onRefresh: _refreshAll,
+            child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
             padding: EdgeInsets.fromLTRB(20, topPadding + 14, 20, DashboardTokens.dockClearance),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -823,6 +934,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
               ],
             ),
           ),
+          ),
         ),
       ),
     );
@@ -952,25 +1064,30 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
   // ── Bill Card (Node 11:1678) ──────────────────────────────────────────────
   Widget _buildBillCard(BillItem bill, DateTime today) {
     final bDate = _dateOnly(bill.dueDate);
-    final daysUntil = bDate.difference(today).inDays;
-    final isPaid = bill.status.toLowerCase() == 'paid';
+    final daysUntil = bDate.difference(_dateOnly(today)).inDays;
+    final displayStatus = resolveBillDisplayStatus(bill, today);
+    final isPaid = displayStatus == BillDisplayStatus.paid;
 
     final recurrenceLabel = _billRecurrenceLabel(bill.recurrence);
     final String statusText;
     final Color statusColor;
 
-    if (isPaid) {
-      statusText = 'Paid';
-      statusColor = DashboardTokens.bermuda;
-    } else if (daysUntil < 0) {
-      statusText = 'overdue by ${-daysUntil} days';
-      statusColor = DashboardTokens.apricot;
-    } else if (daysUntil == 0) {
-      statusText = 'due today';
-      statusColor = DashboardTokens.apricot;
-    } else {
-      statusText = 'due in $daysUntil days';
-      statusColor = DashboardTokens.periwinkleGraySubtitle;
+    switch (displayStatus) {
+      case BillDisplayStatus.paid:
+        statusText = 'Paid';
+        statusColor = DashboardTokens.bermuda;
+      case BillDisplayStatus.cancelled:
+        statusText = 'Cancelled';
+        statusColor = DashboardTokens.periwinkleGraySubtitle;
+      case BillDisplayStatus.overdue:
+        statusText = 'overdue by ${-daysUntil} days';
+        statusColor = DashboardTokens.apricot;
+      case BillDisplayStatus.dueToday:
+        statusText = 'due today';
+        statusColor = DashboardTokens.apricot;
+      case BillDisplayStatus.upcoming:
+        statusText = 'due in $daysUntil days';
+        statusColor = DashboardTokens.periwinkleGraySubtitle;
     }
 
     final subtitle = recurrenceLabel == null

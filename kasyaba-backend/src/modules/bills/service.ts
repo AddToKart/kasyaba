@@ -1,8 +1,98 @@
+import type { BillTemplate } from '@prisma/client';
 import { prisma } from '../../config/database';
 import { ConflictError, NotFoundError } from '../../lib/errors';
-import { addMonths, safeDate } from '../../lib/dates';
-import { endOfZonedDay, getZonedParts } from '../../lib/zoned-dates';
+import { endOfZonedDay, startOfZonedDay, zonedDateAnchorUtc } from '../../lib/zoned-dates';
 import type { CreateBillTemplateInput, UpdateBillTemplateInput } from './validation';
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+interface UtcTimeOfDay {
+  hours: number;
+  minutes: number;
+  seconds: number;
+  milliseconds: number;
+}
+
+function utcTimeOfDay(date: Date): UtcTimeOfDay {
+  return {
+    hours: date.getUTCHours(),
+    minutes: date.getUTCMinutes(),
+    seconds: date.getUTCSeconds(),
+    milliseconds: date.getUTCMilliseconds(),
+  };
+}
+
+function daysInUtcMonth(year: number, monthIndex: number): number {
+  // `monthIndex + 1, day 0` normalizes month overflow to the last day of the
+  // requested month.
+  return new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
+}
+
+function utcOccurrence(
+  year: number,
+  monthIndex: number,
+  day: number,
+  time: UtcTimeOfDay,
+): Date {
+  // Never carry the day across months: a bill anchored on the 31st falls back
+  // to the last valid day for shorter months and returns to the 31st later.
+  return new Date(
+    Date.UTC(
+      year,
+      monthIndex,
+      Math.min(day, daysInUtcMonth(year, monthIndex)),
+      time.hours,
+      time.minutes,
+      time.seconds,
+      time.milliseconds,
+    ),
+  );
+}
+
+function addUtcMonthsClamped(date: Date, months: number): Date {
+  return utcOccurrence(
+    date.getUTCFullYear(),
+    date.getUTCMonth() + months,
+    date.getUTCDate(),
+    utcTimeOfDay(date),
+  );
+}
+
+async function upsertBillInstance(
+  userId: string,
+  template: BillTemplate,
+  dueDate: Date,
+  created: number[],
+) {
+  const existing = await prisma.billInstance.findUnique({
+    where: {
+      templateId_dueDate: {
+        templateId: template.id,
+        dueDate,
+      },
+    },
+    select: { id: true },
+  });
+
+  await prisma.billInstance.upsert({
+    where: {
+      templateId_dueDate: {
+        templateId: template.id,
+        dueDate,
+      },
+    },
+    create: {
+      userId,
+      templateId: template.id,
+      name: template.name,
+      amount: template.defaultAmount,
+      dueDate,
+    },
+    update: {},
+  });
+
+  if (!existing) created.push(1);
+}
 
 export async function listBillTemplates(userId: string) {
   return prisma.billTemplate.findMany({
@@ -31,6 +121,19 @@ async function findAccessibleCategory(userId: string, categoryId?: string | null
 
 export async function createBillTemplate(userId: string, input: CreateBillTemplateInput) {
   if (input.categoryId) await findAccessibleCategory(userId, input.categoryId);
+
+  const startsOn = new Date(input.startsOn);
+
+  // Older clients omit the recurrence anchor fields. Derive them from the
+  // start date server-side so instance generation always has a bounded anchor
+  // instead of falling back to an unbounded loop.
+  const dayOfMonth = input.recurrence === 'monthly' && input.dayOfMonth == null
+    ? startsOn.getUTCDate()
+    : input.dayOfMonth ?? null;
+  const dayOfWeek = input.recurrence === 'weekly' && input.dayOfWeek == null
+    ? startsOn.getUTCDay()
+    : input.dayOfWeek ?? null;
+
   const template = await prisma.billTemplate.create({
     data: {
       userId,
@@ -38,9 +141,9 @@ export async function createBillTemplate(userId: string, input: CreateBillTempla
       defaultAmount: input.defaultAmount,
       categoryId: input.categoryId || null,
       recurrence: input.recurrence,
-      dayOfWeek: input.dayOfWeek ?? null,
-      dayOfMonth: input.dayOfMonth ?? null,
-      startsOn: new Date(input.startsOn),
+      dayOfWeek,
+      dayOfMonth,
+      startsOn,
       endsOn: input.endsOn ? new Date(input.endsOn) : null,
       reminderLeadDays: input.reminderLeadDays,
       isActive: input.isActive,
@@ -63,7 +166,29 @@ export async function updateBillTemplate(userId: string, id: string, input: Upda
   if (input.dayOfWeek !== undefined) data.dayOfWeek = input.dayOfWeek ?? null;
   if (input.dayOfMonth !== undefined) data.dayOfMonth = input.dayOfMonth ?? null;
 
-  return prisma.billTemplate.update({ where: { id }, data });
+  const template = await prisma.billTemplate.update({ where: { id }, data });
+
+  // A due-day or amount change must rebuild the schedule. Delete only unpaid,
+  // non-cancelled instances from today onward so paid/cancelled history stays
+  // intact, then regenerate from the updated template.
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { timezone: true },
+  });
+  const timeZone = user?.timezone ?? 'UTC';
+  const todayStart = startOfZonedDay(new Date(), timeZone);
+
+  await prisma.billInstance.deleteMany({
+    where: {
+      userId,
+      templateId: id,
+      status: { notIn: ['paid', 'cancelled'] },
+      dueDate: { gte: todayStart },
+    },
+  });
+  await generateBillInstances(userId);
+
+  return template;
 }
 
 export async function archiveBillTemplate(userId: string, id: string) {
@@ -87,12 +212,14 @@ export async function listBills(userId: string, query: Record<string, any>) {
     if (query.to) where.dueDate.lte = new Date(query.to + 'T23:59:59.999Z');
   }
 
-  // Bounded response: paid/overdue instances accumulate over the years.
+  // Bounded response: paid/overdue instances accumulate over the years. Newest
+  // first keeps upcoming instances inside the page window instead of filling
+  // it with old history.
   const [total, rows] = await Promise.all([
     prisma.billInstance.count({ where }),
     prisma.billInstance.findMany({
       where,
-      orderBy: { dueDate: 'asc' },
+      orderBy: { dueDate: 'desc' },
       skip: (page - 1) * limit,
       take: limit,
       include: {
@@ -231,83 +358,71 @@ export async function generateBillInstances(userId: string, monthsAhead = 2) {
   });
 
   const now = new Date();
-  const endDate = addMonths(now, monthsAhead);
+
+  // Due dates are date-only values stored at UTC midnight. Anchor every
+  // comparison to the user's local calendar date rather than the current
+  // instant, so a bill due today is not skipped after 00:00 UTC.
+  const todayAnchorUtc = zonedDateAnchorUtc(now, timeZone);
+  const endDate = addUtcMonthsClamped(todayAnchorUtc, monthsAhead);
   const created: number[] = [];
 
-  const nowParts = getZonedParts(now, timeZone);
-  const localDayOfWeek = new Date(Date.UTC(nowParts.year, nowParts.month - 1, nowParts.day)).getUTCDay();
-
   for (const template of templates) {
-    let currentDate = new Date(template.startsOn);
-    if (currentDate < now) {
-      // Move to next occurrence
-      if (template.recurrence === 'monthly' && template.dayOfMonth) {
-        currentDate = safeDate(nowParts.year, nowParts.month - 1, template.dayOfMonth);
-        currentDate.setHours(
-          template.startsOn.getHours(),
-          template.startsOn.getMinutes(),
-          template.startsOn.getSeconds(),
-          template.startsOn.getMilliseconds(),
-        );
-        if (currentDate < now) {
-          currentDate = addMonths(currentDate, 1);
+    const startsOn = new Date(template.startsOn);
+    const time = utcTimeOfDay(startsOn);
+
+    if (template.recurrence === 'monthly') {
+      const monthDay = template.dayOfMonth ?? startsOn.getUTCDate();
+      let year = startsOn.getUTCFullYear();
+      let monthIndex = startsOn.getUTCMonth();
+
+      while (true) {
+        const occurrence = utcOccurrence(year, monthIndex, monthDay, time);
+
+        // Occurrences only move forward; either bound lets us stop.
+        if (occurrence > endDate) break;
+        if (template.endsOn && occurrence > template.endsOn) break;
+
+        if (occurrence >= startsOn && occurrence >= todayAnchorUtc) {
+          await upsertBillInstance(userId, template, occurrence, created);
         }
-      } else if (template.recurrence === 'weekly' && template.dayOfWeek !== null) {
-        // Find next day of week relative to the user's local day
-        const dayDiff = (template.dayOfWeek - localDayOfWeek + 7) % 7;
-        const localToday = safeDate(nowParts.year, nowParts.month - 1, nowParts.day);
-        currentDate = new Date(localToday.getTime() + dayDiff * 86400000);
-        currentDate.setHours(
-          template.startsOn.getHours(),
-          template.startsOn.getMinutes(),
-          template.startsOn.getSeconds(),
-          template.startsOn.getMilliseconds(),
-        );
-        if (currentDate < now) {
-          currentDate = new Date(currentDate.getTime() + 7 * 86400000);
+
+        monthIndex += 1;
+        if (monthIndex > 11) {
+          monthIndex = 0;
+          year += 1;
         }
       }
-    }
+    } else if (template.recurrence === 'weekly') {
+      const weekDay = template.dayOfWeek ?? startsOn.getUTCDay();
+      const offset = (weekDay - startsOn.getUTCDay() + 7) % 7;
+      let cursor = new Date(startsOn.getTime() + offset * DAY_MS);
 
-    while (currentDate <= endDate) {
-      if (template.endsOn && currentDate > template.endsOn) break;
+      // Jump whole weeks to the current week while preserving the anchor's
+      // weekday. The extra step lands on the next occurrence when this week's
+      // slot has already passed.
+      if (cursor < todayAnchorUtc) {
+        const weeks = Math.floor(
+          (todayAnchorUtc.getTime() - cursor.getTime()) / (7 * DAY_MS),
+        );
+        cursor = new Date(cursor.getTime() + weeks * 7 * DAY_MS);
+        if (cursor < todayAnchorUtc) {
+          cursor = new Date(cursor.getTime() + 7 * DAY_MS);
+        }
+      }
 
-      const existing = await prisma.billInstance.findUnique({
-        where: {
-          templateId_dueDate: {
-            templateId: template.id,
-            dueDate: currentDate,
-          },
-        },
-        select: { id: true },
-      });
+      while (cursor <= endDate) {
+        if (template.endsOn && cursor > template.endsOn) break;
 
-      await prisma.billInstance.upsert({
-        where: {
-          templateId_dueDate: {
-            templateId: template.id,
-            dueDate: currentDate,
-          },
-        },
-        create: {
-          userId,
-          templateId: template.id,
-          name: template.name,
-          amount: template.defaultAmount,
-          dueDate: currentDate,
-        },
-        update: {},
-      });
-
-      if (!existing) created.push(1);
-
-      // Advance date
-      if (template.recurrence === 'monthly') {
-        currentDate = addMonths(currentDate, 1);
-      } else if (template.recurrence === 'weekly') {
-        currentDate = new Date(currentDate.getTime() + 7 * 86400000);
-      } else {
-        break;
+        if (cursor >= todayAnchorUtc) {
+          await upsertBillInstance(userId, template, cursor, created);
+        }
+        cursor = new Date(cursor.getTime() + 7 * DAY_MS);
+      }
+    } else {
+      // One-time bills are real obligations even when back-filled: keep the
+      // exact startsOn occurrence and stop.
+      if (!template.endsOn || startsOn <= template.endsOn) {
+        await upsertBillInstance(userId, template, startsOn, created);
       }
     }
   }

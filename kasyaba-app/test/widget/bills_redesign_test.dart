@@ -22,8 +22,9 @@ void main() {
       id: 'bill-2',
       name: 'Electricity',
       amount: 3450.0,
+      // Server says upcoming; the screen must resolve overdue locally.
       dueDate: monthStart,
-      status: 'overdue',
+      status: 'upcoming',
     ),
     BillItem(
       id: 'bill-3',
@@ -31,6 +32,13 @@ void main() {
       amount: 450.0,
       dueDate: monthStart,
       status: 'paid',
+    ),
+    BillItem(
+      id: 'bill-4',
+      name: 'Cancelled Gym',
+      amount: 999.0,
+      dueDate: monthEnd,
+      status: 'cancelled',
     ),
   ];
 
@@ -70,6 +78,9 @@ void main() {
       expect(find.text('QUICK ADD'), findsOneWidget);
       expect(find.text('Electricity'), findsWidgets);
 
+      // Cancelled instances are inactive and absent from every tab.
+      expect(find.text('Cancelled Gym'), findsNothing);
+
       // Toggle to full month view
       await tester.tap(find.text('Show full month'));
       await tester.pumpAndSettle();
@@ -79,11 +90,19 @@ void main() {
       await tester.tap(find.text('Paid'));
       await tester.pumpAndSettle();
       expect(find.text('Water Utility'), findsOneWidget);
+      expect(find.text('Cancelled Gym'), findsNothing);
 
       // Switch filter to 'Overdue'
       await tester.tap(find.text('Overdue'));
       await tester.pumpAndSettle();
       expect(find.text('Electricity'), findsWidgets);
+      expect(find.text('Cancelled Gym'), findsNothing);
+
+      // Action sheet uses the same locally resolved status as the tab.
+      await tester.tap(find.text('Electricity').first);
+      await tester.pumpAndSettle();
+      expect(find.textContaining('OVERDUE'), findsOneWidget);
+      expect(find.text('Mark as Paid'), findsOneWidget);
     },
   );
 

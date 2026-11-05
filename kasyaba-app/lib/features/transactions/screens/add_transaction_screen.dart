@@ -10,6 +10,7 @@ import '../../../shared/widgets/motion_components.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../../../core/utils/validated_input.dart';
 import '../../../shared/widgets/app_sheet.dart';
 import '../../../shared/widgets/kasyaba_date_picker.dart';
 import '../../../shared/widgets/kasyaba_toast.dart';
@@ -753,6 +754,9 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                               child: IntrinsicWidth(
                                 child: TextFormField(
                                   controller: _amountController,
+                                  inputFormatters: [
+                                    currencyAmountInputFormatter,
+                                  ],
                                   keyboardType:
                                       const TextInputType.numberWithOptions(
                                         decimal: true,
@@ -884,6 +888,13 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
           label: 'Note',
           child: TextFormField(
             controller: _descriptionController,
+            maxLength: kMaxDescriptionLength,
+            buildCounter: (
+              context, {
+              required currentLength,
+              required isFocused,
+              maxLength,
+            }) => null,
             style: GoogleFonts.dmSans(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -1054,6 +1065,13 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
           label: 'Note',
           child: TextFormField(
             controller: _descriptionController,
+            maxLength: kMaxDescriptionLength,
+            buildCounter: (
+              context, {
+              required currentLength,
+              required isFocused,
+              maxLength,
+            }) => null,
             style: GoogleFonts.dmSans(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -1132,6 +1150,13 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
           label: 'Notes',
           child: TextFormField(
             controller: _notesController,
+            maxLength: kMaxNotesLength,
+            buildCounter: (
+              context, {
+              required currentLength,
+              required isFocused,
+              maxLength,
+            }) => null,
             style: GoogleFonts.dmSans(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -1345,6 +1370,13 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
           label: 'Note',
           child: TextFormField(
             controller: _notesController,
+            maxLength: kMaxNotesLength,
+            buildCounter: (
+              context, {
+              required currentLength,
+              required isFocused,
+              maxLength,
+            }) => null,
             style: GoogleFonts.dmSans(
               fontSize: 16,
               fontWeight: FontWeight.bold,

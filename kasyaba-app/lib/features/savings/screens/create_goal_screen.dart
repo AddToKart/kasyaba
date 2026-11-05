@@ -9,6 +9,7 @@ import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/deterministic_math.dart';
+import '../../../core/utils/validated_input.dart';
 import '../../../shared/widgets/kasyaba_background.dart';
 import '../../../shared/widgets/kasyaba_date_picker.dart';
 import '../../../shared/widgets/motion_components.dart';
@@ -278,6 +279,13 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
                               Expanded(
                                 child: TextField(
                                   controller: _nameController,
+                                  maxLength: kMaxNameLength,
+                                  buildCounter: (
+                                    context, {
+                                    required currentLength,
+                                    required isFocused,
+                                    maxLength,
+                                  }) => null,
                                   style: GoogleFonts.dmSans(
                                     color: DashboardTokens.periwinkleGray,
                                     fontSize: 16,
@@ -338,6 +346,9 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
                                   IntrinsicWidth(
                                     child: TextField(
                                       controller: _amountController,
+                                      inputFormatters: [
+                                        currencyAmountInputFormatter,
+                                      ],
                                       keyboardType:
                                           const TextInputType.numberWithOptions(
                                             decimal: true,
@@ -465,6 +476,9 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
                               Expanded(
                                 child: TextField(
                                   controller: _alreadySavedController,
+                                  inputFormatters: [
+                                    currencyAmountInputFormatter,
+                                  ],
                                   keyboardType:
                                       const TextInputType.numberWithOptions(
                                         decimal: true,

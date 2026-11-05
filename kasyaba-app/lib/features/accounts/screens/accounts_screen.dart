@@ -8,6 +8,7 @@ import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/providers/preference_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../../../core/utils/validated_input.dart';
 import '../../../shared/widgets/app_dialog.dart';
 import '../../../shared/widgets/app_sheet.dart';
 import '../../../shared/widgets/app_state_widgets.dart';
@@ -593,6 +594,13 @@ class _AddAccountSheetState extends ConsumerState<_AddAccountSheet> {
             child: TextField(
               controller: _nameController,
               autofocus: true,
+              maxLength: kMaxNameLength,
+              buildCounter: (
+                context, {
+                required currentLength,
+                required isFocused,
+                maxLength,
+              }) => null,
               textCapitalization: TextCapitalization.words,
               style: GoogleFonts.dmSans(
                 fontSize: 16,
@@ -647,6 +655,7 @@ class _AddAccountSheetState extends ConsumerState<_AddAccountSheet> {
             label: 'Opening balance',
             child: TextField(
               controller: _balanceController,
+              inputFormatters: [currencyAmountInputFormatter],
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),

@@ -204,7 +204,10 @@ DailySafeSpendCalculation calculateDailySafeSpend({
     59,
   );
   final unpaidBills = bills.where((b) {
-    if (b.status == 'paid') return false;
+    // Paid and cancelled instances no longer represent money that must be
+    // reserved before payday, so neither may reduce safe-to-spend.
+    final status = b.status.trim().toLowerCase();
+    if (status == 'paid' || status == 'cancelled') return false;
     return !b.dueDate.isAfter(endOfPayday);
   }).toList();
 

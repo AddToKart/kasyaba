@@ -601,11 +601,14 @@ export async function generateAlertsFromSnapshot(userId: string): Promise<void> 
   }
 
   // --- Bill Due Alerts ---
+  // Due dates are UTC-midnight date-only values. Use the start of the user's
+  // local day so a bill due today survives the 00:00 UTC boundary.
+  const billDueWindowStart = startOfZonedDay(now, timeZone);
   const upcomingBills = await prisma.billInstance.findMany({
     where: {
       userId,
       status: 'upcoming',
-      dueDate: { gte: now, lte: new Date(now.getTime() + 7 * 86400000) },
+      dueDate: { gte: billDueWindowStart, lte: new Date(now.getTime() + 7 * 86400000) },
     },
   });
   await alertService.resolveAlertsByKey(userId, `${userId}:bill_due:`);

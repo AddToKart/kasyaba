@@ -1,11 +1,10 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart' show TimeOfDay;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
 import '../utils/deterministic_math.dart';
+import 'bill_reminder_logic.dart';
 
 /// A bill occurrence that should (or should no longer) have a local reminder.
 class BillReminder {
@@ -32,6 +31,10 @@ class NotificationService {
 
   final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
+
+  /// Immediate reminders already delivered during this app session. Keyed by
+  /// `<billId>:<due-yyyy-mm-dd>` so repeated bill syncs do not re-fire.
+  final Set<String> _deliveredImmediateReminders = <String>{};
 
   static const _channelId = 'bill_reminders';
   static const _channelName = 'Bill Reminders';
@@ -89,12 +92,18 @@ class NotificationService {
   /// Keeps local reminders in step with the current bill list: every upcoming
   /// bill gets a reminder [leadDays] before its due date at [timeOfDay], and
   /// paid/cancelled/overdue bills have their reminder cancelled.
+  ///
+  /// If the lead-day notification time already passed while the bill is still
+  /// due today or later (a sync after 09:00 on the lead day), an immediate
+  /// notification is shown instead. Immediate reminders are deduped per bill
+  /// occurrence for the lifetime of the app session.
   Future<void> syncBillReminders(
     Iterable<BillReminder> reminders, {
     bool enabled = true,
     int defaultLeadDays = 1,
     TimeOfDay timeOfDay = const TimeOfDay(hour: 9, minute: 0),
   }) async {
+    final now = DateTime.now();
     for (final reminder in reminders) {
       final id = notificationIdFor('bill_${reminder.id}');
       if (!enabled || reminder.status != 'upcoming') {
@@ -102,21 +111,38 @@ class NotificationService {
         continue;
       }
 
-      final leadDays = math.max(0, reminder.leadDays ?? defaultLeadDays);
-      final dueDay = DateTime(
-        reminder.dueDate.year,
-        reminder.dueDate.month,
-        reminder.dueDate.day,
-        timeOfDay.hour,
-        timeOfDay.minute,
+      final decision = resolveBillReminder(
+        billId: reminder.id,
+        dueDate: reminder.dueDate,
+        now: now,
+        leadDays: reminder.leadDays ?? defaultLeadDays,
+        time: timeOfDay,
       );
-      final notifyAt = dueDay.subtract(Duration(days: leadDays));
-      if (!notifyAt.isAfter(DateTime.now())) {
-        await _cancel(id);
-        continue;
-      }
 
-      await _schedule(id, reminder.name, _billReminderBody(leadDays), notifyAt);
+      switch (decision.action) {
+        case BillReminderAction.cancel:
+          await _cancel(id);
+        case BillReminderAction.schedule:
+          final notifyAt = decision.notifyAt;
+          if (notifyAt != null) {
+            await _schedule(id, reminder.name, decision.body, notifyAt);
+          }
+        case BillReminderAction.showNow:
+          final dedupeKey = decision.dedupeKey;
+          if (dedupeKey == null ||
+              _deliveredImmediateReminders.contains(dedupeKey)) {
+            continue;
+          }
+          // Drop any stale pending schedule for this bill before showing the
+          // replacement reminder with the same id.
+          await _cancel(id);
+          final delivered = await _showBillReminderNow(
+            id,
+            reminder.name,
+            decision.body,
+          );
+          if (delivered) _deliveredImmediateReminders.add(dedupeKey);
+      }
     }
   }
 
@@ -237,6 +263,32 @@ class NotificationService {
     }
   }
 
+  /// Shows an immediate bill reminder using the bill's stable notification id.
+  /// Returns `true` only when the platform accepted the notification, so the
+  /// caller can retry later if showing fails.
+  Future<bool> _showBillReminderNow(int id, String title, String body) async {
+    try {
+      final details = NotificationDetails(
+        android: AndroidNotificationDetails(
+          _channelId,
+          _channelName,
+          channelDescription: _channelDescription,
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+        iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
+      );
+      await _plugin.show(id, title, body, details);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<void> _schedule(
     int id,
     String title,
@@ -277,12 +329,6 @@ class NotificationService {
     } catch (_) {
       return;
     }
-  }
-
-  static String _billReminderBody(int leadDays) {
-    if (leadDays <= 0) return 'Due today';
-    if (leadDays == 1) return 'Due tomorrow';
-    return 'Due in $leadDays days';
   }
 
   /// Stable FNV-1a hash so the same key always maps to the same notification

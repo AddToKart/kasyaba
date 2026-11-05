@@ -13,6 +13,8 @@ import {
 } from "../../lib/errors";
 import { env } from "../../config/env";
 import { Prisma } from "@prisma/client";
+import { logger } from "../../lib/logger";
+import { generateBillInstances } from "../bills/service";
 import type {
   RegisterInput,
   LoginInput,
@@ -33,6 +35,32 @@ function getRefreshTokenExpiry(): Date {
   const expires = new Date();
   expires.setDate(expires.getDate() + env.REFRESH_TOKEN_TTL_DAYS);
   return expires;
+}
+
+/**
+ * Restore payloads are user-supplied JSON. Coerce optional dates safely so a
+ * malformed value cannot abort an otherwise valid restore with an Invalid Date.
+ */
+function parseDate(value: unknown): Date | null {
+  if (value === undefined || value === null || value === "") return null;
+  const date = value instanceof Date ? value : new Date(value as string | number);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function parseDateOr(value: unknown, fallback: Date): Date {
+  return parseDate(value) ?? fallback;
+}
+
+function parseIntegerInRange(
+  value: unknown,
+  min: number,
+  max: number,
+): number | null {
+  if (value === undefined || value === null || value === "") return null;
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isInteger(parsed) && parsed >= min && parsed <= max
+    ? parsed
+    : null;
 }
 
 export async function registerUser(input: RegisterInput) {
@@ -418,7 +446,25 @@ export async function restoreUserData(userId: string, input: RestoreInput) {
       ? source.bills
       : [];
 
-  return prisma.$transaction(
+  // Contributions are exported nested under each goal, but accept a flat
+  // collection too so hand-built/older backups keep working.
+  const contributions: Array<{ entry: any; parentGoalId?: string }> = [];
+  for (const goal of goals) {
+    if (!Array.isArray(goal.contributions)) continue;
+    for (const entry of goal.contributions) {
+      contributions.push({ entry, parentGoalId: goal.id });
+    }
+  }
+  const flatContributions: any[] = Array.isArray(source.savingsContributions)
+    ? source.savingsContributions
+    : Array.isArray(source.contributions)
+      ? source.contributions
+      : [];
+  for (const entry of flatContributions) {
+    contributions.push({ entry });
+  }
+
+  const result = await prisma.$transaction(
     async (tx) => {
       // 1. Update user settings if present
       const profileUpdates: Prisma.UserUpdateInput = {};
@@ -577,6 +623,7 @@ export async function restoreUserData(userId: string, input: RestoreInput) {
 
       // 7. Goals
       let restoredGoals = 0;
+      const restoredGoalIds = new Set<string>();
       for (const g of goals) {
         if (!g.id || !g.name || g.targetAmount === undefined) continue;
         await tx.savingsGoal.upsert({
@@ -597,25 +644,69 @@ export async function restoreUserData(userId: string, input: RestoreInput) {
             createdAt: g.createdAt ? new Date(g.createdAt) : new Date(),
           },
         });
+        restoredGoalIds.add(g.id);
         restoredGoals++;
       }
 
-      // 8. Budgets
+      // 8. Goal contributions. Only attach to goals restored in this pass so a
+      // malformed backup cannot write contributions under another user's goal.
+      let restoredContributions = 0;
+      const seenContributionIds = new Set<string>();
+      for (const { entry: c, parentGoalId } of contributions) {
+        if (!c || typeof c !== 'object') continue;
+        const contributionId = c.id;
+        const goalId = c.goalId ?? parentGoalId;
+        if (
+          !contributionId ||
+          !goalId ||
+          c.amount === undefined ||
+          seenContributionIds.has(contributionId) ||
+          !restoredGoalIds.has(goalId)
+        ) {
+          continue;
+        }
+        seenContributionIds.add(contributionId);
+        const contributedAt =
+          parseDate(c.contributedAt) ?? parseDate(c.createdAt) ?? new Date();
+        await tx.savingsContribution.upsert({
+          where: { id: contributionId },
+          update: {
+            userId,
+            goalId,
+            amount: c.amount,
+            contributedAt,
+            notes: c.notes ?? null,
+          },
+          create: {
+            id: contributionId,
+            userId,
+            goalId,
+            amount: c.amount,
+            contributedAt,
+            notes: c.notes ?? null,
+            createdAt: parseDate(c.createdAt) ?? contributedAt,
+          },
+        });
+        restoredContributions++;
+      }
+
+      // 9. Budgets (a null categoryId is a valid global budget)
       let restoredBudgets = 0;
       for (const b of budgets) {
-        if (!b.id || !b.categoryId || b.amount === undefined) continue;
-        const startsOn = b.startsOn ? new Date(b.startsOn) : (b.month ? new Date(b.month) : new Date());
+        if (!b.id || b.amount === undefined) continue;
+        const categoryId = b.categoryId ?? null;
+        const startsOn = parseDateOr(b.startsOn ?? b.month, new Date());
         await tx.budget.upsert({
           where: { id: b.id },
           update: {
-            categoryId: b.categoryId,
+            categoryId,
             amount: b.amount,
             startsOn,
           },
           create: {
             id: b.id,
             userId,
-            categoryId: b.categoryId,
+            categoryId,
             amount: b.amount,
             startsOn,
             createdAt: b.createdAt ? new Date(b.createdAt) : new Date(),
@@ -624,15 +715,33 @@ export async function restoreUserData(userId: string, input: RestoreInput) {
         restoredBudgets++;
       }
 
-      // 9. Bill templates
+      // 10. Bill templates
       let restoredBills = 0;
       for (const bill of bills) {
         if (!bill.id || !bill.name || (bill.defaultAmount === undefined && bill.amount === undefined)) continue;
         const defaultAmount = bill.defaultAmount ?? bill.amount;
-        const startsOn = bill.startsOn ? new Date(bill.startsOn) : new Date();
+        const startsOn = parseDateOr(bill.startsOn, new Date());
         const recurrence = (bill.recurrence === 'weekly' || bill.recurrence === 'monthly' || bill.recurrence === 'none')
           ? bill.recurrence
           : 'monthly';
+
+        // Pre-fix exports dropped the anchor to day 1. Recover the true anchor
+        // from startsOn instead, in UTC to match bill generation.
+        let dayOfMonth = parseIntegerInRange(bill.dayOfMonth, 1, 31);
+        let dayOfWeek = parseIntegerInRange(bill.dayOfWeek, 0, 6);
+        if (recurrence === 'monthly') {
+          dayOfMonth =
+            dayOfMonth ??
+            parseIntegerInRange(bill.dueDay, 1, 31) ??
+            startsOn.getUTCDate();
+        } else if (recurrence === 'weekly') {
+          dayOfWeek = dayOfWeek ?? startsOn.getUTCDay();
+        }
+
+        const endsOn = parseDate(bill.endsOn);
+        const reminderLeadDays =
+          parseIntegerInRange(bill.reminderLeadDays, 0, 30) ?? 1;
+
         await tx.billTemplate.upsert({
           where: { id: bill.id },
           update: {
@@ -640,7 +749,11 @@ export async function restoreUserData(userId: string, input: RestoreInput) {
             defaultAmount,
             categoryId: bill.categoryId ?? null,
             recurrence,
-            dayOfMonth: bill.dayOfMonth ?? bill.dueDay ?? 1,
+            dayOfWeek,
+            dayOfMonth,
+            startsOn,
+            endsOn,
+            reminderLeadDays,
             isActive: bill.isActive ?? true,
           },
           create: {
@@ -650,8 +763,11 @@ export async function restoreUserData(userId: string, input: RestoreInput) {
             defaultAmount,
             categoryId: bill.categoryId ?? null,
             recurrence,
+            dayOfWeek,
+            dayOfMonth,
             startsOn,
-            dayOfMonth: bill.dayOfMonth ?? bill.dueDay ?? 1,
+            endsOn,
+            reminderLeadDays,
             isActive: bill.isActive ?? true,
             createdAt: bill.createdAt ? new Date(bill.createdAt) : new Date(),
           },
@@ -668,6 +784,7 @@ export async function restoreUserData(userId: string, input: RestoreInput) {
           transfers: restoredTransfers,
           categories: restoredCategories,
           goals: restoredGoals,
+          contributions: restoredContributions,
           budgets: restoredBudgets,
           bills: restoredBills,
         },
@@ -675,6 +792,20 @@ export async function restoreUserData(userId: string, input: RestoreInput) {
     },
     { timeout: 30000 },
   );
+
+  // The worker only generates bill instances hourly. Kick off a pass now so a
+  // freshly restored account does not show an empty Bills tab. Failure here is
+  // non-fatal: the data is already committed and the worker will retry.
+  try {
+    await generateBillInstances(userId);
+  } catch (err) {
+    logger.error(
+      { err, userId },
+      'Failed to generate bill instances after restore',
+    );
+  }
+
+  return result;
 }
 
 async function createSession(userId: string, email: string, hasPassword: boolean) {

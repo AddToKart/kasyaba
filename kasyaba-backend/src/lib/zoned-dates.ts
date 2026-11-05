@@ -95,6 +95,18 @@ export function getZonedParts(date: Date, timeZone: string): ZonedParts {
   return partsFor(date, timeZone);
 }
 
+/**
+ * UTC-midnight anchor for the calendar date `date` falls on in `timeZone`.
+ *
+ * Date-only values (bill due dates, for example) are stored at UTC midnight,
+ * so calendar-day comparisons must be made in this coordinate space instead of
+ * against the current instant.
+ */
+export function zonedDateAnchorUtc(date: Date, timeZone: string): Date {
+  const parts = partsFor(date, timeZone);
+  return new Date(Date.UTC(parts.year, parts.month - 1, parts.day));
+}
+
 export function formatZonedDate(date: Date, timeZone: string): string {
   const parts = partsFor(date, timeZone);
   const year = parts.year.toString().padStart(4, '0');

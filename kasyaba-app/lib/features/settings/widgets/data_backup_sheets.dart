@@ -683,13 +683,17 @@ class _ExportCsvSheetState extends ConsumerState<_ExportCsvSheet> {
       final accounts = await ref.read(accountsProvider.future);
       final accountMap = {for (final a in accounts) a.id: a.name};
 
-      const pageSize = 500;
+      // The server rejects `limit` values above 100, so page at its cap and
+      // keep a hard safety ceiling on total requests/rows.
+      const pageSize = 100;
+      const maxPages = 200;
+      const maxRows = 10000;
       var page = 1;
       var totalCount = 0;
       final all = <TransactionEntry>[];
       final seenIds = <String>{};
 
-      while (true) {
+      while (page <= maxPages && all.length < maxRows) {
         final response = await dio.get(
           '/transactions',
           queryParameters: {'page': page, 'limit': pageSize},
@@ -701,6 +705,7 @@ class _ExportCsvSheetState extends ConsumerState<_ExportCsvSheet> {
             .toList();
         var added = 0;
         for (final item in items) {
+          if (all.length >= maxRows) break;
           if (seenIds.add(item.id)) {
             all.add(item);
             added++;

@@ -793,6 +793,7 @@ void main() {
             'defaultAmount': '1500.00',
             'startsOn': '2026-11-05',
             'recurrence': 'monthly',
+            'dayOfMonth': 5,
             'reminderLeadDays': 1,
           }),
         );
@@ -820,6 +821,7 @@ void main() {
             'defaultAmount': '1299.50',
             'startsOn': '2026-11-06',
             'recurrence': 'weekly',
+            'dayOfWeek': 5,
             'categoryId': 'cat-utilities',
             'reminderLeadDays': 3,
           }),

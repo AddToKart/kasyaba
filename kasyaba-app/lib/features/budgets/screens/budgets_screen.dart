@@ -7,6 +7,7 @@ import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/category_icon_helper.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../../../core/utils/validated_input.dart';
 import '../../dashboard/widgets/dashboard_tokens.dart';
 import '../../../shared/widgets/app_dialog.dart';
 import '../../../shared/widgets/app_sheet.dart';
@@ -840,6 +841,7 @@ class _CreateBudgetSheetState extends ConsumerState<_CreateBudgetSheet> {
                           child: TextFormField(
                             controller: _amountController,
                             autofocus: true,
+                            inputFormatters: [currencyAmountInputFormatter],
                             keyboardType: const TextInputType.numberWithOptions(
                               decimal: true,
                             ),
