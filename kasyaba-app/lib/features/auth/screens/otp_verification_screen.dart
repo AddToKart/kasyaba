@@ -242,261 +242,242 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                                     : AppColors.lightTextSecondary,
                               ),
                             ),
-                            const SizedBox(height: 24),
+                            const SizedBox(height: 20),
 
-                            if (errorMessage != null) ...[
-                              AuthErrorBanner(message: errorMessage),
-                              const SizedBox(height: 14),
-                            ],
-
-                            // ── 6-Digit Code Display with Hidden Real Input ──
-                            GestureDetector(
-                              onTap: () => _focusNode.requestFocus(),
-                              behavior: HitTestBehavior.opaque,
-                              child: Stack(
-                                alignment: Alignment.center,
+                            // ── Form Card matching Login Screen ──
+                            AuthFormCard(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
-                                  // Invisible TextField capturing keyboard input
-                                  Opacity(
-                                    opacity: 0.0,
-                                    child: TextField(
-                                      controller: _otpController,
-                                      focusNode: _focusNode,
-                                      keyboardType: TextInputType.number,
-                                      maxLength: 6,
-                                      inputFormatters: [
-                                        FilteringTextInputFormatter.digitsOnly,
-                                        LengthLimitingTextInputFormatter(6),
+                                  if (errorMessage != null) ...[
+                                    AuthErrorBanner(message: errorMessage),
+                                    const SizedBox(height: 14),
+                                  ],
+
+                                  // ── 6-Digit Code Display with Hidden Real Input ──
+                                  GestureDetector(
+                                    onTap: () => _focusNode.requestFocus(),
+                                    behavior: HitTestBehavior.opaque,
+                                    child: Stack(
+                                      alignment: Alignment.center,
+                                      children: [
+                                        // Invisible TextField capturing keyboard input
+                                        Opacity(
+                                          opacity: 0.0,
+                                          child: TextField(
+                                            controller: _otpController,
+                                            focusNode: _focusNode,
+                                            keyboardType: TextInputType.number,
+                                            maxLength: 6,
+                                            inputFormatters: [
+                                              FilteringTextInputFormatter.digitsOnly,
+                                              LengthLimitingTextInputFormatter(6),
+                                            ],
+                                            onChanged: (val) {
+                                              setState(() {});
+                                              if (val.length == 6) {
+                                                _handleVerify();
+                                              }
+                                            },
+                                          ),
+                                        ),
+
+                                        // Row of 6 Digit Squircle Cells
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: List.generate(6, (index) {
+                                            final isFilled =
+                                                index < currentCode.length;
+                                            final isCurrent =
+                                                index == currentCode.length &&
+                                                    _focusNode.hasFocus;
+                                            final digit = isFilled
+                                                ? currentCode[index]
+                                                : '';
+
+                                            return AnimatedContainer(
+                                              duration: const Duration(
+                                                  milliseconds: 150),
+                                              width: 44,
+                                              height: 52,
+                                              alignment: Alignment.center,
+                                              decoration: BoxDecoration(
+                                                color: isDark
+                                                    ? (isCurrent
+                                                        ? AuthFigmaTokens.cello55
+                                                        : AuthFigmaTokens.ebony55)
+                                                    : (isCurrent
+                                                        ? AppColors.lightCardSurface
+                                                        : AppColors.lightCardSurface),
+                                                borderRadius:
+                                                    BorderRadius.circular(14),
+                                                border: Border.all(
+                                                  color: isCurrent
+                                                      ? KasyabaTokens.bermuda
+                                                      : (isFilled
+                                                          ? AuthFigmaTokens
+                                                              .poloBlue35
+                                                          : (isDark
+                                                              ? AuthFigmaTokens
+                                                                  .poloBlue28
+                                                              : AppColors
+                                                                  .lightBorderHairline)),
+                                                  width: isCurrent ? 2.0 : 1.2,
+                                                ),
+                                                boxShadow: isCurrent
+                                                    ? [
+                                                        BoxShadow(
+                                                          color: KasyabaTokens
+                                                              .bermuda
+                                                              .withValues(
+                                                                  alpha: 0.2),
+                                                          blurRadius: 8,
+                                                          spreadRadius: 1,
+                                                        ),
+                                                      ]
+                                                    : null,
+                                              ),
+                                              child: Text(
+                                                digit,
+                                                style: GoogleFonts.dmSans(
+                                                  fontSize: 22,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: isDark
+                                                      ? (isFilled
+                                                          ? KasyabaTokens.bermuda
+                                                          : AuthFigmaTokens
+                                                              .periwinkleGray)
+                                                      : AppColors
+                                                          .lightTextPrimary,
+                                                ),
+                                              ),
+                                            );
+                                          }),
+                                        ),
                                       ],
-                                      onChanged: (val) {
-                                        setState(() {});
-                                        if (val.length == 6) {
-                                          _handleVerify();
-                                        }
-                                      },
                                     ),
                                   ),
+                                  const SizedBox(height: 18),
 
-                                  // Row of 6 Digit Squircle Cells
+                                  // ── Expiry countdown indicator ──
                                   Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: List.generate(6, (index) {
-                                      final isFilled =
-                                          index < currentCode.length;
-                                      final isCurrent =
-                                          index == currentCode.length &&
-                                              _focusNode.hasFocus;
-                                      final digit = isFilled
-                                          ? currentCode[index]
-                                          : '';
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.timer_outlined,
+                                        size: 16,
+                                        color: _expirySeconds <= 60
+                                            ? KasyabaTokens.apricot
+                                            : (isDark
+                                                ? AuthFigmaTokens
+                                                    .periwinkleGraySubtitle
+                                                : AppColors.lightTextSecondary),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        _expirySeconds > 0
+                                            ? 'Code expires in ${_formatDuration(_expirySeconds)}'
+                                            : 'Code expired',
+                                        style: GoogleFonts.dmSans(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w500,
+                                          color: _expirySeconds <= 60
+                                              ? KasyabaTokens.apricot
+                                              : (isDark
+                                                  ? AuthFigmaTokens
+                                                      .periwinkleGraySubtitle
+                                                  : AppColors
+                                                      .lightTextSecondary),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 18),
 
-                                      return AnimatedContainer(
-                                        duration:
-                                            const Duration(milliseconds: 150),
-                                        width: 48,
-                                        height: 56,
-                                        alignment: Alignment.center,
-                                        decoration: BoxDecoration(
+                                  // ── Resend Code Section ──
+                                  Wrap(
+                                    alignment: WrapAlignment.center,
+                                    crossAxisAlignment:
+                                        WrapCrossAlignment.center,
+                                    children: [
+                                      Text(
+                                        "Didn't receive code? ",
+                                        style: GoogleFonts.dmSans(
                                           color: isDark
-                                              ? (isCurrent
-                                                  ? AuthFigmaTokens.cello55
-                                                  : AuthFigmaTokens.ebony55)
-                                              : (isCurrent
-                                                  ? AppColors.lightCardSurface
-                                                  : AppColors.lightCardSurface),
-                                          borderRadius:
-                                              BorderRadius.circular(14),
-                                          border: Border.all(
-                                            color: isCurrent
-                                                ? KasyabaTokens.bermuda
-                                                : (isFilled
-                                                    ? AuthFigmaTokens.poloBlue35
-                                                    : (isDark
-                                                        ? AuthFigmaTokens
-                                                            .poloBlue28
-                                                        : AppColors
-                                                            .lightBorderHairline)),
-                                            width: isCurrent ? 2.0 : 1.2,
+                                              ? AuthFigmaTokens
+                                                  .periwinkleGraySubtitle
+                                              : AppColors.lightTextSecondary,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w400,
+                                        ),
+                                      ),
+                                      GestureDetector(
+                                        onTap: (_cooldownSeconds == 0 &&
+                                                !_isResending)
+                                            ? _handleResend
+                                            : null,
+                                        behavior: HitTestBehavior.opaque,
+                                        child: Container(
+                                          padding:
+                                              const EdgeInsets.only(bottom: 2),
+                                          decoration: BoxDecoration(
+                                            border: Border(
+                                              bottom: BorderSide(
+                                                color: _cooldownSeconds == 0
+                                                    ? AuthFigmaTokens.kashmirBlue
+                                                    : Colors.transparent,
+                                                width: 1.5,
+                                              ),
+                                            ),
                                           ),
-                                          boxShadow: isCurrent
-                                              ? [
-                                                  BoxShadow(
-                                                    color: KasyabaTokens.bermuda
-                                                        .withValues(alpha: 0.2),
-                                                    blurRadius: 8,
-                                                    spreadRadius: 1,
+                                          child: _isResending
+                                              ? const SizedBox(
+                                                  height: 14,
+                                                  width: 14,
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                    strokeWidth: 1.8,
+                                                    color:
+                                                        KasyabaTokens.bermuda,
                                                   ),
-                                                ]
-                                              : null,
+                                                )
+                                              : Text(
+                                                  _cooldownSeconds > 0
+                                                      ? 'Resend (${_cooldownSeconds}s)'
+                                                      : 'Resend code',
+                                                  style: GoogleFonts.dmSans(
+                                                    color: _cooldownSeconds > 0
+                                                        ? (isDark
+                                                            ? AuthFigmaTokens
+                                                                .poloBlue28
+                                                            : AppColors
+                                                                .lightTextSecondary)
+                                                        : (isDark
+                                                            ? AuthFigmaTokens
+                                                                .periwinkleGray
+                                                            : AppColors
+                                                                .lightTextPrimary),
+                                                    fontWeight: FontWeight.w700,
+                                                    fontSize: 14,
+                                                  ),
+                                                ),
                                         ),
-                                        child: Text(
-                                          digit,
-                                          style: GoogleFonts.dmSans(
-                                            fontSize: 22,
-                                            fontWeight: FontWeight.w700,
-                                            color: isDark
-                                                ? (isFilled
-                                                    ? KasyabaTokens.bermuda
-                                                    : AuthFigmaTokens
-                                                        .periwinkleGray)
-                                                : AppColors.lightTextPrimary,
-                                          ),
-                                        ),
-                                      );
-                                    }),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 20),
+
+                                  // ── Primary Pill Button ──
+                                  AuthPrimaryPillButton(
+                                    isLoading: authState.isLoading,
+                                    onPressed: _handleVerify,
+                                    label: 'Verify code',
                                   ),
                                 ],
                               ),
                             ),
-                            const SizedBox(height: 20),
-
-                            // ── Expiry countdown indicator ──
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.timer_outlined,
-                                  size: 16,
-                                  color: _expirySeconds <= 60
-                                      ? KasyabaTokens.apricot
-                                      : (isDark
-                                          ? AuthFigmaTokens.periwinkleGraySubtitle
-                                          : AppColors.lightTextSecondary),
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  _expirySeconds > 0
-                                      ? 'Code expires in ${_formatDuration(_expirySeconds)}'
-                                      : 'Code expired',
-                                  style: GoogleFonts.dmSans(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w500,
-                                    color: _expirySeconds <= 60
-                                        ? KasyabaTokens.apricot
-                                        : (isDark
-                                            ? AuthFigmaTokens
-                                                .periwinkleGraySubtitle
-                                            : AppColors.lightTextSecondary),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 24),
-
-                            // ── Resend Code Section ──
-                            Wrap(
-                              alignment: WrapAlignment.center,
-                              crossAxisAlignment: WrapCrossAlignment.center,
-                              children: [
-                                Text(
-                                  "Didn't receive code? ",
-                                  style: GoogleFonts.dmSans(
-                                    color: isDark
-                                        ? AuthFigmaTokens.periwinkleGraySubtitle
-                                        : AppColors.lightTextSecondary,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w400,
-                                  ),
-                                ),
-                                GestureDetector(
-                                  onTap: (_cooldownSeconds == 0 && !_isResending)
-                                      ? _handleResend
-                                      : null,
-                                  behavior: HitTestBehavior.opaque,
-                                  child: Container(
-                                    padding: const EdgeInsets.only(bottom: 2),
-                                    decoration: BoxDecoration(
-                                      border: Border(
-                                        bottom: BorderSide(
-                                          color: _cooldownSeconds == 0
-                                              ? AuthFigmaTokens.kashmirBlue
-                                              : Colors.transparent,
-                                          width: 1.5,
-                                        ),
-                                      ),
-                                    ),
-                                    child: _isResending
-                                        ? const SizedBox(
-                                            height: 14,
-                                            width: 14,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 1.8,
-                                              color: KasyabaTokens.bermuda,
-                                            ),
-                                          )
-                                        : Text(
-                                            _cooldownSeconds > 0
-                                                ? 'Resend (${_cooldownSeconds}s)'
-                                                : 'Resend code',
-                                            style: GoogleFonts.dmSans(
-                                              color: _cooldownSeconds > 0
-                                                  ? (isDark
-                                                      ? AuthFigmaTokens
-                                                          .poloBlue28
-                                                      : AppColors
-                                                          .lightTextSecondary)
-                                                  : (isDark
-                                                      ? AuthFigmaTokens
-                                                          .periwinkleGray
-                                                      : AppColors
-                                                          .lightTextPrimary),
-                                              fontWeight: FontWeight.w700,
-                                              fontSize: 14,
-                                            ),
-                                          ),
-                                  ),
-                                ),
-                              ],
-                            ),
                           ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-
-                // ── Verify Code Action Button Pinned to Bottom ──
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 350),
-                      child: SizedBox(
-                        height: 56,
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: (authState.isLoading ||
-                                  currentCode.length != 6)
-                              ? null
-                              : _handleVerify,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AuthFigmaTokens.periwinkleGray,
-                            foregroundColor: AuthFigmaTokens.ebony,
-                            disabledBackgroundColor: AuthFigmaTokens.poloBlue
-                                .withValues(alpha: 0.35),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(28),
-                            ),
-                            elevation: 0,
-                          ),
-                          child: authState.isLoading
-                              ? const SizedBox(
-                                  height: 22,
-                                  width: 22,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2.4,
-                                    color: AuthFigmaTokens.ebony,
-                                  ),
-                                )
-                              : Text(
-                                  'Verify code',
-                                  style: GoogleFonts.dmSans(
-                                    color: AuthFigmaTokens.ebony,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
                         ),
                       ),
                     ),

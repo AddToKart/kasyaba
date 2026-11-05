@@ -24,6 +24,9 @@ class NewPasswordScreen extends ConsumerStatefulWidget {
 }
 
 class _NewPasswordScreenState extends ConsumerState<NewPasswordScreen> {
+  bool _obscureNew = true;
+  bool _obscureConfirm = true;
+
   final formGroup = FormGroup(
     {
       'newPassword': FormControl<String>(
@@ -172,121 +175,120 @@ class _NewPasswordScreenState extends ConsumerState<NewPasswordScreen> {
                                       : AppColors.lightTextSecondary,
                                 ),
                               ),
-                              const SizedBox(height: 24),
+                              const SizedBox(height: 20),
 
-                              if (errorMessage != null) ...[
-                                AuthErrorBanner(message: errorMessage),
-                                const SizedBox(height: 14),
-                              ],
+                              // ── Form Card (Node 11:806, 342px, r=32) ──
+                              AuthFormCard(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    if (errorMessage != null) ...[
+                                      AuthErrorBanner(message: errorMessage),
+                                      const SizedBox(height: 14),
+                                    ],
 
-                              // ── New Password Field ──
-                              AuthReactiveField(
-                                formControlName: 'newPassword',
-                                label: 'New password',
-                                hintText: 'At least 8 characters',
-                                obscureText: true,
-                                textInputAction: TextInputAction.next,
-                                validationMessages: {
-                                  ValidationMessage.required: (_) =>
-                                      'Password is required',
-                                  ValidationMessage.minLength: (_) =>
-                                      'At least 8 characters required',
-                                },
-                              ),
-                              ReactiveFormConsumer(
-                                builder: (context, form, child) {
-                                  final password =
-                                      (form.control('newPassword').value
-                                              as String?) ??
-                                          '';
-                                  return PasswordStrengthBar(
-                                    strength: _passwordStrength(password),
-                                  );
-                                },
-                              ),
-                              const SizedBox(height: 14),
+                                    // NEW PASSWORD Field
+                                    AuthReactiveField(
+                                      formControlName: 'newPassword',
+                                      label: 'New password',
+                                      hintText: '••••••••',
+                                      obscureText: _obscureNew,
+                                      suffixIcon: IconButton(
+                                        icon: Icon(
+                                          _obscureNew
+                                              ? Icons.visibility_off_outlined
+                                              : Icons.visibility_outlined,
+                                          color: isDark
+                                              ? AuthFigmaTokens.poloBlue
+                                              : AppColors.lightTextSecondary,
+                                          size: 20,
+                                        ),
+                                        onPressed: () => setState(
+                                            () => _obscureNew = !_obscureNew),
+                                      ),
+                                      textInputAction: TextInputAction.next,
+                                      validationMessages: {
+                                        ValidationMessage.required: (_) =>
+                                            'Password is required',
+                                        ValidationMessage.minLength: (_) =>
+                                            'At least 8 characters required',
+                                      },
+                                    ),
+                                    ReactiveFormConsumer(
+                                      builder: (context, form, child) {
+                                        final password =
+                                            (form.control('newPassword').value
+                                                    as String?) ??
+                                                '';
+                                        return PasswordStrengthBar(
+                                          strength:
+                                              _passwordStrength(password),
+                                        );
+                                      },
+                                    ),
+                                    const SizedBox(height: 14),
 
-                              // ── Confirm Password Field ──
-                              AuthReactiveField(
-                                formControlName: 'confirmPassword',
-                                label: 'Confirm password',
-                                hintText: 'Re-enter your password',
-                                obscureText: true,
-                                textInputAction: TextInputAction.done,
-                                onSubmitted: _handleResetPassword,
-                                validationMessages: {
-                                  ValidationMessage.required: (_) =>
-                                      'Please confirm your password',
-                                  ValidationMessage.mustMatch: (_) =>
-                                      'Passwords do not match',
-                                },
-                              ),
-                              ReactiveFormConsumer(
-                                builder: (context, form, child) {
-                                  final password =
-                                      (form.control('newPassword').value
-                                              as String?) ??
-                                          '';
-                                  final confirm =
-                                      (form.control('confirmPassword').value
-                                              as String?) ??
-                                          '';
-                                  return PasswordMatchIndicator(
-                                    isMatching: password.isNotEmpty &&
-                                        confirm.isNotEmpty &&
-                                        password == confirm,
-                                    hasConfirmText: confirm.isNotEmpty,
-                                  );
-                                },
+                                    // CONFIRM PASSWORD Field
+                                    AuthReactiveField(
+                                      formControlName: 'confirmPassword',
+                                      label: 'Confirm password',
+                                      hintText: '••••••••',
+                                      obscureText: _obscureConfirm,
+                                      suffixIcon: IconButton(
+                                        icon: Icon(
+                                          _obscureConfirm
+                                              ? Icons.visibility_off_outlined
+                                              : Icons.visibility_outlined,
+                                          color: isDark
+                                              ? AuthFigmaTokens.poloBlue
+                                              : AppColors.lightTextSecondary,
+                                          size: 20,
+                                        ),
+                                        onPressed: () => setState(() =>
+                                            _obscureConfirm =
+                                                !_obscureConfirm),
+                                      ),
+                                      textInputAction: TextInputAction.done,
+                                      onSubmitted: _handleResetPassword,
+                                      validationMessages: {
+                                        ValidationMessage.required: (_) =>
+                                            'Please confirm your password',
+                                        ValidationMessage.mustMatch: (_) =>
+                                            'Passwords do not match',
+                                      },
+                                    ),
+                                    ReactiveFormConsumer(
+                                      builder: (context, form, child) {
+                                        final password =
+                                            (form.control('newPassword').value
+                                                    as String?) ??
+                                                '';
+                                        final confirm = (form
+                                                .control('confirmPassword')
+                                                .value as String?) ??
+                                            '';
+                                        return PasswordMatchIndicator(
+                                          isMatching: password.isNotEmpty &&
+                                              confirm.isNotEmpty &&
+                                              password == confirm,
+                                          hasConfirmText: confirm.isNotEmpty,
+                                        );
+                                      },
+                                    ),
+                                    const SizedBox(height: 20),
+
+                                    // Primary Pill Button matching Login
+                                    AuthPrimaryPillButton(
+                                      isLoading: authState.isLoading,
+                                      onPressed: _handleResetPassword,
+                                      label: 'Reset password',
+                                    ),
+                                  ],
+                                ),
                               ),
                             ],
                           ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-
-                // ── Reset Password Action Button Pinned to Bottom ──
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 350),
-                      child: SizedBox(
-                        height: 56,
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: authState.isLoading
-                              ? null
-                              : _handleResetPassword,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AuthFigmaTokens.periwinkleGray,
-                            foregroundColor: AuthFigmaTokens.ebony,
-                            disabledBackgroundColor: AuthFigmaTokens.poloBlue
-                                .withValues(alpha: 0.5),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(28),
-                            ),
-                            elevation: 0,
-                          ),
-                          child: authState.isLoading
-                              ? const SizedBox(
-                                  height: 22,
-                                  width: 22,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2.4,
-                                    color: AuthFigmaTokens.ebony,
-                                  ),
-                                )
-                              : Text(
-                                  'Reset password',
-                                  style: GoogleFonts.dmSans(
-                                    color: AuthFigmaTokens.ebony,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
                         ),
                       ),
                     ),
