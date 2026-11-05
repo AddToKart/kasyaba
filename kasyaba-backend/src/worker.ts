@@ -4,12 +4,15 @@ import { env } from './config/env';
 import { logger } from './lib/logger';
 import * as forecastingService from './modules/forecasting/service';
 import * as billService from './modules/bills/service';
+import { pruneExpiredSessions } from './modules/auth/session-prune';
 
 const USER_BATCH_SIZE = 200;
+const SESSION_PRUNE_CRON = '30 3 * * *';
 const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 let snapshotJobRunning = false;
 let billGenerationJobRunning = false;
+let sessionPruneJobRunning = false;
 
 /**
  * Iterates all users with keyset pagination so the worker never loads the
@@ -151,6 +154,33 @@ async function runBillGenerationJob() {
   }
 }
 
+async function runSessionPruneJob() {
+  if (sessionPruneJobRunning) {
+    logger.warn('Session prune job skipped: previous run still in progress');
+    return;
+  }
+  sessionPruneJobRunning = true;
+  logger.info('Starting session prune job...');
+  const jobRunId = await startJobRun('session_prune');
+
+  try {
+    const deleted = await pruneExpiredSessions(new Date());
+    await finishJobRun(jobRunId, {
+      status: 'completed',
+      processedCount: deleted,
+    });
+    logger.info({ deleted }, 'Session prune job completed');
+  } catch (err) {
+    await finishJobRun(jobRunId, {
+      status: 'failed',
+      errorSummary: err instanceof Error ? err.message : String(err),
+    });
+    logger.error({ err }, 'Session prune job failed');
+  } finally {
+    sessionPruneJobRunning = false;
+  }
+}
+
 /**
  * A worker restart can leave `running` rows behind. Mark them failed so
  * operational dashboards never show permanently in-progress jobs.
@@ -194,8 +224,22 @@ async function main() {
     { timezone: env.WORKER_TIMEZONE },
   );
 
+  // Prune expired and long-revoked sessions daily in the low-traffic window
+  // after the snapshot run.
+  cron.schedule(
+    SESSION_PRUNE_CRON,
+    () => {
+      runSessionPruneJob().catch((err) => logger.error({ err }, 'Session prune cron failed'));
+    },
+    { timezone: env.WORKER_TIMEZONE },
+  );
+
   logger.info(
-    { snapshotCron: env.SNAPSHOT_CRON, billGenCron: '0 * * * *' },
+    {
+      snapshotCron: env.SNAPSHOT_CRON,
+      billGenCron: '0 * * * *',
+      sessionPruneCron: SESSION_PRUNE_CRON,
+    },
     'Cron jobs scheduled',
   );
 
