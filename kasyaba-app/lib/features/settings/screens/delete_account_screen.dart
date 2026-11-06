@@ -5,10 +5,12 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../app/theme/kasyaba_tokens.dart';
 import '../../../core/auth/auth_provider.dart';
+import '../../../core/connectivity/connectivity_service.dart';
 import '../../../core/database/cache_service.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../shared/widgets/kasyaba_toast.dart';
 import '../../../shared/widgets/motion_components.dart';
+import '../../../shared/widgets/offline_status.dart';
 import '../../../shared/widgets/pill_button.dart';
 
 class DeleteAccountScreen extends ConsumerStatefulWidget {
@@ -43,6 +45,13 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
 
   Future<void> _handleDelete() async {
     if (!_canDelete || _isDeleting) return;
+    if (!ref.read(isOnlineProvider)) {
+      KasyabaToast.showError(
+        context,
+        'Deleting your account needs an internet connection.',
+      );
+      return;
+    }
 
     setState(() => _isDeleting = true);
     final hasPassword = ref.read(authProvider).hasPassword;
@@ -87,6 +96,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
   @override
   Widget build(BuildContext context) {
     final hasPassword = ref.watch(authProvider).hasPassword;
+    final isOnline = ref.watch(isOnlineProvider);
 
     return Scaffold(
       backgroundColor: KasyabaTokens.ebony,
@@ -285,13 +295,22 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
                 ),
               ],
               const SizedBox(height: 24),
+              if (!isOnline) ...[
+                const NeedsInternetNotice(
+                  message:
+                      'Deleting your account needs an internet connection so the server can erase your data.',
+                ),
+                const SizedBox(height: 14),
+              ],
               FadeSlideEntrance.staggered(
                 index: hasPassword ? 6 : 5,
                 child: PillButton(
                   label: 'Delete account and data',
                   variant: PillButtonVariant.destructive,
                   isLoading: _isDeleting,
-                  onPressed: _canDelete && !_isDeleting ? _handleDelete : null,
+                  onPressed: isOnline && _canDelete && !_isDeleting
+                      ? _handleDelete
+                      : null,
                 ),
               ),
             ],

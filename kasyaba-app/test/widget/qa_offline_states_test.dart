@@ -8,6 +8,7 @@ import 'package:kasyaba/features/bills/screens/bills_screen.dart';
 import 'package:kasyaba/features/budgets/screens/budgets_screen.dart';
 import 'package:kasyaba/features/planning/screens/planning_screen.dart';
 import 'package:kasyaba/features/settings/screens/backup_export_screen.dart';
+import 'package:kasyaba/features/settings/screens/delete_account_screen.dart';
 import 'package:kasyaba/shared/widgets/offline_status.dart';
 import 'package:kasyaba/shared/widgets/pill_button.dart';
 
@@ -122,5 +123,35 @@ void main() {
       reason: 'every backup action is online-only and must be disabled '
           'while offline',
     );
+  });
+
+  testWidgets('delete account is gated while offline', (tester) async {
+    await harness.pumpScreen(
+      tester,
+      const DeleteAccountScreen(),
+      overrides: [isOnlineProvider.overrideWithValue(false)],
+    );
+
+    expect(find.byType(NeedsInternetNotice), findsWidgets);
+
+    final deleteButton = tester.widget<PillButton>(
+      find.widgetWithText(PillButton, 'Delete account and data'),
+    );
+    expect(
+      deleteButton.onPressed,
+      isNull,
+      reason: 'account deletion is online-only and must be disabled offline',
+    );
+  });
+
+  testWidgets('delete account shows no offline notice while online',
+      (tester) async {
+    await harness.pumpScreen(
+      tester,
+      const DeleteAccountScreen(),
+      overrides: [isOnlineProvider.overrideWithValue(true)],
+    );
+
+    expect(find.byType(NeedsInternetNotice), findsNothing);
   });
 }
