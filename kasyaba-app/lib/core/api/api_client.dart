@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../auth/session_events.dart';
 import '../storage/secure_storage_service.dart';
@@ -10,7 +9,7 @@ import '../connectivity/connectivity_service.dart';
 // it so a misconfigured build can never silently point at localhost.
 const String kApiBaseUrl = String.fromEnvironment(
   'API_BASE_URL',
-  defaultValue: kReleaseMode ? '' : 'http://10.0.2.2:3000',
+  defaultValue: 'https://kasyaba-api.addtokart.tech',
 );
 
 final dioProvider = Provider<Dio>((ref) {
