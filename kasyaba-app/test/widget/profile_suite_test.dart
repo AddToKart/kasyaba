@@ -325,7 +325,7 @@ void main() {
       // Verify "About" section
       expect(find.text('About'), findsOneWidget);
       expect(find.text('Version'), findsOneWidget);
-      expect(find.text('v0.1.0 (Build 1)'), findsOneWidget);
+      expect(find.text('v0.2.0 (Build 2)'), findsOneWidget);
       expect(find.text('Terms of service'), findsOneWidget);
       expect(find.text('Privacy policy'), findsOneWidget);
       expect(find.text('Read'), findsNWidgets(2));
