@@ -397,43 +397,18 @@ class AuthForgotPassBackground extends StatelessWidget {
 }
 
 // ── Kasyaba 3-Pill Logo Mark (Node 11:793-11:796) ──
+// Legacy placeholder kept abstract no longer: renders the real brand mark.
 class KasyabaLogoMark extends StatelessWidget {
   final double scale;
   const KasyabaLogoMark({super.key, this.scale = 1.0});
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 34 * scale,
-          height: 12 * scale,
-          decoration: BoxDecoration(
-            color: AuthFigmaTokens.periwinkleGray,
-            borderRadius: BorderRadius.circular(6 * scale),
-          ),
-        ),
-        SizedBox(height: 4 * scale),
-        Container(
-          width: 26 * scale,
-          height: 12 * scale,
-          decoration: BoxDecoration(
-            color: AuthFigmaTokens.poloBlue,
-            borderRadius: BorderRadius.circular(6 * scale),
-          ),
-        ),
-        SizedBox(height: 4 * scale),
-        Container(
-          width: 18 * scale,
-          height: 12 * scale,
-          decoration: BoxDecoration(
-            color: AuthFigmaTokens.kashmirBlue,
-            borderRadius: BorderRadius.circular(6 * scale),
-          ),
-        ),
-      ],
+    return Image.asset(
+      'assets/images/brand/kasyaba_mark.png',
+      width: 46 * scale,
+      height: 46 * scale,
+      fit: BoxFit.contain,
     );
   }
 }

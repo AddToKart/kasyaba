@@ -19,17 +19,17 @@ class SplashScreen extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 76,
-                height: 76,
+                width: 88,
+                height: 88,
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: KasyabaTokens.periwinkleGray.withValues(alpha: 0.10),
+                  color: KasyabaTokens.ebony,
                   shape: BoxShape.circle,
-                  border: Border.all(color: KasyabaTokens.poloBlue22),
+                  border: Border.all(color: KasyabaTokens.poloBlue30),
                 ),
-                child: const Icon(
-                  Icons.shield_rounded,
-                  color: KasyabaTokens.periwinkleGray,
-                  size: 34,
+                child: Image.asset(
+                  'assets/images/brand/kasyaba_mark.png',
+                  fit: BoxFit.contain,
                 ),
               ),
               const SizedBox(height: 20),

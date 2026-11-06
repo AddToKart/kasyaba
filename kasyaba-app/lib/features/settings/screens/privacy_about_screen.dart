@@ -351,6 +351,29 @@ class PrivacyAndAboutScreen extends StatelessWidget {
                     children: [
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Row(
+                          children: [
+                            Image.asset(
+                              'assets/images/brand/kasyaba_mark.png',
+                              width: 44,
+                              height: 44,
+                              fit: BoxFit.contain,
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              'Kasyaba',
+                              style: GoogleFonts.bricolageGrotesque(
+                                fontSize: 19,
+                                fontWeight: FontWeight.w700,
+                                color: DashboardTokens.periwinkleGray,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      _buildDivider(),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                         child: _buildKeyValueRow(
                           label: 'Version',
                           value: kAppVersionLabel,
