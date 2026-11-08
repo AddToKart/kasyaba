@@ -1,7 +1,7 @@
 name: kasyaba
 description: "Personal financial tracker for Android"
 publish_to: 'none'
-version: 0.2.0+3
+version: 0.2.0+4
 
 environment:
   sdk: ^3.12.2
