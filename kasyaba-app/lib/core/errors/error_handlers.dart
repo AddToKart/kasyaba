@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../app/theme/kasyaba_tokens.dart';
+import '../../app/theme/kasyaba_color_scheme.dart';
 
 /// Installs app-wide error capture so framework and platform errors are logged
 /// instead of silently degrading, and replaces the release "red screen" with a
@@ -34,17 +34,25 @@ class _FriendlyErrorWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // No Theme may be available when an error widget renders, so derive the
+    // palette straight from the platform brightness.
+    final brightness = WidgetsBinding
+        .instance.platformDispatcher.platformBrightness;
+    final colors = brightness == Brightness.dark
+        ? kasyabaDarkColors
+        : kasyabaLightColors;
+
     return Material(
-      color: KasyabaTokens.ebony,
+      color: colors.canvas,
       child: Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(
+              Icon(
                 Icons.error_outline_rounded,
-                color: KasyabaTokens.periwinkleGraySubtitle,
+                color: colors.textSecondary,
                 size: 40,
               ),
               const SizedBox(height: 12),
@@ -52,7 +60,7 @@ class _FriendlyErrorWidget extends StatelessWidget {
                 'Something went wrong on this screen.',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.dmSans(
-                  color: KasyabaTokens.periwinkleGray,
+                  color: colors.textPrimary,
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                 ),
@@ -62,7 +70,7 @@ class _FriendlyErrorWidget extends StatelessWidget {
                 'Please go back and try again. If it keeps happening, restart the app.',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.dmSans(
-                  color: KasyabaTokens.periwinkleGraySubtitle,
+                  color: colors.textSecondary,
                   fontSize: 13,
                 ),
               ),

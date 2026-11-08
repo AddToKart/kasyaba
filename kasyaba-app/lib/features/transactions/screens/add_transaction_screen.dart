@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_motion.dart';
+import '../../../app/theme/kasyaba_color_scheme.dart';
 import '../../../shared/widgets/motion_components.dart';
 import '../../../core/connectivity/connectivity_service.dart';
 import '../../../core/errors/error_messages.dart';
@@ -207,8 +208,9 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     await showKasyabaSheet<String>(
       context: context,
       builder: (sheetContext) {
+        final colors = sheetContext.kColors;
         return AppSheet(
-          color: DashboardTokens.bigStone,
+          color: colors.card,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
             child: Column(
@@ -222,7 +224,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                   style: GoogleFonts.bricolageGrotesque(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: DashboardTokens.periwinkleGray,
+                    color: colors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -230,7 +232,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                   shrinkWrap: true,
                   itemCount: accounts.length,
                   separatorBuilder: (_, _) =>
-                      Divider(height: 1, color: DashboardTokens.poloBlue16),
+                      Divider(height: 1, color: colors.divider),
                   itemBuilder: (ctx, idx) {
                     final acc = accounts[idx];
                     final bal = balances[acc.id] ?? 0.0;
@@ -248,15 +250,15 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
                           color: isSelected
-                              ? DashboardTokens.bermuda
-                              : DashboardTokens.periwinkleGray,
+                              ? colors.success
+                              : colors.textPrimary,
                         ),
                       ),
                       subtitle: Text(
                         acc.type.toUpperCase(),
                         style: GoogleFonts.dmSans(
                           fontSize: 12,
-                          color: DashboardTokens.periwinkleGraySubtitle,
+                          color: colors.textSecondary,
                         ),
                       ),
                       trailing: Text(
@@ -264,7 +266,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                         style: GoogleFonts.dmSans(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
-                          color: DashboardTokens.periwinkleGraySubtitle,
+                          color: colors.textSecondary,
                         ),
                       ),
                       onTap: () {
@@ -549,7 +551,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
             message,
             subtitle: subtitle,
             icon: Icons.receipt_long_rounded,
-            accentColor: DashboardTokens.apricot,
+            accentColor: context.kColors.danger,
           );
         } else {
           KasyabaToast.showSuccess(context, message, subtitle: subtitle);
@@ -574,6 +576,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.kColors;
     final topPadding = MediaQuery.paddingOf(context).top;
     final isOnline = ref.watch(isOnlineProvider);
     final isEditing = widget.transaction != null;
@@ -665,13 +668,13 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
         ),
       ),
       child: Scaffold(
-        backgroundColor: DashboardTokens.ebony,
+        backgroundColor: colors.canvas,
         body: Container(
           width: double.infinity,
           height: double.infinity,
-          decoration: const BoxDecoration(
-            color: DashboardTokens.ebony,
-            gradient: DashboardTokens.canvasGradient,
+          decoration: BoxDecoration(
+            color: colors.canvas,
+            gradient: colors.backgroundGradient,
           ),
           child: SingleChildScrollView(
             padding: EdgeInsets.fromLTRB(
@@ -698,17 +701,17 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                           width: 50,
                           height: 50,
                           decoration: BoxDecoration(
-                            color: DashboardTokens.bigStone,
+                            color: colors.card,
                             borderRadius: BorderRadius.circular(24),
                             border: Border.all(
-                              color: DashboardTokens.poloBlue22,
+                              color: colors.cardBorder,
                               width: 1,
                             ),
                           ),
                           alignment: Alignment.center,
-                          child: const Icon(
+                          child: Icon(
                             Icons.arrow_back_rounded,
-                            color: DashboardTokens.periwinkleGray,
+                            color: colors.textPrimary,
                             size: 22,
                           ),
                         ),
@@ -720,7 +723,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                           style: GoogleFonts.bricolageGrotesque(
                             fontSize: 26,
                             fontWeight: FontWeight.bold,
-                            color: DashboardTokens.periwinkleGray,
+                            color: colors.textPrimary,
                           ),
                         ),
                       ),
@@ -748,10 +751,10 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                       vertical: 24,
                     ),
                     decoration: BoxDecoration(
-                      color: DashboardTokens.cello60,
+                      color: colors.cardHero,
                       borderRadius: BorderRadius.circular(28),
                       border: Border.all(
-                        color: DashboardTokens.poloBlue30,
+                        color: colors.cardBorderStrong,
                         width: 1,
                       ),
                     ),
@@ -768,7 +771,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                               style: GoogleFonts.bricolageGrotesque(
                                 fontSize: 30,
                                 fontWeight: FontWeight.bold,
-                                color: DashboardTokens.periwinkleGraySubtitle,
+                                color: colors.textSecondary,
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -790,17 +793,17 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                                     style: GoogleFonts.bricolageGrotesque(
                                       fontSize: 46,
                                       fontWeight: FontWeight.bold,
-                                      color: DashboardTokens.periwinkleGray,
+                                      color: colors.textPrimary,
                                       height: 1.1,
                                     ),
                                     textAlign: TextAlign.left,
-                                    cursorColor: DashboardTokens.periwinkleGray,
+                                    cursorColor: colors.textPrimary,
                                     decoration: InputDecoration(
                                       hintText: '0',
                                       hintStyle: GoogleFonts.bricolageGrotesque(
                                         fontSize: 46,
                                         fontWeight: FontWeight.bold,
-                                        color: DashboardTokens.periwinkleGray
+                                        color: colors.textPrimary
                                             .withValues(alpha: 0.35),
                                       ),
                                       border: InputBorder.none,
@@ -834,7 +837,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                             textAlign: TextAlign.center,
                             style: GoogleFonts.dmSans(
                               fontSize: 14,
-                              color: DashboardTokens.periwinkleGraySubtitle,
+                              color: colors.textSecondary,
                             ),
                           )
                         else
@@ -843,7 +846,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                             text: TextSpan(
                               style: GoogleFonts.dmSans(
                                 fontSize: 14,
-                                color: DashboardTokens.periwinkleGraySubtitle,
+                                color: colors.textSecondary,
                               ),
                               children: [
                                 TextSpan(
@@ -855,7 +858,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                                   text: CurrencyFormatter.format(afterBalance),
                                   style: GoogleFonts.dmSans(
                                     fontWeight: FontWeight.bold,
-                                    color: DashboardTokens.periwinkleGray,
+                                    color: colors.textPrimary,
                                   ),
                                 ),
                               ],
@@ -921,6 +924,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     double balance,
     List<Category> categories,
   ) {
+    final colors = context.kColors;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -940,15 +944,15 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
             style: GoogleFonts.dmSans(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: DashboardTokens.periwinkleGray,
+              color: colors.textPrimary,
             ),
-            cursorColor: DashboardTokens.periwinkleGray,
+            cursorColor: colors.textPrimary,
             decoration: InputDecoration(
               hintText: 'e.g. Grocery shopping',
               hintStyle: GoogleFonts.dmSans(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: DashboardTokens.periwinkleGray.withValues(alpha: 0.4),
+                color: colors.textPrimary.withValues(alpha: 0.4),
               ),
               border: InputBorder.none,
               enabledBorder: InputBorder.none,
@@ -971,7 +975,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.0,
-                color: DashboardTokens.periwinkleGraySubtitle,
+                color: colors.textSecondary,
               ),
             ),
             const SizedBox(height: 10),
@@ -1020,7 +1024,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                     style: GoogleFonts.dmSans(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: DashboardTokens.periwinkleGray,
+                      color: colors.textPrimary,
                     ),
                   ),
                 ),
@@ -1028,7 +1032,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                   _accountBalanceLabel(account, balance),
                   style: GoogleFonts.dmSans(
                     fontSize: 14,
-                    color: DashboardTokens.periwinkleGraySubtitle,
+                    color: colors.textSecondary,
                   ),
                 ),
               ],
@@ -1048,7 +1052,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
               style: GoogleFonts.dmSans(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: DashboardTokens.periwinkleGray,
+                color: colors.textPrimary,
               ),
             ),
           ),
@@ -1059,6 +1063,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
 
   // ── Income Body (Node 37:6390) ────────────────────────────────────────────
   Widget _buildIncomeBody(Account account, double balance) {
+    final colors = context.kColors;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -1072,7 +1077,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.0,
-                color: DashboardTokens.periwinkleGraySubtitle,
+                color: colors.textSecondary,
               ),
             ),
             const SizedBox(height: 10),
@@ -1118,15 +1123,15 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
             style: GoogleFonts.dmSans(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: DashboardTokens.periwinkleGray,
+              color: colors.textPrimary,
             ),
-            cursorColor: DashboardTokens.periwinkleGray,
+            cursorColor: colors.textPrimary,
             decoration: InputDecoration(
               hintText: 'e.g. Salary payout',
               hintStyle: GoogleFonts.dmSans(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: DashboardTokens.periwinkleGray.withValues(alpha: 0.4),
+                color: colors.textPrimary.withValues(alpha: 0.4),
               ),
               border: InputBorder.none,
               enabledBorder: InputBorder.none,
@@ -1153,7 +1158,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                     style: GoogleFonts.dmSans(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: DashboardTokens.periwinkleGray,
+                      color: colors.textPrimary,
                     ),
                   ),
                 ),
@@ -1161,7 +1166,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                   _accountBalanceLabel(account, balance),
                   style: GoogleFonts.dmSans(
                     fontSize: 14,
-                    color: DashboardTokens.periwinkleGraySubtitle,
+                    color: colors.textSecondary,
                   ),
                 ),
               ],
@@ -1181,7 +1186,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
               style: GoogleFonts.dmSans(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: DashboardTokens.periwinkleGray,
+                color: colors.textPrimary,
               ),
             ),
           ),
@@ -1204,15 +1209,15 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
             style: GoogleFonts.dmSans(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: DashboardTokens.periwinkleGray,
+              color: colors.textPrimary,
             ),
-            cursorColor: DashboardTokens.periwinkleGray,
+            cursorColor: colors.textPrimary,
             decoration: InputDecoration(
               hintText: 'Optional',
               hintStyle: GoogleFonts.dmSans(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: DashboardTokens.periwinkleGray.withValues(alpha: 0.4),
+                color: colors.textPrimary.withValues(alpha: 0.4),
               ),
               border: InputBorder.none,
               enabledBorder: InputBorder.none,
@@ -1234,6 +1239,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     Account toAccount,
     double toBalance,
   ) {
+    final colors = context.kColors;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -1251,7 +1257,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                     style: GoogleFonts.dmSans(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: DashboardTokens.periwinkleGray,
+                      color: colors.textPrimary,
                     ),
                   ),
                 ),
@@ -1259,7 +1265,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                   _accountBalanceLabel(fromAccount, fromBalance),
                   style: GoogleFonts.dmSans(
                     fontSize: 14,
-                    color: DashboardTokens.periwinkleGraySubtitle,
+                    color: colors.textSecondary,
                   ),
                 ),
               ],
@@ -1278,20 +1284,22 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(22),
                 border: Border.all(
-                  color: DashboardTokens.kashmirBlue,
+                  color: colors.secondaryBorder,
                   width: 1,
                 ),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  SvgPicture.asset(
-                    'assets/images/transfer_swap.svg',
-                    width: 18,
-                    height: 18,
-                    colorFilter: const ColorFilter.mode(
-                      DashboardTokens.periwinkleGray,
+                  ColorFiltered(
+                    colorFilter: ColorFilter.mode(
+                      colors.icon,
                       BlendMode.srcIn,
+                    ),
+                    child: SvgPicture.asset(
+                      'assets/images/transfer_swap.svg',
+                      width: 18,
+                      height: 18,
                     ),
                   ),
                   const SizedBox(width: 6),
@@ -1300,7 +1308,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                     style: GoogleFonts.dmSans(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
-                      color: DashboardTokens.periwinkleGray,
+                      color: colors.textPrimary,
                     ),
                   ),
                 ],
@@ -1324,7 +1332,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                     style: GoogleFonts.dmSans(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: DashboardTokens.periwinkleGray,
+                      color: colors.textPrimary,
                     ),
                   ),
                 ),
@@ -1332,7 +1340,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                   _accountBalanceLabel(toAccount, toBalance),
                   style: GoogleFonts.dmSans(
                     fontSize: 14,
-                    color: DashboardTokens.periwinkleGraySubtitle,
+                    color: colors.textSecondary,
                   ),
                 ),
               ],
@@ -1351,7 +1359,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.0,
-                color: DashboardTokens.periwinkleGraySubtitle,
+                color: colors.textSecondary,
               ),
             ),
             const SizedBox(height: 10),
@@ -1379,13 +1387,13 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                     ),
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? DashboardTokens.periwinkleGray
+                          ? colors.primaryButton
                           : Colors.transparent,
                       borderRadius: BorderRadius.circular(22),
                       border: isSelected
                           ? null
                           : Border.all(
-                              color: DashboardTokens.poloBlue.withValues(
+                              color: colors.icon.withValues(
                                 alpha: 0.4,
                               ),
                               width: 1,
@@ -1397,8 +1405,8 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
                         color: isSelected
-                            ? DashboardTokens.ebony
-                            : DashboardTokens.periwinkleGray,
+                            ? colors.onPrimaryButton
+                            : colors.textPrimary,
                       ),
                     ),
                   ),
@@ -1425,15 +1433,15 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
             style: GoogleFonts.dmSans(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: DashboardTokens.periwinkleGray,
+              color: colors.textPrimary,
             ),
-            cursorColor: DashboardTokens.periwinkleGray,
+            cursorColor: colors.textPrimary,
             decoration: InputDecoration(
               hintText: 'Optional',
               hintStyle: GoogleFonts.dmSans(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: DashboardTokens.periwinkleGray.withValues(alpha: 0.4),
+                color: colors.textPrimary.withValues(alpha: 0.4),
               ),
               border: InputBorder.none,
               enabledBorder: InputBorder.none,
@@ -1451,7 +1459,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
           'From and To must be different accounts.',
           style: GoogleFonts.dmSans(
             fontSize: 14,
-            color: DashboardTokens.periwinkleGraySubtitle,
+            color: colors.textSecondary,
           ),
         ),
       ],
@@ -1466,6 +1474,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     required bool isSelected,
     required VoidCallback onTap,
   }) {
+    final colors = context.kColors;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
@@ -1473,13 +1482,13 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 11),
         decoration: BoxDecoration(
           color: isSelected
-              ? DashboardTokens.periwinkleGray
+              ? colors.primaryButton
               : Colors.transparent,
           borderRadius: BorderRadius.circular(22),
           border: isSelected
               ? null
               : Border.all(
-                  color: DashboardTokens.poloBlue.withValues(alpha: 0.4),
+                  color: colors.icon.withValues(alpha: 0.4),
                   width: 1,
                 ),
         ),
@@ -1489,8 +1498,8 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
             fontSize: 14,
             fontWeight: FontWeight.bold,
             color: isSelected
-                ? DashboardTokens.ebony
-                : DashboardTokens.periwinkleGray,
+                ? colors.onPrimaryButton
+                : colors.textPrimary,
           ),
         ),
       ),
@@ -1499,13 +1508,14 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
 
   // ── Helper Row Card (height 58, big stone fill, polo blue 22% border) ─────
   Widget _buildInputRowCard({required String label, required Widget child}) {
+    final colors = context.kColors;
     return Container(
       height: 58,
       padding: const EdgeInsets.symmetric(horizontal: 21),
       decoration: BoxDecoration(
-        color: DashboardTokens.bigStone,
+        color: colors.inputFill,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: DashboardTokens.poloBlue22, width: 1),
+        border: Border.all(color: colors.cardBorder, width: 1),
       ),
       child: Row(
         children: [
@@ -1515,7 +1525,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
               label,
               style: GoogleFonts.dmSans(
                 fontSize: 14,
-                color: DashboardTokens.periwinkleGraySubtitle,
+                color: colors.textSecondary,
               ),
             ),
           ),
@@ -1534,8 +1544,9 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     showKasyabaSheet<Category>(
       context: context,
       builder: (sheetContext) {
+        final colors = sheetContext.kColors;
         return AppSheet(
-          color: DashboardTokens.bigStone,
+          color: colors.card,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
             child: Column(
@@ -1547,7 +1558,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                   style: GoogleFonts.bricolageGrotesque(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: DashboardTokens.periwinkleGray,
+                    color: colors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -1555,7 +1566,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                   shrinkWrap: true,
                   itemCount: categories.length,
                   separatorBuilder: (_, _) =>
-                      Divider(height: 1, color: DashboardTokens.poloBlue16),
+                      Divider(height: 1, color: colors.divider),
                   itemBuilder: (ctx, idx) {
                     final c = categories[idx];
                     return ListTile(
@@ -1564,7 +1575,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                         style: GoogleFonts.dmSans(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
-                          color: DashboardTokens.periwinkleGray,
+                          color: colors.textPrimary,
                         ),
                       ),
                       onTap: () => Navigator.of(sheetContext).pop(c),

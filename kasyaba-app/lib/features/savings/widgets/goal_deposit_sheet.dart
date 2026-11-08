@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../app/theme/app_motion.dart';
+import '../../../app/theme/kasyaba_color_scheme.dart';
 import '../../../core/connectivity/connectivity_service.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
@@ -175,7 +176,7 @@ class _GoalDepositModalState extends ConsumerState<_GoalDepositModal> {
         ),
       ),
       child: AppSheet(
-        color: DashboardTokens.bigStone,
+        color: context.kColors.card,
         padding: EdgeInsets.fromLTRB(20, 8, 20, effectiveBottomPadding),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -185,7 +186,7 @@ class _GoalDepositModalState extends ConsumerState<_GoalDepositModal> {
             Text(
               'Deposit to ${widget.goal.name}',
               style: GoogleFonts.bricolageGrotesque(
-                color: DashboardTokens.periwinkleGray,
+                color: context.kColors.textPrimary,
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
               ),
@@ -202,7 +203,7 @@ class _GoalDepositModalState extends ConsumerState<_GoalDepositModal> {
                   Text(
                     '₱',
                     style: GoogleFonts.bricolageGrotesque(
-                      color: DashboardTokens.periwinkleGraySubtitle,
+                      color: context.kColors.textSecondary,
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
                     ),
@@ -220,7 +221,7 @@ class _GoalDepositModalState extends ConsumerState<_GoalDepositModal> {
                         autofocus: true,
                         onChanged: (_) => setState(() {}),
                         style: GoogleFonts.bricolageGrotesque(
-                          color: DashboardTokens.periwinkleGray,
+                          color: context.kColors.textPrimary,
                           fontSize: 44,
                           fontWeight: FontWeight.bold,
                         ),
@@ -249,7 +250,7 @@ class _GoalDepositModalState extends ConsumerState<_GoalDepositModal> {
                 textAlign: TextAlign.center,
                 text: TextSpan(
                   style: GoogleFonts.dmSans(
-                    color: DashboardTokens.periwinkleGraySubtitle,
+                    color: context.kColors.textSecondary,
                     fontSize: 14,
                   ),
                   children: [
@@ -261,7 +262,7 @@ class _GoalDepositModalState extends ConsumerState<_GoalDepositModal> {
                       text:
                           '${CurrencyFormatter.format(projectedCurrent, decimalDigits: 0)} ($projectedPercent%)',
                       style: GoogleFonts.dmSans(
-                        color: DashboardTokens.bermuda,
+                        color: context.kColors.success,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -278,9 +279,9 @@ class _GoalDepositModalState extends ConsumerState<_GoalDepositModal> {
                 vertical: 18.5,
               ),
               decoration: BoxDecoration(
-                color: DashboardTokens.bigStone,
+                color: context.kColors.inputFill,
                 borderRadius: BorderRadius.circular(28),
-                border: Border.all(color: DashboardTokens.poloBlue22),
+                border: Border.all(color: context.kColors.cardBorder),
               ),
               child: selectedAccount != null
                   ? Row(
@@ -290,7 +291,7 @@ class _GoalDepositModalState extends ConsumerState<_GoalDepositModal> {
                           child: Text(
                             'From',
                             style: GoogleFonts.dmSans(
-                              color: DashboardTokens.periwinkleGraySubtitle,
+                              color: context.kColors.textSecondary,
                               fontSize: 14,
                             ),
                           ),
@@ -299,7 +300,7 @@ class _GoalDepositModalState extends ConsumerState<_GoalDepositModal> {
                           child: Text(
                             selectedAccount.name,
                             style: GoogleFonts.dmSans(
-                              color: DashboardTokens.periwinkleGray,
+                              color: context.kColors.textPrimary,
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                             ),
@@ -310,7 +311,7 @@ class _GoalDepositModalState extends ConsumerState<_GoalDepositModal> {
                               ? CurrencyFormatter.format(selectedBalance)
                               : '—',
                           style: GoogleFonts.dmSans(
-                            color: DashboardTokens.periwinkleGraySubtitle,
+                            color: context.kColors.textSecondary,
                             fontSize: 14,
                           ),
                         ),
@@ -321,8 +322,8 @@ class _GoalDepositModalState extends ConsumerState<_GoalDepositModal> {
                       textAlign: TextAlign.center,
                       style: GoogleFonts.dmSans(
                         color: accountsAsync.hasError
-                            ? DashboardTokens.apricot
-                            : DashboardTokens.periwinkleGraySubtitle,
+                            ? context.kColors.danger
+                            : context.kColors.textSecondary,
                         fontSize: 14,
                       ),
                     ),
@@ -336,7 +337,7 @@ class _GoalDepositModalState extends ConsumerState<_GoalDepositModal> {
                 'This money is set aside for the goal and comes out of your safe-to-spend.',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.dmSans(
-                  color: DashboardTokens.periwinkleGraySubtitle,
+                  color: context.kColors.textSecondary,
                   fontSize: 14,
                   height: 1.4,
                 ),
@@ -348,7 +349,7 @@ class _GoalDepositModalState extends ConsumerState<_GoalDepositModal> {
                 _errorMessage!,
                 textAlign: TextAlign.center,
                 style: GoogleFonts.dmSans(
-                  color: DashboardTokens.apricot,
+                  color: context.kColors.danger,
                   fontSize: 13,
                 ),
               ),

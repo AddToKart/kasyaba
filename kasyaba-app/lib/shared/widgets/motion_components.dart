@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../app/theme/app_motion.dart';
-import '../../features/dashboard/widgets/dashboard_tokens.dart';
+import '../../app/theme/kasyaba_color_scheme.dart';
 
 /// ─────────────────────────────────────────────────────────────
 ///  Kasyaba Motion Suite — Choreographed Kinematics
@@ -247,6 +247,7 @@ class SlidingSegmentedPill extends StatelessWidget {
   Widget build(BuildContext context) {
     if (items.isEmpty) return const SizedBox.shrink();
 
+    final colors = context.kColors;
     final safeIndex = selectedIndex.clamp(0, items.length - 1);
     final count = items.length;
     final alignmentX = count > 1
@@ -257,10 +258,10 @@ class SlidingSegmentedPill extends StatelessWidget {
       height: height,
       padding: padding,
       decoration: BoxDecoration(
-        color: backgroundColor ?? DashboardTokens.bigStone,
+        color: backgroundColor ?? colors.card,
         borderRadius: BorderRadius.circular(borderRadius),
         border: Border.all(
-          color: DashboardTokens.poloBlue22,
+          color: colors.cardBorder,
           width: 1,
         ),
       ),
@@ -276,11 +277,11 @@ class SlidingSegmentedPill extends StatelessWidget {
               heightFactor: 1.0,
               child: Container(
                 decoration: BoxDecoration(
-                  color: activeColor ?? DashboardTokens.periwinkleGray,
+                  color: activeColor ?? colors.primaryButton,
                   borderRadius: BorderRadius.circular(pillRadius),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.25),
+                      color: colors.shadow.withValues(alpha: 0.25),
                       blurRadius: 6,
                       offset: const Offset(0, 2),
                     ),
@@ -311,9 +312,8 @@ class SlidingSegmentedPill extends StatelessWidget {
                           fontSize: fontSize,
                           fontWeight: FontWeight.bold,
                           color: safeIndex == i
-                              ? (activeTextColor ?? DashboardTokens.ebony)
-                              : (inactiveTextColor ??
-                                  DashboardTokens.periwinkleGraySubtitle),
+                              ? (activeTextColor ?? colors.onPrimaryButton)
+                              : (inactiveTextColor ?? colors.textSecondary),
                         ),
                         child: Text(
                           items[i],

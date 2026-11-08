@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../app/theme/kasyaba_color_scheme.dart';
 import '../../../app/theme/kasyaba_tokens.dart';
 import '../../../core/auth/auth_provider.dart';
 import '../../../core/connectivity/connectivity_service.dart';
@@ -99,9 +100,9 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
     final isOnline = ref.watch(isOnlineProvider);
 
     return Scaffold(
-      backgroundColor: KasyabaTokens.ebony,
+      backgroundColor: context.kColors.canvas,
       body: Container(
-        decoration: const BoxDecoration(gradient: KasyabaTokens.canvasGradient),
+        decoration: BoxDecoration(gradient: context.kColors.backgroundGradient),
         child: SafeArea(
           bottom: false,
           child: ListView(
@@ -122,16 +123,16 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
                         width: 50,
                         height: 50,
                         decoration: BoxDecoration(
-                          color: KasyabaTokens.bigStone,
+                          color: context.kColors.card,
                           borderRadius: BorderRadius.circular(24),
                           border: Border.all(
-                            color: KasyabaTokens.poloBlue22,
+                            color: context.kColors.cardBorder,
                             width: 1,
                           ),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.chevron_left_rounded,
-                          color: KasyabaTokens.periwinkleGray,
+                          color: context.kColors.textPrimary,
                           size: 26,
                         ),
                       ),
@@ -147,14 +148,14 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
                     Container(
                       width: 72,
                       height: 72,
-                      decoration: const BoxDecoration(
-                        color: KasyabaTokens.apricot15,
+                      decoration: BoxDecoration(
+                        color: context.kColors.dangerTint,
                         shape: BoxShape.circle,
                       ),
-                      child: const Center(
+                      child: Center(
                         child: Icon(
                           Icons.warning_amber_rounded,
-                          color: KasyabaTokens.apricot,
+                          color: context.kColors.danger,
                           size: 36,
                         ),
                       ),
@@ -166,7 +167,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
                       style: GoogleFonts.bricolageGrotesque(
                         fontSize: 26,
                         fontWeight: FontWeight.w700,
-                        color: KasyabaTokens.periwinkleGray,
+                        color: context.kColors.textPrimary,
                       ),
                     ),
                   ],
@@ -178,12 +179,12 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(19),
                   decoration: BoxDecoration(
-                    color: KasyabaTokens.bigStone,
+                    color: context.kColors.card,
                     borderRadius: BorderRadius.circular(
                       KasyabaTokens.radiusCard,
                     ),
                     border: Border.all(
-                      color: KasyabaTokens.poloBlue22,
+                      color: context.kColors.cardBorder,
                       width: 1,
                     ),
                   ),
@@ -195,7 +196,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
                         style: GoogleFonts.dmSans(
                           fontSize: 14,
                           fontWeight: FontWeight.w400,
-                          color: KasyabaTokens.periwinkleGray,
+                          color: context.kColors.textPrimary,
                           height: 1.45,
                         ),
                       ),
@@ -205,7 +206,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
                         style: GoogleFonts.dmSans(
                           fontSize: 14,
                           fontWeight: FontWeight.w400,
-                          color: KasyabaTokens.periwinkleGray,
+                          color: context.kColors.textPrimary,
                           height: 1.6,
                         ),
                       ),
@@ -215,7 +216,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
                         style: GoogleFonts.dmSans(
                           fontSize: 14,
                           fontWeight: FontWeight.w400,
-                          color: KasyabaTokens.apricot,
+                          color: context.kColors.danger,
                           height: 1.45,
                         ),
                       ),
@@ -243,7 +244,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
                     style: GoogleFonts.dmSans(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
-                      color: KasyabaTokens.periwinkleGray,
+                      color: context.kColors.textPrimary,
                       letterSpacing: 1.0,
                     ),
                     decoration: InputDecoration(
@@ -251,7 +252,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
                       hintStyle: GoogleFonts.dmSans(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
-                        color: KasyabaTokens.poloBlue40,
+                        color: context.kColors.icon.withValues(alpha: 0.4),
                         letterSpacing: 1.0,
                       ),
                       border: InputBorder.none,
@@ -275,13 +276,13 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
                       style: GoogleFonts.dmSans(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
-                        color: KasyabaTokens.periwinkleGray,
+                        color: context.kColors.textPrimary,
                       ),
                       decoration: InputDecoration(
                         hintText: 'Your password',
                         hintStyle: GoogleFonts.dmSans(
                           fontSize: 15,
-                          color: KasyabaTokens.poloBlue40,
+                          color: context.kColors.icon.withValues(alpha: 0.4),
                         ),
                         border: InputBorder.none,
                         enabledBorder: InputBorder.none,
@@ -332,9 +333,9 @@ class _DeleteField extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 21, vertical: 6),
       decoration: BoxDecoration(
-        color: KasyabaTokens.bigStone,
+        color: context.kColors.inputFill,
         borderRadius: BorderRadius.circular(KasyabaTokens.radiusCard),
-        border: Border.all(color: KasyabaTokens.poloBlue22, width: 1),
+        border: Border.all(color: context.kColors.cardBorder, width: 1),
       ),
       child: Row(
         children: [
@@ -345,7 +346,7 @@ class _DeleteField extends StatelessWidget {
               style: GoogleFonts.dmSans(
                 fontSize: 14,
                 fontWeight: FontWeight.w400,
-                color: KasyabaTokens.periwinkleGraySubtitle,
+                color: context.kColors.textSecondary,
               ),
             ),
           ),

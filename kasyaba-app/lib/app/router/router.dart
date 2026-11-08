@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../theme/kasyaba_color_scheme.dart';
 import '../../features/auth/screens/login_screen.dart';
 import '../../features/auth/screens/register_screen.dart';
 import '../../features/auth/screens/forgot_password_screen.dart';
@@ -28,7 +29,6 @@ import '../../features/settings/screens/privacy_about_screen.dart';
 import '../../features/splash/screens/splash_screen.dart';
 import '../../shared/widgets/motion_components.dart';
 import '../../shared/widgets/app_state_widgets.dart';
-import '../theme/kasyaba_tokens.dart';
 import '../../core/auth/auth_provider.dart';
 import '../../core/providers/api_providers.dart';
 import 'app_shell.dart';
@@ -198,7 +198,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               key: state.pageKey,
               child: Builder(
                 builder: (context) => Scaffold(
-                  backgroundColor: KasyabaTokens.ebony,
+                  backgroundColor: context.kColors.canvas,
                   body: SafeArea(
                     child: Center(
                       child: Padding(

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../../app/theme/kasyaba_tokens.dart';
+import '../../../app/theme/kasyaba_color_scheme.dart';
 import '../../../shared/widgets/kasyaba_background.dart';
 
 /// Shown while the stored session is being restored so authenticated users
@@ -11,8 +11,10 @@ class SplashScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.kColors;
+
     return Scaffold(
-      backgroundColor: KasyabaTokens.ebony,
+      backgroundColor: colors.canvas,
       body: KasyabaBackground(
         child: Center(
           child: Column(
@@ -23,9 +25,9 @@ class SplashScreen extends StatelessWidget {
                 height: 88,
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: KasyabaTokens.ebony,
+                  color: colors.canvas,
                   shape: BoxShape.circle,
-                  border: Border.all(color: KasyabaTokens.poloBlue30),
+                  border: Border.all(color: colors.cardBorder),
                 ),
                 child: Image.asset(
                   'assets/images/brand/kasyaba_mark.png',
@@ -36,19 +38,19 @@ class SplashScreen extends StatelessWidget {
               Text(
                 'KASYABA',
                 style: GoogleFonts.bricolageGrotesque(
-                  color: KasyabaTokens.periwinkleGray,
+                  color: colors.textPrimary,
                   fontSize: 22,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 4,
                 ),
               ),
               const SizedBox(height: 24),
-              const SizedBox(
+              SizedBox(
                 width: 22,
                 height: 22,
                 child: CircularProgressIndicator(
                   strokeWidth: 2.4,
-                  color: KasyabaTokens.periwinkleGray,
+                  color: colors.primaryButton,
                 ),
               ),
             ],

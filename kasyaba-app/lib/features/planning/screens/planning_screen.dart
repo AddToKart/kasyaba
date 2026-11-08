@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_motion.dart';
+import '../../../app/theme/kasyaba_color_scheme.dart';
 import '../../../shared/widgets/motion_components.dart';
 import '../../../core/connectivity/connectivity_service.dart';
 import '../../../core/errors/error_messages.dart';
@@ -50,29 +51,31 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     final hasInputError =
         billsAsync.hasError || goalsAsync.hasError || userProfileAsync.hasError;
 
-    final topPadding = math.max(
-      56.0,
-      MediaQuery.paddingOf(context).top + 16.0,
-    );
+    final topPadding = math.max(56.0, MediaQuery.paddingOf(context).top + 16.0);
 
     return Scaffold(
-      backgroundColor: DashboardTokens.ebony,
+      backgroundColor: context.kColors.canvas,
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        decoration: const BoxDecoration(
-          color: DashboardTokens.ebony,
-          gradient: DashboardTokens.canvasGradient,
+        decoration: BoxDecoration(
+          color: context.kColors.canvas,
+          gradient: context.kColors.backgroundGradient,
         ),
         child: RefreshIndicator(
-          color: DashboardTokens.periwinkleGray,
-          backgroundColor: DashboardTokens.bigStone,
+          color: context.kColors.textPrimary,
+          backgroundColor: context.kColors.card,
           onRefresh: () async {
             ref.invalidate(planningProvider);
             ref.invalidate(dashboardProvider);
           },
           child: ListView(
-            padding: EdgeInsets.fromLTRB(20, topPadding, 20, DashboardTokens.dockClearance),
+            padding: EdgeInsets.fromLTRB(
+              20,
+              topPadding,
+              20,
+              DashboardTokens.dockClearance,
+            ),
             children: [
               // ── 1. Page Header (Node 92:38) ────────────────────────
               _ForecastingHeader(
@@ -168,8 +171,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                         error: (err, _) => isOnline
                             ? KasyabaErrorCard(
                                 message: friendlyErrorMessage(err),
-                                onRetry: () =>
-                                    ref.invalidate(planningProvider),
+                                onRetry: () => ref.invalidate(planningProvider),
                               )
                             : const SizedBox.shrink(),
                         data: (overview) {
@@ -220,7 +222,7 @@ class _ForecastingHeader extends StatelessWidget {
               Text(
                 'Affordability Forecasting',
                 style: GoogleFonts.bricolageGrotesque(
-                  color: DashboardTokens.periwinkleGray,
+                  color: context.kColors.textPrimary,
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
@@ -229,7 +231,7 @@ class _ForecastingHeader extends StatelessWidget {
               Text(
                 'Simulate any purchase before you spend. Evaluates bill conflicts, cash buffer, and savings goal delays.',
                 style: GoogleFonts.dmSans(
-                  color: DashboardTokens.periwinkleGraySubtitle,
+                  color: context.kColors.textSecondary,
                   fontSize: 14,
                   height: 1.4,
                 ),
@@ -247,16 +249,16 @@ class _ForecastingHeader extends StatelessWidget {
             height: 44,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: DashboardTokens.bigStone,
+              color: context.kColors.card,
               borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: DashboardTokens.poloBlue22, width: 1),
+              border: Border.all(color: context.kColors.cardBorder, width: 1),
             ),
             child: SvgPicture.asset(
               'assets/images/forecast_icon.svg',
               width: 22,
               height: 22,
-              colorFilter: const ColorFilter.mode(
-                DashboardTokens.periwinkleGray,
+              colorFilter: ColorFilter.mode(
+                context.kColors.textPrimary,
                 BlendMode.srcIn,
               ),
             ),
@@ -290,9 +292,12 @@ class _SafeSpendHeroCard extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(21),
           decoration: BoxDecoration(
-            color: DashboardTokens.cello60,
+            color: context.kColors.cardHero,
             borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: DashboardTokens.poloBlue30, width: 1),
+            border: Border.all(
+              color: context.kColors.cardBorderStrong,
+              width: 1,
+            ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -301,7 +306,7 @@ class _SafeSpendHeroCard extends StatelessWidget {
               Text(
                 'SAFE TO SPEND TODAY',
                 style: GoogleFonts.dmSans(
-                  color: DashboardTokens.periwinkleGraySubtitle,
+                  color: context.kColors.textSecondary,
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.0,
@@ -316,7 +321,7 @@ class _SafeSpendHeroCard extends StatelessWidget {
                 child: Text(
                   CurrencyFormatter.format(safeSpendCalc.dailySafeSpend),
                   style: GoogleFonts.bricolageGrotesque(
-                    color: DashboardTokens.periwinkleGray,
+                    color: context.kColors.textPrimary,
                     fontSize: 44,
                     height: 46.2 / 44,
                     fontWeight: FontWeight.bold,
@@ -329,14 +334,14 @@ class _SafeSpendHeroCard extends StatelessWidget {
               Text(
                 'For the next ${safeSpendCalc.daysUntilPayday} days, until $paydayDateStr payday',
                 style: GoogleFonts.dmSans(
-                  color: DashboardTokens.periwinkleGraySubtitle,
+                  color: context.kColors.textSecondary,
                   fontSize: 15,
                 ),
               ),
               const SizedBox(height: 14),
 
               // Divider
-              Container(height: 1, color: DashboardTokens.poloBlue22),
+              Container(height: 1, color: context.kColors.cardBorder),
               const SizedBox(height: 12),
 
               // Total balance row
@@ -346,14 +351,14 @@ class _SafeSpendHeroCard extends StatelessWidget {
                   Text(
                     'Total balance',
                     style: GoogleFonts.dmSans(
-                      color: DashboardTokens.periwinkleGraySubtitle,
+                      color: context.kColors.textSecondary,
                       fontSize: 14,
                     ),
                   ),
                   Text(
                     CurrencyFormatter.format(totalBalance),
                     style: GoogleFonts.dmSans(
-                      color: DashboardTokens.periwinkleGray,
+                      color: context.kColors.textPrimary,
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                       fontFeatures: CurrencyFormatter.tabularFigures,
@@ -372,7 +377,7 @@ class _SafeSpendHeroCard extends StatelessWidget {
                   onTap: onTestPurchaseTap,
                   child: Container(
                     decoration: BoxDecoration(
-                      color: DashboardTokens.periwinkleGray,
+                      color: context.kColors.primaryButton,
                       borderRadius: BorderRadius.circular(28),
                     ),
                     alignment: Alignment.center,
@@ -381,7 +386,7 @@ class _SafeSpendHeroCard extends StatelessWidget {
                       style: GoogleFonts.dmSans(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: DashboardTokens.ebony,
+                        color: context.kColors.onPrimaryButton,
                       ),
                     ),
                   ),
@@ -421,9 +426,9 @@ class _AllocationCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: DashboardTokens.bigStone,
+        color: context.kColors.card,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: DashboardTokens.poloBlue22, width: 1),
+        border: Border.all(color: context.kColors.cardBorder, width: 1),
       ),
       padding: const EdgeInsets.all(19),
       child: Column(
@@ -433,7 +438,7 @@ class _AllocationCard extends StatelessWidget {
           Text(
             'WHERE TODAY’S $titleSpendStr GOES',
             style: GoogleFonts.dmSans(
-              color: DashboardTokens.periwinkleGraySubtitle,
+              color: context.kColors.textSecondary,
               fontSize: 12,
               fontWeight: FontWeight.bold,
               letterSpacing: 1.0,
@@ -453,7 +458,7 @@ class _AllocationCard extends StatelessWidget {
                       flex: math.max(1, freePct),
                       child: Container(
                         decoration: BoxDecoration(
-                          color: DashboardTokens.cornflowerBlue,
+                          color: context.kColors.accentViolet,
                           borderRadius: BorderRadius.circular(5),
                         ),
                       ),
@@ -463,7 +468,7 @@ class _AllocationCard extends StatelessWidget {
                       flex: math.max(1, goalsPct),
                       child: Container(
                         decoration: BoxDecoration(
-                          color: DashboardTokens.java,
+                          color: context.kColors.accentTeal,
                           borderRadius: BorderRadius.circular(5),
                         ),
                       ),
@@ -473,7 +478,7 @@ class _AllocationCard extends StatelessWidget {
                       flex: math.max(1, billsPct),
                       child: Container(
                         decoration: BoxDecoration(
-                          color: DashboardTokens.casablanca,
+                          color: context.kColors.warning,
                           borderRadius: BorderRadius.circular(5),
                         ),
                       ),
@@ -488,17 +493,17 @@ class _AllocationCard extends StatelessWidget {
             Row(
               children: [
                 _LegendItem(
-                  color: DashboardTokens.cornflowerBlue,
+                  color: context.kColors.accentViolet,
                   label: 'Free $freePct%',
                 ),
                 const SizedBox(width: 14),
                 _LegendItem(
-                  color: DashboardTokens.java,
+                  color: context.kColors.accentTeal,
                   label: 'Goals $goalsPct%',
                 ),
                 const SizedBox(width: 14),
                 _LegendItem(
-                  color: DashboardTokens.casablanca,
+                  color: context.kColors.warning,
                   label: 'Bills $billsPct%',
                 ),
               ],
@@ -508,14 +513,14 @@ class _AllocationCard extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: DashboardTokens.ebony.withValues(alpha: 0.45),
+                color: context.kColors.canvas.withValues(alpha: 0.45),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: DashboardTokens.poloBlue22),
+                border: Border.all(color: context.kColors.cardBorder),
               ),
               child: Text(
                 'No allocation data yet. Add unpaid bills or active goals to see where your money goes.',
                 style: GoogleFonts.dmSans(
-                  color: DashboardTokens.periwinkleGraySubtitle,
+                  color: context.kColors.textSecondary,
                   fontSize: 12.5,
                   height: 1.4,
                 ),
@@ -550,7 +555,7 @@ class _LegendItem extends StatelessWidget {
         Text(
           label,
           style: GoogleFonts.dmSans(
-            color: DashboardTokens.baliHai,
+            color: context.kColors.textMuted,
             fontSize: 11,
           ),
         ),
@@ -581,9 +586,9 @@ class _AssumptionsCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: DashboardTokens.bigStone,
+        color: context.kColors.card,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: DashboardTokens.poloBlue22, width: 1),
+        border: Border.all(color: context.kColors.cardBorder, width: 1),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 19, vertical: 3),
       child: Column(
@@ -604,7 +609,7 @@ class _AssumptionsCard extends StatelessWidget {
                           Text(
                             'Planned transactions',
                             style: GoogleFonts.dmSans(
-                              color: DashboardTokens.zircon,
+                              color: context.kColors.textPrimary,
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
                             ),
@@ -613,7 +618,7 @@ class _AssumptionsCard extends StatelessWidget {
                           Text(
                             '$plannedCount scheduled in window · ${CurrencyFormatter.format(totalPlannedOut)} planned out',
                             style: GoogleFonts.dmSans(
-                              color: DashboardTokens.baliHai,
+                              color: context.kColors.textMuted,
                               fontSize: 12,
                             ),
                           ),
@@ -627,8 +632,8 @@ class _AssumptionsCard extends StatelessWidget {
                         'assets/images/assumptions_icon.svg',
                         width: 18,
                         height: 18,
-                        colorFilter: const ColorFilter.mode(
-                          DashboardTokens.baliHai,
+                        colorFilter: ColorFilter.mode(
+                          context.kColors.textMuted,
                           BlendMode.srcIn,
                         ),
                       ),
@@ -641,7 +646,7 @@ class _AssumptionsCard extends StatelessWidget {
 
           // Collapsible planned days breakdown
           if (isExpanded) ...[
-            const Divider(color: DashboardTokens.poloBlue22, height: 1),
+            Divider(color: context.kColors.cardBorder, height: 1),
             const SizedBox(height: 10),
             for (final day in overview.days.where(
               (d) => d.expenses > 0 || d.bills > 0 || d.income > 0,
@@ -654,7 +659,7 @@ class _AssumptionsCard extends StatelessWidget {
                     Text(
                       DateFormat('MMM d, E').format(day.date),
                       style: GoogleFonts.dmSans(
-                        color: DashboardTokens.periwinkleGraySubtitle,
+                        color: context.kColors.textSecondary,
                         fontSize: 12,
                       ),
                     ),
@@ -666,8 +671,8 @@ class _AssumptionsCard extends StatelessWidget {
                                 : '-${CurrencyFormatter.format(day.expenses)}'),
                       style: GoogleFonts.dmSans(
                         color: day.income > 0
-                            ? DashboardTokens.bermuda
-                            : DashboardTokens.periwinkleGray,
+                            ? context.kColors.success
+                            : context.kColors.textPrimary,
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                         fontFeatures: CurrencyFormatter.tabularFigures,
@@ -694,12 +699,12 @@ class _HeroLoadingState extends StatelessWidget {
     return Container(
       height: 272,
       decoration: BoxDecoration(
-        color: DashboardTokens.bigStone,
+        color: context.kColors.card,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: DashboardTokens.poloBlue22),
+        border: Border.all(color: context.kColors.cardBorder),
       ),
-      child: const Center(
-        child: CircularProgressIndicator(color: DashboardTokens.periwinkleGray),
+      child: Center(
+        child: CircularProgressIndicator(color: context.kColors.textPrimary),
       ),
     );
   }
@@ -716,10 +721,10 @@ class _ErrorCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: DashboardTokens.bigStone,
+        color: context.kColors.card,
         borderRadius: BorderRadius.circular(28),
         border: Border.all(
-          color: DashboardTokens.apricot.withValues(alpha: 0.4),
+          color: context.kColors.danger.withValues(alpha: 0.4),
         ),
       ),
       child: Column(
@@ -727,22 +732,22 @@ class _ErrorCard extends StatelessWidget {
           Text(
             message,
             style: GoogleFonts.dmSans(
-              color: DashboardTokens.apricot,
+              color: context.kColors.danger,
               fontSize: 13,
             ),
           ),
           const SizedBox(height: 12),
           TextButton.icon(
             onPressed: onRetry,
-            icon: const Icon(
+            icon: Icon(
               Icons.refresh,
               size: 16,
-              color: DashboardTokens.periwinkleGray,
+              color: context.kColors.textPrimary,
             ),
             label: Text(
               'Retry',
               style: GoogleFonts.dmSans(
-                color: DashboardTokens.periwinkleGray,
+                color: context.kColors.textPrimary,
                 fontWeight: FontWeight.bold,
               ),
             ),

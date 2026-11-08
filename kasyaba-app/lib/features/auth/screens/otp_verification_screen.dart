@@ -5,8 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../../app/theme/app_theme.dart';
-import '../../../app/theme/kasyaba_tokens.dart';
+import '../../../app/theme/kasyaba_color_scheme.dart';
 import '../../../core/auth/auth_provider.dart';
 import '../../../shared/widgets/kasyaba_toast.dart';
 import '../widgets/auth_widgets.dart';
@@ -14,10 +13,7 @@ import '../widgets/auth_widgets.dart';
 class OtpVerificationScreen extends ConsumerStatefulWidget {
   final String email;
 
-  const OtpVerificationScreen({
-    super.key,
-    required this.email,
-  });
+  const OtpVerificationScreen({super.key, required this.email});
 
   @override
   ConsumerState<OtpVerificationScreen> createState() =>
@@ -101,7 +97,8 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
 
     if (_expirySeconds <= 0) {
       setState(() {
-        _localError = 'Verification code has expired. Please request a new one.';
+        _localError =
+            'Verification code has expired. Please request a new one.';
       });
       return;
     }
@@ -111,25 +108,22 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
     });
 
     try {
-      final resetToken = await ref.read(authProvider.notifier).verifyOtp(
-            email: widget.email,
-            otp: otp,
-          );
+      final resetToken = await ref
+          .read(authProvider.notifier)
+          .verifyOtp(email: widget.email, otp: otp);
 
       if (!mounted) return;
 
       context.push(
         '/new-password',
-        extra: {
-          'email': widget.email,
-          'resetToken': resetToken,
-        },
+        extra: {'email': widget.email, 'resetToken': resetToken},
       );
     } catch (_) {
       // Error is set in AuthState or caught locally
       if (mounted) {
         setState(() {
-          _localError = ref.read(authProvider).error ??
+          _localError =
+              ref.read(authProvider).error ??
               'Invalid verification code. Please check and try again.';
           _otpController.clear();
         });
@@ -188,12 +182,13 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
     final authState = ref.watch(authProvider);
     final size = MediaQuery.sizeOf(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = context.kColors;
 
     final errorMessage = _localError ?? authState.error;
     final currentCode = _otpController.text;
 
     return Scaffold(
-      backgroundColor: isDark ? AuthFigmaTokens.ebony : AppColors.lightScaffold,
+      backgroundColor: colors.canvas,
       body: Stack(
         children: [
           AuthForgotPassBackground(size: size, isDark: isDark),
@@ -225,9 +220,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                                 fontWeight: FontWeight.w700,
                                 fontSize: 32,
                                 height: 1.1,
-                                color: isDark
-                                    ? AuthFigmaTokens.periwinkleGray
-                                    : AppColors.lightTextPrimary,
+                                color: colors.textPrimary,
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -237,9 +230,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                                 fontSize: 14,
                                 fontWeight: FontWeight.w400,
                                 height: 1.45,
-                                color: isDark
-                                    ? AuthFigmaTokens.periwinkleGraySubtitle
-                                    : AppColors.lightTextSecondary,
+                                color: colors.textSecondary,
                               ),
                             ),
                             const SizedBox(height: 20),
@@ -270,8 +261,11 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                                             keyboardType: TextInputType.number,
                                             maxLength: 6,
                                             inputFormatters: [
-                                              FilteringTextInputFormatter.digitsOnly,
-                                              LengthLimitingTextInputFormatter(6),
+                                              FilteringTextInputFormatter
+                                                  .digitsOnly,
+                                              LengthLimitingTextInputFormatter(
+                                                6,
+                                              ),
                                             ],
                                             onChanged: (val) {
                                               setState(() {});
@@ -291,47 +285,55 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                                                 index < currentCode.length;
                                             final isCurrent =
                                                 index == currentCode.length &&
-                                                    _focusNode.hasFocus;
+                                                _focusNode.hasFocus;
                                             final digit = isFilled
                                                 ? currentCode[index]
                                                 : '';
 
                                             return AnimatedContainer(
                                               duration: const Duration(
-                                                  milliseconds: 150),
+                                                milliseconds: 150,
+                                              ),
                                               width: 44,
                                               height: 52,
                                               alignment: Alignment.center,
                                               decoration: BoxDecoration(
                                                 color: isDark
                                                     ? (isCurrent
-                                                        ? AuthFigmaTokens.cello55
-                                                        : AuthFigmaTokens.ebony55)
-                                                    : (isCurrent
-                                                        ? AppColors.lightCardSurface
-                                                        : AppColors.lightCardSurface),
+                                                          ? colors.cardHero
+                                                                .withValues(
+                                                                  alpha: 0.55,
+                                                                )
+                                                          : colors.canvas
+                                                                .withValues(
+                                                                  alpha: 0.55,
+                                                                ))
+                                                    : colors.card,
                                                 borderRadius:
                                                     BorderRadius.circular(14),
                                                 border: Border.all(
                                                   color: isCurrent
-                                                      ? KasyabaTokens.bermuda
+                                                      ? colors.success
                                                       : (isFilled
-                                                          ? AuthFigmaTokens
-                                                              .poloBlue35
-                                                          : (isDark
-                                                              ? AuthFigmaTokens
-                                                                  .poloBlue28
-                                                              : AppColors
-                                                                  .lightBorderHairline)),
+                                                            ? (isDark
+                                                                  ? colors.icon
+                                                                        .withValues(
+                                                                          alpha:
+                                                                              0.35,
+                                                                        )
+                                                                  : colors
+                                                                        .cardBorderStrong)
+                                                            : colors
+                                                                  .inputBorder),
                                                   width: isCurrent ? 2.0 : 1.2,
                                                 ),
                                                 boxShadow: isCurrent
                                                     ? [
                                                         BoxShadow(
-                                                          color: KasyabaTokens
-                                                              .bermuda
+                                                          color: colors.success
                                                               .withValues(
-                                                                  alpha: 0.2),
+                                                                alpha: 0.2,
+                                                              ),
                                                           blurRadius: 8,
                                                           spreadRadius: 1,
                                                         ),
@@ -343,13 +345,9 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                                                 style: GoogleFonts.dmSans(
                                                   fontSize: 22,
                                                   fontWeight: FontWeight.w700,
-                                                  color: isDark
-                                                      ? (isFilled
-                                                          ? KasyabaTokens.bermuda
-                                                          : AuthFigmaTokens
-                                                              .periwinkleGray)
-                                                      : AppColors
-                                                          .lightTextPrimary,
+                                                  color: isDark && isFilled
+                                                      ? colors.success
+                                                      : colors.textPrimary,
                                                 ),
                                               ),
                                             );
@@ -368,11 +366,8 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                                         Icons.timer_outlined,
                                         size: 16,
                                         color: _expirySeconds <= 60
-                                            ? KasyabaTokens.apricot
-                                            : (isDark
-                                                ? AuthFigmaTokens
-                                                    .periwinkleGraySubtitle
-                                                : AppColors.lightTextSecondary),
+                                            ? colors.danger
+                                            : colors.textSecondary,
                                       ),
                                       const SizedBox(width: 6),
                                       Text(
@@ -383,12 +378,8 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                                           fontSize: 13,
                                           fontWeight: FontWeight.w500,
                                           color: _expirySeconds <= 60
-                                              ? KasyabaTokens.apricot
-                                              : (isDark
-                                                  ? AuthFigmaTokens
-                                                      .periwinkleGraySubtitle
-                                                  : AppColors
-                                                      .lightTextSecondary),
+                                              ? colors.danger
+                                              : colors.textSecondary,
                                         ),
                                       ),
                                     ],
@@ -404,43 +395,41 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                                       Text(
                                         "Didn't receive code? ",
                                         style: GoogleFonts.dmSans(
-                                          color: isDark
-                                              ? AuthFigmaTokens
-                                                  .periwinkleGraySubtitle
-                                              : AppColors.lightTextSecondary,
+                                          color: colors.textSecondary,
                                           fontSize: 14,
                                           fontWeight: FontWeight.w400,
                                         ),
                                       ),
                                       GestureDetector(
-                                        onTap: (_cooldownSeconds == 0 &&
+                                        onTap:
+                                            (_cooldownSeconds == 0 &&
                                                 !_isResending)
                                             ? _handleResend
                                             : null,
                                         behavior: HitTestBehavior.opaque,
                                         child: Container(
-                                          padding:
-                                              const EdgeInsets.only(bottom: 2),
+                                          padding: const EdgeInsets.only(
+                                            bottom: 2,
+                                          ),
                                           decoration: BoxDecoration(
                                             border: Border(
                                               bottom: BorderSide(
                                                 color: _cooldownSeconds == 0
-                                                    ? AuthFigmaTokens.kashmirBlue
+                                                    ? colors.secondaryBorder
                                                     : Colors.transparent,
                                                 width: 1.5,
                                               ),
                                             ),
                                           ),
                                           child: _isResending
-                                              ? const SizedBox(
+                                              ? SizedBox(
                                                   height: 14,
                                                   width: 14,
                                                   child:
                                                       CircularProgressIndicator(
-                                                    strokeWidth: 1.8,
-                                                    color:
-                                                        KasyabaTokens.bermuda,
-                                                  ),
+                                                        strokeWidth: 1.8,
+                                                        color: colors.success,
+                                                      ),
                                                 )
                                               : Text(
                                                   _cooldownSeconds > 0
@@ -449,15 +438,14 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                                                   style: GoogleFonts.dmSans(
                                                     color: _cooldownSeconds > 0
                                                         ? (isDark
-                                                            ? AuthFigmaTokens
-                                                                .poloBlue28
-                                                            : AppColors
-                                                                .lightTextSecondary)
-                                                        : (isDark
-                                                            ? AuthFigmaTokens
-                                                                .periwinkleGray
-                                                            : AppColors
-                                                                .lightTextPrimary),
+                                                              ? colors.icon
+                                                                    .withValues(
+                                                                      alpha:
+                                                                          0.28,
+                                                                    )
+                                                              : colors
+                                                                    .textSecondary)
+                                                        : colors.textPrimary,
                                                     fontWeight: FontWeight.w700,
                                                     fontSize: 14,
                                                   ),

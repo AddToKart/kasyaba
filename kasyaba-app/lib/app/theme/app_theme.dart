@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'kasyaba_color_scheme.dart';
 import 'kasyaba_tokens.dart';
 
 /// ─────────────────────────────────────────────────────────────
@@ -157,6 +158,9 @@ class AppTheme {
       colorScheme: colorScheme,
       scaffoldBackgroundColor: KasyabaTokens.ebony,
       fontFamily: GoogleFonts.dmSans().fontFamily,
+      extensions: const <ThemeExtension<dynamic>>[
+        KasyabaThemeExt(colors: kasyabaDarkColors),
+      ],
 
       cardTheme: CardThemeData(
         color: KasyabaTokens.bigStone,
@@ -473,72 +477,69 @@ class AppTheme {
     );
   }
 
+  /// Porcelain counterpart of the navy system (LT-A foundation).
+  ///
+  /// Fully rebuilt from [KasyabaColorsLight]; no legacy zinc/emerald/Inter
+  /// surfaces remain in this pipeline.
   ThemeData get light {
+    final colors = kasyabaLightColors;
     final colorScheme = ColorScheme(
       brightness: Brightness.light,
-      primary: AppColors.emerald600,
-      onPrimary: Colors.white,
-      primaryContainer: AppColors.emerald100,
-      onPrimaryContainer: AppColors.emerald900,
-      secondary: AppColors.lightTextSecondary,
-      onSecondary: Colors.white,
-      secondaryContainer: AppColors.lightInputFill,
-      onSecondaryContainer: AppColors.lightTextPrimary,
-      tertiary: AppColors.info,
-      onTertiary: Colors.white,
-      tertiaryContainer: AppColors.lightInputFill,
-      onTertiaryContainer: AppColors.lightTextPrimary,
-      error: AppColors.expense,
-      onError: Colors.white,
-      errorContainer: const Color(0xFFFFE4E6),
-      onErrorContainer: const Color(0xFF9F1239),
-      surface: AppColors.lightCardSurface,
-      onSurface: AppColors.lightTextPrimary,
-      surfaceContainerHighest: AppColors.lightInputFill,
-      onSurfaceVariant: AppColors.lightTextSecondary,
-      outline: AppColors.lightBorderHairline,
-      outlineVariant: AppColors.lightBorderSubtle,
-      inverseSurface: AppColors.surface800,
-      onInverseSurface: AppColors.textDark,
-      inversePrimary: AppColors.emerald400,
-      shadow: const Color(0x0A000000),
-      scrim: Colors.black,
+      primary: colors.primaryButton,
+      onPrimary: colors.onPrimaryButton,
+      primaryContainer: colors.cardHero,
+      onPrimaryContainer: colors.textPrimary,
+      secondary: colors.textMuted,
+      onSecondary: colors.card,
+      secondaryContainer: colors.inputFill,
+      onSecondaryContainer: colors.textPrimary,
+      tertiary: colors.accentTeal,
+      onTertiary: colors.card,
+      tertiaryContainer: colors.successTint,
+      onTertiaryContainer: colors.textPrimary,
+      error: colors.danger,
+      onError: colors.card,
+      errorContainer: colors.dangerTint,
+      onErrorContainer: colors.danger,
+      surface: colors.canvas,
+      onSurface: colors.textPrimary,
+      surfaceContainerHighest: colors.inputFill,
+      onSurfaceVariant: colors.textSecondary,
+      outline: colors.cardBorder,
+      outlineVariant: colors.divider,
+      inverseSurface: colors.textPrimary,
+      onInverseSurface: colors.canvas,
+      inversePrimary: colors.primaryButton,
+      shadow: colors.shadow,
+      scrim: colors.scrim,
       surfaceTint: Colors.transparent,
     );
 
-    return _buildTheme(colorScheme, isDark: false);
-  }
-
-  ThemeData _buildTheme(ColorScheme cs, {required bool isDark}) {
-    final scaffoldBg = isDark ? AppColors.obsidian : AppColors.lightScaffold;
-    final textPrimary = isDark ? AppColors.textDark : AppColors.lightTextPrimary;
-    final textMuted = isDark ? AppColors.textMuted : AppColors.lightTextSecondary;
-    final cardBg = isDark ? AppColors.surfaceCard : AppColors.lightCardSurface;
-    final cardBorder = isDark ? AppColors.subtleBorder : AppColors.lightBorderHairline;
-    final inputFill = isDark ? AppColors.surface700 : AppColors.lightInputFill;
-
     return ThemeData(
       useMaterial3: true,
-      brightness: isDark ? Brightness.dark : Brightness.light,
-      colorScheme: cs,
-      scaffoldBackgroundColor: scaffoldBg,
-      fontFamily: GoogleFonts.inter().fontFamily,
+      brightness: Brightness.light,
+      colorScheme: colorScheme,
+      scaffoldBackgroundColor: colors.canvas,
+      fontFamily: GoogleFonts.dmSans().fontFamily,
+      extensions: const <ThemeExtension<dynamic>>[
+        KasyabaThemeExt(colors: kasyabaLightColors),
+      ],
 
-      appBarTheme: AppBarTheme(
+      appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
         systemOverlayStyle: SystemUiOverlayStyle(
           statusBarColor: Colors.transparent,
-          statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
-          systemNavigationBarColor: scaffoldBg,
-          systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+          statusBarIconBrightness: Brightness.dark,
+          systemNavigationBarColor: Color(0xFFF6F8FB),
+          systemNavigationBarIconBrightness: Brightness.dark,
         ),
-        iconTheme: IconThemeData(color: textPrimary, size: 22),
-        actionsIconTheme: IconThemeData(color: textMuted, size: 22),
+        iconTheme: IconThemeData(color: Color(0xFF6B8299), size: 22),
+        actionsIconTheme: IconThemeData(color: Color(0xFF5A6E85), size: 22),
         titleTextStyle: TextStyle(
-          color: textPrimary,
+          color: Color(0xFF0D1826),
           fontSize: 20,
           fontWeight: FontWeight.w800,
           letterSpacing: -0.3,
@@ -546,68 +547,71 @@ class AppTheme {
       ),
 
       cardTheme: CardThemeData(
-        elevation: isDark ? 0 : 1,
-        color: cardBg,
+        color: colors.card,
+        elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(cardRadius),
-          side: BorderSide(color: cardBorder, width: 1),
+          side: BorderSide(color: colors.cardBorder),
         ),
         margin: EdgeInsets.zero,
-        shadowColor: isDark ? Colors.transparent : const Color(0x08000000),
+        shadowColor: Colors.transparent,
       ),
 
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: inputFill,
+        fillColor: colors.inputFill,
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 14,
+          horizontal: 20,
+          vertical: 16,
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(inputRadius),
-          borderSide: BorderSide(color: cardBorder),
+          borderSide: BorderSide(color: colors.inputBorder),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(inputRadius),
-          borderSide: BorderSide(color: cardBorder, width: 1),
+          borderSide: BorderSide(color: colors.inputBorder),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(inputRadius),
           borderSide: BorderSide(
-            color: isDark ? const Color(0xFF52525B) : AppColors.emerald500,
+            color: colors.primaryButton,
             width: 1.5,
           ),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(inputRadius),
-          borderSide: const BorderSide(color: AppColors.expense, width: 1),
+          borderSide: BorderSide(color: colors.danger),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(inputRadius),
-          borderSide: const BorderSide(color: AppColors.expense, width: 1.5),
+          borderSide: BorderSide(
+            color: colors.danger,
+            width: 1.5,
+          ),
         ),
         labelStyle: TextStyle(
-          color: textMuted,
+          color: colors.textSecondary,
           fontWeight: FontWeight.w500,
           fontSize: 14,
         ),
         hintStyle: TextStyle(
-          color: isDark ? AppColors.textMutedL : AppColors.lightTextTertiary,
+          color: colors.textMuted.withValues(alpha: 0.7),
           fontSize: 14,
         ),
-        prefixIconColor: textMuted,
+        prefixIconColor: colors.textMuted,
       ),
 
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          minimumSize: const Size(0, 48),
+          minimumSize: const Size(0, 52),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(buttonRadius),
           ),
-          backgroundColor: AppColors.emerald500,
-          foregroundColor: Colors.black,
+          backgroundColor: colors.primaryButton,
+          foregroundColor: colors.onPrimaryButton,
           textStyle: const TextStyle(
-            fontWeight: FontWeight.w800,
+            fontWeight: FontWeight.w700,
             fontSize: 14.5,
             letterSpacing: 0.2,
           ),
@@ -617,21 +621,27 @@ class AppTheme {
 
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          minimumSize: const Size(0, 48),
+          minimumSize: const Size(0, 52),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(buttonRadius),
           ),
-          side: BorderSide(color: cardBorder, width: 1),
-          foregroundColor: textPrimary,
-          textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5),
+          side: BorderSide(color: colors.secondaryBorder),
+          foregroundColor: colors.primaryButton,
+          textStyle: const TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 14.5,
+          ),
           elevation: 0,
         ),
       ),
 
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: textPrimary,
-          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+          foregroundColor: colors.primaryButton,
+          textStyle: const TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+          ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(buttonRadius),
           ),
@@ -640,202 +650,211 @@ class AppTheme {
 
       chipTheme: ChipThemeData(
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(tagRadius),
-          side: BorderSide(color: cardBorder),
+          borderRadius: BorderRadius.circular(KasyabaTokens.radiusChip),
+          side: BorderSide(color: colors.cardBorder),
         ),
-        backgroundColor: inputFill,
+        backgroundColor: colors.inputFill,
         labelStyle: TextStyle(
           fontWeight: FontWeight.w600,
           fontSize: 12,
-          color: textPrimary,
+          color: colors.textPrimary,
         ),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       ),
 
-      navigationBarTheme: NavigationBarThemeData(
-        height: navbarHeight,
-        backgroundColor: scaffoldBg,
+      dialogTheme: DialogThemeData(
+        backgroundColor: colors.card,
         surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        indicatorColor: isDark
-            ? Colors.white.withValues(alpha: 0.08)
-            : Colors.black.withValues(alpha: 0.06),
-        iconTheme: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) {
-            return const IconThemeData(color: AppColors.emerald500, size: 23);
-          }
-          return IconThemeData(
-            color: isDark ? AppColors.textMutedL : AppColors.lightTextTertiary,
-            size: 21,
-          );
-        }),
-        labelTextStyle: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) {
-            return TextStyle(
-              color: textPrimary,
-              fontWeight: FontWeight.w700,
-              fontSize: 11,
-              letterSpacing: 0.2,
-            );
-          }
-          return TextStyle(
-            color: isDark ? AppColors.textMutedL : AppColors.lightTextTertiary,
-            fontWeight: FontWeight.w500,
-            fontSize: 11,
-          );
-        }),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(KasyabaTokens.radiusDialog),
+          side: BorderSide(color: colors.cardBorder),
+        ),
+        titleTextStyle: GoogleFonts.dmSans(
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+          color: colors.textPrimary,
+        ),
+        contentTextStyle: GoogleFonts.dmSans(
+          fontSize: 14,
+          color: colors.textSecondary,
+        ),
       ),
 
-      snackBarTheme: SnackBarThemeData(
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: isDark ? KasyabaTokens.bigStone : AppColors.lightCardSurface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-          side: BorderSide(
-            color: isDark ? KasyabaTokens.poloBlue22 : cardBorder,
-            width: 1,
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: colors.card,
+        surfaceTintColor: Colors.transparent,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(KasyabaTokens.radiusSheetTop),
           ),
         ),
-        insetPadding: const EdgeInsets.fromLTRB(16, 0, 16, 105),
-        contentTextStyle: GoogleFonts.dmSans(
-          fontWeight: FontWeight.bold,
-          fontSize: 14,
-          color: isDark ? KasyabaTokens.periwinkleGray : textPrimary,
-        ),
-        elevation: isDark ? 8 : 3,
+        dragHandleColor: colors.cardBorder,
       ),
-
-      progressIndicatorTheme: ProgressIndicatorThemeData(
-        color: AppColors.emerald500,
-        linearTrackColor: inputFill,
-        linearMinHeight: 6,
-      ),
-
-      dividerTheme: DividerThemeData(
-        color: cardBorder,
-        thickness: 1,
-        space: 1,
-      ),
-
-      iconTheme: IconThemeData(color: textMuted, size: 22),
 
       listTileTheme: ListTileThemeData(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         titleTextStyle: TextStyle(
           fontWeight: FontWeight.w700,
           fontSize: 14.5,
-          color: textPrimary,
+          color: colors.textPrimary,
         ),
         subtitleTextStyle: TextStyle(
           fontWeight: FontWeight.w400,
           fontSize: 12.5,
-          color: textMuted,
+          color: colors.textSecondary,
         ),
+        iconColor: colors.icon,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         tileColor: Colors.transparent,
       ),
 
-      floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: AppColors.emerald500,
-        foregroundColor: Colors.black,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(buttonRadius)),
-        elevation: 0,
-        extendedPadding: const EdgeInsets.symmetric(horizontal: 20),
-        extendedTextStyle: const TextStyle(
-          fontWeight: FontWeight.w800,
+      progressIndicatorTheme: ProgressIndicatorThemeData(
+        color: colors.primaryButton,
+        linearTrackColor: colors.inputFill,
+        linearMinHeight: 6,
+      ),
+
+      dividerTheme: DividerThemeData(
+        color: colors.divider,
+        thickness: 1,
+        space: 1,
+      ),
+
+      iconTheme: IconThemeData(
+        color: colors.icon,
+        size: 22,
+      ),
+
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: colors.card,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(KasyabaTokens.radiusDialog),
+          side: BorderSide(color: colors.cardBorder),
+        ),
+        insetPadding: const EdgeInsets.fromLTRB(16, 0, 16, 105),
+        contentTextStyle: GoogleFonts.dmSans(
+          fontWeight: FontWeight.bold,
           fontSize: 14,
-          letterSpacing: 0.3,
+          color: colors.textPrimary,
+        ),
+        elevation: 8,
+      ),
+
+      popupMenuTheme: PopupMenuThemeData(
+        color: colors.card,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: colors.cardBorder, width: 1),
+        ),
+        textStyle: GoogleFonts.dmSans(
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+          color: colors.textPrimary,
+        ),
+        elevation: 12,
+      ),
+
+      dropdownMenuTheme: DropdownMenuThemeData(
+        menuStyle: MenuStyle(
+          backgroundColor: WidgetStatePropertyAll(colors.card),
+          shape: WidgetStatePropertyAll(
+            RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              side: BorderSide(color: colors.cardBorder, width: 1),
+            ),
+          ),
+          elevation: const WidgetStatePropertyAll(12),
         ),
       ),
 
-      textTheme: GoogleFonts.interTextTheme(
+      textTheme: GoogleFonts.dmSansTextTheme(
         TextTheme(
           displayLarge: TextStyle(
             fontSize: 57,
             fontWeight: FontWeight.w800,
             letterSpacing: -1.5,
-            color: textPrimary,
+            color: colors.textPrimary,
           ),
           displayMedium: TextStyle(
             fontSize: 45,
             fontWeight: FontWeight.w800,
             letterSpacing: -1,
-            color: textPrimary,
+            color: colors.textPrimary,
           ),
           displaySmall: TextStyle(
             fontSize: 36,
             fontWeight: FontWeight.w700,
             letterSpacing: -0.8,
-            color: textPrimary,
+            color: colors.textPrimary,
           ),
           headlineLarge: TextStyle(
             fontSize: 32,
             fontWeight: FontWeight.w800,
             letterSpacing: -0.8,
-            color: textPrimary,
+            color: colors.textPrimary,
           ),
           headlineMedium: TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.w700,
             letterSpacing: -0.5,
-            color: textPrimary,
+            color: colors.textPrimary,
           ),
           headlineSmall: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.w700,
             letterSpacing: -0.3,
-            color: textPrimary,
+            color: colors.textPrimary,
           ),
           titleLarge: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w700,
             letterSpacing: -0.3,
-            color: textPrimary,
+            color: colors.textPrimary,
           ),
           titleMedium: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w600,
             letterSpacing: -0.2,
-            color: textPrimary,
+            color: colors.textPrimary,
           ),
           titleSmall: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w600,
-            letterSpacing: 0,
-            color: textPrimary,
+            color: colors.textPrimary,
           ),
           bodyLarge: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w400,
-            color: textPrimary,
+            color: colors.textPrimary,
           ),
           bodyMedium: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w400,
-            color: textPrimary,
+            color: colors.textPrimary,
           ),
           bodySmall: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w400,
-            color: textMuted,
+            color: colors.textSecondary,
           ),
           labelLarge: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.1,
-            color: textPrimary,
+            color: colors.textPrimary,
           ),
           labelMedium: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w500,
             letterSpacing: 0.4,
-            color: textMuted,
+            color: colors.textSecondary,
           ),
           labelSmall: TextStyle(
             fontSize: 10,
             fontWeight: FontWeight.w500,
             letterSpacing: 0.5,
-            color: textMuted,
+            color: colors.textSecondary,
           ),
         ),
       ),

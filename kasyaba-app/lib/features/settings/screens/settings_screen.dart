@@ -4,12 +4,14 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../app/theme/app_motion.dart';
+import '../../../app/theme/kasyaba_color_scheme.dart';
 import '../../../app/theme/kasyaba_tokens.dart';
 import '../../../core/app_info.dart';
 import '../../../core/auth/auth_provider.dart';
 import '../../../core/connectivity/connectivity_service.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
+import '../../../core/providers/theme_provider.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/ph_salary_calculator.dart';
 import '../../../shared/widgets/app_sheet.dart';
@@ -95,7 +97,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           final bottomInset = MediaQuery.viewInsetsOf(ctx).bottom;
 
           return AppSheet(
-            color: KasyabaTokens.ebony,
+            color: context.kColors.canvas,
             padding: EdgeInsets.fromLTRB(20, 0, 20, 24 + bottomInset),
             child: Form(
               key: formKey,
@@ -108,7 +110,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     style: GoogleFonts.bricolageGrotesque(
                       fontSize: 22,
                       fontWeight: FontWeight.w700,
-                      color: KasyabaTokens.periwinkleGray,
+                      color: context.kColors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -116,7 +118,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     'Set your salary and payout schedule so Kasyaba can accurately compute your daily safe-to-spend and forecast your money.',
                     style: GoogleFonts.dmSans(
                       fontSize: 14,
-                      color: KasyabaTokens.periwinkleGraySubtitle,
+                      color: context.kColors.textSecondary,
                     ),
                   ),
                   const SizedBox(height: 18),
@@ -126,10 +128,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     height: 52,
                     borderRadius: 26,
                     pillRadius: 22,
-                    backgroundColor: KasyabaTokens.bigStone,
-                    activeColor: KasyabaTokens.periwinkleGray,
-                    activeTextColor: KasyabaTokens.ebony,
-                    inactiveTextColor: KasyabaTokens.periwinkleGraySubtitle,
+                    backgroundColor: context.kColors.card,
+                    activeColor: context.kColors.primaryButton,
+                    activeTextColor: context.kColors.onPrimaryButton,
+                    inactiveTextColor: context.kColors.textSecondary,
                     fontSize: 13,
                     onChanged: (index) {
                       AppHaptics.selectionClick();
@@ -151,7 +153,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       key: ValueKey(isCalculatorMode),
                       style: GoogleFonts.dmSans(
                         fontSize: 13,
-                        color: KasyabaTokens.periwinkleGraySubtitle,
+                        color: context.kColors.textSecondary,
                         height: 1.35,
                       ),
                     ),
@@ -198,12 +200,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                     Container(
                                       padding: const EdgeInsets.all(19),
                                       decoration: BoxDecoration(
-                                        color: KasyabaTokens.cello60,
+                                        color: context.kColors.cardHero,
                                         borderRadius: BorderRadius.circular(
                                           KasyabaTokens.radiusCard,
                                         ),
                                         border: Border.all(
-                                          color: KasyabaTokens.poloBlue30,
+                                          color: context.kColors.cardBorderStrong,
                                         ),
                                       ),
                                       child: Column(
@@ -215,8 +217,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                             style: GoogleFonts.dmSans(
                                               fontSize: 11,
                                               fontWeight: FontWeight.w700,
-                                              color: KasyabaTokens
-                                                  .periwinkleGraySubtitle,
+                                              color: context.kColors.textSecondary,
                                               letterSpacing: 0.8,
                                             ),
                                           ),
@@ -230,8 +231,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                                 'Computed Net Pay:',
                                                 style: GoogleFonts.dmSans(
                                                   fontSize: 14,
-                                                  color: KasyabaTokens
-                                                      .periwinkleGraySubtitle,
+                                                  color: context.kColors.textSecondary,
                                                 ),
                                               ),
                                               Text(
@@ -243,7 +243,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                                   fontSize: 18,
                                                   fontWeight: FontWeight.w700,
                                                   color:
-                                                      KasyabaTokens.bermuda,
+                                                      context.kColors.success,
                                                 ),
                                               ),
                                             ],
@@ -446,7 +446,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               fontSize: 11,
               fontWeight: FontWeight.w700,
               letterSpacing: 1.0,
-              color: KasyabaTokens.periwinkleGraySubtitle,
+              color: context.kColors.textSecondary,
             ),
           ),
         ),
@@ -455,32 +455,32 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           style: GoogleFonts.dmSans(
             fontSize: 16,
             fontWeight: FontWeight.w500,
-            color: KasyabaTokens.periwinkleGray,
+            color: context.kColors.textPrimary,
           ),
           decoration: InputDecoration(
             isDense: true,
             hintText: hint,
             hintStyle: GoogleFonts.dmSans(
               fontSize: 15,
-              color: KasyabaTokens.poloBlue40,
+              color: context.kColors.icon.withValues(alpha: 0.4),
             ),
             filled: true,
-            fillColor: KasyabaTokens.bigStone,
+            fillColor: context.kColors.inputFill,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 22,
               vertical: 17,
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(28),
-              borderSide: const BorderSide(
-                color: KasyabaTokens.poloBlue22,
+              borderSide: BorderSide(
+                color: context.kColors.cardBorder,
                 width: 1.0,
               ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(28),
-              borderSide: const BorderSide(
-                color: KasyabaTokens.poloBlue,
+              borderSide: BorderSide(
+                color: context.kColors.icon,
                 width: 1.5,
               ),
             ),
@@ -508,7 +508,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               fontSize: 11,
               fontWeight: FontWeight.w700,
               letterSpacing: 1.0,
-              color: KasyabaTokens.periwinkleGraySubtitle,
+              color: context.kColors.textSecondary,
             ),
           ),
         ),
@@ -518,17 +518,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           style: GoogleFonts.dmSans(
             fontSize: 16,
             fontWeight: FontWeight.w500,
-            color: KasyabaTokens.periwinkleGray,
+            color: context.kColors.textPrimary,
           ),
           decoration: InputDecoration(
             isDense: true,
             hintText: hint,
             hintStyle: GoogleFonts.dmSans(
               fontSize: 15,
-              color: KasyabaTokens.poloBlue40,
+              color: context.kColors.icon.withValues(alpha: 0.4),
             ),
             filled: true,
-            fillColor: KasyabaTokens.bigStone,
+            fillColor: context.kColors.inputFill,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 22,
               vertical: 17,
@@ -542,7 +542,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   obscure
                       ? Icons.visibility_off_outlined
                       : Icons.visibility_outlined,
-                  color: KasyabaTokens.poloBlue,
+                  color: context.kColors.icon,
                   size: 20,
                 ),
               ),
@@ -553,15 +553,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(28),
-              borderSide: const BorderSide(
-                color: KasyabaTokens.poloBlue22,
+              borderSide: BorderSide(
+                color: context.kColors.cardBorder,
                 width: 1.0,
               ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(28),
-              borderSide: const BorderSide(
-                color: KasyabaTokens.poloBlue,
+              borderSide: BorderSide(
+                color: context.kColors.icon,
                 width: 1.5,
               ),
             ),
@@ -585,7 +585,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           final bottomInset = MediaQuery.viewInsetsOf(ctx).bottom;
 
           return AppSheet(
-            color: KasyabaTokens.ebony,
+            color: context.kColors.canvas,
             padding: EdgeInsets.fromLTRB(20, 0, 20, 20 + bottomInset),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -596,7 +596,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   style: GoogleFonts.bricolageGrotesque(
                     fontSize: 22,
                     fontWeight: FontWeight.w700,
-                    color: KasyabaTokens.periwinkleGray,
+                    color: context.kColors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -604,7 +604,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   'Update your display name as it appears in Kasyaba.',
                   style: GoogleFonts.dmSans(
                     fontSize: 14,
-                    color: KasyabaTokens.periwinkleGraySubtitle,
+                    color: context.kColors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -616,17 +616,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(14),
-                      color: KasyabaTokens.apricot15,
+                      color: context.kColors.dangerTint,
                       border: Border.all(
-                        color: KasyabaTokens.apricot.withValues(alpha: 0.35),
+                        color: context.kColors.danger.withValues(alpha: 0.35),
                         width: 1,
                       ),
                     ),
                     child: Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.error_outline_rounded,
-                          color: KasyabaTokens.apricot,
+                          color: context.kColors.danger,
                           size: 18,
                         ),
                         const SizedBox(width: 10),
@@ -634,7 +634,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           child: Text(
                             sheetError!,
                             style: GoogleFonts.dmSans(
-                              color: KasyabaTokens.apricot,
+                              color: context.kColors.danger,
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
                             ),
@@ -732,7 +732,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           final bottomInset = MediaQuery.viewInsetsOf(ctx).bottom;
 
           return AppSheet(
-            color: KasyabaTokens.ebony,
+            color: context.kColors.canvas,
             padding: EdgeInsets.fromLTRB(20, 0, 20, 20 + bottomInset),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -743,7 +743,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   style: GoogleFonts.bricolageGrotesque(
                     fontSize: 22,
                     fontWeight: FontWeight.w700,
-                    color: KasyabaTokens.periwinkleGray,
+                    color: context.kColors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -751,7 +751,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   'Choose a strong password with at least 8 characters.',
                   style: GoogleFonts.dmSans(
                     fontSize: 14,
-                    color: KasyabaTokens.periwinkleGraySubtitle,
+                    color: context.kColors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -763,17 +763,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(14),
-                      color: KasyabaTokens.apricot15,
+                      color: context.kColors.dangerTint,
                       border: Border.all(
-                        color: KasyabaTokens.apricot.withValues(alpha: 0.35),
+                        color: context.kColors.danger.withValues(alpha: 0.35),
                         width: 1,
                       ),
                     ),
                     child: Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.error_outline_rounded,
-                          color: KasyabaTokens.apricot,
+                          color: context.kColors.danger,
                           size: 18,
                         ),
                         const SizedBox(width: 10),
@@ -781,7 +781,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           child: Text(
                             sheetError!,
                             style: GoogleFonts.dmSans(
-                              color: KasyabaTokens.apricot,
+                              color: context.kColors.danger,
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
                             ),
@@ -917,7 +917,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             style: GoogleFonts.dmSans(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: KasyabaTokens.periwinkleGraySubtitle,
+              color: context.kColors.textSecondary,
             ),
           ),
         ),
@@ -925,9 +925,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           height: 58,
           padding: const EdgeInsets.symmetric(horizontal: 21),
           decoration: BoxDecoration(
-            color: KasyabaTokens.bigStone,
+            color: context.kColors.inputFill,
             borderRadius: BorderRadius.circular(KasyabaTokens.radiusCard),
-            border: Border.all(color: KasyabaTokens.poloBlue22, width: 1),
+            border: Border.all(color: context.kColors.cardBorder, width: 1),
           ),
           child: Row(
             children: [
@@ -936,7 +936,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 style: GoogleFonts.dmSans(
                   fontSize: 17,
                   fontWeight: FontWeight.w700,
-                  color: KasyabaTokens.periwinkleGray,
+                  color: context.kColors.textPrimary,
                 ),
               ),
               Expanded(
@@ -949,14 +949,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   style: GoogleFonts.dmSans(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: KasyabaTokens.periwinkleGray,
+                    color: context.kColors.textPrimary,
                   ),
-                  cursorColor: KasyabaTokens.periwinkleGray,
+                  cursorColor: context.kColors.textPrimary,
                   decoration: InputDecoration(
                     hintText: hint,
                     hintStyle: GoogleFonts.dmSans(
                       fontSize: 16,
-                      color: KasyabaTokens.poloBlue40,
+                      color: context.kColors.icon.withValues(alpha: 0.4),
                     ),
                     filled: false,
                     fillColor: Colors.transparent,
@@ -987,7 +987,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             label,
             style: GoogleFonts.dmSans(
               fontSize: 13,
-              color: KasyabaTokens.periwinkleGraySubtitle,
+              color: context.kColors.textSecondary,
             ),
           ),
           Text(
@@ -995,7 +995,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             style: GoogleFonts.dmSans(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: isDeduction ? KasyabaTokens.apricot : KasyabaTokens.periwinkleGray,
+              color: isDeduction ? context.kColors.danger : context.kColors.textPrimary,
             ),
           ),
         ],
@@ -1019,7 +1019,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             style: GoogleFonts.dmSans(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: KasyabaTokens.periwinkleGraySubtitle,
+              color: context.kColors.textSecondary,
             ),
           ),
         ),
@@ -1027,26 +1027,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           height: 58,
           padding: const EdgeInsets.symmetric(horizontal: 21),
           decoration: BoxDecoration(
-            color: KasyabaTokens.bigStone,
+            color: context.kColors.inputFill,
             borderRadius: BorderRadius.circular(KasyabaTokens.radiusCard),
-            border: Border.all(color: KasyabaTokens.poloBlue22, width: 1),
+            border: Border.all(color: context.kColors.cardBorder, width: 1),
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               value: value,
               isExpanded: true,
               borderRadius: BorderRadius.circular(20),
-              dropdownColor: KasyabaTokens.bigStone,
+              dropdownColor: context.kColors.card,
               elevation: 12,
-              icon: const Icon(
+              icon: Icon(
                 Icons.keyboard_arrow_down_rounded,
-                color: KasyabaTokens.periwinkleGray,
+                color: context.kColors.textPrimary,
                 size: 24,
               ),
               style: GoogleFonts.dmSans(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: KasyabaTokens.periwinkleGray,
+                color: context.kColors.textPrimary,
               ),
               items: items,
               onChanged: onChanged,
@@ -1059,19 +1059,110 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
 
 
+  String _themeModeLabel(ThemeMode mode) {
+    switch (mode) {
+      case ThemeMode.light:
+        return 'Light';
+      case ThemeMode.system:
+        return 'System (follow device)';
+      case ThemeMode.dark:
+        return 'Dark';
+    }
+  }
+
+  void _showAppearanceSheet() {
+    AppHaptics.selectionClick();
+    showKasyabaSheet<void>(
+      context: context,
+      builder: (sheetContext) {
+        final current = ref.read(themeModeProvider);
+
+        void select(ThemeMode mode) {
+          AppHaptics.selectionClick();
+          ref.read(themeModeProvider.notifier).setThemeMode(mode);
+          Navigator.of(sheetContext).pop();
+        }
+
+        Widget option({
+          required String label,
+          required IconData icon,
+          required ThemeMode mode,
+        }) {
+          final selected = current == mode;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: PillButton(
+              label: label,
+              icon: icon,
+              height: 50,
+              variant: selected
+                  ? PillButtonVariant.primary
+                  : PillButtonVariant.secondary,
+              onPressed: () => select(mode),
+            ),
+          );
+        }
+
+        return AppSheet(
+          color: context.kColors.canvas,
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Appearance',
+                style: GoogleFonts.bricolageGrotesque(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: context.kColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Choose how Kasyaba looks on this device.',
+                style: GoogleFonts.dmSans(
+                  fontSize: 14,
+                  color: context.kColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 18),
+              option(
+                label: 'Dark',
+                icon: Icons.dark_mode_rounded,
+                mode: ThemeMode.dark,
+              ),
+              option(
+                label: 'Light',
+                icon: Icons.light_mode_rounded,
+                mode: ThemeMode.light,
+              ),
+              option(
+                label: 'System',
+                icon: Icons.brightness_auto_rounded,
+                mode: ThemeMode.system,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final profileAsync = ref.watch(userProfileProvider);
     final budgetStatusAsync = ref.watch(budgetStatusProvider);
+    final themeMode = ref.watch(themeModeProvider);
 
     final displayName = authState.displayName ?? 'User';
     final initial = displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U';
 
     return Scaffold(
-      backgroundColor: KasyabaTokens.ebony,
+      backgroundColor: context.kColors.canvas,
       body: Container(
-        decoration: const BoxDecoration(gradient: KasyabaTokens.canvasGradient),
+        decoration: BoxDecoration(gradient: context.kColors.backgroundGradient),
         child: SafeArea(
           bottom: false,
           child: ListView(
@@ -1091,7 +1182,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     style: GoogleFonts.bricolageGrotesque(
                       fontSize: 26,
                       fontWeight: FontWeight.w700,
-                      color: KasyabaTokens.periwinkleGray,
+                      color: context.kColors.textPrimary,
                     ),
                   ),
                 ),
@@ -1102,12 +1193,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(19),
                   decoration: BoxDecoration(
-                    color: KasyabaTokens.cello60,
+                    color: context.kColors.cardHero,
                     borderRadius: BorderRadius.circular(
                       KasyabaTokens.radiusCard,
                     ),
                     border: Border.all(
-                      color: KasyabaTokens.poloBlue30,
+                      color: context.kColors.cardBorderStrong,
                       width: 1,
                     ),
                   ),
@@ -1116,8 +1207,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       Container(
                         width: 56,
                         height: 56,
-                        decoration: const BoxDecoration(
-                          color: KasyabaTokens.periwinkleGray,
+                        decoration: BoxDecoration(
+                          color: context.kColors.primaryButton,
                           shape: BoxShape.circle,
                         ),
                         child: Center(
@@ -1126,7 +1217,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             style: GoogleFonts.bricolageGrotesque(
                               fontSize: 22,
                               fontWeight: FontWeight.w700,
-                              color: KasyabaTokens.ebony,
+                              color: context.kColors.onPrimaryButton,
                             ),
                           ),
                         ),
@@ -1141,7 +1232,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               style: GoogleFonts.bricolageGrotesque(
                                 fontSize: 20,
                                 fontWeight: FontWeight.w700,
-                                color: KasyabaTokens.periwinkleGray,
+                                color: context.kColors.textPrimary,
                               ),
                             ),
                             const SizedBox(height: 2),
@@ -1150,7 +1241,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               style: GoogleFonts.dmSans(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w400,
-                                color: KasyabaTokens.periwinkleGraySubtitle,
+                                color: context.kColors.textSecondary,
                               ),
                             ),
                           ],
@@ -1165,18 +1256,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             width: 38,
                             height: 38,
                             decoration: BoxDecoration(
-                              color: KasyabaTokens.bigStone,
+                              color: context.kColors.card,
                               borderRadius: BorderRadius.circular(14),
                               border: Border.all(
-                                color: KasyabaTokens.poloBlue22,
+                                color: context.kColors.cardBorder,
                                 width: 1,
                               ),
                             ),
-                            child: const Center(
+                            child: Center(
                               child: Icon(
                                 Icons.edit_outlined,
                                 size: 16,
-                                color: KasyabaTokens.bermuda,
+                                color: context.kColors.success,
                               ),
                             ),
                           ),
@@ -1200,6 +1291,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                   data: _buildSalaryCard,
                 ),
+              ),
+              const SizedBox(height: 20),
+              FadeSlideEntrance.staggered(
+                index: 3,
+                child: _sectionHeader('PREFERENCES'),
+              ),
+              const SizedBox(height: 6),
+              FadeSlideEntrance.staggered(
+                index: 4,
+                child: _settingsCard([
+                  _SettingsRow(
+                    title: 'Appearance',
+                    subtitle: _themeModeLabel(themeMode),
+                    onTap: _showAppearanceSheet,
+                  ),
+                ]),
               ),
               const SizedBox(height: 20),
               FadeSlideEntrance.staggered(
@@ -1301,7 +1408,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         style: GoogleFonts.dmSans(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: KasyabaTokens.apricot,
+                          color: context.kColors.danger,
                         ),
                       ),
                     ),
@@ -1322,9 +1429,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     return Container(
       padding: const EdgeInsets.all(19),
       decoration: BoxDecoration(
-        color: KasyabaTokens.bigStone,
+        color: context.kColors.card,
         borderRadius: BorderRadius.circular(KasyabaTokens.radiusCard),
-        border: Border.all(color: KasyabaTokens.poloBlue22, width: 1),
+        border: Border.all(color: context.kColors.cardBorder, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1337,7 +1444,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 style: GoogleFonts.dmSans(
                   fontSize: 17,
                   fontWeight: FontWeight.w700,
-                  color: KasyabaTokens.periwinkleGray,
+                  color: context.kColors.textPrimary,
                 ),
               ),
               if (salary != null)
@@ -1350,7 +1457,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       style: GoogleFonts.dmSans(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: KasyabaTokens.periwinkleGraySubtitle,
+                        color: context.kColors.textSecondary,
                       ),
                     ),
                   ),
@@ -1364,7 +1471,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               style: GoogleFonts.bricolageGrotesque(
                 fontSize: 24,
                 fontWeight: FontWeight.w700,
-                color: KasyabaTokens.periwinkleGray,
+                color: context.kColors.textPrimary,
               ),
             ),
             const SizedBox(height: 4),
@@ -1373,7 +1480,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               style: GoogleFonts.dmSans(
                 fontSize: 14,
                 fontWeight: FontWeight.w400,
-                color: KasyabaTokens.periwinkleGraySubtitle,
+                color: context.kColors.textSecondary,
                 height: 1.4,
               ),
             ),
@@ -1394,7 +1501,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   style: GoogleFonts.bricolageGrotesque(
                     fontSize: 26,
                     fontWeight: FontWeight.w700,
-                    color: KasyabaTokens.periwinkleGray,
+                    color: context.kColors.textPrimary,
                   ),
                 ),
                 Text(
@@ -1402,7 +1509,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   style: GoogleFonts.dmSans(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: KasyabaTokens.periwinkleGraySubtitle,
+                    color: context.kColors.textSecondary,
                   ),
                 ),
               ],
@@ -1413,7 +1520,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               style: GoogleFonts.dmSans(
                 fontSize: 14,
                 fontWeight: FontWeight.w400,
-                color: KasyabaTokens.periwinkleGraySubtitle,
+                color: context.kColors.textSecondary,
               ),
             ),
           ],
@@ -1431,7 +1538,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           fontSize: 12,
           fontWeight: FontWeight.w700,
           letterSpacing: 1.0,
-          color: KasyabaTokens.periwinkleGraySubtitle,
+          color: context.kColors.textSecondary,
         ),
       ),
     );
@@ -1441,16 +1548,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 19, vertical: 3),
       decoration: BoxDecoration(
-        color: KasyabaTokens.bigStone,
+        color: context.kColors.card,
         borderRadius: BorderRadius.circular(KasyabaTokens.radiusCard),
-        border: Border.all(color: KasyabaTokens.poloBlue22, width: 1),
+        border: Border.all(color: context.kColors.cardBorder, width: 1),
       ),
       child: Column(children: children),
     );
   }
 
   Widget _divider() {
-    return Container(height: 1, color: KasyabaTokens.poloBlue16);
+    return Container(height: 1, color: context.kColors.divider);
   }
 }
 
@@ -1482,7 +1589,7 @@ class _SettingsRow extends StatelessWidget {
                     style: GoogleFonts.dmSans(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
-                      color: KasyabaTokens.periwinkleGray,
+                      color: context.kColors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -1491,15 +1598,15 @@ class _SettingsRow extends StatelessWidget {
                     style: GoogleFonts.dmSans(
                       fontSize: 14,
                       fontWeight: FontWeight.w400,
-                      color: KasyabaTokens.periwinkleGraySubtitle,
+                      color: context.kColors.textSecondary,
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(
+            Icon(
               Icons.chevron_right_rounded,
-              color: KasyabaTokens.periwinkleGraySubtitle,
+              color: context.kColors.textSecondary,
               size: 20,
             ),
           ],

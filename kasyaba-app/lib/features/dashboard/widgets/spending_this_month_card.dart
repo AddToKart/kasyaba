@@ -1,34 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../app/theme/kasyaba_color_scheme.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
-import 'dashboard_tokens.dart';
 
 class SpendingThisMonthCard extends StatelessWidget {
   final DashboardData data;
   final VoidCallback? onTap;
 
-  const SpendingThisMonthCard({
-    super.key,
-    required this.data,
-    this.onTap,
-  });
-
-  static const List<Color> _segmentColors = [
-    DashboardTokens.periwinkleGray,
-    DashboardTokens.poloBlue,
-    DashboardTokens.kashmirBlue,
-    DashboardTokens.sanJuan,
-  ];
+  const SpendingThisMonthCard({super.key, required this.data, this.onTap});
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.kColors;
+    final segmentColors = [
+      colors.textPrimary,
+      colors.icon,
+      colors.secondaryBorder,
+      colors.textMuted,
+    ];
     final categories = data.categoryExpenses;
     final totalSpent = categories.fold<double>(
       0.0,
       (sum, cat) => sum + cat.total,
     );
-    final displaySpent = totalSpent > 0 ? totalSpent : (data.expenses).toDouble();
+    final displaySpent = totalSpent > 0
+        ? totalSpent
+        : (data.expenses).toDouble();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -39,7 +37,7 @@ class SpendingThisMonthCard extends StatelessWidget {
           style: GoogleFonts.bricolageGrotesque(
             fontSize: 19,
             fontWeight: FontWeight.bold,
-            color: DashboardTokens.periwinkleGray,
+            color: colors.textPrimary,
           ),
         ),
         const SizedBox(height: 10),
@@ -51,12 +49,9 @@ class SpendingThisMonthCard extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(19),
             decoration: BoxDecoration(
-              color: DashboardTokens.bigStone,
+              color: colors.card,
               borderRadius: BorderRadius.circular(28),
-              border: Border.all(
-                color: DashboardTokens.poloBlue22,
-                width: 1.0,
-              ),
+              border: Border.all(color: colors.cardBorder, width: 1.0),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -71,7 +66,7 @@ class SpendingThisMonthCard extends StatelessWidget {
                       style: GoogleFonts.bricolageGrotesque(
                         fontSize: 26,
                         fontWeight: FontWeight.bold,
-                        color: DashboardTokens.periwinkleGray,
+                        color: colors.textPrimary,
                         fontFeatures: const [FontFeature.tabularFigures()],
                       ),
                     ),
@@ -81,7 +76,7 @@ class SpendingThisMonthCard extends StatelessWidget {
                       style: GoogleFonts.dmSans(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
-                        color: DashboardTokens.periwinkleGraySubtitle,
+                        color: colors.textSecondary,
                       ),
                     ),
                   ],
@@ -95,15 +90,24 @@ class SpendingThisMonthCard extends StatelessWidget {
                     height: 14,
                     child: categories.isEmpty || totalSpent <= 0
                         ? Container(
-                            color: DashboardTokens.kashmirBlue.withValues(alpha: 0.3),
+                            color: colors.secondaryBorder.withValues(
+                              alpha: 0.3,
+                            ),
                           )
                         : Row(
                             children: [
-                              for (int i = 0; i < categories.length && i < 4; i++) ...[
+                              for (
+                                int i = 0;
+                                i < categories.length && i < 4;
+                                i++
+                              ) ...[
                                 Expanded(
-                                  flex: (categories[i].total * 1000).toInt().clamp(1, 1000000),
+                                  flex: (categories[i].total * 1000)
+                                      .toInt()
+                                      .clamp(1, 1000000),
                                   child: Container(
-                                    color: _segmentColors[i % _segmentColors.length],
+                                    color:
+                                        segmentColors[i % segmentColors.length],
                                   ),
                                 ),
                                 if (i < categories.length - 1 && i < 3)
@@ -123,7 +127,7 @@ class SpendingThisMonthCard extends StatelessWidget {
                       'No recorded category expenses yet this month.',
                       style: GoogleFonts.dmSans(
                         fontSize: 13,
-                        color: DashboardTokens.periwinkleGraySubtitle,
+                        color: colors.textSecondary,
                       ),
                     ),
                   )
@@ -137,7 +141,7 @@ class SpendingThisMonthCard extends StatelessWidget {
                             width: 12,
                             height: 12,
                             decoration: BoxDecoration(
-                              color: _segmentColors[i % _segmentColors.length],
+                              color: segmentColors[i % segmentColors.length],
                               borderRadius: BorderRadius.circular(6),
                             ),
                           ),
@@ -148,7 +152,7 @@ class SpendingThisMonthCard extends StatelessWidget {
                               style: GoogleFonts.dmSans(
                                 fontSize: 15,
                                 fontWeight: FontWeight.normal,
-                                color: DashboardTokens.periwinkleGray,
+                                color: colors.textPrimary,
                               ),
                             ),
                           ),
@@ -157,8 +161,10 @@ class SpendingThisMonthCard extends StatelessWidget {
                             style: GoogleFonts.dmSans(
                               fontSize: 15,
                               fontWeight: FontWeight.bold,
-                              color: DashboardTokens.periwinkleGray,
-                              fontFeatures: const [FontFeature.tabularFigures()],
+                              color: colors.textPrimary,
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
                             ),
                           ),
                         ],
@@ -173,4 +179,3 @@ class SpendingThisMonthCard extends StatelessWidget {
     );
   }
 }
-

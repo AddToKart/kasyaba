@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../app/theme/kasyaba_color_scheme.dart';
 import '../../../app/theme/kasyaba_tokens.dart';
 import '../../../core/notifications/notification_preferences.dart';
 import '../../../core/providers/api_providers.dart';
@@ -61,9 +62,9 @@ class NotificationSettingsScreen extends ConsumerWidget {
     final notifier = ref.read(notificationPreferencesProvider.notifier);
 
     return Scaffold(
-      backgroundColor: KasyabaTokens.ebony,
+      backgroundColor: context.kColors.canvas,
       body: Container(
-        decoration: const BoxDecoration(gradient: KasyabaTokens.canvasGradient),
+        decoration: BoxDecoration(gradient: context.kColors.backgroundGradient),
         child: SafeArea(
           bottom: false,
           child: ListView(
@@ -79,16 +80,16 @@ class NotificationSettingsScreen extends ConsumerWidget {
                         width: 50,
                         height: 50,
                         decoration: BoxDecoration(
-                          color: KasyabaTokens.bigStone,
+                          color: context.kColors.card,
                           borderRadius: BorderRadius.circular(24),
                           border: Border.all(
-                            color: KasyabaTokens.poloBlue22,
+                            color: context.kColors.cardBorder,
                             width: 1,
                           ),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.chevron_left_rounded,
-                          color: KasyabaTokens.periwinkleGray,
+                          color: context.kColors.textPrimary,
                           size: 26,
                         ),
                       ),
@@ -99,7 +100,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
                       style: GoogleFonts.bricolageGrotesque(
                         fontSize: 24,
                         fontWeight: FontWeight.w700,
-                        color: KasyabaTokens.periwinkleGray,
+                        color: context.kColors.textPrimary,
                       ),
                     ),
                   ],
@@ -114,12 +115,12 @@ class NotificationSettingsScreen extends ConsumerWidget {
                     vertical: 3,
                   ),
                   decoration: BoxDecoration(
-                    color: KasyabaTokens.bigStone,
+                    color: context.kColors.card,
                     borderRadius: BorderRadius.circular(
                       KasyabaTokens.radiusCard,
                     ),
                     border: Border.all(
-                      color: KasyabaTokens.poloBlue22,
+                      color: context.kColors.cardBorder,
                       width: 1,
                     ),
                   ),
@@ -147,7 +148,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
                                   style: GoogleFonts.dmSans(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w400,
-                                    color: KasyabaTokens.periwinkleGraySubtitle,
+                                    color: context.kColors.textSecondary,
                                   ),
                                 ),
                                 Text(
@@ -155,7 +156,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
                                   style: GoogleFonts.dmSans(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w700,
-                                    color: KasyabaTokens.periwinkleGray,
+                                    color: context.kColors.textPrimary,
                                     decoration: TextDecoration.underline,
                                   ),
                                 ),
@@ -163,14 +164,14 @@ class NotificationSettingsScreen extends ConsumerWidget {
                             ),
                           ),
                         ),
-                      Container(height: 1, color: KasyabaTokens.poloBlue16),
+                      Container(height: 1, color: context.kColors.divider),
                       _ToggleRow(
                         title: 'Budget alerts',
                         subtitle: 'At 80% and when you go over',
                         value: preferences.budgetAlerts,
                         onChanged: notifier.setBudgetAlerts,
                       ),
-                      Container(height: 1, color: KasyabaTokens.poloBlue16),
+                      Container(height: 1, color: context.kColors.divider),
                       _ToggleRow(
                         title: 'Payday reminder',
                         subtitle: paydaySchedule == null
@@ -192,12 +193,12 @@ class NotificationSettingsScreen extends ConsumerWidget {
                     vertical: 3,
                   ),
                   decoration: BoxDecoration(
-                    color: KasyabaTokens.bigStone,
+                    color: context.kColors.card,
                     borderRadius: BorderRadius.circular(
                       KasyabaTokens.radiusCard,
                     ),
                     border: Border.all(
-                      color: KasyabaTokens.poloBlue22,
+                      color: context.kColors.cardBorder,
                       width: 1,
                     ),
                   ),
@@ -209,7 +210,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
                         value: preferences.goalMilestones,
                         onChanged: notifier.setGoalMilestones,
                       ),
-                      Container(height: 1, color: KasyabaTokens.poloBlue16),
+                      Container(height: 1, color: context.kColors.divider),
                       _ToggleRow(
                         title: 'Weekly summary',
                         subtitle: 'Every Sunday evening',
@@ -231,12 +232,12 @@ class NotificationSettingsScreen extends ConsumerWidget {
                       vertical: 18.5,
                     ),
                     decoration: BoxDecoration(
-                      color: KasyabaTokens.bigStone,
+                      color: context.kColors.card,
                       borderRadius: BorderRadius.circular(
                         KasyabaTokens.radiusCard,
                       ),
                       border: Border.all(
-                        color: KasyabaTokens.poloBlue22,
+                        color: context.kColors.cardBorder,
                         width: 1,
                       ),
                     ),
@@ -249,7 +250,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
                             style: GoogleFonts.dmSans(
                               fontSize: 14,
                               fontWeight: FontWeight.w400,
-                              color: KasyabaTokens.periwinkleGraySubtitle,
+                              color: context.kColors.textSecondary,
                             ),
                           ),
                         ),
@@ -259,13 +260,13 @@ class NotificationSettingsScreen extends ConsumerWidget {
                             style: GoogleFonts.dmSans(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
-                              color: KasyabaTokens.periwinkleGray,
+                              color: context.kColors.textPrimary,
                             ),
                           ),
                         ),
-                        const Icon(
+                        Icon(
                           Icons.access_time_rounded,
-                          color: KasyabaTokens.periwinkleGraySubtitle,
+                          color: context.kColors.textSecondary,
                           size: 20,
                         ),
                       ],
@@ -283,7 +284,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
                     style: GoogleFonts.dmSans(
                       fontSize: 14,
                       fontWeight: FontWeight.w400,
-                      color: KasyabaTokens.periwinkleGraySubtitle,
+                      color: context.kColors.textSecondary,
                       height: 1.45,
                     ),
                   ),
@@ -325,7 +326,7 @@ class _ToggleRow extends StatelessWidget {
                   style: GoogleFonts.dmSans(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: KasyabaTokens.periwinkleGray,
+                    color: context.kColors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -334,7 +335,7 @@ class _ToggleRow extends StatelessWidget {
                   style: GoogleFonts.dmSans(
                     fontSize: 14,
                     fontWeight: FontWeight.w400,
-                    color: KasyabaTokens.periwinkleGraySubtitle,
+                    color: context.kColors.textSecondary,
                   ),
                 ),
               ],

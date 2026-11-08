@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_motion.dart';
+import '../../../app/theme/kasyaba_color_scheme.dart';
 import '../../../core/connectivity/connectivity_service.dart';
 import '../../../core/database/cache_service.dart';
 import '../../../core/errors/error_messages.dart';
@@ -28,7 +29,7 @@ import '../widgets/goal_deposit_sheet.dart';
 class GoalsScreen extends ConsumerWidget {
   const GoalsScreen({super.key});
 
-  Widget _buildGoalIcon(String name) {
+  Widget _buildGoalIcon(BuildContext context, String name) {
     final lower = name.toLowerCase();
     String? assetPath;
     if (lower.contains('gadget') ||
@@ -56,17 +57,17 @@ class GoalsScreen extends ConsumerWidget {
         assetPath,
         width: 22,
         height: 22,
-        colorFilter: const ColorFilter.mode(
-          DashboardTokens.periwinkleGray,
+        colorFilter: ColorFilter.mode(
+          context.kColors.textPrimary,
           BlendMode.srcIn,
         ),
       );
     }
 
-    return const Icon(
+    return Icon(
       Icons.savings_outlined,
       size: 22,
-      color: DashboardTokens.periwinkleGray,
+      color: context.kColors.textPrimary,
     );
   }
 
@@ -83,13 +84,13 @@ class GoalsScreen extends ConsumerWidget {
     final isOnline = ref.watch(isOnlineProvider);
 
     return Scaffold(
-      backgroundColor: DashboardTokens.ebony,
+      backgroundColor: context.kColors.canvas,
       body: KasyabaBackground(
         child: SafeArea(
           bottom: false,
           child: RefreshIndicator(
-            color: DashboardTokens.bermuda,
-            backgroundColor: DashboardTokens.bigStone,
+            color: context.kColors.success,
+            backgroundColor: context.kColors.card,
             onRefresh: () async {
               ref.invalidate(goalsProvider);
             },
@@ -97,7 +98,12 @@ class GoalsScreen extends ConsumerWidget {
               physics: const AlwaysScrollableScrollPhysics(
                 parent: BouncingScrollPhysics(),
               ),
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, DashboardTokens.dockClearance),
+              padding: const EdgeInsets.fromLTRB(
+                20,
+                24,
+                20,
+                DashboardTokens.dockClearance,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -110,7 +116,7 @@ class GoalsScreen extends ConsumerWidget {
                         style: GoogleFonts.bricolageGrotesque(
                           fontSize: 26,
                           fontWeight: FontWeight.w700,
-                          color: DashboardTokens.periwinkleGray,
+                          color: context.kColors.textPrimary,
                         ),
                       ),
                       SpringTouch(
@@ -126,8 +132,8 @@ class GoalsScreen extends ConsumerWidget {
                           child: Container(
                             width: 48,
                             height: 48,
-                            decoration: const BoxDecoration(
-                              color: DashboardTokens.periwinkleGray,
+                            decoration: BoxDecoration(
+                              color: context.kColors.primaryButton,
                               shape: BoxShape.circle,
                             ),
                             alignment: Alignment.center,
@@ -135,8 +141,8 @@ class GoalsScreen extends ConsumerWidget {
                               'assets/images/goal_plus.svg',
                               width: 22,
                               height: 22,
-                              colorFilter: const ColorFilter.mode(
-                                DashboardTokens.ebony,
+                              colorFilter: ColorFilter.mode(
+                                context.kColors.onPrimaryButton,
                                 BlendMode.srcIn,
                               ),
                             ),
@@ -205,8 +211,7 @@ class GoalsScreen extends ConsumerWidget {
                                     'Total saved',
                                     style: GoogleFonts.dmSans(
                                       fontSize: 14,
-                                      color: DashboardTokens
-                                          .periwinkleGraySubtitle,
+                                      color: context.kColors.textSecondary,
                                     ),
                                   ),
                                   const SizedBox(height: 4),
@@ -220,7 +225,7 @@ class GoalsScreen extends ConsumerWidget {
                                         style: GoogleFonts.bricolageGrotesque(
                                           fontSize: 28,
                                           fontWeight: FontWeight.w700,
-                                          color: DashboardTokens.periwinkleGray,
+                                          color: context.kColors.textPrimary,
                                         ),
                                       ),
                                       Text(
@@ -228,8 +233,7 @@ class GoalsScreen extends ConsumerWidget {
                                         style: GoogleFonts.dmSans(
                                           fontSize: 15,
                                           fontWeight: FontWeight.w500,
-                                          color: DashboardTokens
-                                              .periwinkleGraySubtitle,
+                                          color: context.kColors.textSecondary,
                                         ),
                                       ),
                                     ],
@@ -239,7 +243,9 @@ class GoalsScreen extends ConsumerWidget {
                                   Container(
                                     height: 8,
                                     decoration: BoxDecoration(
-                                      color: DashboardTokens.poloBlue20,
+                                      color: context.kColors.icon.withValues(
+                                        alpha: 0.2,
+                                      ),
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                     child: LayoutBuilder(
@@ -254,7 +260,7 @@ class GoalsScreen extends ConsumerWidget {
                                             curve: Curves.easeOutCubic,
                                             width: fillWidth,
                                             decoration: BoxDecoration(
-                                              color: DashboardTokens.bermuda,
+                                              color: context.kColors.success,
                                               borderRadius:
                                                   BorderRadius.circular(4),
                                             ),
@@ -304,8 +310,8 @@ class GoalsScreen extends ConsumerWidget {
                                       ? 'On track · $dateText'
                                       : 'Behind schedule · $dateText');
                             final statusColor = canAfford == true
-                                ? DashboardTokens.bermuda
-                                : DashboardTokens.apricot;
+                                ? context.kColors.success
+                                : context.kColors.danger;
 
                             return FadeSlideEntrance.staggered(
                               index: 1 + i,
@@ -334,13 +340,17 @@ class GoalsScreen extends ConsumerWidget {
                                               borderRadius:
                                                   BorderRadius.circular(23),
                                               border: Border.all(
-                                                color:
-                                                    DashboardTokens.poloBlue30,
+                                                color: context
+                                                    .kColors
+                                                    .cardBorderStrong,
                                                 width: 1,
                                               ),
                                             ),
                                             alignment: Alignment.center,
-                                            child: _buildGoalIcon(goal.name),
+                                            child: _buildGoalIcon(
+                                              context,
+                                              goal.name,
+                                            ),
                                           ),
                                           const SizedBox(width: 12),
                                           Expanded(
@@ -353,8 +363,9 @@ class GoalsScreen extends ConsumerWidget {
                                                   style: GoogleFonts.dmSans(
                                                     fontSize: 18,
                                                     fontWeight: FontWeight.w700,
-                                                    color: DashboardTokens
-                                                        .periwinkleGray,
+                                                    color: context
+                                                        .kColors
+                                                        .textPrimary,
                                                   ),
                                                 ),
                                                 const SizedBox(height: 2),
@@ -362,8 +373,9 @@ class GoalsScreen extends ConsumerWidget {
                                                   '${CurrencyFormatter.format(goal.currentAmount)} of ${CurrencyFormatter.format(goal.targetAmount)}',
                                                   style: GoogleFonts.dmSans(
                                                     fontSize: 14,
-                                                    color: DashboardTokens
-                                                        .periwinkleGraySubtitle,
+                                                    color: context
+                                                        .kColors
+                                                        .textSecondary,
                                                   ),
                                                 ),
                                               ],
@@ -375,8 +387,9 @@ class GoalsScreen extends ConsumerWidget {
                                                 GoogleFonts.bricolageGrotesque(
                                                   fontSize: 20,
                                                   fontWeight: FontWeight.w700,
-                                                  color: DashboardTokens
-                                                      .periwinkleGray,
+                                                  color: context
+                                                      .kColors
+                                                      .textPrimary,
                                                 ),
                                           ),
                                         ],
@@ -387,7 +400,8 @@ class GoalsScreen extends ConsumerWidget {
                                       Container(
                                         height: 8,
                                         decoration: BoxDecoration(
-                                          color: DashboardTokens.poloBlue20,
+                                          color: context.kColors.icon
+                                              .withValues(alpha: 0.2),
                                           borderRadius: BorderRadius.circular(
                                             4,
                                           ),
@@ -404,7 +418,7 @@ class GoalsScreen extends ConsumerWidget {
                                                 width: fillWidth,
                                                 decoration: BoxDecoration(
                                                   color:
-                                                      DashboardTokens.bermuda,
+                                                      context.kColors.success,
                                                   borderRadius:
                                                       BorderRadius.circular(4),
                                                 ),
@@ -433,8 +447,9 @@ class GoalsScreen extends ConsumerWidget {
                                                     fontSize: 14,
                                                     fontWeight: FontWeight.w700,
                                                     color: statusLabel == null
-                                                        ? DashboardTokens
-                                                              .periwinkleGraySubtitle
+                                                        ? context
+                                                              .kColors
+                                                              .textSecondary
                                                         : statusColor,
                                                   ),
                                                 ),
@@ -443,8 +458,9 @@ class GoalsScreen extends ConsumerWidget {
                                                   'Needs about ${CurrencyFormatter.format(monthlyNeed)} a month',
                                                   style: GoogleFonts.dmSans(
                                                     fontSize: 13,
-                                                    color: DashboardTokens
-                                                        .periwinkleGraySubtitle,
+                                                    color: context
+                                                        .kColors
+                                                        .textSecondary,
                                                   ),
                                                 ),
                                               ],
@@ -492,8 +508,7 @@ class GoalsScreen extends ConsumerWidget {
                                   'Planning a purchase?\u00A0',
                                   style: GoogleFonts.dmSans(
                                     fontSize: 14,
-                                    color:
-                                        DashboardTokens.periwinkleGraySubtitle,
+                                    color: context.kColors.textSecondary,
                                   ),
                                 ),
                                 GestureDetector(
@@ -503,10 +518,11 @@ class GoalsScreen extends ConsumerWidget {
                                     KasyabaAffordabilitySheet.show(context);
                                   },
                                   child: Container(
-                                    decoration: const BoxDecoration(
+                                    decoration: BoxDecoration(
                                       border: Border(
                                         bottom: BorderSide(
-                                          color: DashboardTokens.kashmirBlue,
+                                          color:
+                                              context.kColors.secondaryBorder,
                                           width: 2,
                                         ),
                                       ),
@@ -517,7 +533,7 @@ class GoalsScreen extends ConsumerWidget {
                                       style: GoogleFonts.dmSans(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w700,
-                                        color: DashboardTokens.periwinkleGray,
+                                        color: context.kColors.textPrimary,
                                       ),
                                     ),
                                   ),

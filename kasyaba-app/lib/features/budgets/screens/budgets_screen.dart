@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../app/theme/kasyaba_tokens.dart';
+import '../../../app/theme/kasyaba_color_scheme.dart';
 import '../../../core/connectivity/connectivity_service.dart';
 import '../../../core/database/cache_service.dart';
 import '../../../core/errors/error_messages.dart';
@@ -43,10 +43,10 @@ class BudgetsScreen extends ConsumerWidget {
     final categoryMap = {for (final c in categories) c.id: c.name};
 
     return Scaffold(
-      backgroundColor: DashboardTokens.ebony,
+      backgroundColor: context.kColors.canvas,
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: DashboardTokens.canvasGradient,
+        decoration: BoxDecoration(
+          gradient: context.kColors.backgroundGradient,
         ),
         child: SafeArea(
           bottom: false,
@@ -54,8 +54,8 @@ class BudgetsScreen extends ConsumerWidget {
             children: [
               Expanded(
                 child: RefreshIndicator(
-                  color: DashboardTokens.periwinkleGray,
-                  backgroundColor: DashboardTokens.bigStone,
+                  color: context.kColors.textPrimary,
+                  backgroundColor: context.kColors.card,
                   onRefresh: () async => ref.invalidate(budgetStatusProvider),
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(20, 16, 20, DashboardTokens.dockClearance),
@@ -77,16 +77,16 @@ class BudgetsScreen extends ConsumerWidget {
                                 width: 50,
                                 height: 50,
                                 decoration: BoxDecoration(
-                                  color: DashboardTokens.bigStone,
+                                  color: context.kColors.card,
                                   borderRadius: BorderRadius.circular(24),
                                   border: Border.all(
-                                    color: DashboardTokens.poloBlue22,
+                                    color: context.kColors.cardBorder,
                                     width: 1,
                                   ),
                                 ),
-                                child: const Icon(
+                                child: Icon(
                                   Icons.chevron_left_rounded,
-                                  color: DashboardTokens.periwinkleGray,
+                                  color: context.kColors.textPrimary,
                                   size: 26,
                                 ),
                               ),
@@ -98,7 +98,7 @@ class BudgetsScreen extends ConsumerWidget {
                                 style: GoogleFonts.bricolageGrotesque(
                                   fontSize: 24,
                                   fontWeight: FontWeight.w700,
-                                  color: DashboardTokens.periwinkleGray,
+                                  color: context.kColors.textPrimary,
                                 ),
                               ),
                             ),
@@ -112,16 +112,16 @@ class BudgetsScreen extends ConsumerWidget {
                                   width: 50,
                                   height: 50,
                                   decoration: BoxDecoration(
-                                    color: DashboardTokens.bigStone,
+                                    color: context.kColors.card,
                                     borderRadius: BorderRadius.circular(24),
                                     border: Border.all(
-                                      color: DashboardTokens.poloBlue22,
+                                      color: context.kColors.cardBorder,
                                       width: 1,
                                     ),
                                   ),
-                                  child: const Icon(
+                                  child: Icon(
                                     Icons.add_rounded,
-                                    color: DashboardTokens.periwinkleGray,
+                                    color: context.kColors.textPrimary,
                                     size: 26,
                                   ),
                                 ),
@@ -151,10 +151,10 @@ class BudgetsScreen extends ConsumerWidget {
                           error: (err, _) => Container(
                             padding: const EdgeInsets.all(20),
                             decoration: BoxDecoration(
-                              color: DashboardTokens.bigStone,
+                              color: context.kColors.card,
                               borderRadius: BorderRadius.circular(28),
                               border: Border.all(
-                                color: DashboardTokens.poloBlue22,
+                                color: context.kColors.cardBorder,
                               ),
                             ),
                             child: Column(
@@ -164,7 +164,7 @@ class BudgetsScreen extends ConsumerWidget {
                                   children: [
                                     Icon(
                                       Icons.error_outline_rounded,
-                                      color: DashboardTokens.apricot,
+                                      color: context.kColors.danger,
                                       size: 22,
                                     ),
                                     SizedBox(width: 10),
@@ -173,7 +173,7 @@ class BudgetsScreen extends ConsumerWidget {
                                       style: GoogleFonts.dmSans(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w700,
-                                        color: DashboardTokens.periwinkleGray,
+                                        color: context.kColors.textPrimary,
                                       ),
                                     ),
                                   ],
@@ -184,7 +184,7 @@ class BudgetsScreen extends ConsumerWidget {
                                   style: GoogleFonts.dmSans(
                                     fontSize: 14,
                                     color:
-                                        DashboardTokens.periwinkleGraySubtitle,
+                                        context.kColors.textSecondary,
                                   ),
                                 ),
                                 const SizedBox(height: 12),
@@ -199,14 +199,14 @@ class BudgetsScreen extends ConsumerWidget {
                                         vertical: 8,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: DashboardTokens.periwinkleGray,
+                                        color: context.kColors.primaryButton,
                                         borderRadius: BorderRadius.circular(16),
                                       ),
                                       child: Text(
                                         'Retry',
                                         style: GoogleFonts.dmSans(
                                           fontWeight: FontWeight.w700,
-                                          color: DashboardTokens.ebony,
+                                          color: context.kColors.onPrimaryButton,
                                         ),
                                       ),
                                     ),
@@ -223,17 +223,17 @@ class BudgetsScreen extends ConsumerWidget {
                             final Color progressColor;
 
                             if (pct >= 100) {
-                              badgeBg = DashboardTokens.apricot15;
-                              badgeColor = DashboardTokens.apricot;
-                              progressColor = DashboardTokens.apricot;
+                              badgeBg = context.kColors.dangerTint;
+                              badgeColor = context.kColors.danger;
+                              progressColor = context.kColors.danger;
                             } else if (pct >= 80) {
-                              badgeBg = KasyabaTokens.casablanca15;
-                              badgeColor = DashboardTokens.casablanca;
-                              progressColor = DashboardTokens.casablanca;
+                              badgeBg = context.kColors.warningTint;
+                              badgeColor = context.kColors.warning;
+                              progressColor = context.kColors.warning;
                             } else {
-                              badgeBg = DashboardTokens.bermuda15;
-                              badgeColor = DashboardTokens.bermuda;
-                              progressColor = DashboardTokens.bermuda;
+                              badgeBg = context.kColors.successTint;
+                              badgeColor = context.kColors.success;
+                              progressColor = context.kColors.success;
                             }
 
                             final remaining =
@@ -242,10 +242,10 @@ class BudgetsScreen extends ConsumerWidget {
                             return Container(
                               padding: const EdgeInsets.all(19),
                               decoration: BoxDecoration(
-                                color: DashboardTokens.cello60,
+                                color: context.kColors.cardHero,
                                 borderRadius: BorderRadius.circular(28),
                                 border: Border.all(
-                                  color: DashboardTokens.poloBlue30,
+                                  color: context.kColors.cardBorderStrong,
                                   width: 1,
                                 ),
                               ),
@@ -262,8 +262,7 @@ class BudgetsScreen extends ConsumerWidget {
                                           style: GoogleFonts.dmSans(
                                             fontSize: 14,
                                             fontWeight: FontWeight.w500,
-                                            color: DashboardTokens
-                                                .periwinkleGraySubtitle,
+                                            color: context.kColors.textSecondary,
                                           ),
                                           overflow: TextOverflow.ellipsis,
                                         ),
@@ -308,7 +307,7 @@ class BudgetsScreen extends ConsumerWidget {
                                             fontSize: 28,
                                             fontWeight: FontWeight.w700,
                                             color:
-                                                DashboardTokens.periwinkleGray,
+                                                context.kColors.textPrimary,
                                             letterSpacing: -0.5,
                                           ),
                                         ),
@@ -317,8 +316,7 @@ class BudgetsScreen extends ConsumerWidget {
                                           style: GoogleFonts.dmSans(
                                             fontSize: 16,
                                             fontWeight: FontWeight.w500,
-                                            color: DashboardTokens
-                                                .periwinkleGraySubtitle,
+                                            color: context.kColors.textSecondary,
                                           ),
                                         ),
                                       ],
@@ -331,8 +329,7 @@ class BudgetsScreen extends ConsumerWidget {
                                     child: LinearProgressIndicator(
                                       value: (pct / 100).clamp(0.0, 1.0),
                                       minHeight: 8,
-                                      backgroundColor:
-                                          DashboardTokens.poloBlue20,
+                                      backgroundColor: context.kColors.icon.withValues(alpha: 0.2),
                                       valueColor: AlwaysStoppedAnimation<Color>(
                                         progressColor,
                                       ),
@@ -347,9 +344,8 @@ class BudgetsScreen extends ConsumerWidget {
                                       fontSize: 13,
                                       fontWeight: FontWeight.w400,
                                       color: remaining >= 0
-                                          ? DashboardTokens
-                                                .periwinkleGraySubtitle
-                                          : DashboardTokens.apricot,
+                                          ? context.kColors.textSecondary
+                                          : context.kColors.danger,
                                     ),
                                   ),
                                 ],
@@ -374,7 +370,7 @@ class BudgetsScreen extends ConsumerWidget {
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 1.0,
-                              color: DashboardTokens.periwinkleGraySubtitle,
+                              color: context.kColors.textSecondary,
                             ),
                           ),
                         ),
@@ -398,10 +394,10 @@ class BudgetsScreen extends ConsumerWidget {
                                   vertical: 32,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: DashboardTokens.bigStone,
+                                  color: context.kColors.card,
                                   borderRadius: BorderRadius.circular(28),
                                   border: Border.all(
-                                    color: DashboardTokens.poloBlue22,
+                                    color: context.kColors.cardBorder,
                                     width: 1,
                                   ),
                                 ),
@@ -410,14 +406,14 @@ class BudgetsScreen extends ConsumerWidget {
                                     Container(
                                       width: 64,
                                       height: 64,
-                                      decoration: const BoxDecoration(
-                                        color: DashboardTokens.poloBlue20,
+                                      decoration: BoxDecoration(
+                                        color: context.kColors.icon.withValues(alpha: 0.2),
                                         shape: BoxShape.circle,
                                       ),
-                                      child: const Center(
+                                      child: Center(
                                         child: Icon(
                                           Icons.pie_chart_outline_rounded,
-                                          color: DashboardTokens.periwinkleGray,
+                                          color: context.kColors.textPrimary,
                                           size: 32,
                                         ),
                                       ),
@@ -429,7 +425,7 @@ class BudgetsScreen extends ConsumerWidget {
                                       style: GoogleFonts.bricolageGrotesque(
                                         fontSize: 20,
                                         fontWeight: FontWeight.w700,
-                                        color: DashboardTokens.periwinkleGray,
+                                        color: context.kColors.textPrimary,
                                       ),
                                     ),
                                     const SizedBox(height: 6),
@@ -438,8 +434,7 @@ class BudgetsScreen extends ConsumerWidget {
                                       textAlign: TextAlign.center,
                                       style: GoogleFonts.dmSans(
                                         fontSize: 14,
-                                        color: DashboardTokens
-                                            .periwinkleGraySubtitle,
+                                        color: context.kColors.textSecondary,
                                         height: 1.45,
                                       ),
                                     ),
@@ -459,7 +454,7 @@ class BudgetsScreen extends ConsumerWidget {
                                           ),
                                           decoration: BoxDecoration(
                                             color:
-                                                DashboardTokens.periwinkleGray,
+                                                context.kColors.primaryButton,
                                             borderRadius: BorderRadius.circular(
                                               26,
                                             ),
@@ -469,7 +464,8 @@ class BudgetsScreen extends ConsumerWidget {
                                             style: GoogleFonts.dmSans(
                                               fontSize: 15,
                                               fontWeight: FontWeight.w700,
-                                              color: DashboardTokens.ebony,
+                                              color:
+                                                  context.kColors.onPrimaryButton,
                                             ),
                                           ),
                                         ),
@@ -486,10 +482,10 @@ class BudgetsScreen extends ConsumerWidget {
                                 vertical: 3,
                               ),
                               decoration: BoxDecoration(
-                                color: DashboardTokens.bigStone,
+                                color: context.kColors.card,
                                 borderRadius: BorderRadius.circular(28),
                                 border: Border.all(
-                                  color: DashboardTokens.poloBlue22,
+                                  color: context.kColors.cardBorder,
                                   width: 1,
                                 ),
                               ),
@@ -503,7 +499,7 @@ class BudgetsScreen extends ConsumerWidget {
                                     if (i > 0)
                                       Container(
                                         height: 1,
-                                        color: DashboardTokens.poloBlue16,
+                                        color: context.kColors.divider,
                                       ),
                                     _buildBudgetItem(
                                       context,
@@ -539,7 +535,7 @@ class BudgetsScreen extends ConsumerWidget {
                             child: Container(
                               height: 56,
                               decoration: BoxDecoration(
-                                color: DashboardTokens.periwinkleGray,
+                                color: context.kColors.primaryButton,
                                 borderRadius: BorderRadius.circular(28),
                               ),
                               alignment: Alignment.center,
@@ -548,7 +544,7 @@ class BudgetsScreen extends ConsumerWidget {
                                 style: GoogleFonts.dmSans(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
-                                  color: DashboardTokens.ebony,
+                                  color: context.kColors.onPrimaryButton,
                                 ),
                               ),
                             ),
@@ -577,15 +573,15 @@ class BudgetsScreen extends ConsumerWidget {
     final Color badgeBg;
     switch (budget.status) {
       case 'exceeded':
-        statusColor = DashboardTokens.apricot;
-        badgeBg = DashboardTokens.apricot15;
+        statusColor = context.kColors.danger;
+        badgeBg = context.kColors.dangerTint;
       case 'warning':
-        statusColor = DashboardTokens.casablanca;
-        badgeBg = KasyabaTokens.casablanca15;
+        statusColor = context.kColors.warning;
+        badgeBg = context.kColors.warningTint;
       case 'on_track':
       default:
-        statusColor = DashboardTokens.bermuda;
-        badgeBg = DashboardTokens.bermuda15;
+        statusColor = context.kColors.success;
+        badgeBg = context.kColors.successTint;
     }
 
     final progress = (budget.percentUsed / 100).clamp(0.0, 1.0);
@@ -603,14 +599,14 @@ class BudgetsScreen extends ConsumerWidget {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: DashboardTokens.poloBlue30,
+                    color: context.kColors.cardBorderStrong,
                     width: 1,
                   ),
                 ),
                 child: Center(
                   child: Icon(
                     CategoryIconHelper.getIcon(categoryName),
-                    color: DashboardTokens.periwinkleGray,
+                    color: context.kColors.textPrimary,
                     size: 20,
                   ),
                 ),
@@ -625,7 +621,7 @@ class BudgetsScreen extends ConsumerWidget {
                       style: GoogleFonts.dmSans(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
-                        color: DashboardTokens.periwinkleGray,
+                        color: context.kColors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -634,7 +630,7 @@ class BudgetsScreen extends ConsumerWidget {
                       style: GoogleFonts.dmSans(
                         fontSize: 13,
                         fontWeight: FontWeight.w400,
-                        color: DashboardTokens.periwinkleGraySubtitle,
+                        color: context.kColors.textSecondary,
                       ),
                     ),
                   ],
@@ -656,15 +652,15 @@ class BudgetsScreen extends ConsumerWidget {
                 ),
               ),
               PopupMenuButton<String>(
-                icon: const Icon(
+                icon: Icon(
                   Icons.more_vert_rounded,
-                  color: DashboardTokens.periwinkleGraySubtitle,
+                  color: context.kColors.textSecondary,
                   size: 20,
                 ),
-                color: DashboardTokens.bigStone,
+                color: context.kColors.card,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
-                  side: const BorderSide(color: DashboardTokens.poloBlue22),
+                  side: BorderSide(color: context.kColors.cardBorder),
                 ),
                 onSelected: (action) async {
                   if (action == 'delete') {
@@ -712,7 +708,7 @@ class BudgetsScreen extends ConsumerWidget {
                       children: [
                         Icon(
                           Icons.delete_outline_rounded,
-                          color: DashboardTokens.apricot,
+                          color: context.kColors.danger,
                           size: 18,
                         ),
                         SizedBox(width: 10),
@@ -721,7 +717,7 @@ class BudgetsScreen extends ConsumerWidget {
                               ? 'Delete budget'
                               : 'Delete (needs internet)',
                           style: GoogleFonts.dmSans(
-                            color: DashboardTokens.apricot,
+                            color: context.kColors.danger,
                           ),
                         ),
                       ],
@@ -737,7 +733,7 @@ class BudgetsScreen extends ConsumerWidget {
             child: LinearProgressIndicator(
               value: progress,
               minHeight: 6,
-              backgroundColor: DashboardTokens.poloBlue16,
+              backgroundColor: context.kColors.icon.withValues(alpha: 0.2),
               valueColor: AlwaysStoppedAnimation<Color>(statusColor),
             ),
           ),
@@ -826,7 +822,7 @@ class _CreateBudgetSheetState extends ConsumerState<_CreateBudgetSheet> {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return AppSheet(
-      color: DashboardTokens.ebony,
+      color: context.kColors.canvas,
       padding: EdgeInsets.fromLTRB(20, 6, 20, 24 + bottomInset),
       child: Form(
         key: _formKey,
@@ -840,7 +836,7 @@ class _CreateBudgetSheetState extends ConsumerState<_CreateBudgetSheet> {
                 style: GoogleFonts.bricolageGrotesque(
                   fontSize: 22,
                   fontWeight: FontWeight.w700,
-                  color: DashboardTokens.periwinkleGray,
+                  color: context.kColors.textPrimary,
                 ),
               ),
               const SizedBox(height: 4),
@@ -848,7 +844,7 @@ class _CreateBudgetSheetState extends ConsumerState<_CreateBudgetSheet> {
                 'Set a monthly spending limit to protect your daily safe-to-spend.',
                 style: GoogleFonts.dmSans(
                   fontSize: 14,
-                  color: DashboardTokens.periwinkleGraySubtitle,
+                  color: context.kColors.textSecondary,
                 ),
               ),
               const SizedBox(height: 20),
@@ -864,7 +860,7 @@ class _CreateBudgetSheetState extends ConsumerState<_CreateBudgetSheet> {
                       style: GoogleFonts.dmSans(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: DashboardTokens.periwinkleGraySubtitle,
+                        color: context.kColors.textSecondary,
                       ),
                     ),
                   ),
@@ -872,10 +868,10 @@ class _CreateBudgetSheetState extends ConsumerState<_CreateBudgetSheet> {
                     height: 58,
                     padding: const EdgeInsets.symmetric(horizontal: 21),
                     decoration: BoxDecoration(
-                      color: DashboardTokens.bigStone,
+                      color: context.kColors.inputFill,
                       borderRadius: BorderRadius.circular(28),
                       border: Border.all(
-                        color: DashboardTokens.poloBlue22,
+                        color: context.kColors.cardBorder,
                         width: 1,
                       ),
                     ),
@@ -886,7 +882,7 @@ class _CreateBudgetSheetState extends ConsumerState<_CreateBudgetSheet> {
                           style: GoogleFonts.dmSans(
                             fontSize: 17,
                             fontWeight: FontWeight.w700,
-                            color: DashboardTokens.periwinkleGray,
+                            color: context.kColors.textPrimary,
                           ),
                         ),
                         Expanded(
@@ -902,14 +898,14 @@ class _CreateBudgetSheetState extends ConsumerState<_CreateBudgetSheet> {
                             style: GoogleFonts.dmSans(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
-                              color: DashboardTokens.periwinkleGray,
+                              color: context.kColors.textPrimary,
                             ),
-                            cursorColor: DashboardTokens.periwinkleGray,
+                            cursorColor: context.kColors.textPrimary,
                             decoration: InputDecoration(
                               hintText: '10000.00',
                               hintStyle: GoogleFonts.dmSans(
                                 fontSize: 16,
-                                color: DashboardTokens.poloBlue40,
+                                color: context.kColors.icon.withValues(alpha: 0.4),
                               ),
                               filled: false,
                               fillColor: Colors.transparent,
@@ -951,7 +947,7 @@ class _CreateBudgetSheetState extends ConsumerState<_CreateBudgetSheet> {
                       style: GoogleFonts.dmSans(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: DashboardTokens.periwinkleGraySubtitle,
+                        color: context.kColors.textSecondary,
                       ),
                     ),
                   ),
@@ -959,10 +955,10 @@ class _CreateBudgetSheetState extends ConsumerState<_CreateBudgetSheet> {
                     height: 58,
                     padding: const EdgeInsets.symmetric(horizontal: 21),
                     decoration: BoxDecoration(
-                      color: DashboardTokens.bigStone,
+                      color: context.kColors.inputFill,
                       borderRadius: BorderRadius.circular(28),
                       border: Border.all(
-                        color: DashboardTokens.poloBlue22,
+                        color: context.kColors.cardBorder,
                         width: 1,
                       ),
                     ),
@@ -970,15 +966,15 @@ class _CreateBudgetSheetState extends ConsumerState<_CreateBudgetSheet> {
                       child: DropdownButton<String?>(
                         value: _selectedCategoryId,
                         isExpanded: true,
-                        dropdownColor: DashboardTokens.bigStone,
-                        icon: const Icon(
+                        dropdownColor: context.kColors.card,
+                        icon: Icon(
                           Icons.keyboard_arrow_down_rounded,
-                          color: DashboardTokens.periwinkleGray,
+                          color: context.kColors.textPrimary,
                         ),
                         style: GoogleFonts.dmSans(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
-                          color: DashboardTokens.periwinkleGray,
+                          color: context.kColors.textPrimary,
                         ),
                         items: [
                           const DropdownMenuItem<String?>(

@@ -4,61 +4,59 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:reactive_forms/reactive_forms.dart';
 import '../../../app/theme/app_motion.dart';
-import '../../../app/theme/app_theme.dart';
+import '../../../app/theme/kasyaba_color_scheme.dart';
 import '../../../app/theme/kasyaba_tokens.dart';
 
 /// ─────────────────────────────────────────────────────────────
-///  Auth Design System — Figma Pixel-Perfect Tokens (Node 11:779)
+///  Auth Design System — Figma gradient recipes (Node 11:779)
+///
+///  Solid fills now resolve from [KasyabaColorScheme] via `context.kColors`.
+///  Only the dark-mode radial washes stay literal because they have no
+///  semantic token equivalent; light mode uses a palette-derived wash.
 /// ─────────────────────────────────────────────────────────────
 class AuthFigmaTokens {
   AuthFigmaTokens._();
 
-  // Color Fills & Strokes — aliased to KasyabaTokens wherever the value is
-  // identical so a change in the token file propagates here automatically.
-  // Auth-specific alpha variants (cello55, poloBlue28/35) stay literal because
-  // `.withValues` is not const-evaluable.
-  static const Color ebony = KasyabaTokens.ebony;
-  static const Color ebony55 = Color(
-    0x8C0A1220,
-  ); // rgba(10, 18, 32, 0.55) - Input fields
-  static const Color cello55 = Color(
-    0x8C1E3A56,
-  ); // rgba(30, 58, 86, 0.55) - Form card & Tooltip
-  static const Color poloBlue28 = Color(
-    0x478FB2CE,
-  ); // rgba(143, 178, 206, 0.28) - Card / Tooltip border
-  static const Color poloBlue35 = Color(
-    0x598FB2CE,
-  ); // rgba(143, 178, 206, 0.35) - Input border
-  static const Color poloBlue = KasyabaTokens.poloBlue;
-  static const Color periwinkleGray = KasyabaTokens.periwinkleGray;
-  static const Color kashmirBlue = KasyabaTokens.kashmirBlue;
-  static const Color boulder = Color(0xFF757575); // Input placeholder
-  static const Color white = Color(0xFFFFFFFF);
+  static const RadialGradient glowTopRight = RadialGradient(
+    center: Alignment(0.70, -0.84),
+    radius: 0.70,
+    colors: [Color(0xCC4F7596), Color(0x004F7596)],
+    stops: [0.0, 1.0],
+  );
 
-  // Radial Gradients
-  static const Color radialGlow1 = Color(
-    0xCC4F7596,
-  ); // rgba(79, 117, 150, 0.8) at 85% 8%
-  static const Color radialGlow2 = KasyabaTokens.cello;
-  static const Color radialGlow3 = Color(
-    0xAB1E3A56,
-  ); // rgba(30, 58, 86, 0.67) at 100% 75%
-  static const Color kashmirBlue0 = Color(
-    0x004F7596,
-  ); // transparent stop of kashmirBlue fades
-  static const Color cello0 = Color(
-    0x001E3A56,
-  ); // transparent stop of cello fades
+  static const RadialGradient glowBottomLeft = RadialGradient(
+    center: Alignment(-1.0, 1.0),
+    radius: 0.70,
+    colors: [KasyabaTokens.cello, Color(0x001E3A56)],
+    stops: [0.0, 1.0],
+  );
 
-  // Forgot Password (Node 11:3028) Tokens
-  static const Color bigStone = KasyabaTokens.bigStone;
-  static const Color poloBlue22 = KasyabaTokens.poloBlue22;
-  static const Color periwinkleGraySubtitle =
-      KasyabaTokens.periwinkleGraySubtitle;
-  static const Color radialForgotPass = Color(
-    0xAB4F7596,
-  ); // rgba(79, 117, 150, 0.67) at 90% 0% — kept literal (const requirement)
+  static const RadialGradient glowRight = RadialGradient(
+    center: Alignment(1.0, 0.50),
+    radius: 0.70,
+    colors: [Color(0xAB1E3A56), Color(0x001E3A56)],
+    stops: [0.0, 1.0],
+  );
+
+  static const RadialGradient forgotGlow = RadialGradient(
+    center: Alignment(0.80, -1.0),
+    radius: 0.70,
+    colors: [Color(0xAB4F7596), Color(0x004F7596)],
+    stops: [0.0, 1.0],
+  );
+
+  /// Soft porcelain wash derived from the active palette.
+  static RadialGradient lightGlow(KasyabaColorScheme colors) {
+    return RadialGradient(
+      center: const Alignment(0.70, -0.84),
+      radius: 1.1,
+      colors: <Color>[
+        colors.icon.withValues(alpha: 0.12),
+        colors.icon.withValues(alpha: 0.0),
+      ],
+      stops: const <double>[0.0, 0.7],
+    );
+  }
 }
 
 // ── Squircle Back Button (Node 11:3033 & 11:743) ──
@@ -83,12 +81,21 @@ class AuthBackButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg =
-        backgroundColor ??
-        (isDark ? AuthFigmaTokens.bigStone : AppColors.lightCardSurface);
-    final border =
-        borderColor ??
-        (isDark ? AuthFigmaTokens.poloBlue22 : AppColors.lightBorderHairline);
+    final colors = context.kColors;
+    final bg = backgroundColor ?? colors.card;
+    final border = borderColor ?? colors.cardBorder;
+
+    Widget chevron = SvgPicture.asset(
+      'assets/images/back_chevron.svg',
+      width: 22,
+      height: 22,
+    );
+    if (!isDark) {
+      chevron = ColorFiltered(
+        colorFilter: ColorFilter.mode(colors.textPrimary, BlendMode.srcIn),
+        child: chevron,
+      );
+    }
 
     Widget content = Container(
       width: size,
@@ -99,11 +106,7 @@ class AuthBackButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(radius),
         border: Border.all(color: border, width: 1.0),
       ),
-      child: SvgPicture.asset(
-        'assets/images/back_chevron.svg',
-        width: 22,
-        height: 22,
-      ),
+      child: chevron,
     );
 
     if (hasBlur) {
@@ -174,20 +177,17 @@ class _AuthCapsuleInlineFieldState extends State<AuthCapsuleInlineField> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = context.kColors;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       height: 56,
       padding: const EdgeInsets.symmetric(horizontal: 21),
       decoration: BoxDecoration(
-        color: isDark ? AuthFigmaTokens.bigStone : AppColors.lightInputFill,
+        color: colors.inputFill,
         borderRadius: BorderRadius.circular(28),
         border: Border.all(
-          color: _isFocused
-              ? (isDark ? AuthFigmaTokens.poloBlue : KasyabaTokens.poloBlue)
-              : (isDark
-                    ? AuthFigmaTokens.poloBlue22
-                    : AppColors.lightBorderHairline),
+          color: _isFocused ? colors.icon : colors.inputBorder,
           width: _isFocused ? 1.5 : 1.0,
         ),
       ),
@@ -200,9 +200,7 @@ class _AuthCapsuleInlineFieldState extends State<AuthCapsuleInlineField> {
             child: Text(
               widget.label,
               style: GoogleFonts.dmSans(
-                color: isDark
-                    ? AuthFigmaTokens.periwinkleGraySubtitle
-                    : AppColors.lightTextSecondary,
+                color: colors.textSecondary,
                 fontSize: 14,
                 fontWeight: FontWeight.w400,
               ),
@@ -232,9 +230,7 @@ class _AuthCapsuleInlineFieldState extends State<AuthCapsuleInlineField> {
                     ? (_) => widget.onSubmitted!()
                     : null,
                 style: GoogleFonts.dmSans(
-                  color: isDark
-                      ? AuthFigmaTokens.periwinkleGray
-                      : AppColors.lightTextPrimary,
+                  color: colors.textPrimary,
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                 ),
@@ -246,8 +242,8 @@ class _AuthCapsuleInlineFieldState extends State<AuthCapsuleInlineField> {
                   hintText: widget.hintText,
                   hintStyle: GoogleFonts.dmSans(
                     color: isDark
-                        ? AuthFigmaTokens.periwinkleGray.withValues(alpha: 0.45)
-                        : AppColors.lightTextTertiary,
+                        ? colors.textPrimary.withValues(alpha: 0.45)
+                        : colors.textMuted,
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                   ),
@@ -283,11 +279,35 @@ class AuthBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.kColors;
+    final radar = SvgPicture.asset(
+      'assets/images/background_radar.svg',
+      fit: BoxFit.cover,
+      alignment: Alignment.center,
+    );
+
     if (!isDark) {
-      return Container(
+      return SizedBox(
         width: size.width,
         height: size.height,
-        color: AppColors.lightScaffold,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            ColoredBox(color: colors.canvas),
+            DecoratedBox(
+              decoration: BoxDecoration(gradient: colors.backgroundGradient),
+            ),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: AuthFigmaTokens.lightGlow(colors),
+              ),
+            ),
+            ColorFiltered(
+              colorFilter: ColorFilter.mode(colors.icon, BlendMode.srcIn),
+              child: radar,
+            ),
+          ],
+        ),
       );
     }
 
@@ -297,47 +317,21 @@ class AuthBackground extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // Base solid fill #0A1220
-          Container(color: AuthFigmaTokens.ebony),
+          ColoredBox(color: colors.canvas),
           // Radial Gradient 1: circle at 85% 8%, rgba(79, 117, 150, 0.8) 0% to rgba(79, 117, 150, 0) 70%
-          Container(
-            decoration: const BoxDecoration(
-              gradient: RadialGradient(
-                center: Alignment(0.70, -0.84),
-                radius: 0.70,
-                colors: [AuthFigmaTokens.radialGlow1, AuthFigmaTokens.kashmirBlue0],
-                stops: [0.0, 1.0],
-              ),
-            ),
+          const DecoratedBox(
+            decoration: BoxDecoration(gradient: AuthFigmaTokens.glowTopRight),
           ),
           // Radial Gradient 2: circle at 0% 100%, rgba(30, 58, 86, 1) 0% to rgba(30, 58, 86, 0) 70%
-          Container(
-            decoration: const BoxDecoration(
-              gradient: RadialGradient(
-                center: Alignment(-1.0, 1.0),
-                radius: 0.70,
-                colors: [AuthFigmaTokens.radialGlow2, AuthFigmaTokens.cello0],
-                stops: [0.0, 1.0],
-              ),
-            ),
+          const DecoratedBox(
+            decoration: BoxDecoration(gradient: AuthFigmaTokens.glowBottomLeft),
           ),
           // Radial Gradient 3: circle at 100% 75%, rgba(30, 58, 86, 0.67) 0% to rgba(30, 58, 86, 0) 70%
-          Container(
-            decoration: const BoxDecoration(
-              gradient: RadialGradient(
-                center: Alignment(1.0, 0.50),
-                radius: 0.70,
-                colors: [AuthFigmaTokens.radialGlow3, AuthFigmaTokens.cello0],
-                stops: [0.0, 1.0],
-              ),
-            ),
+          const DecoratedBox(
+            decoration: BoxDecoration(gradient: AuthFigmaTokens.glowRight),
           ),
           // Vector radar background rings (Node 11:784)
-          SvgPicture.asset(
-            'assets/images/background_radar.svg',
-            fit: BoxFit.cover,
-            alignment: Alignment.center,
-          ),
+          radar,
         ],
       ),
     );
@@ -357,11 +351,30 @@ class AuthForgotPassBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.kColors;
+    final radar = SvgPicture.asset(
+      'assets/images/background_radar.svg',
+      fit: BoxFit.cover,
+      alignment: Alignment.center,
+    );
+
     if (!isDark) {
-      return Container(
+      return SizedBox(
         width: size.width,
         height: size.height,
-        color: AppColors.lightScaffold,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            ColoredBox(color: colors.canvas),
+            DecoratedBox(
+              decoration: BoxDecoration(gradient: colors.backgroundGradient),
+            ),
+            ColorFiltered(
+              colorFilter: ColorFilter.mode(colors.icon, BlendMode.srcIn),
+              child: radar,
+            ),
+          ],
+        ),
       );
     }
 
@@ -371,25 +384,13 @@ class AuthForgotPassBackground extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // Base solid fill #0A1220
-          Container(color: AuthFigmaTokens.ebony),
+          ColoredBox(color: colors.canvas),
           // Radial Gradient: circle at 90% 0%, rgba(79, 117, 150, 0.67) 0% to 0% at 70%
-          Container(
-            decoration: const BoxDecoration(
-              gradient: RadialGradient(
-                center: Alignment(0.80, -1.0),
-                radius: 0.70,
-                colors: [AuthFigmaTokens.radialForgotPass, AuthFigmaTokens.kashmirBlue0],
-                stops: [0.0, 1.0],
-              ),
-            ),
+          const DecoratedBox(
+            decoration: BoxDecoration(gradient: AuthFigmaTokens.forgotGlow),
           ),
           // Subtle radar background rings (Node 11:784)
-          SvgPicture.asset(
-            'assets/images/background_radar.svg',
-            fit: BoxFit.cover,
-            alignment: Alignment.center,
-          ),
+          radar,
         ],
       ),
     );
@@ -419,7 +420,7 @@ class AuthBrandHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = context.kColors;
     return Row(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -429,9 +430,7 @@ class AuthBrandHeader extends StatelessWidget {
         Text(
           'Kasyaba',
           style: GoogleFonts.bricolageGrotesque(
-            color: isDark
-                ? AuthFigmaTokens.periwinkleGray
-                : AppColors.lightTextPrimary,
+            color: colors.textPrimary,
             fontSize: 26,
             fontWeight: FontWeight.w700,
           ),
@@ -448,6 +447,22 @@ class RunwaySplineHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = context.kColors;
+
+    Widget chart = SvgPicture.asset(
+      'assets/images/chart_vector.svg',
+      width: 342,
+      height: 150,
+      fit: BoxFit.fill,
+    );
+    if (!isDark) {
+      chart = ColorFiltered(
+        colorFilter: ColorFilter.mode(colors.icon, BlendMode.srcIn),
+        child: chart,
+      );
+    }
+
     return Center(
       child: SizedBox(
         width: 342,
@@ -456,12 +471,7 @@ class RunwaySplineHero extends StatelessWidget {
           clipBehavior: Clip.none,
           children: [
             // Exact vector chart path + gradient + node + dashed drop line
-            SvgPicture.asset(
-              'assets/images/chart_vector.svg',
-              width: 342,
-              height: 150,
-              fit: BoxFit.fill,
-            ),
+            chart,
             // Floating "Can I afford it?" tooltip pill at exact Figma position (x: 112, y: 0)
             Positioned(
               left: 112,
@@ -476,17 +486,21 @@ class RunwaySplineHero extends StatelessWidget {
                       vertical: 10,
                     ),
                     decoration: BoxDecoration(
-                      color: AuthFigmaTokens.cello55,
+                      color: isDark
+                          ? colors.cardHero.withValues(alpha: 0.55)
+                          : colors.card,
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: AuthFigmaTokens.poloBlue28,
+                        color: isDark
+                            ? colors.icon.withValues(alpha: 0.28)
+                            : colors.cardBorder,
                         width: 1.0,
                       ),
                     ),
                     child: Text(
                       tooltipText,
                       style: GoogleFonts.dmSans(
-                        color: AuthFigmaTokens.periwinkleGray,
+                        color: colors.textPrimary,
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                       ),
@@ -511,6 +525,7 @@ class AuthFormCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = context.kColors;
     return ClipRRect(
       borderRadius: BorderRadius.circular(32),
       child: BackdropFilter(
@@ -525,13 +540,13 @@ class AuthFormCard extends StatelessWidget {
           ),
           decoration: BoxDecoration(
             color: isDark
-                ? AuthFigmaTokens.cello55
-                : AppColors.lightCardSurface,
+                ? colors.cardHero.withValues(alpha: 0.55)
+                : colors.card,
             borderRadius: BorderRadius.circular(32),
             border: Border.all(
               color: isDark
-                  ? AuthFigmaTokens.poloBlue28
-                  : AppColors.lightBorderHairline,
+                  ? colors.icon.withValues(alpha: 0.28)
+                  : colors.cardBorder,
               width: 1.0,
             ),
           ),
@@ -598,7 +613,8 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
   @override
   void didUpdateWidget(AuthReactiveField oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.obscureText != oldWidget.obscureText && !widget.isPasswordField) {
+    if (widget.obscureText != oldWidget.obscureText &&
+        !widget.isPasswordField) {
       _isObscured = widget.obscureText;
     }
   }
@@ -612,12 +628,9 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final unfocusedIconColor = isDark
-        ? AuthFigmaTokens.poloBlue
-        : AppColors.lightTextSecondary;
-    final focusedIconColor = isDark
-        ? AuthFigmaTokens.periwinkleGray
-        : KasyabaTokens.poloBlue;
+    final colors = context.kColors;
+    final unfocusedIconColor = isDark ? colors.icon : colors.textSecondary;
+    final focusedIconColor = colors.textPrimary;
 
     Widget? suffix = widget.suffixIcon;
     if (widget.isPasswordField && suffix == null) {
@@ -630,13 +643,7 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
             _obscured
                 ? Icons.visibility_off_outlined
                 : Icons.visibility_outlined,
-            color: _isFocused
-                ? (isDark
-                    ? AuthFigmaTokens.periwinkleGray
-                    : AuthFigmaTokens.poloBlue)
-                : (isDark
-                    ? AuthFigmaTokens.poloBlue
-                    : AppColors.lightTextSecondary),
+            color: _isFocused ? focusedIconColor : unfocusedIconColor,
             size: 20,
           ),
         ),
@@ -650,9 +657,7 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
         Text(
           widget.label.toUpperCase(),
           style: GoogleFonts.dmSans(
-            color: isDark
-                ? AuthFigmaTokens.poloBlue
-                : AppColors.lightTextSecondary,
+            color: isDark ? colors.icon : colors.textSecondary,
             fontSize: 11,
             fontWeight: FontWeight.w700,
             letterSpacing: 1.0,
@@ -666,16 +671,16 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
           child: ReactiveTextField<dynamic>(
             formControlName: widget.formControlName,
             focusNode: _focusNode,
-            obscureText: widget.isPasswordField ? _obscured : widget.obscureText,
+            obscureText: widget.isPasswordField
+                ? _obscured
+                : widget.obscureText,
             keyboardType: widget.keyboardType,
             textInputAction: widget.textInputAction,
             onSubmitted: widget.onSubmitted != null
                 ? (_) => widget.onSubmitted!()
                 : null,
             style: GoogleFonts.dmSans(
-              color: isDark
-                  ? AuthFigmaTokens.periwinkleGray
-                  : AppColors.lightTextPrimary,
+              color: colors.textPrimary,
               fontSize: 16,
               fontWeight: FontWeight.w500,
             ),
@@ -683,16 +688,14 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
               isDense: true,
               hintText: widget.hintText,
               hintStyle: GoogleFonts.dmSans(
-                color: isDark
-                    ? AuthFigmaTokens.boulder
-                    : AppColors.lightTextTertiary,
+                color: isDark ? Colors.grey.shade600 : colors.textMuted,
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
               ),
               filled: true,
               fillColor: isDark
-                  ? AuthFigmaTokens.ebony55
-                  : AppColors.lightInputFill,
+                  ? colors.canvas.withValues(alpha: 0.55)
+                  : colors.inputFill,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 22,
                 vertical: 17,
@@ -713,34 +716,25 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
                 borderRadius: BorderRadius.circular(28),
                 borderSide: BorderSide(
                   color: isDark
-                      ? AuthFigmaTokens.poloBlue35
-                      : AppColors.lightBorderHairline,
+                      ? colors.icon.withValues(alpha: 0.35)
+                      : colors.inputBorder,
                   width: 1.0,
                 ),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(28),
-                borderSide: BorderSide(
-                  color: isDark ? AuthFigmaTokens.poloBlue : focusedIconColor,
-                  width: 1.5,
-                ),
+                borderSide: BorderSide(color: colors.icon, width: 1.5),
               ),
               errorBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(28),
-                borderSide: const BorderSide(
-                  color: KasyabaTokens.apricot,
-                  width: 1.0,
-                ),
+                borderSide: BorderSide(color: colors.danger, width: 1.0),
               ),
               focusedErrorBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(28),
-                borderSide: const BorderSide(
-                  color: KasyabaTokens.apricot,
-                  width: 1.5,
-                ),
+                borderSide: BorderSide(color: colors.danger, width: 1.5),
               ),
               errorStyle: GoogleFonts.dmSans(
-                color: KasyabaTokens.apricot,
+                color: colors.danger,
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
               ),
@@ -770,35 +764,34 @@ class AuthPrimaryPillButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.kColors;
     return SizedBox(
       height: height,
       width: double.infinity,
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: AuthFigmaTokens.periwinkleGray,
-          foregroundColor: AuthFigmaTokens.ebony,
-          disabledBackgroundColor: AuthFigmaTokens.poloBlue.withValues(
-            alpha: 0.5,
-          ),
+          backgroundColor: colors.primaryButton,
+          foregroundColor: colors.onPrimaryButton,
+          disabledBackgroundColor: colors.icon.withValues(alpha: 0.5),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(28),
           ),
           elevation: 0,
         ),
         child: isLoading
-            ? const SizedBox(
+            ? SizedBox(
                 height: 22,
                 width: 22,
                 child: CircularProgressIndicator(
                   strokeWidth: 2.4,
-                  color: AuthFigmaTokens.ebony,
+                  color: colors.onPrimaryButton,
                 ),
               )
             : Text(
                 label,
                 style: GoogleFonts.dmSans(
-                  color: AuthFigmaTokens.ebony,
+                  color: colors.onPrimaryButton,
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                 ),
@@ -815,11 +808,12 @@ class AuthTrustFooter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = context.kColors;
     return Text(
       'Server-backed security. Instant on-device math.',
       textAlign: TextAlign.center,
       style: GoogleFonts.dmSans(
-        color: isDark ? AuthFigmaTokens.poloBlue : AppColors.lightTextSecondary,
+        color: isDark ? colors.icon : colors.textSecondary,
         fontSize: 12,
         fontWeight: FontWeight.w400,
       ),
@@ -838,17 +832,15 @@ class PasswordStrengthBar extends StatelessWidget {
     final normalized = strength.clamp(0.0, 1.0);
     if (normalized <= 0) return const SizedBox.shrink();
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = context.kColors;
     final filled = (normalized * 4).ceil().clamp(1, 4).toInt();
     final (color, label) = switch (filled) {
-      1 => (KasyabaTokens.apricot, 'Weak'),
-      2 => (KasyabaTokens.casablanca, 'Fair'),
-      3 => (KasyabaTokens.poloBlue, 'Good'),
-      _ => (KasyabaTokens.bermuda, 'Strong'),
+      1 => (colors.danger, 'Weak'),
+      2 => (colors.warning, 'Fair'),
+      3 => (colors.icon, 'Good'),
+      _ => (colors.success, 'Strong'),
     };
-    final trackColor = isDark
-        ? KasyabaTokens.poloBlue22
-        : AppColors.lightBorderHairline;
+    final trackColor = colors.cardBorder;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -889,12 +881,7 @@ class PasswordStrengthBar extends StatelessWidget {
             Text(
               'Min. 8 characters',
               maxLines: 1,
-              style: TextStyle(
-                color: isDark
-                    ? KasyabaTokens.baliHai
-                    : AppColors.lightTextSecondary,
-                fontSize: 10,
-              ),
+              style: TextStyle(color: colors.textMuted, fontSize: 10),
             ),
           ],
         ),
@@ -918,7 +905,8 @@ class PasswordMatchIndicator extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!hasConfirmText) return const SizedBox.shrink();
 
-    final color = isMatching ? KasyabaTokens.bermuda : KasyabaTokens.apricot;
+    final colors = context.kColors;
+    final color = isMatching ? colors.success : colors.danger;
 
     return Padding(
       padding: const EdgeInsets.only(top: 8),
@@ -952,29 +940,26 @@ class AuthErrorBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.kColors;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(10),
-        color: KasyabaTokens.apricot15,
+        color: colors.dangerTint,
         border: Border.all(
-          color: KasyabaTokens.apricot.withValues(alpha: 0.3),
+          color: colors.danger.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
       child: Row(
         children: [
-          const Icon(
-            Icons.error_outline_rounded,
-            color: KasyabaTokens.apricot,
-            size: 18,
-          ),
+          Icon(Icons.error_outline_rounded, color: colors.danger, size: 18),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(
-                color: KasyabaTokens.apricot,
+              style: TextStyle(
+                color: colors.danger,
                 fontWeight: FontWeight.w600,
                 fontSize: 12,
               ),
@@ -1002,6 +987,7 @@ class AuthTermsCheckbox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = context.kColors;
 
     return ReactiveFormField<bool, bool>(
       formControlName: formControlName,
@@ -1034,28 +1020,20 @@ class AuthTermsCheckbox extends StatelessWidget {
                       height: 22,
                       margin: const EdgeInsets.only(top: 1, right: 12),
                       decoration: BoxDecoration(
-                        color: isChecked
-                            ? KasyabaTokens.bermuda
-                            : (isDark
-                                ? AuthFigmaTokens.bigStone
-                                : AppColors.lightCardSurface),
+                        color: isChecked ? colors.success : colors.card,
                         borderRadius: BorderRadius.circular(7),
                         border: Border.all(
                           color: hasError
-                              ? KasyabaTokens.apricot
+                              ? colors.danger
                               : (isChecked
-                                  ? KasyabaTokens.bermuda
-                                  : (isDark
-                                      ? AuthFigmaTokens.poloBlue28
-                                      : AppColors.lightBorderHairline)),
+                                    ? colors.success
+                                    : colors.cardBorder),
                           width: 1.5,
                         ),
                         boxShadow: isChecked
                             ? [
                                 BoxShadow(
-                                  color: KasyabaTokens.bermuda.withValues(
-                                    alpha: 0.35,
-                                  ),
+                                  color: colors.success.withValues(alpha: 0.35),
                                   blurRadius: 8,
                                   offset: const Offset(0, 2),
                                 ),
@@ -1063,11 +1041,13 @@ class AuthTermsCheckbox extends StatelessWidget {
                             : null,
                       ),
                       child: isChecked
-                          ? const Center(
+                          ? Center(
                               child: Icon(
                                 Icons.check_rounded,
                                 size: 16,
-                                color: KasyabaTokens.ebony,
+                                color: isDark
+                                    ? colors.canvas
+                                    : colors.onPrimaryButton,
                               ),
                             )
                           : null,
@@ -1080,9 +1060,7 @@ class AuthTermsCheckbox extends StatelessWidget {
                           text: 'I agree to the ',
                           style: GoogleFonts.dmSans(
                             fontSize: 13,
-                            color: isDark
-                                ? AuthFigmaTokens.poloBlue
-                                : AppColors.lightTextSecondary,
+                            color: isDark ? colors.icon : colors.textSecondary,
                             height: 1.4,
                           ),
                           children: [
@@ -1096,13 +1074,11 @@ class AuthTermsCheckbox extends StatelessWidget {
                                   style: GoogleFonts.dmSans(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w700,
-                                    color: isDark
-                                        ? AuthFigmaTokens.periwinkleGray
-                                        : AppColors.lightTextPrimary,
+                                    color: colors.textPrimary,
                                     decoration: TextDecoration.underline,
                                     decorationColor: isDark
-                                        ? AuthFigmaTokens.poloBlue
-                                        : AppColors.lightTextSecondary,
+                                        ? colors.icon
+                                        : colors.textSecondary,
                                   ),
                                 ),
                               ),
@@ -1118,13 +1094,11 @@ class AuthTermsCheckbox extends StatelessWidget {
                                   style: GoogleFonts.dmSans(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w700,
-                                    color: isDark
-                                        ? AuthFigmaTokens.periwinkleGray
-                                        : AppColors.lightTextPrimary,
+                                    color: colors.textPrimary,
                                     decoration: TextDecoration.underline,
                                     decorationColor: isDark
-                                        ? AuthFigmaTokens.poloBlue
-                                        : AppColors.lightTextSecondary,
+                                        ? colors.icon
+                                        : colors.textSecondary,
                                   ),
                                 ),
                               ),
@@ -1148,12 +1122,12 @@ class AuthTermsCheckbox extends StatelessWidget {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Padding(
-                            padding: EdgeInsets.only(top: 1),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 1),
                             child: Icon(
                               Icons.error_outline_rounded,
                               size: 13,
-                              color: KasyabaTokens.apricot,
+                              color: colors.danger,
                             ),
                           ),
                           const SizedBox(width: 5),
@@ -1161,7 +1135,7 @@ class AuthTermsCheckbox extends StatelessWidget {
                             child: Text(
                               'You must accept the Terms & Conditions to proceed',
                               style: GoogleFonts.dmSans(
-                                color: KasyabaTokens.apricot,
+                                color: colors.danger,
                                 fontSize: 11.5,
                                 fontWeight: FontWeight.w600,
                                 height: 1.3,

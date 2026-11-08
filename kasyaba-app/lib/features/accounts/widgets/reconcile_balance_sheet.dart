@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../app/theme/app_motion.dart';
-import '../../../app/theme/kasyaba_tokens.dart';
+import '../../../app/theme/kasyaba_color_scheme.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
@@ -147,12 +147,12 @@ class _ReconcileBalanceSheetState extends ConsumerState<ReconcileBalanceSheet> {
 
     return accountsAsync.when(
       loading: () => AppSheet(
-        color: KasyabaTokens.ebony,
+        color: context.kColors.canvas,
         padding: _sheetPadding(context),
         child: const KasyabaLoadingSkeleton(lines: 5),
       ),
       error: (error, _) => AppSheet(
-        color: KasyabaTokens.ebony,
+        color: context.kColors.canvas,
         padding: _sheetPadding(context),
         child: KasyabaErrorCard(
           message: friendlyErrorMessage(
@@ -168,7 +168,7 @@ class _ReconcileBalanceSheetState extends ConsumerState<ReconcileBalanceSheet> {
       data: (accounts) {
         if (accounts.isEmpty) {
           return AppSheet(
-            color: KasyabaTokens.ebony,
+            color: context.kColors.canvas,
             padding: _sheetPadding(context),
             child: const KasyabaEmptyState(
               icon: Icons.account_balance_wallet_outlined,
@@ -193,7 +193,7 @@ class _ReconcileBalanceSheetState extends ConsumerState<ReconcileBalanceSheet> {
             !_isSubmitting && discrepancy != null && discrepancy.abs() >= 0.005;
 
         return AppSheet(
-          color: KasyabaTokens.ebony,
+          color: context.kColors.canvas,
           padding: _sheetPadding(context),
           child: Form(
             key: _formKey,
@@ -207,17 +207,17 @@ class _ReconcileBalanceSheetState extends ConsumerState<ReconcileBalanceSheet> {
                           width: 44,
                           height: 44,
                           decoration: BoxDecoration(
-                            color: KasyabaTokens.bermuda15,
+                            color: context.kColors.successTint,
                             borderRadius: BorderRadius.circular(24),
                             border: Border.all(
-                              color: KasyabaTokens.bermuda.withValues(
+                              color: context.kColors.success.withValues(
                                 alpha: 0.35,
                               ),
                             ),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.tune_rounded,
-                            color: KasyabaTokens.bermuda,
+                            color: context.kColors.success,
                             size: 22,
                           ),
                         ),
@@ -234,7 +234,7 @@ class _ReconcileBalanceSheetState extends ConsumerState<ReconcileBalanceSheet> {
                                       style: GoogleFonts.bricolageGrotesque(
                                         fontSize: 20,
                                         fontWeight: FontWeight.w700,
-                                        color: KasyabaTokens.periwinkleGray,
+                                        color: context.kColors.textPrimary,
                                       ),
                                     ),
                                   ),
@@ -245,7 +245,7 @@ class _ReconcileBalanceSheetState extends ConsumerState<ReconcileBalanceSheet> {
                                       vertical: 3,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: KasyabaTokens.bermuda15,
+                                      color: context.kColors.successTint,
                                       borderRadius: BorderRadius.circular(24),
                                     ),
                                     child: Text(
@@ -253,7 +253,7 @@ class _ReconcileBalanceSheetState extends ConsumerState<ReconcileBalanceSheet> {
                                       style: GoogleFonts.dmSans(
                                         fontSize: 9.5,
                                         fontWeight: FontWeight.w700,
-                                        color: KasyabaTokens.bermuda,
+                                        color: context.kColors.success,
                                         letterSpacing: 0.6,
                                       ),
                                     ),
@@ -265,7 +265,7 @@ class _ReconcileBalanceSheetState extends ConsumerState<ReconcileBalanceSheet> {
                                 'Align recorded ledger with actual physical cash or bank',
                                 style: GoogleFonts.dmSans(
                                   fontSize: 12,
-                                  color: KasyabaTokens.periwinkleGraySubtitle,
+                                  color: context.kColors.textSecondary,
                                 ),
                               ),
                             ],
@@ -273,8 +273,8 @@ class _ReconcileBalanceSheetState extends ConsumerState<ReconcileBalanceSheet> {
                         ),
                         IconButton(
                           onPressed: () => Navigator.of(context).pop(),
-                          icon: const Icon(Icons.close_rounded, size: 20),
-                          color: KasyabaTokens.periwinkleGraySubtitle,
+                          icon: Icon(Icons.close_rounded, size: 20),
+                          color: context.kColors.textSecondary,
                         ),
                       ],
                     ),
@@ -285,18 +285,18 @@ class _ReconcileBalanceSheetState extends ConsumerState<ReconcileBalanceSheet> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         decoration: BoxDecoration(
-                          color: KasyabaTokens.bigStone,
+                          color: context.kColors.inputFill,
                           borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: KasyabaTokens.poloBlue22),
+                          border: Border.all(color: context.kColors.cardBorder),
                         ),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<Account>(
                             value: selected,
                             isExpanded: true,
-                            dropdownColor: KasyabaTokens.bigStone,
-                            icon: const Icon(
+                            dropdownColor: context.kColors.card,
+                            icon: Icon(
                               Icons.keyboard_arrow_down_rounded,
-                              color: KasyabaTokens.periwinkleGraySubtitle,
+                              color: context.kColors.textSecondary,
                             ),
                             items: accounts.map((acc) {
                               final accBal = balances[acc.id] ?? 0.0;
@@ -307,7 +307,7 @@ class _ReconcileBalanceSheetState extends ConsumerState<ReconcileBalanceSheet> {
                                     Icon(
                                       _iconForType(acc.type),
                                       size: 16,
-                                      color: KasyabaTokens.bermuda,
+                                      color: context.kColors.success,
                                     ),
                                     const SizedBox(width: 8),
                                     Expanded(
@@ -316,7 +316,7 @@ class _ReconcileBalanceSheetState extends ConsumerState<ReconcileBalanceSheet> {
                                         style: GoogleFonts.dmSans(
                                           fontSize: 13.5,
                                           fontWeight: FontWeight.w600,
-                                          color: KasyabaTokens.periwinkleGray,
+                                          color: context.kColors.textPrimary,
                                         ),
                                         overflow: TextOverflow.ellipsis,
                                       ),
@@ -328,8 +328,7 @@ class _ReconcileBalanceSheetState extends ConsumerState<ReconcileBalanceSheet> {
                                         fontWeight: FontWeight.w600,
                                         fontFeatures:
                                             CurrencyFormatter.tabularFigures,
-                                        color: KasyabaTokens
-                                            .periwinkleGraySubtitle,
+                                        color: context.kColors.textSecondary,
                                       ),
                                     ),
                                   ],
@@ -349,9 +348,9 @@ class _ReconcileBalanceSheetState extends ConsumerState<ReconcileBalanceSheet> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: KasyabaTokens.bigStone,
+                        color: context.kColors.card,
                         borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: KasyabaTokens.poloBlue22),
+                        border: Border.all(color: context.kColors.cardBorder),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -369,7 +368,7 @@ class _ReconcileBalanceSheetState extends ConsumerState<ReconcileBalanceSheet> {
                                   letterSpacing: -0.5,
                                   fontFeatures:
                                       CurrencyFormatter.tabularFigures,
-                                  color: KasyabaTokens.periwinkleGray,
+                                  color: context.kColors.textPrimary,
                                 ),
                               ),
                             ],
@@ -380,10 +379,10 @@ class _ReconcileBalanceSheetState extends ConsumerState<ReconcileBalanceSheet> {
                               vertical: 7,
                             ),
                             decoration: BoxDecoration(
-                              color: KasyabaTokens.ebony,
+                              color: context.kColors.canvas,
                               borderRadius: BorderRadius.circular(24),
                               border: Border.all(
-                                color: KasyabaTokens.poloBlue22,
+                                color: context.kColors.cardBorder,
                               ),
                             ),
                             child: Row(
@@ -392,7 +391,7 @@ class _ReconcileBalanceSheetState extends ConsumerState<ReconcileBalanceSheet> {
                                 Icon(
                                   _iconForType(selected.type),
                                   size: 14,
-                                  color: KasyabaTokens.bermuda,
+                                  color: context.kColors.success,
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
@@ -400,7 +399,7 @@ class _ReconcileBalanceSheetState extends ConsumerState<ReconcileBalanceSheet> {
                                   style: GoogleFonts.dmSans(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
-                                    color: KasyabaTokens.periwinkleGray,
+                                    color: context.kColors.textPrimary,
                                   ),
                                 ),
                               ],
@@ -423,7 +422,7 @@ class _ReconcileBalanceSheetState extends ConsumerState<ReconcileBalanceSheet> {
                         fontWeight: FontWeight.w700,
                         letterSpacing: -0.4,
                         fontFeatures: CurrencyFormatter.tabularFigures,
-                        color: KasyabaTokens.periwinkleGray,
+                        color: context.kColors.textPrimary,
                       ),
                       decoration: InputDecoration(
                         prefixIcon: Padding(
@@ -433,7 +432,7 @@ class _ReconcileBalanceSheetState extends ConsumerState<ReconcileBalanceSheet> {
                             style: GoogleFonts.dmSans(
                               fontSize: 20,
                               fontWeight: FontWeight.w700,
-                              color: KasyabaTokens.bermuda,
+                              color: context.kColors.success,
                               fontFeatures: CurrencyFormatter.tabularFigures,
                             ),
                           ),
@@ -446,7 +445,7 @@ class _ReconcileBalanceSheetState extends ConsumerState<ReconcileBalanceSheet> {
                         hintStyle: GoogleFonts.bricolageGrotesque(
                           fontSize: 22,
                           fontWeight: FontWeight.w700,
-                          color: KasyabaTokens.poloBlue40,
+                          color: context.kColors.icon.withValues(alpha: 0.4),
                           fontFeatures: CurrencyFormatter.tabularFigures,
                         ),
                         contentPadding: const EdgeInsets.symmetric(
@@ -454,23 +453,23 @@ class _ReconcileBalanceSheetState extends ConsumerState<ReconcileBalanceSheet> {
                           vertical: 14,
                         ),
                         filled: true,
-                        fillColor: KasyabaTokens.bigStone,
+                        fillColor: context.kColors.inputFill,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
-                          borderSide: const BorderSide(
-                            color: KasyabaTokens.poloBlue22,
+                          borderSide: BorderSide(
+                            color: context.kColors.cardBorder,
                           ),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
-                          borderSide: const BorderSide(
-                            color: KasyabaTokens.poloBlue22,
+                          borderSide: BorderSide(
+                            color: context.kColors.cardBorder,
                           ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
-                          borderSide: const BorderSide(
-                            color: KasyabaTokens.poloBlue,
+                          borderSide: BorderSide(
+                            color: context.kColors.icon,
                             width: 1.5,
                           ),
                         ),
@@ -492,40 +491,40 @@ class _ReconcileBalanceSheetState extends ConsumerState<ReconcileBalanceSheet> {
                     const SizedBox(height: 14),
                     if (discrepancy == null)
                       _InfoCard(
-                        background: KasyabaTokens.bigStone,
-                        border: KasyabaTokens.poloBlue22,
+                        background: context.kColors.card,
+                        border: context.kColors.cardBorder,
                         icon: Icons.info_outline_rounded,
-                        iconColor: KasyabaTokens.periwinkleGraySubtitle,
+                        iconColor: context.kColors.textSecondary,
                         title: null,
-                        titleColor: KasyabaTokens.periwinkleGray,
+                        titleColor: context.kColors.textPrimary,
                         message:
                             'Enter your actual physical cash or bank balance to calculate discrepancy.',
-                        messageColor: KasyabaTokens.periwinkleGraySubtitle,
+                        messageColor: context.kColors.textSecondary,
                       )
                     else if (discrepancy.abs() < 0.005)
-                      const _InfoCard(
-                        background: KasyabaTokens.bermuda15,
-                        border: KasyabaTokens.bermuda,
+                      _InfoCard(
+                        background: context.kColors.successTint,
+                        border: context.kColors.success,
                         icon: Icons.check_circle_rounded,
-                        iconColor: KasyabaTokens.bermuda,
+                        iconColor: context.kColors.success,
                         title: 'In Perfect Sync (₱0.00 discrepancy)',
-                        titleColor: KasyabaTokens.bermuda,
+                        titleColor: context.kColors.success,
                         message:
                             'Recorded app balance matches your physical wallet exactly.',
-                        messageColor: KasyabaTokens.periwinkleGraySubtitle,
+                        messageColor: context.kColors.textSecondary,
                       )
                     else
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: discrepancy < 0
-                              ? KasyabaTokens.apricot15
-                              : KasyabaTokens.bermuda15,
+                              ? context.kColors.dangerTint
+                              : context.kColors.successTint,
                           borderRadius: BorderRadius.circular(24),
                           border: Border.all(
                             color: discrepancy < 0
-                                ? KasyabaTokens.apricot.withValues(alpha: 0.55)
-                                : KasyabaTokens.bermuda.withValues(alpha: 0.55),
+                                ? context.kColors.danger.withValues(alpha: 0.55)
+                                : context.kColors.success.withValues(alpha: 0.55),
                           ),
                         ),
                         child: Column(
@@ -539,8 +538,8 @@ class _ReconcileBalanceSheetState extends ConsumerState<ReconcileBalanceSheet> {
                                       : Icons.trending_up_rounded,
                                   size: 18,
                                   color: discrepancy < 0
-                                      ? KasyabaTokens.apricot
-                                      : KasyabaTokens.bermuda,
+                                      ? context.kColors.danger
+                                      : context.kColors.success,
                                 ),
                                 const SizedBox(width: 8),
                                 Flexible(
@@ -554,8 +553,8 @@ class _ReconcileBalanceSheetState extends ConsumerState<ReconcileBalanceSheet> {
                                       fontFeatures:
                                           CurrencyFormatter.tabularFigures,
                                       color: discrepancy < 0
-                                          ? KasyabaTokens.apricot
-                                          : KasyabaTokens.bermuda,
+                                          ? context.kColors.danger
+                                          : context.kColors.success,
                                     ),
                                   ),
                                 ),
@@ -569,7 +568,7 @@ class _ReconcileBalanceSheetState extends ConsumerState<ReconcileBalanceSheet> {
                               style: GoogleFonts.dmSans(
                                 fontSize: 11.5,
                                 height: 1.4,
-                                color: KasyabaTokens.periwinkleGraySubtitle,
+                                color: context.kColors.textSecondary,
                               ),
                             ),
                           ],
@@ -607,7 +606,7 @@ class _ReconcileBalanceSheetState extends ConsumerState<ReconcileBalanceSheet> {
       style: GoogleFonts.dmSans(
         fontSize: 10.5,
         fontWeight: FontWeight.w700,
-        color: KasyabaTokens.periwinkleGraySubtitle,
+        color: context.kColors.textSecondary,
         letterSpacing: 0.8,
       ),
     );

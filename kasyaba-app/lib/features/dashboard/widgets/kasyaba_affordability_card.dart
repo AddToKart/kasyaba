@@ -1,26 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../app/theme/kasyaba_color_scheme.dart';
 import '../../../shared/widgets/motion_components.dart';
-import 'dashboard_tokens.dart';
 
 class KasyaBaAffordabilityCard extends StatelessWidget {
   final VoidCallback onTap;
 
-  const KasyaBaAffordabilityCard({
-    super.key,
-    required this.onTap,
-  });
+  const KasyaBaAffordabilityCard({super.key, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.kColors;
     return SpringTouch(
       scaleDown: 0.97,
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(
-          color: DashboardTokens.periwinkleGray,
+          color: colors.primaryButton,
           borderRadius: BorderRadius.circular(36),
         ),
         child: Row(
@@ -35,7 +33,7 @@ class KasyaBaAffordabilityCard extends StatelessWidget {
                     style: GoogleFonts.dmSans(
                       fontSize: 17,
                       fontWeight: FontWeight.bold,
-                      color: DashboardTokens.ebony,
+                      color: colors.onPrimaryButton,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -44,7 +42,7 @@ class KasyaBaAffordabilityCard extends StatelessWidget {
                     style: GoogleFonts.dmSans(
                       fontSize: 14,
                       fontWeight: FontWeight.normal,
-                      color: DashboardTokens.cello,
+                      color: colors.cardHero,
                     ),
                   ),
                 ],
@@ -55,17 +53,19 @@ class KasyaBaAffordabilityCard extends StatelessWidget {
               width: 44,
               height: 44,
               alignment: Alignment.center,
-              decoration: const BoxDecoration(
-                color: DashboardTokens.ebony,
+              decoration: BoxDecoration(
+                color: colors.onPrimaryButton,
                 shape: BoxShape.circle,
               ),
-              child: SvgPicture.asset(
-                'assets/images/dashboard_arrow_right.svg',
-                width: 18,
-                height: 18,
-                colorFilter: const ColorFilter.mode(
-                  DashboardTokens.periwinkleGray,
+              child: ColorFiltered(
+                colorFilter: ColorFilter.mode(
+                  colors.textPrimary,
                   BlendMode.srcIn,
+                ),
+                child: SvgPicture.asset(
+                  'assets/images/dashboard_arrow_right.svg',
+                  width: 18,
+                  height: 18,
                 ),
               ),
             ),
@@ -75,4 +75,3 @@ class KasyaBaAffordabilityCard extends StatelessWidget {
     );
   }
 }
-

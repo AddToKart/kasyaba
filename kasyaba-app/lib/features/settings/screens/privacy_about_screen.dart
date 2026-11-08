@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/theme/app_motion.dart';
+import '../../../app/theme/kasyaba_color_scheme.dart';
 import '../../../core/app_info.dart';
 import '../../dashboard/widgets/dashboard_tokens.dart';
 import '../../../shared/widgets/app_sheet.dart';
@@ -65,7 +66,7 @@ class PrivacyAndAboutScreen extends StatelessWidget {
     showKasyabaSheet<void>(
       context: context,
       builder: (ctx) => AppSheet(
-        color: DashboardTokens.ebony,
+        color: context.kColors.canvas,
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 36),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -76,7 +77,7 @@ class PrivacyAndAboutScreen extends StatelessWidget {
               style: GoogleFonts.bricolageGrotesque(
                 fontSize: 22,
                 fontWeight: FontWeight.w700,
-                color: DashboardTokens.periwinkleGray,
+                color: context.kColors.textPrimary,
               ),
             ),
             const SizedBox(height: 12),
@@ -87,7 +88,7 @@ class PrivacyAndAboutScreen extends StatelessWidget {
               '4. Online-first architecture: your ledger syncs to your private authenticated account; day-to-day math runs on-device for instant feedback; planning, health scoring, and forecast verdicts are computed on our server.',
               style: GoogleFonts.dmSans(
                 fontSize: 14,
-                color: DashboardTokens.periwinkleGraySubtitle,
+                color: context.kColors.textSecondary,
                 height: 1.5,
               ),
             ),
@@ -107,7 +108,7 @@ class PrivacyAndAboutScreen extends StatelessWidget {
     showKasyabaSheet<void>(
       context: context,
       builder: (ctx) => AppSheet(
-        color: DashboardTokens.ebony,
+        color: context.kColors.canvas,
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 36),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -118,7 +119,7 @@ class PrivacyAndAboutScreen extends StatelessWidget {
               style: GoogleFonts.bricolageGrotesque(
                 fontSize: 22,
                 fontWeight: FontWeight.w700,
-                color: DashboardTokens.periwinkleGray,
+                color: context.kColors.textPrimary,
               ),
             ),
             const SizedBox(height: 12),
@@ -129,7 +130,7 @@ class PrivacyAndAboutScreen extends StatelessWidget {
               '• Data Privacy Act (RA 10173): We respect your privacy rights. We never track your activity, never profile your spending, and never sell your personal information.',
               style: GoogleFonts.dmSans(
                 fontSize: 14,
-                color: DashboardTokens.periwinkleGraySubtitle,
+                color: context.kColors.textSecondary,
                 height: 1.5,
               ),
             ),
@@ -138,7 +139,7 @@ class PrivacyAndAboutScreen extends StatelessWidget {
               'This summary is available offline. The full hosted policy has the complete details.',
               style: GoogleFonts.dmSans(
                 fontSize: 12,
-                color: DashboardTokens.periwinkleGraySubtitle,
+                color: context.kColors.textSecondary,
                 height: 1.45,
               ),
             ),
@@ -169,11 +170,11 @@ class PrivacyAndAboutScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: DashboardTokens.ebony,
+      backgroundColor: context.kColors.canvas,
       body: Container(
-        decoration: const BoxDecoration(
-          color: DashboardTokens.ebony,
-          gradient: DashboardTokens.canvasGradient,
+        decoration: BoxDecoration(
+          color: context.kColors.canvas,
+          gradient: context.kColors.backgroundGradient,
         ),
         child: SafeArea(
           bottom: false,
@@ -198,17 +199,17 @@ class PrivacyAndAboutScreen extends StatelessWidget {
                         width: 50,
                         height: 50,
                         decoration: BoxDecoration(
-                          color: DashboardTokens.bigStone,
+                          color: context.kColors.card,
                           borderRadius: BorderRadius.circular(24),
                           border: Border.all(
-                            color: DashboardTokens.poloBlue22,
+                            color: context.kColors.cardBorder,
                             width: 1,
                           ),
                         ),
-                        child: const Center(
+                        child: Center(
                           child: Icon(
                             Icons.chevron_left_rounded,
-                            color: DashboardTokens.periwinkleGray,
+                            color: context.kColors.textPrimary,
                             size: 24,
                           ),
                         ),
@@ -220,7 +221,7 @@ class PrivacyAndAboutScreen extends StatelessWidget {
                       style: GoogleFonts.bricolageGrotesque(
                         fontSize: 24,
                         fontWeight: FontWeight.w700,
-                        color: DashboardTokens.periwinkleGray,
+                        color: context.kColors.textPrimary,
                       ),
                     ),
                   ],
@@ -234,10 +235,10 @@ class PrivacyAndAboutScreen extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.all(19),
                   decoration: BoxDecoration(
-                    color: DashboardTokens.cello60,
+                    color: context.kColors.cardHero,
                     borderRadius: BorderRadius.circular(28),
                     border: Border.all(
-                      color: DashboardTokens.poloBlue30,
+                      color: context.kColors.cardBorderStrong,
                       width: 1,
                     ),
                   ),
@@ -249,7 +250,7 @@ class PrivacyAndAboutScreen extends StatelessWidget {
                         style: GoogleFonts.bricolageGrotesque(
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
-                          color: DashboardTokens.periwinkleGray,
+                          color: context.kColors.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -257,7 +258,7 @@ class PrivacyAndAboutScreen extends StatelessWidget {
                         'Your ledger lives on our server. Day-to-day money math runs instantly on your device. Your data is never shared with third-party advertisers, trackers, or commercial AI models.',
                         style: GoogleFonts.dmSans(
                           fontSize: 14,
-                          color: DashboardTokens.periwinkleGray,
+                          color: context.kColors.textPrimary,
                           height: 1.45,
                         ),
                       ),
@@ -277,7 +278,7 @@ class PrivacyAndAboutScreen extends StatelessWidget {
                     style: GoogleFonts.bricolageGrotesque(
                       fontSize: 19,
                       fontWeight: FontWeight.w700,
-                      color: DashboardTokens.periwinkleGray,
+                      color: context.kColors.textPrimary,
                     ),
                   ),
                 ),
@@ -289,26 +290,29 @@ class PrivacyAndAboutScreen extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 19, vertical: 13),
                   decoration: BoxDecoration(
-                    color: DashboardTokens.bigStone,
+                    color: context.kColors.card,
                     borderRadius: BorderRadius.circular(28),
                     border: Border.all(
-                      color: DashboardTokens.poloBlue22,
+                      color: context.kColors.cardBorder,
                       width: 1,
                     ),
                   ),
                   child: Column(
                     children: [
                       _buildKeyValueRow(
+                        context: context,
                         label: 'Your records',
                         value: 'Server-backed with offline cache',
                       ),
                       const SizedBox(height: 12),
                       _buildKeyValueRow(
+                        context: context,
                         label: 'Calculations',
                         value: 'Daily math on-device; planning & forecasts on server',
                       ),
                       const SizedBox(height: 12),
                       _buildKeyValueRow(
+                        context: context,
                         label: 'AI',
                         value: 'None (100% deterministic)',
                       ),
@@ -328,7 +332,7 @@ class PrivacyAndAboutScreen extends StatelessWidget {
                     style: GoogleFonts.bricolageGrotesque(
                       fontSize: 19,
                       fontWeight: FontWeight.w700,
-                      color: DashboardTokens.periwinkleGray,
+                      color: context.kColors.textPrimary,
                     ),
                   ),
                 ),
@@ -340,10 +344,10 @@ class PrivacyAndAboutScreen extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 19, vertical: 6),
                   decoration: BoxDecoration(
-                    color: DashboardTokens.bigStone,
+                    color: context.kColors.card,
                     borderRadius: BorderRadius.circular(28),
                     border: Border.all(
-                      color: DashboardTokens.poloBlue22,
+                      color: context.kColors.cardBorder,
                       width: 1,
                     ),
                   ),
@@ -365,28 +369,31 @@ class PrivacyAndAboutScreen extends StatelessWidget {
                               style: GoogleFonts.bricolageGrotesque(
                                 fontSize: 19,
                                 fontWeight: FontWeight.w700,
-                                color: DashboardTokens.periwinkleGray,
+                                color: context.kColors.textPrimary,
                               ),
                             ),
                           ],
                         ),
                       ),
-                      _buildDivider(),
+                      _buildDivider(context),
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         child: _buildKeyValueRow(
+                          context: context,
                           label: 'Version',
                           value: kAppVersionLabel,
                         ),
                       ),
-                      _buildDivider(),
+                      _buildDivider(context),
                       _buildActionRow(
+                        context: context,
                         title: 'Terms of service',
                         actionText: 'Read',
                         onTap: () => showTermsSheet(context),
                       ),
-                      _buildDivider(),
+                      _buildDivider(context),
                       _buildActionRow(
+                        context: context,
                         title: 'Privacy policy',
                         actionText: 'Read',
                         onTap: () => showPrivacyPolicySheet(context),
@@ -403,6 +410,7 @@ class PrivacyAndAboutScreen extends StatelessWidget {
   }
 
   Widget _buildKeyValueRow({
+    required BuildContext context,
     required String label,
     required String value,
   }) {
@@ -414,7 +422,7 @@ class PrivacyAndAboutScreen extends StatelessWidget {
           style: GoogleFonts.dmSans(
             fontSize: 15,
             fontWeight: FontWeight.w400,
-            color: DashboardTokens.periwinkleGraySubtitle,
+            color: context.kColors.textSecondary,
           ),
         ),
         const SizedBox(width: 12),
@@ -425,7 +433,7 @@ class PrivacyAndAboutScreen extends StatelessWidget {
             style: GoogleFonts.dmSans(
               fontSize: 15,
               fontWeight: FontWeight.w700,
-              color: DashboardTokens.periwinkleGray,
+              color: context.kColors.textPrimary,
             ),
           ),
         ),
@@ -434,6 +442,7 @@ class PrivacyAndAboutScreen extends StatelessWidget {
   }
 
   Widget _buildActionRow({
+    required BuildContext context,
     required String title,
     required String actionText,
     required VoidCallback onTap,
@@ -450,7 +459,7 @@ class PrivacyAndAboutScreen extends StatelessWidget {
               style: GoogleFonts.dmSans(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: DashboardTokens.periwinkleGray,
+                color: context.kColors.textPrimary,
               ),
             ),
             Text(
@@ -458,7 +467,7 @@ class PrivacyAndAboutScreen extends StatelessWidget {
               style: GoogleFonts.dmSans(
                 fontSize: 16,
                 fontWeight: FontWeight.w400,
-                color: DashboardTokens.periwinkleGraySubtitle,
+                color: context.kColors.textSecondary,
               ),
             ),
           ],
@@ -467,10 +476,10 @@ class PrivacyAndAboutScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDivider() {
+  Widget _buildDivider(BuildContext context) {
     return Container(
       height: 1,
-      color: DashboardTokens.poloBlue16,
+      color: context.kColors.divider,
     );
   }
 }

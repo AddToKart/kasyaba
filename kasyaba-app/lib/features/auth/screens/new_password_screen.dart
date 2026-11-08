@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:reactive_forms/reactive_forms.dart';
 
-import '../../../app/theme/app_theme.dart';
+import '../../../app/theme/kasyaba_color_scheme.dart';
 import '../../../core/auth/auth_provider.dart';
 import '../../../shared/widgets/kasyaba_toast.dart';
 import '../widgets/auth_widgets.dart';
@@ -27,18 +27,11 @@ class _NewPasswordScreenState extends ConsumerState<NewPasswordScreen> {
   final formGroup = FormGroup(
     {
       'newPassword': FormControl<String>(
-        validators: [
-          Validators.required,
-          Validators.minLength(8),
-        ],
+        validators: [Validators.required, Validators.minLength(8)],
       ),
-      'confirmPassword': FormControl<String>(
-        validators: [Validators.required],
-      ),
+      'confirmPassword': FormControl<String>(validators: [Validators.required]),
     },
-    validators: [
-      Validators.mustMatch('newPassword', 'confirmPassword'),
-    ],
+    validators: [Validators.mustMatch('newPassword', 'confirmPassword')],
   );
 
   String? _localError;
@@ -75,7 +68,9 @@ class _NewPasswordScreenState extends ConsumerState<NewPasswordScreen> {
     });
 
     try {
-      await ref.read(authProvider.notifier).resetPassword(
+      await ref
+          .read(authProvider.notifier)
+          .resetPassword(
             resetToken: widget.resetToken,
             newPassword: newPassword,
           );
@@ -118,10 +113,11 @@ class _NewPasswordScreenState extends ConsumerState<NewPasswordScreen> {
     final authState = ref.watch(authProvider);
     final size = MediaQuery.sizeOf(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = context.kColors;
     final errorMessage = _localError ?? authState.error;
 
     return Scaffold(
-      backgroundColor: isDark ? AuthFigmaTokens.ebony : AppColors.lightScaffold,
+      backgroundColor: colors.canvas,
       body: Stack(
         children: [
           AuthForgotPassBackground(size: size, isDark: isDark),
@@ -155,9 +151,7 @@ class _NewPasswordScreenState extends ConsumerState<NewPasswordScreen> {
                                   fontWeight: FontWeight.w700,
                                   fontSize: 32,
                                   height: 1.1,
-                                  color: isDark
-                                      ? AuthFigmaTokens.periwinkleGray
-                                      : AppColors.lightTextPrimary,
+                                  color: colors.textPrimary,
                                 ),
                               ),
                               const SizedBox(height: 8),
@@ -167,9 +161,7 @@ class _NewPasswordScreenState extends ConsumerState<NewPasswordScreen> {
                                   fontSize: 14,
                                   fontWeight: FontWeight.w400,
                                   height: 1.45,
-                                  color: isDark
-                                      ? AuthFigmaTokens.periwinkleGraySubtitle
-                                      : AppColors.lightTextSecondary,
+                                  color: colors.textSecondary,
                                 ),
                               ),
                               const SizedBox(height: 20),
@@ -203,11 +195,10 @@ class _NewPasswordScreenState extends ConsumerState<NewPasswordScreen> {
                                       builder: (context, form, child) {
                                         final password =
                                             (form.control('newPassword').value
-                                                    as String?) ??
-                                                '';
+                                                as String?) ??
+                                            '';
                                         return PasswordStrengthBar(
-                                          strength:
-                                              _passwordStrength(password),
+                                          strength: _passwordStrength(password),
                                         );
                                       },
                                     ),
@@ -232,14 +223,17 @@ class _NewPasswordScreenState extends ConsumerState<NewPasswordScreen> {
                                       builder: (context, form, child) {
                                         final password =
                                             (form.control('newPassword').value
-                                                    as String?) ??
-                                                '';
-                                        final confirm = (form
-                                                .control('confirmPassword')
-                                                .value as String?) ??
+                                                as String?) ??
+                                            '';
+                                        final confirm =
+                                            (form
+                                                    .control('confirmPassword')
+                                                    .value
+                                                as String?) ??
                                             '';
                                         return PasswordMatchIndicator(
-                                          isMatching: password.isNotEmpty &&
+                                          isMatching:
+                                              password.isNotEmpty &&
                                               confirm.isNotEmpty &&
                                               password == confirm,
                                           hasConfirmText: confirm.isNotEmpty,

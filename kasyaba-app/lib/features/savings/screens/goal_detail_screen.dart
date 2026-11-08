@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_motion.dart';
+import '../../../app/theme/kasyaba_color_scheme.dart';
 import '../../../core/connectivity/connectivity_service.dart';
 import '../../../core/database/cache_service.dart';
 import '../../../core/errors/error_messages.dart';
@@ -125,11 +126,16 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
     }
 
     return Scaffold(
-      backgroundColor: DashboardTokens.ebony,
+      backgroundColor: context.kColors.canvas,
       body: KasyabaBackground(
         child: SizedBox.expand(
           child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(20, topPadding + 14, 20, DashboardTokens.dockClearance),
+            padding: EdgeInsets.fromLTRB(
+              20,
+              topPadding + 14,
+              20,
+              DashboardTokens.dockClearance,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -168,13 +174,13 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
             width: 50,
             height: 50,
             decoration: BoxDecoration(
-              color: DashboardTokens.bigStone,
+              color: context.kColors.card,
               borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: DashboardTokens.poloBlue22),
+              border: Border.all(color: context.kColors.cardBorder),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.arrow_back_rounded,
-              color: DashboardTokens.periwinkleGray,
+              color: context.kColors.textPrimary,
               size: 22,
             ),
           ),
@@ -184,7 +190,7 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
           child: Text(
             title,
             style: GoogleFonts.bricolageGrotesque(
-              color: DashboardTokens.periwinkleGray,
+              color: context.kColors.textPrimary,
               fontSize: 24,
               fontWeight: FontWeight.bold,
             ),
@@ -232,8 +238,8 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
         ? null
         : (canAfford ? 'On track' : 'Behind schedule');
     final statusColor = canAfford == true
-        ? DashboardTokens.bermuda
-        : DashboardTokens.apricot;
+        ? context.kColors.success
+        : context.kColors.danger;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -256,7 +262,7 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
                       decimalDigits: 0,
                     ),
                     style: GoogleFonts.bricolageGrotesque(
-                      color: DashboardTokens.periwinkleGray,
+                      color: context.kColors.textPrimary,
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
                     ),
@@ -264,7 +270,7 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
                   Text(
                     '$percent%',
                     style: GoogleFonts.bricolageGrotesque(
-                      color: DashboardTokens.periwinkleGray,
+                      color: context.kColors.textPrimary,
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
@@ -275,7 +281,7 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
               Text(
                 'of ${CurrencyFormatter.format(goal.targetAmount, decimalDigits: 0)} target',
                 style: GoogleFonts.dmSans(
-                  color: DashboardTokens.periwinkleGraySubtitle,
+                  color: context.kColors.textSecondary,
                   fontSize: 14,
                 ),
               ),
@@ -287,11 +293,11 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
                 child: Container(
                   height: 8,
                   width: double.infinity,
-                  color: DashboardTokens.poloBlue.withValues(alpha: 0.2),
+                  color: context.kColors.icon.withValues(alpha: 0.2),
                   alignment: Alignment.centerLeft,
                   child: FractionallySizedBox(
                     widthFactor: goal.progress.clamp(0.0, 1.0),
-                    child: const ColoredBox(color: DashboardTokens.bermuda),
+                    child: ColoredBox(color: context.kColors.success),
                   ),
                 ),
               ),
@@ -312,7 +318,7 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
               Text(
                 'Needs about ${CurrencyFormatter.format(monthlyNeed, decimalDigits: 0)} a month',
                 style: GoogleFonts.dmSans(
-                  color: DashboardTokens.periwinkleGraySubtitle,
+                  color: context.kColors.textSecondary,
                   fontSize: 14,
                 ),
               ),
@@ -325,7 +331,7 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
         Text(
           'Details',
           style: GoogleFonts.bricolageGrotesque(
-            color: DashboardTokens.periwinkleGray,
+            color: context.kColors.textPrimary,
             fontSize: 19,
             fontWeight: FontWeight.bold,
           ),
@@ -341,9 +347,9 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
                 label: 'Remaining',
                 value: CurrencyFormatter.format(remaining, decimalDigits: 0),
               ),
-              const Divider(color: DashboardTokens.poloBlue16, height: 16),
+              Divider(color: context.kColors.divider, height: 16),
               _DetailRow(label: 'Target date', value: targetDateStr),
-              const Divider(color: DashboardTokens.poloBlue16, height: 16),
+              Divider(color: context.kColors.divider, height: 16),
               _DetailRow(
                 label: 'Set aside each day',
                 value: CurrencyFormatter.format(dailySetAside),
@@ -357,7 +363,7 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
         Text(
           'Deposits',
           style: GoogleFonts.bricolageGrotesque(
-            color: DashboardTokens.periwinkleGray,
+            color: context.kColors.textPrimary,
             fontSize: 19,
             fontWeight: FontWeight.bold,
           ),
@@ -406,18 +412,18 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
                 ? null
                 : () => _handleDelete(goal),
             child: _isDeleting
-                ? const SizedBox(
+                ? SizedBox(
                     width: 20,
                     height: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: DashboardTokens.apricot,
+                      color: context.kColors.danger,
                     ),
                   )
                 : Text(
                     'Delete goal',
                     style: GoogleFonts.dmSans(
-                      color: DashboardTokens.apricot,
+                      color: context.kColors.danger,
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
                     ),
@@ -476,22 +482,21 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
 
           return Column(
             children: [
-              if (idx > 0)
-                const Divider(color: DashboardTokens.poloBlue16, height: 16),
+              if (idx > 0) Divider(color: context.kColors.divider, height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
                     dateFmt,
                     style: GoogleFonts.dmSans(
-                      color: DashboardTokens.periwinkleGraySubtitle,
+                      color: context.kColors.textSecondary,
                       fontSize: 15,
                     ),
                   ),
                   Text(
                     '+${CurrencyFormatter.format(amount, decimalDigits: 0)}',
                     style: GoogleFonts.dmSans(
-                      color: DashboardTokens.bermuda,
+                      color: context.kColors.success,
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
                     ),
@@ -522,14 +527,14 @@ class _DetailRow extends StatelessWidget {
           Text(
             label,
             style: GoogleFonts.dmSans(
-              color: DashboardTokens.periwinkleGraySubtitle,
+              color: context.kColors.textSecondary,
               fontSize: 15,
             ),
           ),
           Text(
             value,
             style: GoogleFonts.dmSans(
-              color: DashboardTokens.periwinkleGray,
+              color: context.kColors.textPrimary,
               fontSize: 15,
               fontWeight: FontWeight.bold,
             ),

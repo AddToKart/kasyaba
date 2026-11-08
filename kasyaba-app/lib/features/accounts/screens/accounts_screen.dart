@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../app/theme/kasyaba_color_scheme.dart';
 import '../../../app/theme/kasyaba_tokens.dart';
 import '../../../core/connectivity/connectivity_service.dart';
 import '../../../core/database/cache_service.dart';
@@ -131,7 +132,7 @@ class AccountsScreen extends ConsumerWidget {
     final isOnline = ref.watch(isOnlineProvider);
 
     return Scaffold(
-      backgroundColor: KasyabaTokens.ebony,
+      backgroundColor: context.kColors.canvas,
       body: KasyabaBackground(
         child: SafeArea(
           bottom: false,
@@ -183,12 +184,12 @@ class AccountsScreen extends ConsumerWidget {
                     child: Container(
                       padding: const EdgeInsets.all(19),
                       decoration: BoxDecoration(
-                        color: KasyabaTokens.cello60,
+                        color: context.kColors.cardHero,
                         borderRadius: BorderRadius.circular(
                           KasyabaTokens.radiusCard,
                         ),
                         border: Border.all(
-                          color: KasyabaTokens.poloBlue30,
+                          color: context.kColors.cardBorderStrong,
                           width: 1,
                         ),
                       ),
@@ -200,7 +201,7 @@ class AccountsScreen extends ConsumerWidget {
                             style: GoogleFonts.dmSans(
                               fontSize: 14,
                               fontWeight: FontWeight.w400,
-                              color: KasyabaTokens.periwinkleGraySubtitle,
+                              color: context.kColors.textSecondary,
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -209,7 +210,7 @@ class AccountsScreen extends ConsumerWidget {
                             style: GoogleFonts.bricolageGrotesque(
                               fontSize: 30,
                               fontWeight: FontWeight.w700,
-                              color: KasyabaTokens.periwinkleGray,
+                              color: context.kColors.textPrimary,
                               letterSpacing: -0.5,
                             ),
                           ),
@@ -259,12 +260,12 @@ class AccountsScreen extends ConsumerWidget {
                           vertical: 3,
                         ),
                         decoration: BoxDecoration(
-                          color: KasyabaTokens.bigStone,
+                          color: context.kColors.card,
                           borderRadius: BorderRadius.circular(
                             KasyabaTokens.radiusCard,
                           ),
                           border: Border.all(
-                            color: KasyabaTokens.poloBlue22,
+                            color: context.kColors.cardBorder,
                             width: 1,
                           ),
                         ),
@@ -274,7 +275,7 @@ class AccountsScreen extends ConsumerWidget {
                               if (i > 0)
                                 Container(
                                   height: 1,
-                                  color: KasyabaTokens.poloBlue16,
+                                  color: context.kColors.divider,
                                 ),
                               _buildAccountItem(
                                 context,
@@ -305,7 +306,7 @@ class AccountsScreen extends ConsumerWidget {
                         style: GoogleFonts.dmSans(
                           fontSize: 14,
                           fontWeight: FontWeight.w400,
-                          color: KasyabaTokens.periwinkleGraySubtitle,
+                          color: context.kColors.textSecondary,
                           height: 1.45,
                         ),
                       ),
@@ -352,12 +353,12 @@ class AccountsScreen extends ConsumerWidget {
                 height: 48,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(23),
-                  border: Border.all(color: KasyabaTokens.poloBlue30, width: 1),
+                  border: Border.all(color: context.kColors.cardBorderStrong, width: 1),
                 ),
                 child: Center(
                   child: Icon(
                     _iconForType(account.type),
-                    color: KasyabaTokens.periwinkleGray,
+                    color: context.kColors.textPrimary,
                     size: 22,
                   ),
                 ),
@@ -372,7 +373,7 @@ class AccountsScreen extends ConsumerWidget {
                       style: GoogleFonts.dmSans(
                         fontSize: 17,
                         fontWeight: FontWeight.w700,
-                        color: KasyabaTokens.periwinkleGray,
+                        color: context.kColors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -381,7 +382,7 @@ class AccountsScreen extends ConsumerWidget {
                       style: GoogleFonts.dmSans(
                         fontSize: 14,
                         fontWeight: FontWeight.w400,
-                        color: KasyabaTokens.periwinkleGraySubtitle,
+                        color: context.kColors.textSecondary,
                       ),
                     ),
                   ],
@@ -392,21 +393,21 @@ class AccountsScreen extends ConsumerWidget {
                 style: GoogleFonts.dmSans(
                   fontSize: 17,
                   fontWeight: FontWeight.w700,
-                  color: KasyabaTokens.periwinkleGray,
+                  color: context.kColors.textPrimary,
                   fontFeatures: CurrencyFormatter.tabularFigures,
                 ),
               ),
               const SizedBox(width: 4),
               PopupMenuButton<String>(
-                icon: const Icon(
+                icon: Icon(
                   Icons.more_vert_rounded,
-                  color: KasyabaTokens.periwinkleGraySubtitle,
+                  color: context.kColors.textSecondary,
                   size: 20,
                 ),
-                color: KasyabaTokens.bigStone,
+                color: context.kColors.card,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(24),
-                  side: const BorderSide(color: KasyabaTokens.poloBlue22),
+                  side: BorderSide(color: context.kColors.cardBorder),
                 ),
                 onSelected: (action) {
                   if (action == 'reconcile') {
@@ -420,16 +421,16 @@ class AccountsScreen extends ConsumerWidget {
                     value: 'reconcile',
                     child: Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.tune_rounded,
                           size: 18,
-                          color: KasyabaTokens.periwinkleGray,
+                          color: context.kColors.textPrimary,
                         ),
                         const SizedBox(width: 10),
                         Text(
                           'Reconcile balance',
                           style: GoogleFonts.dmSans(
-                            color: KasyabaTokens.periwinkleGray,
+                            color: context.kColors.textPrimary,
                           ),
                         ),
                       ],
@@ -440,10 +441,10 @@ class AccountsScreen extends ConsumerWidget {
                     enabled: isOnline,
                     child: Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.archive_outlined,
                           size: 18,
-                          color: KasyabaTokens.apricot,
+                          color: context.kColors.danger,
                         ),
                         const SizedBox(width: 10),
                         Text(
@@ -451,7 +452,7 @@ class AccountsScreen extends ConsumerWidget {
                               ? 'Archive account'
                               : 'Archive (needs internet)',
                           style: GoogleFonts.dmSans(
-                            color: KasyabaTokens.apricot,
+                            color: context.kColors.danger,
                           ),
                         ),
                       ],
@@ -464,9 +465,9 @@ class AccountsScreen extends ConsumerWidget {
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.only(top: 13),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               border: Border(
-                top: BorderSide(color: KasyabaTokens.poloBlue14, width: 1),
+                top: BorderSide(color: context.kColors.icon.withValues(alpha: 0.14), width: 1),
               ),
             ),
             child: Row(
@@ -477,7 +478,7 @@ class AccountsScreen extends ConsumerWidget {
                   style: GoogleFonts.dmSans(
                     fontSize: 14,
                     fontWeight: FontWeight.w400,
-                    color: KasyabaTokens.periwinkleGraySubtitle,
+                    color: context.kColors.textSecondary,
                   ),
                 ),
                 FigmaToggleSwitch(
@@ -516,13 +517,13 @@ class _AccountsHeader extends StatelessWidget {
               width: 50,
               height: 50,
               decoration: BoxDecoration(
-                color: KasyabaTokens.bigStone,
+                color: context.kColors.card,
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: KasyabaTokens.poloBlue22, width: 1),
+                border: Border.all(color: context.kColors.cardBorder, width: 1),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.chevron_left_rounded,
-                color: KasyabaTokens.periwinkleGray,
+                color: context.kColors.textPrimary,
                 size: 26,
               ),
             ),
@@ -533,7 +534,7 @@ class _AccountsHeader extends StatelessWidget {
             style: GoogleFonts.bricolageGrotesque(
               fontSize: 24,
               fontWeight: FontWeight.w700,
-              color: KasyabaTokens.periwinkleGray,
+              color: context.kColors.textPrimary,
             ),
           ),
         ],
@@ -613,7 +614,7 @@ class _AddAccountSheetState extends ConsumerState<_AddAccountSheet> {
     final isOnline = ref.watch(isOnlineProvider);
 
     return AppSheet(
-      color: KasyabaTokens.ebony,
+      color: context.kColors.canvas,
       padding: EdgeInsets.fromLTRB(20, 0, 20, 24 + bottomInset),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -624,7 +625,7 @@ class _AddAccountSheetState extends ConsumerState<_AddAccountSheet> {
             style: GoogleFonts.bricolageGrotesque(
               fontSize: 22,
               fontWeight: FontWeight.w700,
-              color: KasyabaTokens.periwinkleGray,
+              color: context.kColors.textPrimary,
             ),
           ),
           const SizedBox(height: 18),
@@ -644,7 +645,7 @@ class _AddAccountSheetState extends ConsumerState<_AddAccountSheet> {
               style: GoogleFonts.dmSans(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: KasyabaTokens.periwinkleGray,
+                color: context.kColors.textPrimary,
               ),
               decoration: _inputDecoration('e.g. BPI Savings, Maya'),
             ),
@@ -655,15 +656,15 @@ class _AddAccountSheetState extends ConsumerState<_AddAccountSheet> {
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
                 value: _accountType,
-                dropdownColor: KasyabaTokens.bigStone,
-                icon: const Icon(
+                dropdownColor: context.kColors.card,
+                icon: Icon(
                   Icons.keyboard_arrow_down_rounded,
-                  color: KasyabaTokens.periwinkleGray,
+                  color: context.kColors.textPrimary,
                 ),
                 style: GoogleFonts.dmSans(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: KasyabaTokens.periwinkleGray,
+                  color: context.kColors.textPrimary,
                 ),
                 items: const [
                   DropdownMenuItem(
@@ -701,14 +702,14 @@ class _AddAccountSheetState extends ConsumerState<_AddAccountSheet> {
               style: GoogleFonts.dmSans(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: KasyabaTokens.periwinkleGray,
+                color: context.kColors.textPrimary,
               ),
               decoration: _inputDecoration('0.00').copyWith(
                 prefixText: '₱ ',
                 prefixStyle: GoogleFonts.dmSans(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: KasyabaTokens.periwinkleGray,
+                  color: context.kColors.textPrimary,
                 ),
               ),
             ),
@@ -733,7 +734,7 @@ class _AddAccountSheetState extends ConsumerState<_AddAccountSheet> {
   InputDecoration _inputDecoration(String hint) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: GoogleFonts.dmSans(color: KasyabaTokens.poloBlue40),
+      hintStyle: GoogleFonts.dmSans(color: context.kColors.icon.withValues(alpha: 0.4)),
       border: InputBorder.none,
       enabledBorder: InputBorder.none,
       focusedBorder: InputBorder.none,
@@ -752,9 +753,9 @@ class _SheetField extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
       decoration: BoxDecoration(
-        color: KasyabaTokens.bigStone,
+        color: context.kColors.inputFill,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: KasyabaTokens.poloBlue22, width: 1),
+        border: Border.all(color: context.kColors.cardBorder, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -764,7 +765,7 @@ class _SheetField extends StatelessWidget {
             style: GoogleFonts.dmSans(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: KasyabaTokens.periwinkleGraySubtitle,
+              color: context.kColors.textSecondary,
             ),
           ),
           child,

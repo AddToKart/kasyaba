@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
+import '../../../app/theme/kasyaba_color_scheme.dart';
 import '../../../app/theme/kasyaba_tokens.dart';
 import '../../../core/connectivity/connectivity_service.dart';
 import '../../../core/storage/secure_storage_service.dart';
@@ -51,9 +52,9 @@ class _BackupExportScreenState extends ConsumerState<BackupExportScreen> {
   Widget build(BuildContext context) {
     final isOnline = ref.watch(isOnlineProvider);
     return Scaffold(
-      backgroundColor: KasyabaTokens.ebony,
+      backgroundColor: context.kColors.canvas,
       body: Container(
-        decoration: const BoxDecoration(gradient: KasyabaTokens.canvasGradient),
+        decoration: BoxDecoration(gradient: context.kColors.backgroundGradient),
         child: SafeArea(
           bottom: false,
           child: ListView(
@@ -69,16 +70,16 @@ class _BackupExportScreenState extends ConsumerState<BackupExportScreen> {
                         width: 50,
                         height: 50,
                         decoration: BoxDecoration(
-                          color: KasyabaTokens.bigStone,
+                          color: context.kColors.card,
                           borderRadius: BorderRadius.circular(24),
                           border: Border.all(
-                            color: KasyabaTokens.poloBlue22,
+                            color: context.kColors.cardBorder,
                             width: 1,
                           ),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.chevron_left_rounded,
-                          color: KasyabaTokens.periwinkleGray,
+                          color: context.kColors.textPrimary,
                           size: 26,
                         ),
                       ),
@@ -89,7 +90,7 @@ class _BackupExportScreenState extends ConsumerState<BackupExportScreen> {
                       style: GoogleFonts.bricolageGrotesque(
                         fontSize: 24,
                         fontWeight: FontWeight.w700,
-                        color: KasyabaTokens.periwinkleGray,
+                        color: context.kColors.textPrimary,
                       ),
                     ),
                   ],
@@ -116,7 +117,7 @@ class _BackupExportScreenState extends ConsumerState<BackupExportScreen> {
                         style: GoogleFonts.dmSans(
                           fontSize: 14,
                           fontWeight: FontWeight.w400,
-                          color: KasyabaTokens.periwinkleGraySubtitle,
+                          color: context.kColors.textSecondary,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -125,7 +126,7 @@ class _BackupExportScreenState extends ConsumerState<BackupExportScreen> {
                         style: GoogleFonts.bricolageGrotesque(
                           fontSize: 22,
                           fontWeight: FontWeight.w700,
-                          color: KasyabaTokens.periwinkleGray,
+                          color: context.kColors.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -134,7 +135,7 @@ class _BackupExportScreenState extends ConsumerState<BackupExportScreen> {
                         style: GoogleFonts.dmSans(
                           fontSize: 14,
                           fontWeight: FontWeight.w400,
-                          color: KasyabaTokens.periwinkleGraySubtitle,
+                          color: context.kColors.textSecondary,
                           height: 1.45,
                         ),
                       ),
@@ -226,12 +227,12 @@ class _BackupActionCard extends StatelessWidget {
                 height: 48,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: KasyabaTokens.poloBlue30, width: 1),
+                  border: Border.all(color: context.kColors.cardBorderStrong, width: 1),
                 ),
                 child: Center(
                   child: Icon(
                     icon,
-                    color: KasyabaTokens.periwinkleGray,
+                    color: context.kColors.textPrimary,
                     size: 22,
                   ),
                 ),
@@ -246,7 +247,7 @@ class _BackupActionCard extends StatelessWidget {
                       style: GoogleFonts.dmSans(
                         fontSize: 17,
                         fontWeight: FontWeight.w700,
-                        color: KasyabaTokens.periwinkleGray,
+                        color: context.kColors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -255,7 +256,7 @@ class _BackupActionCard extends StatelessWidget {
                       style: GoogleFonts.dmSans(
                         fontSize: 14,
                         fontWeight: FontWeight.w400,
-                        color: KasyabaTokens.periwinkleGraySubtitle,
+                        color: context.kColors.textSecondary,
                         height: 1.4,
                       ),
                     ),

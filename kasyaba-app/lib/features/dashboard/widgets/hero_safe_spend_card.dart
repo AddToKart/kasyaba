@@ -6,7 +6,7 @@ import 'package:intl/intl.dart';
 import '../../../shared/widgets/motion_components.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/deterministic_math.dart';
-import 'dashboard_tokens.dart';
+import '../../../app/theme/kasyaba_color_scheme.dart';
 
 class HeroSafeSpendCard extends StatelessWidget {
   final double totalBalance;
@@ -30,13 +30,16 @@ class HeroSafeSpendCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.kColors;
     final formattedDaily = isVisible
         ? CurrencyFormatter.format(safeSpendCalc.dailySafeSpend)
         : '₱ ••••••';
     final formattedTotal = isVisible
         ? CurrencyFormatter.format(totalBalance)
         : '₱ ••••••';
-    final formattedPayday = DateFormat('MMM d').format(safeSpendCalc.nextPayday);
+    final formattedPayday = DateFormat(
+      'MMM d',
+    ).format(safeSpendCalc.nextPayday);
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(28),
@@ -45,12 +48,9 @@ class HeroSafeSpendCard extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(21),
           decoration: BoxDecoration(
-            color: DashboardTokens.cello60,
+            color: colors.cardHero,
             borderRadius: BorderRadius.circular(28),
-            border: Border.all(
-              color: DashboardTokens.poloBlue30,
-              width: 1.0,
-            ),
+            border: Border.all(color: colors.cardBorderStrong, width: 1.0),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -68,10 +68,10 @@ class HeroSafeSpendCard extends StatelessWidget {
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
-                          color: DashboardTokens.bermuda.withValues(alpha: 0.15),
+                          color: colors.successTint,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: DashboardTokens.bermuda.withValues(alpha: 0.4),
+                            color: colors.success.withValues(alpha: 0.4),
                             width: 0.8,
                           ),
                         ),
@@ -81,7 +81,7 @@ class HeroSafeSpendCard extends StatelessWidget {
                             fontSize: 9,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 0.6,
-                            color: DashboardTokens.bermuda,
+                            color: colors.success,
                           ),
                         ),
                       ),
@@ -92,7 +92,7 @@ class HeroSafeSpendCard extends StatelessWidget {
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 0.8,
-                          color: DashboardTokens.periwinkleGraySubtitle,
+                          color: colors.textSecondary,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -106,10 +106,10 @@ class HeroSafeSpendCard extends StatelessWidget {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: DashboardTokens.bigStone,
+                            color: colors.card,
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                              color: DashboardTokens.poloBlue22,
+                              color: colors.cardBorder,
                               width: 0.8,
                             ),
                           ),
@@ -121,14 +121,14 @@ class HeroSafeSpendCard extends StatelessWidget {
                                 style: GoogleFonts.dmSans(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w600,
-                                  color: DashboardTokens.periwinkleGraySubtitle,
+                                  color: colors.textSecondary,
                                 ),
                               ),
                               const SizedBox(width: 3),
-                              const Icon(
+                              Icon(
                                 Icons.info_outline_rounded,
                                 size: 12,
-                                color: DashboardTokens.periwinkleGraySubtitle,
+                                color: colors.textSecondary,
                               ),
                             ],
                           ),
@@ -144,13 +144,15 @@ class HeroSafeSpendCard extends StatelessWidget {
                       width: 36,
                       height: 36,
                       alignment: Alignment.center,
-                      child: SvgPicture.asset(
-                        'assets/images/dashboard_eye.svg',
-                        width: 19,
-                        height: 19,
-                        colorFilter: const ColorFilter.mode(
-                          DashboardTokens.periwinkleGraySubtitle,
+                      child: ColorFiltered(
+                        colorFilter: ColorFilter.mode(
+                          colors.textSecondary,
                           BlendMode.srcIn,
+                        ),
+                        child: SvgPicture.asset(
+                          'assets/images/dashboard_eye.svg',
+                          width: 19,
+                          height: 19,
                         ),
                       ),
                     ),
@@ -177,7 +179,7 @@ class HeroSafeSpendCard extends StatelessWidget {
                             fontSize: 44,
                             fontWeight: FontWeight.bold,
                             height: 1.05,
-                            color: DashboardTokens.periwinkleGray,
+                            color: colors.textPrimary,
                             fontFeatures: const [FontFeature.tabularFigures()],
                           ),
                         ),
@@ -189,7 +191,7 @@ class HeroSafeSpendCard extends StatelessWidget {
                       style: GoogleFonts.dmSans(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
-                        color: DashboardTokens.periwinkleGraySubtitle,
+                        color: colors.textSecondary,
                       ),
                     ),
                   ],
@@ -203,16 +205,13 @@ class HeroSafeSpendCard extends StatelessWidget {
                 style: GoogleFonts.dmSans(
                   fontSize: 15,
                   fontWeight: FontWeight.normal,
-                  color: DashboardTokens.periwinkleGraySubtitle,
+                  color: colors.textSecondary,
                 ),
               ),
               const SizedBox(height: 14),
 
               // 1px Divider (Polo Blue 22%)
-              Container(
-                height: 1,
-                color: DashboardTokens.poloBlue22,
-              ),
+              Container(height: 1, color: colors.cardBorder),
               const SizedBox(height: 12),
 
               // Total balance row
@@ -226,7 +225,7 @@ class HeroSafeSpendCard extends StatelessWidget {
                     style: GoogleFonts.dmSans(
                       fontSize: 14,
                       fontWeight: FontWeight.normal,
-                      color: DashboardTokens.periwinkleGraySubtitle,
+                      color: colors.textSecondary,
                     ),
                   ),
                   Text(
@@ -234,7 +233,7 @@ class HeroSafeSpendCard extends StatelessWidget {
                     style: GoogleFonts.dmSans(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: DashboardTokens.periwinkleGray,
+                      color: colors.textPrimary,
                       fontFeatures: const [FontFeature.tabularFigures()],
                     ),
                   ),
@@ -255,20 +254,22 @@ class HeroSafeSpendCard extends StatelessWidget {
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(27),
                           border: Border.all(
-                            color: DashboardTokens.kashmirBlue,
+                            color: colors.secondaryBorder,
                             width: 1.0,
                           ),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            SvgPicture.asset(
-                              'assets/images/dashboard_minus.svg',
-                              width: 18,
-                              height: 18,
-                              colorFilter: const ColorFilter.mode(
-                                DashboardTokens.periwinkleGray,
+                            ColorFiltered(
+                              colorFilter: ColorFilter.mode(
+                                colors.textPrimary,
                                 BlendMode.srcIn,
+                              ),
+                              child: SvgPicture.asset(
+                                'assets/images/dashboard_minus.svg',
+                                width: 18,
+                                height: 18,
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -277,7 +278,7 @@ class HeroSafeSpendCard extends StatelessWidget {
                               style: GoogleFonts.dmSans(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
-                                color: DashboardTokens.periwinkleGray,
+                                color: colors.textPrimary,
                               ),
                             ),
                           ],
@@ -295,19 +296,21 @@ class HeroSafeSpendCard extends StatelessWidget {
                       child: Container(
                         height: 54,
                         decoration: BoxDecoration(
-                          color: DashboardTokens.periwinkleGray,
+                          color: colors.primaryButton,
                           borderRadius: BorderRadius.circular(27),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            SvgPicture.asset(
-                              'assets/images/dashboard_plus.svg',
-                              width: 18,
-                              height: 18,
-                              colorFilter: const ColorFilter.mode(
-                                DashboardTokens.ebony,
+                            ColorFiltered(
+                              colorFilter: ColorFilter.mode(
+                                colors.onPrimaryButton,
                                 BlendMode.srcIn,
+                              ),
+                              child: SvgPicture.asset(
+                                'assets/images/dashboard_plus.svg',
+                                width: 18,
+                                height: 18,
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -316,7 +319,7 @@ class HeroSafeSpendCard extends StatelessWidget {
                               style: GoogleFonts.dmSans(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
-                                color: DashboardTokens.ebony,
+                                color: colors.onPrimaryButton,
                               ),
                             ),
                           ],

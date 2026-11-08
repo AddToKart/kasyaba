@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../../app/theme/app_motion.dart';
+import '../../../app/theme/kasyaba_color_scheme.dart';
 import '../../../shared/widgets/motion_components.dart';
 import '../../../core/auth/auth_provider.dart';
 import '../../../core/database/cache_service.dart';
@@ -48,14 +49,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final expenses = data.expenses.toDouble();
     final dailyBurn = expenses > 0 ? (expenses / dayOfMonth) : 0.0;
     final healthScore = data.healthScore;
+    final colors = context.kColors;
 
     Color healthColor(String grade) => switch (grade.toLowerCase()) {
-      'excellent' => DashboardTokens.bermuda,
-      'good' => DashboardTokens.bermuda,
-      'fair' => DashboardTokens.poloBlue,
-      'poor' => DashboardTokens.apricot,
-      'needs attention' => DashboardTokens.apricot,
-      _ => DashboardTokens.bermuda,
+      'excellent' => colors.success,
+      'good' => colors.success,
+      'fair' => colors.icon,
+      'poor' => colors.danger,
+      'needs attention' => colors.danger,
+      _ => colors.success,
     };
 
     Widget buildHealthInfoRow({
@@ -66,13 +68,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
         decoration: BoxDecoration(
-          color: DashboardTokens.ebony.withValues(alpha: 0.6),
+          color: colors.canvas.withValues(alpha: 0.6),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: DashboardTokens.poloBlue22),
+          border: Border.all(color: colors.cardBorder),
         ),
         child: Row(
           children: [
-            Icon(icon, size: 16, color: DashboardTokens.bermuda),
+            Icon(icon, size: 16, color: colors.success),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
@@ -80,7 +82,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 style: GoogleFonts.dmSans(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w500,
-                  color: DashboardTokens.periwinkleGraySubtitle,
+                  color: colors.textSecondary,
                 ),
               ),
             ),
@@ -89,7 +91,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               style: GoogleFonts.dmSans(
                 fontSize: 13,
                 fontWeight: FontWeight.bold,
-                color: DashboardTokens.periwinkleGray,
+                color: colors.textPrimary,
                 fontFeatures: const [FontFeature.tabularFigures()],
               ),
             ),
@@ -103,147 +105,145 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       builder: (sheetContext) => AppSheet(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
         child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Cash Buffer & Health',
-                style: GoogleFonts.bricolageGrotesque(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: DashboardTokens.periwinkleGray,
-                ),
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Cash Buffer & Health',
+              style: GoogleFonts.bricolageGrotesque(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: colors.textPrimary,
               ),
-              const SizedBox(height: 6),
-              Text(
-                'Deterministic calculation of your liquid runway and spending capacity.',
-                style: GoogleFonts.dmSans(
-                  fontSize: 13,
-                  height: 1.35,
-                  color: DashboardTokens.periwinkleGraySubtitle,
-                ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Deterministic calculation of your liquid runway and spending capacity.',
+              style: GoogleFonts.dmSans(
+                fontSize: 13,
+                height: 1.35,
+                color: colors.textSecondary,
               ),
-              const SizedBox(height: 20),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: DashboardTokens.bigStone,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: DashboardTokens.poloBlue22),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: healthColor(healthScore).withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: healthColor(
-                            healthScore,
-                          ).withValues(alpha: 0.4),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: colors.card,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: colors.cardBorder),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: healthColor(healthScore).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: healthColor(healthScore).withValues(alpha: 0.4),
+                      ),
+                    ),
+                    child: Icon(
+                      Icons.shield_outlined,
+                      color: healthColor(healthScore),
+                      size: 26,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          runwayDays == null
+                              ? 'Unknown Days Buffer'
+                              : '${runwayDays >= 90 ? "90+" : runwayDays} Days Buffer',
+                          style: GoogleFonts.bricolageGrotesque(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: colors.textPrimary,
+                          ),
                         ),
-                      ),
-                      child: Icon(
-                        Icons.shield_outlined,
-                        color: healthColor(healthScore),
-                        size: 26,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            runwayDays == null
-                                ? 'Unknown Days Buffer'
-                                : '${runwayDays >= 90 ? "90+" : runwayDays} Days Buffer',
-                            style: GoogleFonts.bricolageGrotesque(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: DashboardTokens.periwinkleGray,
-                            ),
+                        const SizedBox(height: 3),
+                        Text(
+                          'Status: $healthScore',
+                          style: GoogleFonts.dmSans(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: healthColor(healthScore),
                           ),
-                          const SizedBox(height: 3),
-                          Text(
-                            'Status: $healthScore',
-                            style: GoogleFonts.dmSans(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: healthColor(healthScore),
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            buildHealthInfoRow(
+              label: 'Total Liquid Balance',
+              value: CurrencyFormatter.format(liquidBalance),
+              icon: Icons.account_balance_wallet_outlined,
+            ),
+            const SizedBox(height: 10),
+            buildHealthInfoRow(
+              label: 'Average Daily Spend',
+              value: dailyBurn > 0
+                  ? '${CurrencyFormatter.format(dailyBurn)} / day'
+                  : 'No spending history yet',
+              icon: Icons.local_fire_department_outlined,
+            ),
+            const SizedBox(height: 10),
+            buildHealthInfoRow(
+              label: 'Estimated Survival Buffer',
+              value: runwayDays == null
+                  ? 'Unknown without spending history'
+                  : '$runwayDays days without new income',
+              icon: Icons.timer_outlined,
+            ),
+            const SizedBox(height: 16),
+
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: colors.canvas.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: colors.cardBorder),
+              ),
+              child: Text(
+                'Your cash buffer estimates how long your current liquid accounts can cover typical daily living costs. A buffer over 30 days is healthy, while over 90 days provides strong financial resilience.',
+                style: GoogleFonts.dmSans(
+                  fontSize: 12,
+                  color: colors.textSecondary,
+                  height: 1.4,
                 ),
               ),
-              const SizedBox(height: 16),
+            ),
+            const SizedBox(height: 18),
 
-              buildHealthInfoRow(
-                label: 'Total Liquid Balance',
-                value: CurrencyFormatter.format(liquidBalance),
-                icon: Icons.account_balance_wallet_outlined,
-              ),
-              const SizedBox(height: 10),
-              buildHealthInfoRow(
-                label: 'Average Daily Spend',
-                value: dailyBurn > 0
-                    ? '${CurrencyFormatter.format(dailyBurn)} / day'
-                    : 'No spending history yet',
-                icon: Icons.local_fire_department_outlined,
-              ),
-              const SizedBox(height: 10),
-              buildHealthInfoRow(
-                label: 'Estimated Survival Buffer',
-                value: runwayDays == null
-                    ? 'Unknown without spending history'
-                    : '$runwayDays days without new income',
-                icon: Icons.timer_outlined,
-              ),
-              const SizedBox(height: 16),
-
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: DashboardTokens.ebony.withValues(alpha: 0.6),
+            FilledButton.icon(
+              onPressed: () {
+                Navigator.of(sheetContext).pop();
+                context.go('/alerts');
+              },
+              icon: const Icon(Icons.notifications_outlined, size: 18),
+              label: const Text('View Financial Alerts'),
+              style: FilledButton.styleFrom(
+                backgroundColor: colors.primaryButton,
+                foregroundColor: colors.onPrimaryButton,
+                textStyle: GoogleFonts.dmSans(fontWeight: FontWeight.bold),
+                shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: DashboardTokens.poloBlue22),
                 ),
-                child: Text(
-                  'Your cash buffer estimates how long your current liquid accounts can cover typical daily living costs. A buffer over 30 days is healthy, while over 90 days provides strong financial resilience.',
-                  style: GoogleFonts.dmSans(
-                    fontSize: 12,
-                    color: DashboardTokens.periwinkleGraySubtitle,
-                    height: 1.4,
-                  ),
-                ),
+                minimumSize: const Size.fromHeight(48),
               ),
-              const SizedBox(height: 18),
-
-              FilledButton.icon(
-                onPressed: () {
-                  Navigator.of(sheetContext).pop();
-                  context.go('/alerts');
-                },
-                icon: const Icon(Icons.notifications_outlined, size: 18),
-                label: const Text('View Financial Alerts'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: DashboardTokens.periwinkleGray,
-                  foregroundColor: DashboardTokens.ebony,
-                  textStyle: GoogleFonts.dmSans(fontWeight: FontWeight.bold),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  minimumSize: const Size.fromHeight(48),
-                ),
-              ),
-              const SizedBox(height: 8),
-            ],
-          ),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
       ),
     );
   }
@@ -267,6 +267,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.kColors;
     final authState = ref.watch(authProvider);
     final dashboardAsync = ref.watch(dashboardProvider);
     final transactionsAsync = ref.watch(transactionsProvider);
@@ -305,15 +306,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
 
     return Scaffold(
-      backgroundColor: DashboardTokens.ebony,
+      backgroundColor: colors.canvas,
       body: Stack(
         children: [
           // Background Gradient (radial Kashmir Blue glow at top-right)
           Positioned.fill(
             child: Container(
-              decoration: const BoxDecoration(
-                color: DashboardTokens.ebony,
-                gradient: DashboardTokens.canvasGradient,
+              decoration: BoxDecoration(
+                color: colors.canvas,
+                gradient: colors.backgroundGradient,
               ),
             ),
           ),
@@ -322,8 +323,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           SafeArea(
             bottom: false,
             child: RefreshIndicator(
-              color: DashboardTokens.periwinkleGray,
-              backgroundColor: DashboardTokens.bigStone,
+              color: colors.textPrimary,
+              backgroundColor: colors.card,
               onRefresh: () async {
                 await Future.wait([
                   ref.refresh(dashboardProvider.future),
@@ -336,7 +337,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               },
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, DashboardTokens.dockClearance),
+                padding: const EdgeInsets.fromLTRB(
+                  20,
+                  16,
+                  20,
+                  DashboardTokens.dockClearance,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -544,6 +550,7 @@ class _OfflineSyncBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.kColors;
     final hasPending = pendingCount > 0;
     final message = hasPending
         ? '$pendingCount transaction${pendingCount > 1 ? 's' : ''} saved offline • Will sync when connected'
@@ -552,12 +559,10 @@ class _OfflineSyncBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: DashboardTokens.bigStone,
+        color: colors.card,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: hasPending
-              ? DashboardTokens.apricot
-              : DashboardTokens.poloBlue22,
+          color: hasPending ? colors.danger : colors.cardBorder,
           width: 1,
         ),
       ),
@@ -566,9 +571,7 @@ class _OfflineSyncBanner extends StatelessWidget {
           Icon(
             hasPending ? Icons.sync_rounded : Icons.cloud_off_rounded,
             size: 16,
-            color: hasPending
-                ? DashboardTokens.apricot
-                : DashboardTokens.periwinkleGraySubtitle,
+            color: hasPending ? colors.danger : colors.textSecondary,
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -577,9 +580,7 @@ class _OfflineSyncBanner extends StatelessWidget {
               style: GoogleFonts.dmSans(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: hasPending
-                    ? DashboardTokens.apricot
-                    : DashboardTokens.periwinkleGraySubtitle,
+                color: hasPending ? colors.danger : colors.textSecondary,
               ),
             ),
           ),
@@ -618,6 +619,7 @@ class _QuickStartChecklistCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.kColors;
     final step1Done = totalBalance > 0 || income > 0;
     final step2Done = salaryAmount != null && salaryAmount! > 0;
     final step3Done = activeGoalsCount > 0 || activeBillsCount > 0;
@@ -627,15 +629,15 @@ class _QuickStartChecklistCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: DashboardTokens.bigStone,
+        color: colors.card,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: DashboardTokens.bermuda.withValues(alpha: 0.35),
+          color: colors.success.withValues(alpha: 0.35),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: DashboardTokens.ebony.withValues(alpha: 0.35),
+            color: colors.shadow.withValues(alpha: 0.35),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
@@ -650,16 +652,16 @@ class _QuickStartChecklistCard extends StatelessWidget {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: DashboardTokens.bermuda.withValues(alpha: 0.15),
+                  color: colors.success.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: DashboardTokens.bermuda.withValues(alpha: 0.35),
+                    color: colors.success.withValues(alpha: 0.35),
                   ),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.checklist_rounded,
                   size: 16,
-                  color: DashboardTokens.bermuda,
+                  color: colors.success,
                 ),
               ),
               const SizedBox(width: 10),
@@ -673,7 +675,7 @@ class _QuickStartChecklistCard extends StatelessWidget {
                         fontSize: 10.5,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 0.8,
-                        color: DashboardTokens.bermuda,
+                        color: colors.success,
                       ),
                     ),
                     const SizedBox(height: 1),
@@ -682,7 +684,7 @@ class _QuickStartChecklistCard extends StatelessWidget {
                       style: GoogleFonts.dmSans(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w600,
-                        color: DashboardTokens.periwinkleGray,
+                        color: colors.textPrimary,
                       ),
                     ),
                   ],
@@ -691,7 +693,7 @@ class _QuickStartChecklistCard extends StatelessWidget {
               IconButton(
                 onPressed: onDismiss,
                 icon: const Icon(Icons.close_rounded, size: 18),
-                color: DashboardTokens.periwinkleGraySubtitle,
+                color: colors.textSecondary,
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
                 tooltip: 'Dismiss guide',
@@ -704,16 +706,15 @@ class _QuickStartChecklistCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: completedCount / 3.0,
-              backgroundColor: DashboardTokens.ebony.withValues(alpha: 0.5),
-              valueColor: const AlwaysStoppedAnimation<Color>(
-                DashboardTokens.bermuda,
-              ),
+              backgroundColor: colors.canvas.withValues(alpha: 0.5),
+              valueColor: AlwaysStoppedAnimation<Color>(colors.success),
               minHeight: 4,
             ),
           ),
           const SizedBox(height: 14),
 
           _buildChecklistStep(
+            context,
             title: 'Log your starting balance or salary',
             subtitle: step1Done
                 ? 'Recorded: ${CurrencyFormatter.format(totalBalance > 0 ? totalBalance : income)}'
@@ -725,6 +726,7 @@ class _QuickStartChecklistCard extends StatelessWidget {
           const SizedBox(height: 8),
 
           _buildChecklistStep(
+            context,
             title: 'Configure salary & payday schedule',
             subtitle: step2Done
                 ? '${CurrencyFormatter.format(salaryAmount!)}/mo • ${paydaySchedule ?? "15th & 30th"}'
@@ -736,6 +738,7 @@ class _QuickStartChecklistCard extends StatelessWidget {
           const SizedBox(height: 8),
 
           _buildChecklistStep(
+            context,
             title: 'Add your upcoming bills & goals',
             subtitle: step3Done
                 ? '$activeGoalsCount goal${activeGoalsCount == 1 ? '' : 's'}, $activeBillsCount bill${activeBillsCount == 1 ? '' : 's'} active'
@@ -749,13 +752,15 @@ class _QuickStartChecklistCard extends StatelessWidget {
     );
   }
 
-  Widget _buildChecklistStep({
+  Widget _buildChecklistStep(
+    BuildContext context, {
     required String title,
     required String subtitle,
     required bool isCompleted,
     String? actionLabel,
     required VoidCallback onTap,
   }) {
+    final colors = context.kColors;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
@@ -763,13 +768,11 @@ class _QuickStartChecklistCard extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
           color: isCompleted
-              ? DashboardTokens.poloBlue.withValues(alpha: 0.04)
-              : DashboardTokens.ebony.withValues(alpha: 0.4),
+              ? colors.icon.withValues(alpha: 0.04)
+              : colors.canvas.withValues(alpha: 0.4),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isCompleted
-                ? Colors.transparent
-                : DashboardTokens.poloBlue22,
+            color: isCompleted ? Colors.transparent : colors.cardBorder,
           ),
         ),
         child: Row(
@@ -779,9 +782,7 @@ class _QuickStartChecklistCard extends StatelessWidget {
                   ? Icons.check_circle_rounded
                   : Icons.radio_button_unchecked_rounded,
               size: 18,
-              color: isCompleted
-                  ? DashboardTokens.bermuda
-                  : DashboardTokens.periwinkleGraySubtitle,
+              color: isCompleted ? colors.success : colors.textSecondary,
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -793,7 +794,7 @@ class _QuickStartChecklistCard extends StatelessWidget {
                     style: GoogleFonts.dmSans(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: DashboardTokens.periwinkleGray,
+                      color: colors.textPrimary,
                       decoration: isCompleted
                           ? TextDecoration.lineThrough
                           : null,
@@ -804,7 +805,7 @@ class _QuickStartChecklistCard extends StatelessWidget {
                     subtitle,
                     style: GoogleFonts.dmSans(
                       fontSize: 10.5,
-                      color: DashboardTokens.periwinkleGraySubtitle,
+                      color: colors.textSecondary,
                     ),
                   ),
                 ],
@@ -818,10 +819,10 @@ class _QuickStartChecklistCard extends StatelessWidget {
                   vertical: 5,
                 ),
                 decoration: BoxDecoration(
-                  color: DashboardTokens.bermuda.withValues(alpha: 0.15),
+                  color: colors.success.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: DashboardTokens.bermuda.withValues(alpha: 0.35),
+                    color: colors.success.withValues(alpha: 0.35),
                   ),
                 ),
                 child: Text(
@@ -829,15 +830,15 @@ class _QuickStartChecklistCard extends StatelessWidget {
                   style: GoogleFonts.dmSans(
                     fontSize: 10.5,
                     fontWeight: FontWeight.bold,
-                    color: DashboardTokens.bermuda,
+                    color: colors.success,
                   ),
                 ),
               ),
             ] else
-              const Icon(
+              Icon(
                 Icons.chevron_right_rounded,
                 size: 16,
-                color: DashboardTokens.periwinkleGraySubtitle,
+                color: colors.textSecondary,
               ),
           ],
         ),
@@ -863,19 +864,20 @@ class _DeficitAlertCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.kColors;
     final formattedPayday = DateFormat('MMM d').format(nextPayday);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: DashboardTokens.bigStone,
+        color: colors.card,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: DashboardTokens.apricot.withValues(alpha: 0.35),
+          color: colors.danger.withValues(alpha: 0.35),
           width: 1.0,
         ),
         boxShadow: [
           BoxShadow(
-            color: DashboardTokens.ebony.withValues(alpha: 0.35),
+            color: colors.shadow.withValues(alpha: 0.35),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
@@ -890,18 +892,18 @@ class _DeficitAlertCard extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: DashboardTokens.apricot.withValues(alpha: 0.16),
+                  color: colors.danger.withValues(alpha: 0.16),
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                    color: DashboardTokens.apricot.withValues(alpha: 0.35),
+                    color: colors.danger.withValues(alpha: 0.35),
                     width: 1.0,
                   ),
                 ),
                 alignment: Alignment.center,
-                child: const Icon(
+                child: Icon(
                   Icons.warning_amber_rounded,
                   size: 20,
-                  color: DashboardTokens.apricot,
+                  color: colors.danger,
                 ),
               ),
               const SizedBox(width: 12),
@@ -915,7 +917,7 @@ class _DeficitAlertCard extends StatelessWidget {
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 0.9,
-                        color: DashboardTokens.apricot,
+                        color: colors.danger,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -924,7 +926,7 @@ class _DeficitAlertCard extends StatelessWidget {
                       style: GoogleFonts.bricolageGrotesque(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: DashboardTokens.periwinkleGray,
+                        color: colors.textPrimary,
                       ),
                     ),
                   ],
@@ -937,7 +939,7 @@ class _DeficitAlertCard extends StatelessWidget {
             'Your upcoming bills and savings commitments exceed your current cash by ${CurrencyFormatter.format(deficitAmount)}. Kasyaba has paused daily spending (₱0.00/day) until your next payday on $formattedPayday to protect you from running out of funds.',
             style: GoogleFonts.dmSans(
               fontSize: 13,
-              color: DashboardTokens.periwinkleGraySubtitle,
+              color: colors.textSecondary,
               height: 1.45,
             ),
           ),
@@ -954,16 +956,16 @@ class _DeficitAlertCard extends StatelessWidget {
                   child: Container(
                     height: 48,
                     decoration: BoxDecoration(
-                      color: DashboardTokens.periwinkleGray,
+                      color: colors.primaryButton,
                       borderRadius: BorderRadius.circular(24),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.add_rounded,
                           size: 18,
-                          color: DashboardTokens.ebony,
+                          color: colors.onPrimaryButton,
                         ),
                         const SizedBox(width: 6),
                         Text(
@@ -971,7 +973,7 @@ class _DeficitAlertCard extends StatelessWidget {
                           style: GoogleFonts.dmSans(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
-                            color: DashboardTokens.ebony,
+                            color: colors.onPrimaryButton,
                           ),
                         ),
                       ],
@@ -990,20 +992,20 @@ class _DeficitAlertCard extends StatelessWidget {
                   child: Container(
                     height: 48,
                     decoration: BoxDecoration(
-                      color: DashboardTokens.poloBlue22,
+                      color: colors.cardBorder,
                       borderRadius: BorderRadius.circular(24),
                       border: Border.all(
-                        color: DashboardTokens.poloBlue30,
+                        color: colors.cardBorderStrong,
                         width: 1.0,
                       ),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.tune_rounded,
                           size: 17,
-                          color: DashboardTokens.periwinkleGray,
+                          color: colors.textPrimary,
                         ),
                         const SizedBox(width: 6),
                         Text(
@@ -1011,7 +1013,7 @@ class _DeficitAlertCard extends StatelessWidget {
                           style: GoogleFonts.dmSans(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
-                            color: DashboardTokens.periwinkleGray,
+                            color: colors.textPrimary,
                           ),
                         ),
                       ],
@@ -1036,12 +1038,13 @@ class _DashboardCardSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.kColors;
     return Container(
       height: height,
       decoration: BoxDecoration(
-        color: DashboardTokens.bigStone.withValues(alpha: 0.5),
+        color: colors.skeletonFill,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: DashboardTokens.poloBlue22),
+        border: Border.all(color: colors.cardBorder),
       ),
     );
   }
@@ -1055,17 +1058,16 @@ class _DashboardErrorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.kColors;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: DashboardTokens.bigStone,
+        color: colors.card,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: DashboardTokens.apricot.withValues(alpha: 0.35),
-        ),
+        border: Border.all(color: colors.danger.withValues(alpha: 0.35)),
         boxShadow: [
           BoxShadow(
-            color: DashboardTokens.ebony.withValues(alpha: 0.35),
+            color: colors.shadow.withValues(alpha: 0.35),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
@@ -1080,17 +1082,17 @@ class _DashboardErrorCard extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: DashboardTokens.apricot.withValues(alpha: 0.16),
+                  color: colors.danger.withValues(alpha: 0.16),
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                    color: DashboardTokens.apricot.withValues(alpha: 0.35),
+                    color: colors.danger.withValues(alpha: 0.35),
                     width: 1,
                   ),
                 ),
                 alignment: Alignment.center,
-                child: const Icon(
+                child: Icon(
                   Icons.error_outline_rounded,
-                  color: DashboardTokens.apricot,
+                  color: colors.danger,
                   size: 20,
                 ),
               ),
@@ -1099,7 +1101,7 @@ class _DashboardErrorCard extends StatelessWidget {
                 child: Text(
                   message,
                   style: GoogleFonts.dmSans(
-                    color: DashboardTokens.apricot,
+                    color: colors.danger,
                     fontWeight: FontWeight.w600,
                     fontSize: 13,
                   ),
@@ -1120,27 +1122,23 @@ class _DashboardErrorCard extends StatelessWidget {
                 height: 42,
                 padding: const EdgeInsets.symmetric(horizontal: 18),
                 decoration: BoxDecoration(
-                  color: DashboardTokens.apricot.withValues(alpha: 0.15),
+                  color: colors.danger.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(21),
                   border: Border.all(
-                    color: DashboardTokens.apricot.withValues(alpha: 0.35),
+                    color: colors.danger.withValues(alpha: 0.35),
                   ),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(
-                      Icons.refresh_rounded,
-                      size: 16,
-                      color: DashboardTokens.apricot,
-                    ),
+                    Icon(Icons.refresh_rounded, size: 16, color: colors.danger),
                     const SizedBox(width: 6),
                     Text(
                       'Retry',
                       style: GoogleFonts.dmSans(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
-                        color: DashboardTokens.apricot,
+                        color: colors.danger,
                       ),
                     ),
                   ],

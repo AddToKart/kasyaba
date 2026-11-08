@@ -5,7 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_motion.dart';
-import '../../../app/theme/kasyaba_tokens.dart';
+import '../../../app/theme/kasyaba_color_scheme.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/providers/preference_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
@@ -48,7 +48,8 @@ class MathBreakdownScreen extends ConsumerWidget {
         );
 
     // Never present zero-based math when the live inputs failed to load.
-    final hasInputFailure = calculation == null &&
+    final hasInputFailure =
+        calculation == null &&
         (dashboardAsync.hasError ||
             balancesAsync.hasError ||
             billsAsync.hasError ||
@@ -56,7 +57,7 @@ class MathBreakdownScreen extends ConsumerWidget {
 
     if (hasInputFailure) {
       return Scaffold(
-        backgroundColor: DashboardTokens.ebony,
+        backgroundColor: context.kColors.canvas,
         body: SafeArea(
           bottom: false,
           child: ListView(
@@ -79,15 +80,13 @@ class MathBreakdownScreen extends ConsumerWidget {
                     height: 44,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: DashboardTokens.bigStone,
+                      color: context.kColors.card,
                       shape: BoxShape.circle,
-                      border: Border.all(
-                        color: DashboardTokens.poloBlue22,
-                      ),
+                      border: Border.all(color: context.kColors.cardBorder),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.chevron_left_rounded,
-                      color: DashboardTokens.periwinkleGray,
+                      color: context.kColors.textPrimary,
                       size: 26,
                     ),
                   ),
@@ -97,7 +96,7 @@ class MathBreakdownScreen extends ConsumerWidget {
               Text(
                 'How we calculate',
                 style: GoogleFonts.bricolageGrotesque(
-                  color: DashboardTokens.periwinkleGray,
+                  color: context.kColors.textPrimary,
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                   letterSpacing: -0.3,
@@ -123,11 +122,17 @@ class MathBreakdownScreen extends ConsumerWidget {
 
     final hasSafeSpend = calc.dailySafeSpend > 0;
     final accentColor = hasSafeSpend
-        ? DashboardTokens.bermuda
-        : DashboardTokens.apricot;
+        ? context.kColors.success
+        : context.kColors.danger;
+
+    // Dark keeps the legacy kashmir glow exactly; light uses the softer
+    // steel-blue halo locked in the porcelain palette.
+    final glowColor = Theme.of(context).brightness == Brightness.dark
+        ? context.kColors.secondaryBorder.withValues(alpha: 0.35)
+        : context.kColors.icon.withValues(alpha: 0.16);
 
     return Scaffold(
-      backgroundColor: DashboardTokens.ebony,
+      backgroundColor: context.kColors.canvas,
       body: Stack(
         children: [
           // ── Radial Glow at Top Right ──────────────────────────────
@@ -140,7 +145,7 @@ class MathBreakdownScreen extends ConsumerWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
-                  colors: [KasyabaTokens.kashmirGlow35, Colors.transparent],
+                  colors: [glowColor, Colors.transparent],
                 ),
               ),
             ),
@@ -171,15 +176,15 @@ class MathBreakdownScreen extends ConsumerWidget {
                           height: 44,
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
-                            color: DashboardTokens.bigStone,
+                            color: context.kColors.card,
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: DashboardTokens.poloBlue22,
+                              color: context.kColors.cardBorder,
                             ),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.chevron_left_rounded,
-                            color: DashboardTokens.periwinkleGray,
+                            color: context.kColors.textPrimary,
                             size: 26,
                           ),
                         ),
@@ -188,7 +193,7 @@ class MathBreakdownScreen extends ConsumerWidget {
                       Text(
                         'How we calculate',
                         style: GoogleFonts.bricolageGrotesque(
-                          color: DashboardTokens.periwinkleGray,
+                          color: context.kColors.textPrimary,
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
                           letterSpacing: -0.3,
@@ -201,7 +206,12 @@ class MathBreakdownScreen extends ConsumerWidget {
                 // ── Scrollable Card Content ─────────────────────────
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, DashboardTokens.dockClearance),
+                    padding: const EdgeInsets.fromLTRB(
+                      16,
+                      12,
+                      16,
+                      DashboardTokens.dockClearance,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -217,7 +227,7 @@ class MathBreakdownScreen extends ConsumerWidget {
                                   Text(
                                     'Exact deterministic formula',
                                     style: GoogleFonts.dmSans(
-                                      color: DashboardTokens.periwinkleGray,
+                                      color: context.kColors.textPrimary,
                                       fontSize: 15,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -229,12 +239,12 @@ class MathBreakdownScreen extends ConsumerWidget {
                                 width: double.infinity,
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: DashboardTokens.ebony.withValues(
+                                  color: context.kColors.canvas.withValues(
                                     alpha: 0.7,
                                   ),
                                   borderRadius: BorderRadius.circular(14),
                                   border: Border.all(
-                                    color: DashboardTokens.poloBlue22
+                                    color: context.kColors.cardBorder
                                         .withValues(alpha: 0.5),
                                   ),
                                 ),
@@ -242,8 +252,7 @@ class MathBreakdownScreen extends ConsumerWidget {
                                   'Daily Safe Spend = Math.max(0, (Total Liquid\nBalance - Unpaid Bills Due Before Next Payday\n- Scheduled Goal Contributions) / Days Until\nNext Payday)',
                                   style: GoogleFonts.dmSans(
                                     fontSize: 12,
-                                    color:
-                                        DashboardTokens.periwinkleGraySubtitle,
+                                    color: context.kColors.textSecondary,
                                     height: 1.45,
                                   ),
                                 ),
@@ -253,7 +262,7 @@ class MathBreakdownScreen extends ConsumerWidget {
                                 'In simple words:\n(Available Cash Pool) ÷ (Days Left Until Payday)',
                                 style: GoogleFonts.dmSans(
                                   fontSize: 12,
-                                  color: DashboardTokens.periwinkleGraySubtitle
+                                  color: context.kColors.textSecondary
                                       .withValues(alpha: 0.7),
                                   height: 1.35,
                                 ),
@@ -275,7 +284,7 @@ class MathBreakdownScreen extends ConsumerWidget {
                                   Text(
                                     'Find your safe cash',
                                     style: GoogleFonts.dmSans(
-                                      color: DashboardTokens.periwinkleGray,
+                                      color: context.kColors.textPrimary,
                                       fontSize: 15,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -288,7 +297,7 @@ class MathBreakdownScreen extends ConsumerWidget {
                                 value: CurrencyFormatter.format(
                                   calc.totalLiquidBalance,
                                 ),
-                                valueColor: DashboardTokens.periwinkleGray,
+                                valueColor: context.kColors.textPrimary,
                               ),
                               const SizedBox(height: 12),
                               _BreakdownMetricRow(
@@ -296,8 +305,8 @@ class MathBreakdownScreen extends ConsumerWidget {
                                 value:
                                     '- ${CurrencyFormatter.format(calc.unpaidBillsDue)}',
                                 valueColor: calc.unpaidBillsDue > 0
-                                    ? DashboardTokens.apricot
-                                    : DashboardTokens.periwinkleGray,
+                                    ? context.kColors.danger
+                                    : context.kColors.textPrimary,
                               ),
                               const SizedBox(height: 12),
                               _BreakdownMetricRow(
@@ -306,8 +315,8 @@ class MathBreakdownScreen extends ConsumerWidget {
                                 value:
                                     '- ${CurrencyFormatter.format(calc.scheduledGoalContributions)}',
                                 valueColor: calc.scheduledGoalContributions > 0
-                                    ? DashboardTokens.apricot
-                                    : DashboardTokens.periwinkleGray,
+                                    ? context.kColors.danger
+                                    : context.kColors.textPrimary,
                               ),
                               if (calc.goalDetails.isNotEmpty) ...[
                                 const SizedBox(height: 4),
@@ -316,8 +325,7 @@ class MathBreakdownScreen extends ConsumerWidget {
                                       .map((g) => g.title)
                                       .join(', '),
                                   style: GoogleFonts.dmSans(
-                                    color: DashboardTokens
-                                        .periwinkleGraySubtitle
+                                    color: context.kColors.textSecondary
                                         .withValues(alpha: 0.65),
                                     fontSize: 12,
                                   ),
@@ -327,7 +335,7 @@ class MathBreakdownScreen extends ConsumerWidget {
                               _BreakdownMetricRow(
                                 label: 'Safe cash',
                                 value: CurrencyFormatter.format(calc.numerator),
-                                valueColor: DashboardTokens.periwinkleGray,
+                                valueColor: context.kColors.textPrimary,
                                 isBold: true,
                               ),
                             ],
@@ -347,7 +355,7 @@ class MathBreakdownScreen extends ConsumerWidget {
                                   Text(
                                     'Spread it until payday',
                                     style: GoogleFonts.dmSans(
-                                      color: DashboardTokens.periwinkleGray,
+                                      color: context.kColors.textPrimary,
                                       fontSize: 15,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -368,8 +376,7 @@ class MathBreakdownScreen extends ConsumerWidget {
                                         'Next configured payday',
                                         style: GoogleFonts.dmSans(
                                           fontSize: 14,
-                                          color: DashboardTokens
-                                              .periwinkleGraySubtitle,
+                                          color: context.kColors.textSecondary,
                                         ),
                                       ),
                                       const SizedBox(height: 2),
@@ -377,8 +384,7 @@ class MathBreakdownScreen extends ConsumerWidget {
                                         'Schedule: ${calc.paydaySchedule}',
                                         style: GoogleFonts.dmSans(
                                           fontSize: 12,
-                                          color: DashboardTokens
-                                              .periwinkleGraySubtitle
+                                          color: context.kColors.textSecondary
                                               .withValues(alpha: 0.7),
                                         ),
                                       ),
@@ -391,7 +397,7 @@ class MathBreakdownScreen extends ConsumerWidget {
                                     style: GoogleFonts.dmSans(
                                       fontSize: 14,
                                       fontWeight: FontWeight.bold,
-                                      color: DashboardTokens.periwinkleGray,
+                                      color: context.kColors.textPrimary,
                                     ),
                                   ),
                                 ],
@@ -400,7 +406,7 @@ class MathBreakdownScreen extends ConsumerWidget {
                               _BreakdownMetricRow(
                                 label: 'Days until payday',
                                 value: '÷ ${calc.daysUntilPayday} days',
-                                valueColor: DashboardTokens.periwinkleGray,
+                                valueColor: context.kColors.textPrimary,
                                 isBold: true,
                               ),
                             ],
@@ -431,8 +437,7 @@ class MathBreakdownScreen extends ConsumerWidget {
                                     'Available to spend today',
                                     style: GoogleFonts.dmSans(
                                       fontSize: 12.5,
-                                      color: DashboardTokens
-                                          .periwinkleGraySubtitle,
+                                      color: context.kColors.textSecondary,
                                     ),
                                   ),
                                 ],
@@ -474,10 +479,10 @@ class _CardContainer extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: DashboardTokens.bigStone,
+        color: context.kColors.card,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: borderColor ?? DashboardTokens.poloBlue22,
+          color: borderColor ?? context.kColors.cardBorder,
           width: 1.0,
         ),
       ),
@@ -498,14 +503,14 @@ class _BadgeCircle extends StatelessWidget {
       height: 26,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: DashboardTokens.ebony.withValues(alpha: 0.6),
+        color: context.kColors.canvas.withValues(alpha: 0.6),
         shape: BoxShape.circle,
-        border: Border.all(color: DashboardTokens.poloBlue22),
+        border: Border.all(color: context.kColors.cardBorder),
       ),
       child: Text(
         label,
         style: GoogleFonts.dmSans(
-          color: DashboardTokens.poloBlue,
+          color: context.kColors.icon,
           fontWeight: FontWeight.bold,
           fontSize: 13,
         ),
@@ -538,8 +543,8 @@ class _BreakdownMetricRow extends StatelessWidget {
             fontSize: isBold ? 15 : 14,
             fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
             color: isBold
-                ? DashboardTokens.periwinkleGray
-                : DashboardTokens.periwinkleGraySubtitle,
+                ? context.kColors.textPrimary
+                : context.kColors.textSecondary,
           ),
         ),
         Text(

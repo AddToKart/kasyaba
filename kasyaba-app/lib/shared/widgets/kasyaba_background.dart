@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../app/theme/kasyaba_tokens.dart';
+import '../../app/theme/kasyaba_color_scheme.dart';
 
-/// Full-canvas navy background with the canonical radial glow.
+/// Full-canvas background with the canonical per-theme radial glow.
 class KasyabaBackground extends StatelessWidget {
   final Widget child;
   final Gradient? gradient;
@@ -17,7 +17,7 @@ class KasyabaBackground extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        gradient: gradient ?? KasyabaTokens.canvasGradient,
+        gradient: gradient ?? context.kColors.backgroundGradient,
       ),
       child: child,
     );

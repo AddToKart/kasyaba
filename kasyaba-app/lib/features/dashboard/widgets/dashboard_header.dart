@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'dashboard_tokens.dart';
+import '../../../app/theme/kasyaba_color_scheme.dart';
 
 class DashboardHeader extends StatelessWidget {
   final String displayName;
@@ -22,6 +22,7 @@ class DashboardHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.kColors;
     final firstName = displayName.trim().isEmpty
         ? 'User'
         : displayName.trim().split(' ').first;
@@ -34,14 +35,14 @@ class DashboardHeader extends StatelessWidget {
           width: 48,
           height: 48,
           alignment: Alignment.center,
-          decoration: const BoxDecoration(
-            color: DashboardTokens.periwinkleGray,
+          decoration: BoxDecoration(
+            color: colors.primaryButton,
             shape: BoxShape.circle,
           ),
           child: Text(
             initial,
             style: GoogleFonts.bricolageGrotesque(
-              color: DashboardTokens.ebony,
+              color: colors.onPrimaryButton,
               fontWeight: FontWeight.bold,
               fontSize: 19,
             ),
@@ -62,7 +63,7 @@ class DashboardHeader extends StatelessWidget {
                 style: GoogleFonts.dmSans(
                   fontSize: 14,
                   fontWeight: FontWeight.normal,
-                  color: DashboardTokens.periwinkleGraySubtitle,
+                  color: colors.textSecondary,
                 ),
               ),
               const SizedBox(height: 1),
@@ -73,7 +74,7 @@ class DashboardHeader extends StatelessWidget {
                 style: GoogleFonts.bricolageGrotesque(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: DashboardTokens.periwinkleGray,
+                  color: colors.textPrimary,
                 ),
               ),
             ],
@@ -89,20 +90,19 @@ class DashboardHeader extends StatelessWidget {
             height: 50,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: DashboardTokens.bigStone,
+              color: colors.card,
               borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                color: DashboardTokens.poloBlue22,
-                width: 1.0,
-              ),
+              border: Border.all(color: colors.cardBorder, width: 1.0),
             ),
-            child: SvgPicture.asset(
-              'assets/images/dashboard_bell.svg',
-              width: 22,
-              height: 22,
-              colorFilter: const ColorFilter.mode(
-                DashboardTokens.periwinkleGraySubtitle,
+            child: ColorFiltered(
+              colorFilter: ColorFilter.mode(
+                colors.textSecondary,
                 BlendMode.srcIn,
+              ),
+              child: SvgPicture.asset(
+                'assets/images/dashboard_bell.svg',
+                width: 22,
+                height: 22,
               ),
             ),
           ),
@@ -111,4 +111,3 @@ class DashboardHeader extends StatelessWidget {
     );
   }
 }
-

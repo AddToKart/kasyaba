@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'router/router.dart';
+import 'theme/kasyaba_color_scheme.dart';
 import 'theme/kasyaba_tokens.dart';
 import '../core/connectivity/connectivity_service.dart';
 import '../core/database/offline_sync_service.dart';
@@ -62,6 +63,7 @@ class _KasyabaAppState extends ConsumerState<KasyabaApp>
       themeMode: themeMode,
       routerConfig: router,
       builder: (context, child) {
+        final colors = context.kColors;
         return Stack(
           children: [
             child ?? const SizedBox.shrink(),
@@ -81,17 +83,17 @@ class _KasyabaAppState extends ConsumerState<KasyabaApp>
                       right: 16,
                     ),
                     decoration: BoxDecoration(
-                      color: KasyabaTokens.bigStone,
+                      color: colors.card,
                       borderRadius: BorderRadius.circular(
                         KasyabaTokens.radiusDialog,
                       ),
-                      border: Border.all(color: KasyabaTokens.apricot),
+                      border: Border.all(color: colors.danger),
                     ),
                     child: Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.wifi_off_rounded,
-                          color: KasyabaTokens.apricot,
+                          color: colors.danger,
                           size: 18,
                         ),
                         const SizedBox(width: 8),
@@ -100,7 +102,7 @@ class _KasyabaAppState extends ConsumerState<KasyabaApp>
                             'Offline — showing saved data. Changes you record '
                             'will sync when you reconnect.',
                             style: GoogleFonts.dmSans(
-                              color: KasyabaTokens.periwinkleGray,
+                              color: colors.textPrimary,
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
                             ),

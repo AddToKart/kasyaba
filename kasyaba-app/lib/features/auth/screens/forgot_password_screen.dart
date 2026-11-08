@@ -3,8 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:reactive_forms/reactive_forms.dart';
-import '../../../app/theme/app_theme.dart';
-import '../../../app/theme/kasyaba_tokens.dart';
+import '../../../app/theme/kasyaba_color_scheme.dart';
 import '../../../core/auth/auth_provider.dart';
 import '../widgets/auth_widgets.dart';
 
@@ -63,16 +62,14 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     final authState = ref.watch(authProvider);
     final size = MediaQuery.sizeOf(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = context.kColors;
 
     return Scaffold(
-      backgroundColor: isDark ? AuthFigmaTokens.ebony : AppColors.lightScaffold,
+      backgroundColor: colors.canvas,
       body: Stack(
         children: [
           // ── Background with exact Figma radial gradient & radar arcs (Node 11:3031) ──
-          AuthForgotPassBackground(
-            size: size,
-            isDark: isDark,
-          ),
+          AuthForgotPassBackground(size: size, isDark: isDark),
 
           // ── Main Layout: Top Form Content + Bottom Pinned Action Button ──
           SafeArea(
@@ -97,9 +94,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                               // ── Back Button (Node 11:3032-3034, 50x50, r=24) ──
                               Align(
                                 alignment: Alignment.centerLeft,
-                                child: AuthBackButton(
-                                  onPressed: _handleBack,
-                                ),
+                                child: AuthBackButton(onPressed: _handleBack),
                               ),
                               const SizedBox(height: 24),
 
@@ -110,9 +105,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                                   fontWeight: FontWeight.w700,
                                   fontSize: 32,
                                   height: 1.1,
-                                  color: isDark
-                                      ? AuthFigmaTokens.periwinkleGray
-                                      : AppColors.lightTextPrimary,
+                                  color: colors.textPrimary,
                                 ),
                               ),
                               const SizedBox(height: 8),
@@ -124,9 +117,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                                   fontSize: 14,
                                   fontWeight: FontWeight.w400,
                                   height: 1.45,
-                                  color: isDark
-                                      ? AuthFigmaTokens.periwinkleGraySubtitle
-                                      : AppColors.lightTextSecondary,
+                                  color: colors.textSecondary,
                                 ),
                               ),
                               const SizedBox(height: 24),
@@ -143,10 +134,10 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                                     vertical: 12,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: KasyabaTokens.bermuda15,
+                                    color: colors.successTint,
                                     borderRadius: BorderRadius.circular(16),
                                     border: Border.all(
-                                      color: KasyabaTokens.bermuda.withValues(
+                                      color: colors.success.withValues(
                                         alpha: 0.4,
                                       ),
                                     ),
@@ -157,9 +148,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                                     children: [
                                       Row(
                                         children: [
-                                          const Icon(
+                                          Icon(
                                             Icons.check_circle_rounded,
-                                            color: KasyabaTokens.bermuda,
+                                            color: colors.success,
                                             size: 20,
                                           ),
                                           const SizedBox(width: 10),
@@ -167,7 +158,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                                             child: Text(
                                               'Reset code sent! Please check your inbox.',
                                               style: GoogleFonts.dmSans(
-                                                color: KasyabaTokens.bermuda,
+                                                color: colors.success,
                                                 fontSize: 13,
                                                 fontWeight: FontWeight.w600,
                                               ),
@@ -178,9 +169,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                                       const SizedBox(height: 8),
                                       GestureDetector(
                                         onTap: () {
-                                          final email = (formGroup
-                                                  .control('email')
-                                                  .value as String?) ??
+                                          final email =
+                                              (formGroup.control('email').value
+                                                  as String?) ??
                                               '';
                                           context.push(
                                             '/otp-verification',
@@ -191,7 +182,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                                         child: Text(
                                           'Enter verification code →',
                                           style: GoogleFonts.dmSans(
-                                            color: KasyabaTokens.bermuda,
+                                            color: colors.success,
                                             fontSize: 13,
                                             fontWeight: FontWeight.w700,
                                             decoration:
@@ -229,10 +220,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                                   Text(
                                     'Remembered it? ',
                                     style: GoogleFonts.dmSans(
-                                      color: isDark
-                                          ? AuthFigmaTokens
-                                              .periwinkleGraySubtitle
-                                          : AppColors.lightTextSecondary,
+                                      color: colors.textSecondary,
                                       fontSize: 14,
                                       fontWeight: FontWeight.w400,
                                     ),
@@ -242,10 +230,10 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                                     behavior: HitTestBehavior.opaque,
                                     child: Container(
                                       padding: const EdgeInsets.only(bottom: 2),
-                                      decoration: const BoxDecoration(
+                                      decoration: BoxDecoration(
                                         border: Border(
                                           bottom: BorderSide(
-                                            color: AuthFigmaTokens.kashmirBlue,
+                                            color: colors.secondaryBorder,
                                             width: 2.0,
                                           ),
                                         ),
@@ -253,9 +241,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                                       child: Text(
                                         'Sign in',
                                         style: GoogleFonts.dmSans(
-                                          color: isDark
-                                              ? AuthFigmaTokens.periwinkleGray
-                                              : AppColors.lightTextPrimary,
+                                          color: colors.textPrimary,
                                           fontWeight: FontWeight.w700,
                                           fontSize: 14,
                                         ),
@@ -287,28 +273,29 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                               ? null
                               : _handleSendResetLink,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AuthFigmaTokens.periwinkleGray,
-                            foregroundColor: AuthFigmaTokens.ebony,
-                            disabledBackgroundColor: AuthFigmaTokens.poloBlue
-                                .withValues(alpha: 0.5),
+                            backgroundColor: colors.primaryButton,
+                            foregroundColor: colors.onPrimaryButton,
+                            disabledBackgroundColor: colors.icon.withValues(
+                              alpha: 0.5,
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(28),
                             ),
                             elevation: 0,
                           ),
                           child: authState.isLoading
-                              ? const SizedBox(
+                              ? SizedBox(
                                   height: 22,
                                   width: 22,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2.4,
-                                    color: AuthFigmaTokens.ebony,
+                                    color: colors.onPrimaryButton,
                                   ),
                                 )
                               : Text(
                                   'Send reset link',
                                   style: GoogleFonts.dmSans(
-                                    color: AuthFigmaTokens.ebony,
+                                    color: colors.onPrimaryButton,
                                     fontSize: 16,
                                     fontWeight: FontWeight.w700,
                                   ),

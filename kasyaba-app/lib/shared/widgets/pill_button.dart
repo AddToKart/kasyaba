@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../app/theme/kasyaba_tokens.dart';
+import '../../app/theme/kasyaba_color_scheme.dart';
 
 enum PillButtonVariant { primary, secondary, destructive }
 
@@ -34,23 +34,24 @@ class PillButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.kColors;
     final Color fill;
     final Color? border;
     final Color foreground;
 
     switch (variant) {
       case PillButtonVariant.primary:
-        fill = KasyabaTokens.periwinkleGray;
+        fill = colors.primaryButton;
         border = null;
-        foreground = KasyabaTokens.ebony;
+        foreground = colors.onPrimaryButton;
       case PillButtonVariant.secondary:
         fill = Colors.transparent;
-        border = KasyabaTokens.kashmirBlue;
-        foreground = KasyabaTokens.periwinkleGray;
+        border = colors.secondaryBorder;
+        foreground = colors.textPrimary;
       case PillButtonVariant.destructive:
-        fill = KasyabaTokens.apricot15;
-        border = KasyabaTokens.apricot;
-        foreground = KasyabaTokens.apricot;
+        fill = colors.dangerTint;
+        border = colors.danger;
+        foreground = colors.danger;
     }
 
     final bool isEnabled = onPressed != null && !isLoading;

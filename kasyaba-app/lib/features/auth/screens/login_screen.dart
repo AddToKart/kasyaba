@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:reactive_forms/reactive_forms.dart';
-import '../../../app/theme/app_theme.dart';
+import '../../../app/theme/kasyaba_color_scheme.dart';
 import '../../../core/auth/auth_provider.dart';
 import '../widgets/auth_widgets.dart';
 
@@ -62,7 +62,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     formGroup.markAllAsTouched();
     if (!formGroup.valid) return;
     try {
-      await ref.read(authProvider.notifier).login(
+      await ref
+          .read(authProvider.notifier)
+          .login(
             formGroup.control('email').value as String,
             formGroup.control('password').value as String,
           );
@@ -79,64 +81,59 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   }
 
   void _showForgotPasswordHelp(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor:
-            isDark ? AuthFigmaTokens.cello55 : AppColors.lightCardSurface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(
-            color: isDark
-                ? AuthFigmaTokens.poloBlue28
-                : AppColors.lightBorderHairline,
-          ),
-        ),
-        title: Row(
-          children: [
-            const Icon(
-              Icons.lock_reset_rounded,
-              color: AuthFigmaTokens.poloBlue,
-              size: 22,
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        final colors = ctx.kColors;
+        return AlertDialog(
+          backgroundColor: isDark
+              ? colors.cardHero.withValues(alpha: 0.55)
+              : colors.card,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(
+              color: isDark
+                  ? colors.icon.withValues(alpha: 0.28)
+                  : colors.cardBorder,
             ),
-            const SizedBox(width: 10),
-            Text(
-              'Reset Password',
-              style: GoogleFonts.bricolageGrotesque(
-                color: isDark
-                    ? AuthFigmaTokens.periwinkleGray
-                    : AppColors.lightTextPrimary,
-                fontWeight: FontWeight.w700,
-                fontSize: 18,
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.lock_reset_rounded, color: colors.icon, size: 22),
+              const SizedBox(width: 10),
+              Text(
+                'Reset Password',
+                style: GoogleFonts.bricolageGrotesque(
+                  color: colors.textPrimary,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 18,
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            'Enter the email you signed up with. We will send you a link to choose a new password.',
+            style: GoogleFonts.dmSans(
+              color: isDark ? colors.icon : colors.textSecondary,
+              fontSize: 13,
+              height: 1.5,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(
+                'Understood',
+                style: GoogleFonts.dmSans(
+                  color: isDark ? colors.textPrimary : colors.success,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ],
-        ),
-        content: Text(
-          'Enter the email you signed up with. We will send you a link to choose a new password.',
-          style: GoogleFonts.dmSans(
-            color:
-                isDark ? AuthFigmaTokens.poloBlue : AppColors.lightTextSecondary,
-            fontSize: 13,
-            height: 1.5,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(
-              'Understood',
-              style: GoogleFonts.dmSans(
-                color: isDark
-                    ? AuthFigmaTokens.periwinkleGray
-                    : AppColors.emerald500,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -145,9 +142,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     final authState = ref.watch(authProvider);
     final size = MediaQuery.sizeOf(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = context.kColors;
 
     return Scaffold(
-      backgroundColor: isDark ? AuthFigmaTokens.ebony : AppColors.lightScaffold,
+      backgroundColor: colors.canvas,
       body: Stack(
         children: [
           // ── Background with exact Figma radial gradients & radar rings (Node 11:782-784) ──
@@ -198,9 +196,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                 fontWeight: FontWeight.w700,
                                 fontSize: 32,
                                 height: 1.1,
-                                color: isDark
-                                    ? AuthFigmaTokens.periwinkleGray
-                                    : AppColors.lightTextPrimary,
+                                color: colors.textPrimary,
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -213,8 +209,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                 fontWeight: FontWeight.w400,
                                 height: 1.45,
                                 color: isDark
-                                    ? AuthFigmaTokens.poloBlue
-                                    : AppColors.lightTextSecondary,
+                                    ? colors.icon
+                                    : colors.textSecondary,
                               ),
                             ),
                             const SizedBox(height: 18),
@@ -225,9 +221,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
                                   if (authState.error != null) ...[
-                                    AuthErrorBanner(
-                                      message: authState.error!,
-                                    ),
+                                    AuthErrorBanner(message: authState.error!),
                                     const SizedBox(height: 12),
                                   ],
 
@@ -277,8 +271,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                           'Forgot password?',
                                           style: GoogleFonts.dmSans(
                                             color: isDark
-                                                ? AuthFigmaTokens.poloBlue
-                                                : AppColors.lightTextSecondary,
+                                                ? colors.icon
+                                                : colors.textSecondary,
                                             fontSize: 13,
                                             fontWeight: FontWeight.w700,
                                           ),
@@ -311,8 +305,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                       'New to Kasyaba? ',
                                       style: GoogleFonts.dmSans(
                                         color: isDark
-                                            ? AuthFigmaTokens.poloBlue
-                                            : AppColors.lightTextSecondary,
+                                            ? colors.icon
+                                            : colors.textSecondary,
                                         fontSize: 14,
                                         fontWeight: FontWeight.w400,
                                       ),
@@ -321,11 +315,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                       onTap: () => context.go('/register'),
                                       behavior: HitTestBehavior.opaque,
                                       child: Container(
-                                        padding: const EdgeInsets.only(bottom: 2),
-                                        decoration: const BoxDecoration(
+                                        padding: const EdgeInsets.only(
+                                          bottom: 2,
+                                        ),
+                                        decoration: BoxDecoration(
                                           border: Border(
                                             bottom: BorderSide(
-                                              color: AuthFigmaTokens.kashmirBlue,
+                                              color: colors.secondaryBorder,
                                               width: 2.0,
                                             ),
                                           ),
@@ -333,9 +329,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                         child: Text(
                                           'Create account',
                                           style: GoogleFonts.dmSans(
-                                            color: isDark
-                                                ? AuthFigmaTokens.periwinkleGray
-                                                : AppColors.lightTextPrimary,
+                                            color: colors.textPrimary,
                                             fontWeight: FontWeight.w700,
                                             fontSize: 14,
                                           ),

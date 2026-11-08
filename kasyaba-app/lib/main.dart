@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'app/app.dart';
-import 'app/theme/kasyaba_tokens.dart';
+import 'app/theme/kasyaba_color_scheme.dart';
 import 'core/api/api_client.dart';
 import 'core/errors/error_handlers.dart';
 import 'core/notifications/notification_service.dart';
@@ -36,10 +36,16 @@ class _ConfigurationErrorApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final brightness = WidgetsBinding
+        .instance.platformDispatcher.platformBrightness;
+    final colors = brightness == Brightness.dark
+        ? kasyabaDarkColors
+        : kasyabaLightColors;
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       home: Scaffold(
-        backgroundColor: KasyabaTokens.ebony,
+        backgroundColor: colors.canvas,
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(32),
@@ -48,7 +54,7 @@ class _ConfigurationErrorApp extends StatelessWidget {
               'Please install the official release from Google Play.',
               textAlign: TextAlign.center,
               style: GoogleFonts.dmSans(
-                color: KasyabaTokens.periwinkleGray,
+                color: colors.textPrimary,
                 fontSize: 16,
                 height: 1.5,
               ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../app/theme/kasyaba_color_scheme.dart';
 import '../../app/theme/kasyaba_tokens.dart';
 import '../../core/connectivity/connectivity_service.dart';
 import '../../core/providers/api_providers.dart';
@@ -39,6 +40,7 @@ class OfflineStatusBadge extends ConsumerWidget {
         .valueOrNull;
     if (fetchedAt == null) return const SizedBox.shrink();
 
+    final colors = context.kColors;
     return Padding(
       padding: margin ?? EdgeInsets.zero,
       child: Align(
@@ -46,19 +48,19 @@ class OfflineStatusBadge extends ConsumerWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           decoration: BoxDecoration(
-            color: KasyabaTokens.bigStone,
+            color: colors.card,
             borderRadius: BorderRadius.circular(KasyabaTokens.radiusChip),
             border: Border.all(
-              color: KasyabaTokens.apricot.withValues(alpha: 0.4),
+              color: colors.danger.withValues(alpha: 0.4),
             ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(
+              Icon(
                 Icons.cloud_off_rounded,
                 size: 13,
-                color: KasyabaTokens.apricot,
+                color: colors.danger,
               ),
               const SizedBox(width: 6),
               Text(
@@ -66,7 +68,7 @@ class OfflineStatusBadge extends ConsumerWidget {
                 style: GoogleFonts.dmSans(
                   fontSize: 11.5,
                   fontWeight: FontWeight.w600,
-                  color: KasyabaTokens.periwinkleGraySubtitle,
+                  color: colors.textSecondary,
                 ),
               ),
             ],
@@ -78,7 +80,7 @@ class OfflineStatusBadge extends ConsumerWidget {
 }
 
 /// Compact explanation shown next to actions that cannot run without a
-/// connection. Apricot border on a bigStone card, matching the offline chip.
+/// connection. Danger border on a card surface, matching the offline chip.
 class NeedsInternetNotice extends StatelessWidget {
   final String message;
   final IconData icon;
@@ -91,19 +93,20 @@ class NeedsInternetNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.kColors;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: KasyabaTokens.bigStone,
+        color: colors.card,
         borderRadius: BorderRadius.circular(KasyabaTokens.radiusDialog),
         border: Border.all(
-          color: KasyabaTokens.apricot.withValues(alpha: 0.45),
+          color: colors.danger.withValues(alpha: 0.45),
           width: 1,
         ),
       ),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: KasyabaTokens.apricot),
+          Icon(icon, size: 18, color: colors.danger),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -112,7 +115,7 @@ class NeedsInternetNotice extends StatelessWidget {
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
                 height: 1.35,
-                color: KasyabaTokens.periwinkleGraySubtitle,
+                color: colors.textSecondary,
               ),
             ),
           ),
@@ -134,22 +137,23 @@ class OfflineQueuedNote extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.kColors;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: KasyabaTokens.bigStone,
+        color: colors.card,
         borderRadius: BorderRadius.circular(KasyabaTokens.radiusDialog),
         border: Border.all(
-          color: KasyabaTokens.bermuda.withValues(alpha: 0.4),
+          color: colors.success.withValues(alpha: 0.4),
           width: 1,
         ),
       ),
       child: Row(
         children: [
-          const Icon(
+          Icon(
             Icons.cloud_upload_outlined,
             size: 17,
-            color: KasyabaTokens.bermuda,
+            color: colors.success,
           ),
           const SizedBox(width: 9),
           Expanded(
@@ -159,7 +163,7 @@ class OfflineQueuedNote extends StatelessWidget {
                 fontSize: 12.5,
                 fontWeight: FontWeight.w600,
                 height: 1.35,
-                color: KasyabaTokens.periwinkleGraySubtitle,
+                color: colors.textSecondary,
               ),
             ),
           ),

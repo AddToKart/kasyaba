@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_motion.dart';
+import '../../../app/theme/kasyaba_color_scheme.dart';
 import '../../../shared/widgets/motion_components.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/auth/auth_provider.dart';
@@ -45,11 +46,12 @@ Future<void> _showTransactionActions(
   WidgetRef ref,
   TransactionEntry transaction,
 ) async {
+  final colors = context.kColors;
   if (transaction.isSyncFailed) {
     final action = await showKasyabaSheet<String>(
       context: context,
       builder: (sheetContext) => AppSheet(
-        color: DashboardTokens.bigStone,
+        color: colors.card,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
           child: Column(
@@ -61,12 +63,12 @@ Future<void> _showTransactionActions(
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: DashboardTokens.apricot.withValues(alpha: 0.15),
+                      color: colors.dangerTint,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.sync_problem_rounded,
-                      color: DashboardTokens.apricot,
+                      color: colors.danger,
                       size: 20,
                     ),
                   ),
@@ -77,7 +79,7 @@ Future<void> _showTransactionActions(
                       style: GoogleFonts.bricolageGrotesque(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: DashboardTokens.periwinkleGray,
+                        color: colors.textPrimary,
                       ),
                     ),
                   ),
@@ -89,48 +91,48 @@ Future<void> _showTransactionActions(
                     'This offline transaction could not be synced.',
                 style: GoogleFonts.dmSans(
                   fontSize: 14,
-                  color: DashboardTokens.periwinkleGraySubtitle,
+                  color: colors.textSecondary,
                 ),
               ),
               const SizedBox(height: 16),
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: const Icon(
+                leading: Icon(
                   Icons.refresh_rounded,
-                  color: DashboardTokens.bermuda,
+                  color: colors.success,
                 ),
                 title: Text(
                   'Retry Sync',
                   style: GoogleFonts.dmSans(
                     fontWeight: FontWeight.bold,
-                    color: DashboardTokens.periwinkleGray,
+                    color: colors.textPrimary,
                   ),
                 ),
                 subtitle: Text(
                   'Re-queue this transaction for the next sync',
                   style: GoogleFonts.dmSans(
-                    color: DashboardTokens.periwinkleGraySubtitle,
+                    color: colors.textSecondary,
                   ),
                 ),
                 onTap: () => Navigator.of(sheetContext).pop('retry'),
               ),
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: const Icon(
+                leading: Icon(
                   Icons.delete_outline_rounded,
-                  color: DashboardTokens.apricot,
+                  color: colors.danger,
                 ),
                 title: Text(
                   'Delete Queued Entry',
                   style: GoogleFonts.dmSans(
                     fontWeight: FontWeight.bold,
-                    color: DashboardTokens.apricot,
+                    color: colors.danger,
                   ),
                 ),
                 subtitle: Text(
                   'Discard this transaction from local storage',
                   style: GoogleFonts.dmSans(
-                    color: DashboardTokens.periwinkleGraySubtitle,
+                    color: colors.textSecondary,
                   ),
                 ),
                 onTap: () => Navigator.of(sheetContext).pop('delete'),
@@ -194,7 +196,7 @@ Future<void> _showTransactionActions(
     await showKasyabaSheet<void>(
       context: context,
       builder: (sheetContext) => AppSheet(
-        color: DashboardTokens.bigStone,
+        color: colors.card,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
           child: Column(
@@ -208,7 +210,7 @@ Future<void> _showTransactionActions(
                 style: GoogleFonts.bricolageGrotesque(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: DashboardTokens.periwinkleGray,
+                  color: colors.textPrimary,
                 ),
               ),
               const SizedBox(height: 12),
@@ -220,23 +222,23 @@ Future<void> _showTransactionActions(
               if (!transaction.isTransfer)
                 ListTile(
                   enabled: false,
-                  leading: const Icon(
+                  leading: Icon(
                     Icons.edit_rounded,
-                    color: DashboardTokens.periwinkleGraySubtitle,
+                    color: colors.textSecondary,
                   ),
                   title: Text(
                     'Edit transaction',
                     style: GoogleFonts.dmSans(
                       fontWeight: FontWeight.bold,
-                      color: DashboardTokens.periwinkleGraySubtitle,
+                      color: colors.textSecondary,
                     ),
                   ),
                 ),
               ListTile(
                 enabled: false,
-                leading: const Icon(
+                leading: Icon(
                   Icons.delete_outline_rounded,
-                  color: DashboardTokens.periwinkleGraySubtitle,
+                  color: colors.textSecondary,
                 ),
                 title: Text(
                   transaction.isTransfer
@@ -244,7 +246,7 @@ Future<void> _showTransactionActions(
                       : 'Delete transaction',
                   style: GoogleFonts.dmSans(
                     fontWeight: FontWeight.bold,
-                    color: DashboardTokens.periwinkleGraySubtitle,
+                    color: colors.textSecondary,
                   ),
                 ),
               ),
@@ -259,35 +261,35 @@ Future<void> _showTransactionActions(
   final action = await showKasyabaSheet<String>(
     context: context,
     builder: (sheetContext) => AppSheet(
-      color: DashboardTokens.bigStone,
+      color: colors.card,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (!transaction.isTransfer)
             ListTile(
-              leading: const Icon(
+              leading: Icon(
                 Icons.edit_rounded,
-                color: DashboardTokens.periwinkleGray,
+                color: colors.textPrimary,
               ),
               title: Text(
                 'Edit transaction',
                 style: GoogleFonts.dmSans(
                   fontWeight: FontWeight.bold,
-                  color: DashboardTokens.periwinkleGray,
+                  color: colors.textPrimary,
                 ),
               ),
               onTap: () => Navigator.of(sheetContext).pop('edit'),
             ),
           ListTile(
-            leading: const Icon(
+            leading: Icon(
               Icons.delete_outline_rounded,
-              color: DashboardTokens.apricot,
+              color: colors.danger,
             ),
             title: Text(
               transaction.isTransfer ? 'Delete transfer' : 'Delete transaction',
               style: GoogleFonts.dmSans(
                 fontWeight: FontWeight.bold,
-                color: DashboardTokens.apricot,
+                color: colors.danger,
               ),
             ),
             onTap: () => Navigator.of(sheetContext).pop('delete'),
@@ -306,11 +308,11 @@ Future<void> _showTransactionActions(
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (dialogContext) => AlertDialog(
-      backgroundColor: DashboardTokens.bigStone,
+      backgroundColor: colors.card,
       title: Text(
         transaction.isTransfer ? 'Delete transfer?' : 'Delete transaction?',
         style: GoogleFonts.bricolageGrotesque(
-          color: DashboardTokens.periwinkleGray,
+          color: colors.textPrimary,
           fontWeight: FontWeight.bold,
         ),
       ),
@@ -319,7 +321,7 @@ Future<void> _showTransactionActions(
             ? 'This will restore the money to the source account and remove it from the destination account.'
             : 'This will remove it from your balances and reports.',
         style: GoogleFonts.dmSans(
-          color: DashboardTokens.periwinkleGraySubtitle,
+          color: colors.textSecondary,
         ),
       ),
       actions: [
@@ -328,19 +330,19 @@ Future<void> _showTransactionActions(
           child: Text(
             'Cancel',
             style: GoogleFonts.dmSans(
-              color: DashboardTokens.periwinkleGraySubtitle,
+              color: colors.textSecondary,
             ),
           ),
         ),
         FilledButton(
           onPressed: () => Navigator.of(dialogContext).pop(true),
           style: FilledButton.styleFrom(
-            backgroundColor: DashboardTokens.apricot,
+            backgroundColor: colors.danger,
           ),
           child: Text(
             'Delete',
             style: GoogleFonts.dmSans(
-              color: DashboardTokens.ebony,
+              color: colors.onPrimaryButton,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -442,6 +444,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.kColors;
     final topPadding = MediaQuery.paddingOf(context).top;
     final paginatedAsync = ref.watch(paginatedTransactionsProvider);
     final billsAsync = ref.watch(billsProvider);
@@ -535,13 +538,13 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         ),
       ),
       child: Scaffold(
-        backgroundColor: DashboardTokens.ebony,
+        backgroundColor: colors.canvas,
         body: Container(
           width: double.infinity,
           height: double.infinity,
-          decoration: const BoxDecoration(
-            color: DashboardTokens.ebony,
-            gradient: DashboardTokens.canvasGradient,
+          decoration: BoxDecoration(
+            color: colors.canvas,
+            gradient: colors.backgroundGradient,
           ),
           child: SingleChildScrollView(
             padding: EdgeInsets.fromLTRB(20, topPadding + 12, 20, DashboardTokens.dockClearance),
@@ -562,7 +565,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                             style: GoogleFonts.bricolageGrotesque(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
-                              color: DashboardTokens.periwinkleGray,
+                              color: colors.textPrimary,
                             ),
                           ),
                           GestureDetector(
@@ -578,21 +581,23 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                               width: 44,
                               height: 44,
                               decoration: BoxDecoration(
-                                color: DashboardTokens.bigStone,
+                                color: colors.card,
                                 borderRadius: BorderRadius.circular(24),
                                 border: Border.all(
-                                  color: DashboardTokens.poloBlue22,
+                                  color: colors.cardBorder,
                                   width: 1,
                                 ),
                               ),
                               alignment: Alignment.center,
-                              child: SvgPicture.asset(
-                                'assets/images/activity_search.svg',
-                                width: 22,
-                                height: 22,
-                                colorFilter: const ColorFilter.mode(
-                                  DashboardTokens.periwinkleGray,
+                              child: ColorFiltered(
+                                colorFilter: ColorFilter.mode(
+                                  colors.icon,
                                   BlendMode.srcIn,
+                                ),
+                                child: SvgPicture.asset(
+                                  'assets/images/activity_search.svg',
+                                  width: 22,
+                                  height: 22,
                                 ),
                               ),
                             ),
@@ -605,18 +610,18 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                           height: 48,
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           decoration: BoxDecoration(
-                            color: DashboardTokens.bigStone,
+                            color: colors.card,
                             borderRadius: BorderRadius.circular(24),
                             border: Border.all(
-                              color: DashboardTokens.poloBlue30,
+                              color: colors.cardBorderStrong,
                               width: 1,
                             ),
                           ),
                           child: Row(
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.search_rounded,
-                                color: DashboardTokens.periwinkleGraySubtitle,
+                                color: colors.textSecondary,
                                 size: 20,
                               ),
                               const SizedBox(width: 10),
@@ -626,15 +631,14 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                   autofocus: true,
                                   style: GoogleFonts.dmSans(
                                     fontSize: 15,
-                                    color: DashboardTokens.periwinkleGray,
+                                    color: colors.textPrimary,
                                   ),
-                                  cursorColor: DashboardTokens.periwinkleGray,
+                                  cursorColor: colors.textPrimary,
                                   decoration: InputDecoration(
                                     hintText: 'Search transactions...',
                                     hintStyle: GoogleFonts.dmSans(
                                       fontSize: 15,
-                                      color: DashboardTokens
-                                          .periwinkleGraySubtitle
+                                      color: colors.textSecondary
                                           .withValues(alpha: 0.5),
                                     ),
                                     border: InputBorder.none,
@@ -649,10 +653,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                               if (_searchController.text.isNotEmpty)
                                 GestureDetector(
                                   onTap: () => _searchController.clear(),
-                                  child: const Icon(
+                                  child: Icon(
                                     Icons.close_rounded,
-                                    color:
-                                        DashboardTokens.periwinkleGraySubtitle,
+                                    color: colors.textSecondary,
                                     size: 18,
                                   ),
                                 ),
@@ -696,17 +699,19 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                   style: GoogleFonts.dmSans(
                                     fontSize: 17,
                                     fontWeight: FontWeight.bold,
-                                    color: DashboardTokens.periwinkleGray,
+                                    color: colors.textPrimary,
                                   ),
                                 ),
                                 const SizedBox(width: 8),
-                                SvgPicture.asset(
-                                  'assets/images/activity_chevron_down.svg',
-                                  width: 14,
-                                  height: 14,
-                                  colorFilter: const ColorFilter.mode(
-                                    DashboardTokens.periwinkleGraySubtitle,
+                                ColorFiltered(
+                                  colorFilter: ColorFilter.mode(
+                                    colors.icon,
                                     BlendMode.srcIn,
+                                  ),
+                                  child: SvgPicture.asset(
+                                    'assets/images/activity_chevron_down.svg',
+                                    width: 14,
+                                    height: 14,
                                   ),
                                 ),
                               ],
@@ -716,7 +721,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                             text: TextSpan(
                               style: GoogleFonts.dmSans(
                                 fontSize: 14,
-                                color: DashboardTokens.periwinkleGraySubtitle,
+                                color: colors.textSecondary,
                               ),
                               children: [
                                 const TextSpan(text: 'Net '),
@@ -724,7 +729,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                   text: CurrencyFormatter.format(netMonthly),
                                   style: GoogleFonts.dmSans(
                                     fontWeight: FontWeight.bold,
-                                    color: DashboardTokens.periwinkleGray,
+                                    color: colors.textPrimary,
                                   ),
                                 ),
                               ],
@@ -745,10 +750,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                 vertical: 11,
                               ),
                               decoration: BoxDecoration(
-                                color: DashboardTokens.bigStone,
+                                color: colors.card,
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
-                                  color: DashboardTokens.poloBlue22,
+                                  color: colors.cardBorder,
                                   width: 1,
                                 ),
                               ),
@@ -759,8 +764,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                     'Income',
                                     style: GoogleFonts.dmSans(
                                       fontSize: 12,
-                                      color: DashboardTokens
-                                          .periwinkleGraySubtitle,
+                                      color: colors.textSecondary,
                                     ),
                                   ),
                                   const SizedBox(height: 2),
@@ -769,7 +773,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                     style: GoogleFonts.dmSans(
                                       fontSize: 17,
                                       fontWeight: FontWeight.bold,
-                                      color: DashboardTokens.bermuda,
+                                      color: colors.success,
                                     ),
                                   ),
                                 ],
@@ -785,10 +789,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                 vertical: 11,
                               ),
                               decoration: BoxDecoration(
-                                color: DashboardTokens.bigStone,
+                                color: colors.card,
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
-                                  color: DashboardTokens.poloBlue22,
+                                  color: colors.cardBorder,
                                   width: 1,
                                 ),
                               ),
@@ -799,8 +803,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                     'Spent',
                                     style: GoogleFonts.dmSans(
                                       fontSize: 12,
-                                      color: DashboardTokens
-                                          .periwinkleGraySubtitle,
+                                      color: colors.textSecondary,
                                     ),
                                   ),
                                   const SizedBox(height: 2),
@@ -809,7 +812,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                     style: GoogleFonts.dmSans(
                                       fontSize: 17,
                                       fontWeight: FontWeight.bold,
-                                      color: DashboardTokens.apricot,
+                                      color: colors.danger,
                                     ),
                                   ),
                                 ],
@@ -837,7 +840,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                             style: GoogleFonts.bricolageGrotesque(
                               fontSize: 19,
                               fontWeight: FontWeight.bold,
-                              color: DashboardTokens.periwinkleGray,
+                              color: colors.textPrimary,
                             ),
                           ),
                           Row(
@@ -856,7 +859,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(20),
                                     border: Border.all(
-                                      color: DashboardTokens.poloBlue22,
+                                      color: colors.cardBorder,
                                       width: 1,
                                     ),
                                   ),
@@ -866,7 +869,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                     style: GoogleFonts.dmSans(
                                       fontSize: 13,
                                       fontWeight: FontWeight.bold,
-                                      color: DashboardTokens.periwinkleGray,
+                                      color: colors.textPrimary,
                                     ),
                                   ),
                                 ),
@@ -884,18 +887,20 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                     horizontal: 12,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: DashboardTokens.periwinkleGray,
+                                    color: colors.textPrimary,
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Row(
                                     children: [
-                                      SvgPicture.asset(
-                                        'assets/images/activity_add.svg',
-                                        width: 18,
-                                        height: 18,
-                                        colorFilter: const ColorFilter.mode(
-                                          DashboardTokens.ebony,
+                                      ColorFiltered(
+                                        colorFilter: ColorFilter.mode(
+                                          colors.onPrimaryButton,
                                           BlendMode.srcIn,
+                                        ),
+                                        child: SvgPicture.asset(
+                                          'assets/images/activity_add.svg',
+                                          width: 18,
+                                          height: 18,
                                         ),
                                       ),
                                       const SizedBox(width: 4),
@@ -904,7 +909,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                         style: GoogleFonts.dmSans(
                                           fontSize: 13,
                                           fontWeight: FontWeight.bold,
-                                          color: DashboardTokens.ebony,
+                                          color: colors.onPrimaryButton,
                                         ),
                                       ),
                                     ],
@@ -921,10 +926,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: DashboardTokens.bigStone,
+                          color: colors.card,
                           borderRadius: BorderRadius.circular(28),
                           border: Border.all(
-                            color: DashboardTokens.poloBlue22,
+                            color: colors.cardBorder,
                             width: 1,
                           ),
                         ),
@@ -940,7 +945,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                   style: GoogleFonts.dmSans(
                                     fontSize: 12,
                                     color:
-                                        DashboardTokens.periwinkleGraySubtitle,
+                                        colors.textSecondary,
                                   ),
                                 ),
                                 GestureDetector(
@@ -951,7 +956,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                     style: GoogleFonts.dmSans(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
-                                      color: DashboardTokens.periwinkleGray,
+                                      color: colors.textPrimary,
                                     ),
                                   ),
                                 ),
@@ -997,7 +1002,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                       height: 57,
                                       decoration: BoxDecoration(
                                         color: isSelected
-                                            ? DashboardTokens.periwinkleGray
+                                            ? colors.textPrimary
                                             : Colors.transparent,
                                         borderRadius: BorderRadius.circular(22),
                                       ),
@@ -1010,9 +1015,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                             style: GoogleFonts.dmSans(
                                               fontSize: 12,
                                               color: isSelected
-                                                  ? DashboardTokens.ebony
-                                                  : DashboardTokens
-                                                        .periwinkleGraySubtitle,
+                                                  ? colors.onPrimaryButton
+                                                  : colors.textSecondary,
                                             ),
                                           ),
                                           const SizedBox(height: 2),
@@ -1022,9 +1026,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                               fontSize: 15,
                                               fontWeight: FontWeight.bold,
                                               color: isSelected
-                                                  ? DashboardTokens.ebony
-                                                  : DashboardTokens
-                                                        .periwinkleGray,
+                                                  ? colors.onPrimaryButton
+                                                  : colors.textPrimary,
                                             ),
                                           ),
                                           const SizedBox(height: 2),
@@ -1035,8 +1038,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                               height: 4,
                                               decoration: BoxDecoration(
                                                 color: isSelected
-                                                    ? DashboardTokens.ebony
-                                                    : DashboardTokens.apricot,
+                                                    ? colors.onPrimaryButton
+                                                    : colors.danger,
                                                 borderRadius:
                                                     BorderRadius.circular(2),
                                               ),
@@ -1055,7 +1058,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                             // Hairline Divider
                             Container(
                               height: 1,
-                              color: DashboardTokens.poloBlue16,
+                              color: colors.divider,
                             ),
                             const SizedBox(height: 12),
 
@@ -1083,7 +1086,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                   style: GoogleFonts.dmSans(
                                     fontSize: 14,
                                     color:
-                                        DashboardTokens.periwinkleGraySubtitle,
+                                        colors.textSecondary,
                                   ),
                                   textAlign: TextAlign.center,
                                 ),
@@ -1111,7 +1114,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                             style: GoogleFonts.bricolageGrotesque(
                               fontSize: 19,
                               fontWeight: FontWeight.bold,
-                              color: DashboardTokens.periwinkleGray,
+                              color: colors.textPrimary,
                             ),
                           ),
                           GestureDetector(
@@ -1123,18 +1126,20 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                 horizontal: 12,
                               ),
                               decoration: BoxDecoration(
-                                color: DashboardTokens.periwinkleGray,
+                                color: colors.textPrimary,
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Row(
                                 children: [
-                                  SvgPicture.asset(
-                                    'assets/images/activity_add.svg',
-                                    width: 18,
-                                    height: 18,
-                                    colorFilter: const ColorFilter.mode(
-                                      DashboardTokens.ebony,
+                                  ColorFiltered(
+                                    colorFilter: ColorFilter.mode(
+                                      colors.onPrimaryButton,
                                       BlendMode.srcIn,
+                                    ),
+                                    child: SvgPicture.asset(
+                                      'assets/images/activity_add.svg',
+                                      width: 18,
+                                      height: 18,
                                     ),
                                   ),
                                   const SizedBox(width: 5),
@@ -1143,7 +1148,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                     style: GoogleFonts.dmSans(
                                       fontSize: 13,
                                       fontWeight: FontWeight.bold,
-                                      color: DashboardTokens.ebony,
+                                      color: colors.onPrimaryButton,
                                     ),
                                   ),
                                 ],
@@ -1200,11 +1205,11 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                           ),
                       ] else if (paginatedAsync.isLoading &&
                           transactions.isEmpty) ...[
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 40),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 40),
                           child: Center(
                             child: CircularProgressIndicator(
-                              color: DashboardTokens.periwinkleGray,
+                              color: colors.textPrimary,
                               strokeWidth: 2.5,
                             ),
                           ),
@@ -1219,7 +1224,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                   : 'No transactions recorded yet',
                               style: GoogleFonts.dmSans(
                                 fontSize: 15,
-                                color: DashboardTokens.periwinkleGraySubtitle,
+                                color: colors.textSecondary,
                               ),
                               textAlign: TextAlign.center,
                             ),
@@ -1272,8 +1277,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                           fontSize: 12,
                                           fontWeight: FontWeight.bold,
                                           letterSpacing: 1.0,
-                                          color: DashboardTokens
-                                              .periwinkleGraySubtitle,
+                                          color: colors.textSecondary,
                                         ),
                                       ),
                                       Text(
@@ -1282,12 +1286,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                           fontSize: 13,
                                           fontWeight: FontWeight.bold,
                                           color: isNetPositive
-                                              ? DashboardTokens.bermuda
+                                              ? colors.success
                                               : (isNetNegative
-                                                    ? DashboardTokens
-                                                          .periwinkleGraySubtitle
-                                                    : DashboardTokens
-                                                          .periwinkleGraySubtitle),
+                                                    ? colors.textSecondary
+                                                    : colors.textSecondary),
                                         ),
                                       ),
                                     ],
@@ -1301,10 +1303,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                     horizontal: 16,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: DashboardTokens.bigStone,
+                                    color: colors.card,
                                     borderRadius: BorderRadius.circular(28),
                                     border: Border.all(
-                                      color: DashboardTokens.poloBlue22,
+                                      color: colors.cardBorder,
                                       width: 1,
                                     ),
                                   ),
@@ -1318,7 +1320,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                     itemCount: groupItems.length,
                                     separatorBuilder: (_, _) => Container(
                                       height: 1,
-                                      color: DashboardTokens.poloBlue16,
+                                      color: colors.divider,
                                     ),
                                     itemBuilder: (ctx, idx) {
                                       final t = groupItems[idx];
@@ -1344,6 +1346,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
 
   // ── Bill Item Row (Node 82:574) ───────────────────────────────────────────
   Widget _buildBillItemRow(BillItem bill) {
+    final colors = context.kColors;
     final dueFormatted = DateFormat('EEE, MMM d').format(bill.dueDate);
     final recurrenceLabel = _billRecurrenceLabel(bill.recurrence);
     final scheduleLabel = recurrenceLabel == null
@@ -1370,7 +1373,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     style: GoogleFonts.dmSans(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: DashboardTokens.periwinkleGray,
+                      color: colors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -1378,7 +1381,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     scheduleLabel,
                     style: GoogleFonts.dmSans(
                       fontSize: 12,
-                      color: DashboardTokens.periwinkleGraySubtitle,
+                      color: colors.textSecondary,
                     ),
                   ),
                 ],
@@ -1392,7 +1395,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                   style: GoogleFonts.dmSans(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: DashboardTokens.periwinkleGray,
+                    color: colors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -1401,7 +1404,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                   style: GoogleFonts.dmSans(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: DashboardTokens.apricot,
+                    color: colors.danger,
                   ),
                 ),
               ],
@@ -1414,14 +1417,15 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
 
   // ── Transaction Item Row (Node 82:603) ────────────────────────────────────
   Widget _buildTransactionItemRow(TransactionEntry t) {
+    final colors = context.kColors;
     final isExpense = t.isExpense;
     final isTransfer = t.isTransfer;
     final amountSign = isExpense ? '−' : (isTransfer ? '' : '+');
     final amountColor = isExpense
-        ? DashboardTokens.apricot
+        ? colors.danger
         : (isTransfer
-              ? DashboardTokens.periwinkleGray
-              : DashboardTokens.bermuda);
+              ? colors.textPrimary
+              : colors.success);
 
     return SpringTouch(
       scaleDown: 0.98,
@@ -1436,15 +1440,15 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: DashboardTokens.ebony.withValues(alpha: 0.5),
+                color: colors.canvas.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(23),
-                border: Border.all(color: DashboardTokens.poloBlue30, width: 1),
+                border: Border.all(color: colors.cardBorderStrong, width: 1),
               ),
               alignment: Alignment.center,
               child: Icon(
                 CategoryIconHelper.getIcon(t.categoryName),
                 size: 20,
-                color: DashboardTokens.periwinkleGray,
+                color: colors.textPrimary,
               ),
             ),
             const SizedBox(width: 12),
@@ -1461,7 +1465,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     style: GoogleFonts.dmSans(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: DashboardTokens.periwinkleGray,
+                      color: colors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 3),
@@ -1471,7 +1475,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.dmSans(
                       fontSize: 12,
-                      color: DashboardTokens.periwinkleGraySubtitle,
+                      color: colors.textSecondary,
                     ),
                   ),
                 ],

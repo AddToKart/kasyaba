@@ -1,24 +1,26 @@
 import 'package:flutter/material.dart';
 
+import '../../app/theme/kasyaba_color_scheme.dart';
 import '../../app/theme/kasyaba_tokens.dart';
 
-/// Single bottom-sheet chrome: r32 top corners, handle, navy surface.
+/// Single bottom-sheet chrome: r32 top corners, handle, themed surface.
 class AppSheet extends StatelessWidget {
   final Widget child;
-  final Color color;
+  final Color? color;
   final bool showHandle;
   final EdgeInsetsGeometry padding;
 
   const AppSheet({
     super.key,
     required this.child,
-    this.color = KasyabaTokens.bigStone,
+    this.color,
     this.showHandle = true,
     this.padding = EdgeInsets.zero,
   });
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.kColors;
     final topPadding = MediaQuery.paddingOf(context).top;
     final screenHeight = MediaQuery.sizeOf(context).height;
     final maxAllowedHeight = screenHeight - topPadding - 32;
@@ -28,12 +30,12 @@ class AppSheet extends StatelessWidget {
       child: Container(
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          color: color,
+          color: color ?? colors.card,
           borderRadius: const BorderRadius.vertical(
             top: Radius.circular(KasyabaTokens.radiusSheetTop),
           ),
-          border: const Border(
-            top: BorderSide(color: KasyabaTokens.poloBlue30),
+          border: Border(
+            top: BorderSide(color: colors.cardBorderStrong),
           ),
         ),
         child: SafeArea(
@@ -50,7 +52,7 @@ class AppSheet extends StatelessWidget {
                       width: 44,
                       height: 5,
                       decoration: BoxDecoration(
-                        color: KasyabaTokens.poloBlue40,
+                        color: colors.icon.withValues(alpha: 0.4),
                         borderRadius: BorderRadius.circular(3),
                       ),
                     ),
@@ -77,7 +79,7 @@ Future<T?> showKasyabaSheet<T>({
   required BuildContext context,
   required WidgetBuilder builder,
   bool isScrollControlled = true,
-  Color barrierColor = const Color(0xB8000000),
+  Color? barrierColor,
 }) {
   final topPadding = MediaQuery.paddingOf(context).top;
   final screenHeight = MediaQuery.sizeOf(context).height;
@@ -87,7 +89,7 @@ Future<T?> showKasyabaSheet<T>({
     useRootNavigator: true,
     backgroundColor: Colors.transparent,
     isScrollControlled: isScrollControlled,
-    barrierColor: barrierColor,
+    barrierColor: barrierColor ?? context.kColors.scrim,
     constraints: BoxConstraints(maxHeight: screenHeight - topPadding - 32),
     builder: builder,
   );

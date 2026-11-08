@@ -1,6 +1,13 @@
 # KASYABA — Light Theme Enablement + Money-Input Tappability Fix Plan
 
-> **Date:** 2026-11-06 · **Status:** PLAN ONLY — no code written/edited (owner request).
+> **Date:** 2026-11-06 · **Status:** EXECUTED (both workstreams complete) · **Branch:** `redesign/figma-ui`.
+>
+> **Execution record:**
+> - **Workstream 1 (P0 hotfix):** shipped as commit `07a2d83` — `ConstrainedBox(minWidth: 96)` inside the four `IntrinsicWidth` money heroes (goal target, goal deposit, transaction hero, bill amount) + `test/widget/money_input_fields_test.dart` asserting render-box width, tap-focus and typing. Gates at that point: analyze clean, 275/275 tests, debug build.
+> - **Workstream 2 (light theme):** tokens (`KasyabaColorScheme` dark/light + `KasyabaThemeExt` + `context.kColors`), porcelain `ThemeData.light`, restored `ThemeMode` persistence with a hydration-race guard, Settings Appearance selector (Dark default / Light / System), all shared widgets + system surfaces + all 22 routed screens converted, brightness-aware date pickers, SVG `ColorFilter` handling, light/dark parity tests (44), usage gate (raw-color/token ban), contrast AA tests (danger darkened to `#B03A32`; success `#1F7A54`, warning `#8A5A16`), theme persistence + race tests. **Final gates: analyze clean, 370/370 tests, debug build green.**
+> - **Known deliberate dark micro-deltas** (documented in `kasyaba-app/docs/theme/light-mode-tokens.md`): dashboard subtitle `cello→cardHero`, planned-transactions `zircon→textPrimary` label, dock/activity SVGs re-tinted via `icon` instead of baked periwinkle, auth legacy placeholder grey. All other dark values byte-identical.
+> - **Remaining owner work:** physical-device light/dark screenshots + visual sign-off; optional extension of the usage gate to `Color.fromARGB/fromRGBO`; destructive contrast already resolved (AA-locked).
+
 > **Two workstreams:** (1) **P0 shippability blocker** — money/amount fields render zero-width and untappable on 4 forms; (2) **Light theme** — make `ThemeMode.light`/`system` a first-class, production-grade theme after the post-redesign dark freeze (D2).
 > **Launch order:** Workstream 1 first (hotfix, blocks real usage today — cannot add a goal/deposit/expense/bill by keyboard). Workstream 2 second (theme waves), both before Play Store submit.
 > **Branch:** continue on `redesign/figma-ui` (baseline branch for all executed waves), merge to `main` when green.

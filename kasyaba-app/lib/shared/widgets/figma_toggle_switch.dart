@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../features/dashboard/widgets/dashboard_tokens.dart';
+
+import '../../app/theme/kasyaba_color_scheme.dart';
 
 /// ─────────────────────────────────────────────────────────────
 ///  Figma 1:1 Luxury Pill Toggle Switch (Width: 52, Height: 32)
@@ -17,6 +18,7 @@ class FigmaToggleSwitch extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.kColors;
     return GestureDetector(
       onTap: () {
         HapticFeedback.lightImpact();
@@ -31,8 +33,8 @@ class FigmaToggleSwitch extends StatelessWidget {
         padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
           color: value
-              ? DashboardTokens.periwinkleGray
-              : DashboardTokens.poloBlue25,
+              ? colors.primaryButton
+              : colors.icon.withValues(alpha: 0.25),
           borderRadius: BorderRadius.circular(16),
         ),
         child: AnimatedAlign(
@@ -43,13 +45,11 @@ class FigmaToggleSwitch extends StatelessWidget {
             width: 24,
             height: 24,
             decoration: BoxDecoration(
-              color: value
-                  ? DashboardTokens.ebony
-                  : DashboardTokens.periwinkleGraySubtitle,
+              color: value ? colors.onPrimaryButton : colors.textSecondary,
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.18),
+                  color: colors.shadow.withValues(alpha: 0.18),
                   blurRadius: 3,
                   offset: const Offset(0, 1),
                 ),
@@ -61,4 +61,3 @@ class FigmaToggleSwitch extends StatelessWidget {
     );
   }
 }
-

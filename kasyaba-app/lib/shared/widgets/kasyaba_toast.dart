@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../app/theme/app_motion.dart';
-import '../../features/dashboard/widgets/dashboard_tokens.dart';
+import '../../app/theme/kasyaba_color_scheme.dart';
 
 /// ─────────────────────────────────────────────────────────────
 ///  Kasyaba Toast / Alert Card
@@ -27,7 +27,7 @@ class KasyabaToast {
       message: message,
       subtitle: subtitle,
       icon: Icons.check_circle_rounded,
-      accentColor: DashboardTokens.bermuda,
+      accentColor: context.kColors.success,
       bottomMargin: bottomMargin,
       duration: duration,
     );
@@ -47,7 +47,7 @@ class KasyabaToast {
       message: message,
       subtitle: subtitle,
       icon: Icons.error_outline_rounded,
-      accentColor: DashboardTokens.apricot,
+      accentColor: context.kColors.danger,
       bottomMargin: bottomMargin,
       duration: duration,
     );
@@ -69,7 +69,7 @@ class KasyabaToast {
       message: message,
       subtitle: subtitle,
       icon: icon,
-      accentColor: accentColor ?? DashboardTokens.poloBlue,
+      accentColor: accentColor ?? context.kColors.icon,
       bottomMargin: bottomMargin,
       duration: duration,
     );
@@ -86,6 +86,7 @@ class KasyabaToast {
   }) {
     final messenger = ScaffoldMessenger.maybeOf(context);
     if (messenger == null) return;
+    final colors = context.kColors;
 
     messenger.removeCurrentSnackBar();
     messenger.showSnackBar(
@@ -99,15 +100,15 @@ class KasyabaToast {
         content: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: DashboardTokens.bigStone,
+            color: colors.card,
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
-              color: DashboardTokens.poloBlue22,
+              color: colors.cardBorder,
               width: 1,
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.55),
+                color: colors.shadow.withValues(alpha: 0.55),
                 blurRadius: 24,
                 offset: const Offset(0, 10),
               ),
@@ -144,7 +145,7 @@ class KasyabaToast {
                       style: GoogleFonts.dmSans(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
-                        color: DashboardTokens.periwinkleGray,
+                        color: colors.textPrimary,
                       ),
                     ),
                     if (subtitle != null && subtitle.trim().isNotEmpty) ...[
@@ -153,7 +154,7 @@ class KasyabaToast {
                         subtitle,
                         style: GoogleFonts.dmSans(
                           fontSize: 12,
-                          color: DashboardTokens.periwinkleGraySubtitle,
+                          color: colors.textSecondary,
                         ),
                       ),
                     ],

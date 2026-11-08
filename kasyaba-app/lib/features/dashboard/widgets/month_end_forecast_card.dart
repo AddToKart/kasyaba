@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import '../../../app/theme/kasyaba_color_scheme.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
-import 'dashboard_tokens.dart';
 
 class MonthEndForecastCard extends ConsumerWidget {
   final DashboardData data;
@@ -15,6 +15,7 @@ class MonthEndForecastCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colors = context.kColors;
     final now = DateTime.now();
     final monthEnd = DateTime(now.year, now.month + 1, 0);
     final monthEndStr = DateFormat('MMM d').format(monthEnd);
@@ -47,12 +48,8 @@ class MonthEndForecastCard extends ConsumerWidget {
       badgeText = isPositive ? 'Projected positive' : 'Tight month';
     }
 
-    final badgeTextColor = isPositive
-        ? DashboardTokens.bermuda
-        : DashboardTokens.apricot;
-    final badgeBgColor = isPositive
-        ? DashboardTokens.bermuda15
-        : DashboardTokens.apricot.withValues(alpha: 0.15);
+    final badgeTextColor = isPositive ? colors.success : colors.danger;
+    final badgeBgColor = isPositive ? colors.successTint : colors.dangerTint;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -63,7 +60,7 @@ class MonthEndForecastCard extends ConsumerWidget {
           style: GoogleFonts.bricolageGrotesque(
             fontSize: 19,
             fontWeight: FontWeight.bold,
-            color: DashboardTokens.periwinkleGray,
+            color: colors.textPrimary,
           ),
         ),
         const SizedBox(height: 10),
@@ -75,9 +72,9 @@ class MonthEndForecastCard extends ConsumerWidget {
           child: Container(
             padding: const EdgeInsets.all(19),
             decoration: BoxDecoration(
-              color: DashboardTokens.bigStone,
+              color: colors.card,
               borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: DashboardTokens.poloBlue22, width: 1.0),
+              border: Border.all(color: colors.cardBorder, width: 1.0),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -99,7 +96,7 @@ class MonthEndForecastCard extends ConsumerWidget {
                               style: GoogleFonts.bricolageGrotesque(
                                 fontSize: 30,
                                 fontWeight: FontWeight.bold,
-                                color: DashboardTokens.periwinkleGray,
+                                color: colors.textPrimary,
                                 fontFeatures: const [
                                   FontFeature.tabularFigures(),
                                 ],
@@ -112,7 +109,7 @@ class MonthEndForecastCard extends ConsumerWidget {
                             style: GoogleFonts.dmSans(
                               fontSize: 14,
                               fontWeight: FontWeight.normal,
-                              color: DashboardTokens.periwinkleGraySubtitle,
+                              color: colors.textSecondary,
                             ),
                           ),
                         ],
@@ -160,7 +157,7 @@ class MonthEndForecastCard extends ConsumerWidget {
                       style: GoogleFonts.dmSans(
                         fontSize: 12,
                         fontWeight: FontWeight.normal,
-                        color: DashboardTokens.periwinkleGraySubtitle,
+                        color: colors.textSecondary,
                       ),
                     ),
                     Text(
@@ -168,7 +165,7 @@ class MonthEndForecastCard extends ConsumerWidget {
                       style: GoogleFonts.dmSans(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: DashboardTokens.periwinkleGray,
+                        color: colors.textPrimary,
                       ),
                     ),
                     Text(
@@ -176,7 +173,7 @@ class MonthEndForecastCard extends ConsumerWidget {
                       style: GoogleFonts.dmSans(
                         fontSize: 12,
                         fontWeight: FontWeight.normal,
-                        color: DashboardTokens.periwinkleGraySubtitle,
+                        color: colors.textSecondary,
                       ),
                     ),
                   ],
@@ -194,7 +191,7 @@ class MonthEndForecastCard extends ConsumerWidget {
                           width: 16,
                           height: 3,
                           decoration: BoxDecoration(
-                            color: DashboardTokens.periwinkleGray,
+                            color: colors.textPrimary,
                             borderRadius: BorderRadius.circular(2),
                           ),
                         ),
@@ -204,7 +201,7 @@ class MonthEndForecastCard extends ConsumerWidget {
                           style: GoogleFonts.dmSans(
                             fontSize: 13,
                             fontWeight: FontWeight.normal,
-                            color: DashboardTokens.periwinkleGraySubtitle,
+                            color: colors.textSecondary,
                           ),
                         ),
                       ],
@@ -217,9 +214,7 @@ class MonthEndForecastCard extends ConsumerWidget {
                       children: [
                         CustomPaint(
                           size: const Size(16, 3),
-                          painter: _DashedLinePainter(
-                            color: DashboardTokens.poloBlue,
-                          ),
+                          painter: _DashedLinePainter(color: colors.icon),
                         ),
                         const SizedBox(width: 6),
                         Text(
@@ -227,7 +222,7 @@ class MonthEndForecastCard extends ConsumerWidget {
                           style: GoogleFonts.dmSans(
                             fontSize: 13,
                             fontWeight: FontWeight.normal,
-                            color: DashboardTokens.periwinkleGraySubtitle,
+                            color: colors.textSecondary,
                           ),
                         ),
                       ],
@@ -241,8 +236,8 @@ class MonthEndForecastCard extends ConsumerWidget {
                         Container(
                           width: 6,
                           height: 6,
-                          decoration: const BoxDecoration(
-                            color: DashboardTokens.apricot,
+                          decoration: BoxDecoration(
+                            color: colors.danger,
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -252,7 +247,7 @@ class MonthEndForecastCard extends ConsumerWidget {
                           style: GoogleFonts.dmSans(
                             fontSize: 13,
                             fontWeight: FontWeight.normal,
-                            color: DashboardTokens.periwinkleGraySubtitle,
+                            color: colors.textSecondary,
                           ),
                         ),
                       ],
@@ -277,14 +272,15 @@ class _ForecastChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.kColors;
     if (points.isEmpty) {
       return Container(
         alignment: Alignment.center,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
-          color: DashboardTokens.ebony.withValues(alpha: 0.35),
+          color: colors.canvas.withValues(alpha: 0.35),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: DashboardTokens.poloBlue16),
+          border: Border.all(color: colors.divider),
         ),
         child: Text(
           'Forecast chart will appear once daily balances are available.',
@@ -292,7 +288,7 @@ class _ForecastChart extends StatelessWidget {
           style: GoogleFonts.dmSans(
             fontSize: 12,
             height: 1.4,
-            color: DashboardTokens.periwinkleGraySubtitle,
+            color: colors.textSecondary,
           ),
         ),
       );
@@ -343,7 +339,7 @@ class _ForecastChart extends StatelessWidget {
           drawVerticalLine: false,
           horizontalInterval: yInterval,
           getDrawingHorizontalLine: (value) =>
-              const FlLine(color: DashboardTokens.poloBlue16, strokeWidth: 1),
+              FlLine(color: colors.divider, strokeWidth: 1),
         ),
         borderData: FlBorderData(show: false),
         titlesData: FlTitlesData(
@@ -363,7 +359,7 @@ class _ForecastChart extends StatelessWidget {
                 CurrencyFormatter.formatCompact(value),
                 style: GoogleFonts.dmSans(
                   fontSize: 9.5,
-                  color: DashboardTokens.baliHai,
+                  color: colors.textMuted,
                 ),
               ),
             ),
@@ -386,7 +382,7 @@ class _ForecastChart extends StatelessWidget {
                     DateFormat('MMM d').format(date),
                     style: GoogleFonts.dmSans(
                       fontSize: 9.5,
-                      color: DashboardTokens.periwinkleGraySubtitle,
+                      color: colors.textSecondary,
                     ),
                   ),
                 );
@@ -400,7 +396,7 @@ class _ForecastChart extends StatelessWidget {
             spots: actualSpots,
             isCurved: true,
             curveSmoothness: 0.25,
-            color: DashboardTokens.periwinkleGray,
+            color: colors.textPrimary,
             barWidth: 2.4,
             isStrokeCapRound: true,
             dotData: FlDotData(show: sorted.length == 1),
@@ -410,7 +406,7 @@ class _ForecastChart extends StatelessWidget {
             spots: projectedSpots,
             isCurved: true,
             curveSmoothness: 0.25,
-            color: DashboardTokens.poloBlue40,
+            color: colors.icon.withValues(alpha: 0.4),
             barWidth: 2.0,
             isStrokeCapRound: true,
             dashArray: const [6, 4],

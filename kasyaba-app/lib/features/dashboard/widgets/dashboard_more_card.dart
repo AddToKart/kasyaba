@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import '../../../app/theme/kasyaba_color_scheme.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
-import 'dashboard_tokens.dart';
 
 class DashboardMoreCard extends StatelessWidget {
   final AsyncValue<List<SavingsGoal>> goals;
@@ -76,6 +76,7 @@ class DashboardMoreCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.kColors;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -85,7 +86,7 @@ class DashboardMoreCard extends StatelessWidget {
           style: GoogleFonts.bricolageGrotesque(
             fontSize: 19,
             fontWeight: FontWeight.bold,
-            color: DashboardTokens.periwinkleGray,
+            color: colors.textPrimary,
           ),
         ),
         const SizedBox(height: 10),
@@ -94,9 +95,9 @@ class DashboardMoreCard extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 19, vertical: 3),
           decoration: BoxDecoration(
-            color: DashboardTokens.bigStone,
+            color: colors.card,
             borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: DashboardTokens.poloBlue22, width: 1.0),
+            border: Border.all(color: colors.cardBorder, width: 1.0),
           ),
           child: Column(
             children: [
@@ -111,7 +112,7 @@ class DashboardMoreCard extends StatelessWidget {
               ),
 
               // Divider 1
-              Container(height: 1, color: DashboardTokens.poloBlue16),
+              Container(height: 1, color: colors.divider),
 
               // Row 2: Bills
               _MoreHubRow(
@@ -124,7 +125,7 @@ class DashboardMoreCard extends StatelessWidget {
               ),
 
               // Divider 2
-              Container(height: 1, color: DashboardTokens.poloBlue16),
+              Container(height: 1, color: colors.divider),
 
               // Row 3: Recent Activity
               _MoreHubRow(
@@ -162,6 +163,7 @@ class _MoreHubRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.kColors;
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -179,7 +181,7 @@ class _MoreHubRow extends StatelessWidget {
                     style: GoogleFonts.dmSans(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: DashboardTokens.periwinkleGray,
+                      color: colors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -190,9 +192,7 @@ class _MoreHubRow extends StatelessWidget {
                     style: GoogleFonts.dmSans(
                       fontSize: 14,
                       fontWeight: FontWeight.normal,
-                      color: isError
-                          ? DashboardTokens.apricot
-                          : DashboardTokens.periwinkleGraySubtitle,
+                      color: isError ? colors.danger : colors.textSecondary,
                     ),
                   ),
                 ],
@@ -200,35 +200,34 @@ class _MoreHubRow extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             if (isLoading)
-              const SizedBox(
+              SizedBox(
                 width: 16,
                 height: 16,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: DashboardTokens.periwinkleGraySubtitle,
+                  color: colors.textSecondary,
                 ),
               )
             else if (isError && onRetry != null)
               GestureDetector(
                 onTap: onRetry,
                 behavior: HitTestBehavior.opaque,
-                child: const Padding(
-                  padding: EdgeInsets.all(2),
+                child: Padding(
+                  padding: const EdgeInsets.all(2),
                   child: Icon(
                     Icons.refresh_rounded,
                     size: 20,
-                    color: DashboardTokens.apricot,
+                    color: colors.danger,
                   ),
                 ),
               )
             else
-              SvgPicture.asset(
-                'assets/images/dashboard_chevron_right.svg',
-                width: 20,
-                height: 20,
-                colorFilter: const ColorFilter.mode(
-                  DashboardTokens.poloBlue,
-                  BlendMode.srcIn,
+              ColorFiltered(
+                colorFilter: ColorFilter.mode(colors.icon, BlendMode.srcIn),
+                child: SvgPicture.asset(
+                  'assets/images/dashboard_chevron_right.svg',
+                  width: 20,
+                  height: 20,
                 ),
               ),
           ],

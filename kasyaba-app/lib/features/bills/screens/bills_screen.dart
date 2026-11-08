@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_motion.dart';
+import '../../../app/theme/kasyaba_color_scheme.dart';
 import '../../../shared/widgets/motion_components.dart';
 import '../../../core/connectivity/connectivity_service.dart';
 import '../../../core/database/cache_service.dart';
@@ -167,6 +168,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
   }
 
   void _showBillActionSheet(BillItem bill) {
+    final colors = context.kColors;
     AppHaptics.selectionClick();
     final today = _dateOnly(DateTime.now());
     final displayStatus = resolveBillDisplayStatus(bill, today);
@@ -188,7 +190,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
         return StatefulBuilder(
           builder: (ctx, setSheetState) {
             return AppSheet(
-              color: DashboardTokens.bigStone,
+              color: colors.card,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
                 child: Column(
@@ -207,7 +209,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                                 style: GoogleFonts.bricolageGrotesque(
                                   fontSize: 22,
                                   fontWeight: FontWeight.bold,
-                                  color: DashboardTokens.periwinkleGray,
+                                  color: colors.textPrimary,
                                 ),
                               ),
                               const SizedBox(height: 2),
@@ -215,7 +217,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                                 '${DateFormat('EEE, MMM d, yyyy').format(bill.dueDate)} · ${billDisplayStatusLabel(displayStatus).toUpperCase()}',
                                 style: GoogleFonts.dmSans(
                                   fontSize: 13,
-                                  color: DashboardTokens.periwinkleGraySubtitle,
+                                  color: colors.textSecondary,
                                 ),
                               ),
                             ],
@@ -227,10 +229,10 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
                             color: isPaid
-                                ? DashboardTokens.bermuda
+                                ? colors.success
                                 : (isCancelled
-                                      ? DashboardTokens.periwinkleGraySubtitle
-                                      : DashboardTokens.periwinkleGray),
+                                      ? colors.textSecondary
+                                      : colors.textPrimary),
                           ),
                         ),
                       ],
@@ -253,19 +255,19 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                           vertical: 14,
                         ),
                         decoration: BoxDecoration(
-                          color: DashboardTokens.ebony.withValues(alpha: 0.5),
+                          color: colors.canvas.withValues(alpha: 0.5),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: DashboardTokens.poloBlue22,
+                            color: colors.cardBorder,
                             width: 1,
                           ),
                         ),
                         child: Row(
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.info_outline_rounded,
                               size: 18,
-                              color: DashboardTokens.periwinkleGraySubtitle,
+                              color: colors.textSecondary,
                             ),
                             const SizedBox(width: 10),
                             Expanded(
@@ -273,7 +275,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                                 'This bill was cancelled and no longer counts toward your safe-to-spend.',
                                 style: GoogleFonts.dmSans(
                                   fontSize: 13,
-                                  color: DashboardTokens.periwinkleGraySubtitle,
+                                  color: colors.textSecondary,
                                 ),
                               ),
                             ),
@@ -288,7 +290,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 1.0,
-                            color: DashboardTokens.periwinkleGraySubtitle,
+                            color: colors.textSecondary,
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -298,21 +300,21 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: DashboardTokens.ebony.withValues(alpha: 0.5),
+                            color: colors.canvas.withValues(alpha: 0.5),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: DashboardTokens.poloBlue22,
+                              color: colors.cardBorder,
                               width: 1,
                             ),
                           ),
                           child: DropdownButtonHideUnderline(
                             child: DropdownButton<String>(
                               value: selectedAccount,
-                              dropdownColor: DashboardTokens.bigStone,
+                              dropdownColor: colors.card,
                               isExpanded: true,
-                              icon: const Icon(
+                              icon: Icon(
                                 Icons.keyboard_arrow_down_rounded,
-                                color: DashboardTokens.periwinkleGray,
+                                color: colors.textPrimary,
                               ),
                               items: accounts.map((acc) {
                                 return DropdownMenuItem(
@@ -321,7 +323,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                                     acc.name,
                                     style: GoogleFonts.dmSans(
                                       fontWeight: FontWeight.bold,
-                                      color: DashboardTokens.periwinkleGray,
+                                      color: colors.textPrimary,
                                     ),
                                   ),
                                 );
@@ -338,10 +340,10 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                             vertical: 12,
                           ),
                           decoration: BoxDecoration(
-                            color: DashboardTokens.ebony,
+                            color: colors.canvas,
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: DashboardTokens.apricot.withValues(
+                              color: colors.danger.withValues(
                                 alpha: 0.4,
                               ),
                             ),
@@ -351,7 +353,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                               Icon(
                                 Icons.info_outline_rounded,
                                 size: 18,
-                                color: DashboardTokens.apricot,
+                                color: colors.danger,
                               ),
                               const SizedBox(width: 10),
                               Expanded(
@@ -359,7 +361,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                                   'Add a wallet first to record bill payments.',
                                   style: GoogleFonts.dmSans(
                                     fontSize: 13,
-                                    color: DashboardTokens.apricot,
+                                    color: colors.danger,
                                   ),
                                 ),
                               ),
@@ -415,17 +417,17 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                         child: Container(
                           height: 52,
                           decoration: BoxDecoration(
-                            color: DashboardTokens.periwinkleGray,
+                            color: colors.primaryButton,
                             borderRadius: BorderRadius.circular(26),
                           ),
                           alignment: Alignment.center,
                           child: isSubmitting
-                              ? const SizedBox(
+                              ? SizedBox(
                                   width: 20,
                                   height: 20,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    color: DashboardTokens.ebony,
+                                    color: colors.onPrimaryButton,
                                   ),
                                 )
                               : Text(
@@ -433,7 +435,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                                   style: GoogleFonts.dmSans(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
-                                    color: DashboardTokens.ebony,
+                                    color: colors.onPrimaryButton,
                                   ),
                                 ),
                         ),
@@ -478,19 +480,19 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                           height: 52,
                           decoration: BoxDecoration(
                             border: Border.all(
-                              color: DashboardTokens.poloBlue30,
+                              color: colors.cardBorderStrong,
                               width: 1,
                             ),
                             borderRadius: BorderRadius.circular(26),
                           ),
                           alignment: Alignment.center,
                           child: isSubmitting
-                              ? const SizedBox(
+                              ? SizedBox(
                                   width: 20,
                                   height: 20,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    color: DashboardTokens.periwinkleGray,
+                                    color: colors.textPrimary,
                                   ),
                                 )
                               : Text(
@@ -498,7 +500,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                                   style: GoogleFonts.dmSans(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
-                                    color: DashboardTokens.periwinkleGray,
+                                    color: colors.textPrimary,
                                   ),
                                 ),
                         ),
@@ -517,6 +519,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.kColors;
     final topPadding = MediaQuery.paddingOf(context).top;
     final billsAsync = ref.watch(billsProvider);
     final isOnline = ref.watch(isOnlineProvider);
@@ -577,17 +580,17 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
         ),
       ),
       child: Scaffold(
-        backgroundColor: DashboardTokens.ebony,
+        backgroundColor: colors.canvas,
         body: Container(
           width: double.infinity,
           height: double.infinity,
-          decoration: const BoxDecoration(
-            color: DashboardTokens.ebony,
-            gradient: DashboardTokens.canvasGradient,
+          decoration: BoxDecoration(
+            color: colors.canvas,
+            gradient: colors.backgroundGradient,
           ),
           child: RefreshIndicator(
-            color: DashboardTokens.periwinkleGray,
-            backgroundColor: DashboardTokens.bigStone,
+            color: colors.textPrimary,
+            backgroundColor: colors.card,
             edgeOffset: topPadding,
             onRefresh: _refreshAll,
             child: SingleChildScrollView(
@@ -614,17 +617,17 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                               width: 50,
                               height: 50,
                               decoration: BoxDecoration(
-                                color: DashboardTokens.bigStone,
+                                color: colors.card,
                                 borderRadius: BorderRadius.circular(24),
                                 border: Border.all(
-                                  color: DashboardTokens.poloBlue22,
+                                  color: colors.cardBorder,
                                   width: 1,
                                 ),
                               ),
                               alignment: Alignment.center,
-                              child: const Icon(
+                              child: Icon(
                                 Icons.arrow_back_rounded,
-                                color: DashboardTokens.periwinkleGray,
+                                color: colors.textPrimary,
                                 size: 22,
                               ),
                             ),
@@ -636,7 +639,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                               style: GoogleFonts.bricolageGrotesque(
                                 fontSize: 26,
                                 fontWeight: FontWeight.bold,
-                                color: DashboardTokens.periwinkleGray,
+                                color: colors.textPrimary,
                               ),
                             ),
                           ),
@@ -650,13 +653,13 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                               width: 48,
                               height: 48,
                               decoration: BoxDecoration(
-                                color: DashboardTokens.periwinkleGray,
+                                color: colors.primaryButton,
                                 borderRadius: BorderRadius.circular(24),
                               ),
                               alignment: Alignment.center,
-                              child: const Icon(
+                              child: Icon(
                                 Icons.add_rounded,
-                                color: DashboardTokens.ebony,
+                                color: colors.onPrimaryButton,
                                 size: 24,
                               ),
                             ),
@@ -677,7 +680,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                               style: GoogleFonts.bricolageGrotesque(
                                 fontSize: 19,
                                 fontWeight: FontWeight.bold,
-                                color: DashboardTokens.periwinkleGray,
+                                color: colors.textPrimary,
                               ),
                             ),
                           ),
@@ -692,7 +695,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                               style: GoogleFonts.dmSans(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
-                                color: DashboardTokens.periwinkleGraySubtitle,
+                                color: colors.textSecondary,
                               ),
                             ),
                           ),
@@ -761,7 +764,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                                   ),
                                   decoration: BoxDecoration(
                                     color: isSelected
-                                        ? DashboardTokens.periwinkleGray
+                                        ? colors.primaryButton
                                         : Colors.transparent,
                                     borderRadius: BorderRadius.circular(24),
                                   ),
@@ -774,9 +777,8 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                                           fontSize: 12,
                                           fontWeight: FontWeight.bold,
                                           color: isSelected
-                                              ? DashboardTokens.ebony
-                                              : DashboardTokens
-                                                    .periwinkleGraySubtitle,
+                                              ? colors.onPrimaryButton
+                                              : colors.textSecondary,
                                         ),
                                       ),
                                       const SizedBox(height: 2),
@@ -786,8 +788,8 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                                           fontSize: 15,
                                           fontWeight: FontWeight.bold,
                                           color: isSelected
-                                              ? DashboardTokens.ebony
-                                              : DashboardTokens.periwinkleGray,
+                                              ? colors.onPrimaryButton
+                                              : colors.textPrimary,
                                         ),
                                       ),
                                       const SizedBox(height: 2),
@@ -797,8 +799,8 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                                           height: 4,
                                           decoration: BoxDecoration(
                                             color: isSelected
-                                                ? DashboardTokens.ebony
-                                                : DashboardTokens.apricot,
+                                                ? colors.onPrimaryButton
+                                                : colors.danger,
                                             borderRadius: BorderRadius.circular(
                                               2,
                                             ),
@@ -861,11 +863,11 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                             onRetry: () => ref.invalidate(billsProvider),
                           ),
                       ] else if (billsAsync.isLoading && allBills.isEmpty) ...[
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 40),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 40),
                           child: Center(
                             child: CircularProgressIndicator(
-                              color: DashboardTokens.periwinkleGray,
+                              color: colors.textPrimary,
                               strokeWidth: 2.5,
                             ),
                           ),
@@ -897,7 +899,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                                     style: GoogleFonts.bricolageGrotesque(
                                       fontSize: 19,
                                       fontWeight: FontWeight.bold,
-                                      color: DashboardTokens.periwinkleGray,
+                                      color: colors.textPrimary,
                                     ),
                                   ),
                                 ),
@@ -930,7 +932,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 1.0,
-                          color: DashboardTokens.periwinkleGraySubtitle,
+                          color: colors.textSecondary,
                         ),
                       ),
                       const SizedBox(height: 10),
@@ -952,7 +954,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(22),
                                 border: Border.all(
-                                  color: DashboardTokens.poloBlue.withValues(
+                                  color: colors.icon.withValues(
                                     alpha: 0.4,
                                   ),
                                   width: 1,
@@ -963,7 +965,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                                 style: GoogleFonts.dmSans(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
-                                  color: DashboardTokens.periwinkleGray,
+                                  color: colors.textPrimary,
                                 ),
                               ),
                             ),
@@ -984,6 +986,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
 
   // ── Month Calendar Card (Node 106:1278) ───────────────────────────────────
   Widget _buildMonthCalendar(List<BillItem> allBills) {
+    final colors = context.kColors;
     final year = _currentMonth.year;
     final month = _currentMonth.month;
     final firstDayOfMonth = DateTime(year, month, 1);
@@ -996,9 +999,9 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 15),
       decoration: BoxDecoration(
-        color: DashboardTokens.bigStone,
+        color: colors.card,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: DashboardTokens.poloBlue22, width: 1),
+        border: Border.all(color: colors.cardBorder, width: 1),
       ),
       child: Column(
         children: [
@@ -1012,7 +1015,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                     style: GoogleFonts.dmSans(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: DashboardTokens.periwinkleGraySubtitle,
+                      color: colors.textSecondary,
                     ),
                   ),
                 ),
@@ -1058,7 +1061,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                         height: 44,
                         decoration: BoxDecoration(
                           color: isSelected
-                              ? DashboardTokens.periwinkleGray
+                              ? colors.primaryButton
                               : Colors.transparent,
                           borderRadius: BorderRadius.circular(22),
                         ),
@@ -1071,8 +1074,8 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                                 fontSize: 15,
                                 fontWeight: FontWeight.bold,
                                 color: isSelected
-                                    ? DashboardTokens.ebony
-                                    : DashboardTokens.periwinkleGray,
+                                    ? colors.onPrimaryButton
+                                    : colors.textPrimary,
                               ),
                             ),
                             if (hasBill)
@@ -1082,8 +1085,8 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                                 margin: const EdgeInsets.only(top: 2),
                                 decoration: BoxDecoration(
                                   color: isSelected
-                                      ? DashboardTokens.ebony
-                                      : DashboardTokens.apricot,
+                                      ? colors.onPrimaryButton
+                                      : colors.danger,
                                   borderRadius: BorderRadius.circular(2),
                                 ),
                               )
@@ -1105,6 +1108,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
 
   // ── Bill Card (Node 11:1678) ──────────────────────────────────────────────
   Widget _buildBillCard(BillItem bill, DateTime today) {
+    final colors = context.kColors;
     final bDate = _dateOnly(bill.dueDate);
     final daysUntil = bDate.difference(_dateOnly(today)).inDays;
     final displayStatus = resolveBillDisplayStatus(bill, today);
@@ -1117,19 +1121,19 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
     switch (displayStatus) {
       case BillDisplayStatus.paid:
         statusText = 'Paid';
-        statusColor = DashboardTokens.bermuda;
+        statusColor = colors.success;
       case BillDisplayStatus.cancelled:
         statusText = 'Cancelled';
-        statusColor = DashboardTokens.periwinkleGraySubtitle;
+        statusColor = colors.textSecondary;
       case BillDisplayStatus.overdue:
         statusText = 'overdue by ${-daysUntil} days';
-        statusColor = DashboardTokens.apricot;
+        statusColor = colors.danger;
       case BillDisplayStatus.dueToday:
         statusText = 'due today';
-        statusColor = DashboardTokens.apricot;
+        statusColor = colors.danger;
       case BillDisplayStatus.upcoming:
         statusText = 'due in $daysUntil days';
-        statusColor = DashboardTokens.periwinkleGraySubtitle;
+        statusColor = colors.textSecondary;
     }
 
     final subtitle = recurrenceLabel == null
@@ -1142,9 +1146,9 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
       child: Container(
         padding: const EdgeInsets.all(17),
         decoration: BoxDecoration(
-          color: DashboardTokens.bigStone,
+          color: colors.card,
           borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: DashboardTokens.poloBlue22, width: 1),
+          border: Border.all(color: colors.cardBorder, width: 1),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1158,7 +1162,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                     style: GoogleFonts.dmSans(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: DashboardTokens.periwinkleGray,
+                      color: colors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 3),
@@ -1175,8 +1179,8 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: isPaid
-                    ? DashboardTokens.bermuda
-                    : DashboardTokens.periwinkleGray,
+                    ? colors.success
+                    : colors.textPrimary,
               ),
             ),
           ],
@@ -1187,6 +1191,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
 
   // ── Empty State Card (Node 106:691 / 106:819) ─────────────────────────────
   Widget _buildEmptyStateCard() {
+    final colors = context.kColors;
     final emptyTitle = _activeFilter == 'Paid'
         ? 'No paid bills this month'
         : (_activeFilter == 'Overdue'
@@ -1202,9 +1207,9 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 19, vertical: 24),
       decoration: BoxDecoration(
-        color: DashboardTokens.bigStone,
+        color: colors.card,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: DashboardTokens.poloBlue22, width: 1),
+        border: Border.all(color: colors.cardBorder, width: 1),
       ),
       child: Column(
         children: [
@@ -1213,13 +1218,13 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
             height: 58,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: DashboardTokens.kashmirBlue, width: 1),
+              border: Border.all(color: colors.secondaryBorder, width: 1),
             ),
             alignment: Alignment.center,
-            child: const Icon(
+            child: Icon(
               Icons.receipt_long_rounded,
               size: 26,
-              color: DashboardTokens.periwinkleGray,
+              color: colors.textPrimary,
             ),
           ),
           const SizedBox(height: 12),
@@ -1228,7 +1233,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
             style: GoogleFonts.dmSans(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: DashboardTokens.periwinkleGray,
+              color: colors.textPrimary,
             ),
           ),
           const SizedBox(height: 4),
@@ -1237,7 +1242,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
             textAlign: TextAlign.center,
             style: GoogleFonts.dmSans(
               fontSize: 14,
-              color: DashboardTokens.periwinkleGraySubtitle,
+              color: colors.textSecondary,
             ),
           ),
           const SizedBox(height: 16),
@@ -1250,7 +1255,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
             child: Container(
               height: 56,
               decoration: BoxDecoration(
-                color: DashboardTokens.periwinkleGray,
+                color: colors.primaryButton,
                 borderRadius: BorderRadius.circular(28),
               ),
               alignment: Alignment.center,
@@ -1259,7 +1264,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                 style: GoogleFonts.dmSans(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: DashboardTokens.ebony,
+                  color: colors.onPrimaryButton,
                 ),
               ),
             ),

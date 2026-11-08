@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../app/theme/kasyaba_color_scheme.dart';
 import '../../app/theme/kasyaba_tokens.dart';
 import 'pill_button.dart';
 
@@ -21,6 +22,7 @@ class KasyabaEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.kColors;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -31,14 +33,14 @@ class KasyabaEmptyState extends StatelessWidget {
               width: 64,
               height: 64,
               decoration: BoxDecoration(
-                color: KasyabaTokens.bigStone,
+                color: colors.card,
                 shape: BoxShape.circle,
-                border: Border.all(color: KasyabaTokens.poloBlue22),
+                border: Border.all(color: colors.cardBorder),
               ),
               child: Icon(
                 icon,
                 size: 30,
-                color: KasyabaTokens.periwinkleGraySubtitle,
+                color: colors.textSecondary,
               ),
             ),
             const SizedBox(height: 16),
@@ -48,7 +50,7 @@ class KasyabaEmptyState extends StatelessWidget {
               style: GoogleFonts.dmSans(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: KasyabaTokens.periwinkleGray,
+                color: colors.textPrimary,
               ),
             ),
             if (message != null) ...[
@@ -59,7 +61,7 @@ class KasyabaEmptyState extends StatelessWidget {
                 style: GoogleFonts.dmSans(
                   fontSize: 13,
                   height: 1.4,
-                  color: KasyabaTokens.periwinkleGraySubtitle,
+                  color: colors.textSecondary,
                 ),
               ),
             ],
@@ -89,13 +91,14 @@ class KasyabaErrorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.kColors;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: KasyabaTokens.bigStone,
+        color: colors.card,
         borderRadius: BorderRadius.circular(KasyabaTokens.radiusCard),
         border: Border.all(
-          color: KasyabaTokens.apricot.withValues(alpha: 0.35),
+          color: colors.danger.withValues(alpha: 0.35),
         ),
       ),
       child: Column(
@@ -104,10 +107,10 @@ class KasyabaErrorCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(
+              Icon(
                 Icons.error_outline_rounded,
                 size: 22,
-                color: KasyabaTokens.apricot,
+                color: colors.danger,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -116,7 +119,7 @@ class KasyabaErrorCard extends StatelessWidget {
                   style: GoogleFonts.dmSans(
                     fontSize: 13.5,
                     height: 1.4,
-                    color: KasyabaTokens.apricot,
+                    color: colors.danger,
                   ),
                 ),
               ),
@@ -149,12 +152,13 @@ class KasyabaLoadingSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.kColors;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: KasyabaTokens.bigStone.withValues(alpha: 0.5),
+        color: colors.skeletonFill,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: KasyabaTokens.poloBlue22),
+        border: Border.all(color: colors.cardBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -167,7 +171,7 @@ class KasyabaLoadingSkeleton extends StatelessWidget {
                 child: Container(
                   height: i == 0 ? 18 : 12,
                   decoration: BoxDecoration(
-                    color: KasyabaTokens.poloBlue.withValues(
+                    color: colors.icon.withValues(
                       alpha: 0.12 + (i % 3) * 0.04,
                     ),
                     borderRadius: BorderRadius.circular(8),

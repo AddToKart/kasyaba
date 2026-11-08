@@ -359,7 +359,10 @@ class QaHarness {
         ),
       ];
 
-  /// Pumps [screen] inside a dark MaterialApp and verifies a clean layout.
+  /// Pumps [screen] inside a themed MaterialApp and verifies a clean layout.
+  ///
+  /// Defaults to [ThemeMode.dark] so every pre-LT-A widget test keeps its
+  /// existing appearance.
   Future<void> pumpScreen(
     WidgetTester tester,
     Widget screen, {
@@ -371,6 +374,7 @@ class QaHarness {
     Size viewport = const Size(800, 1600),
     bool settle = true,
     TextScaler? textScaler,
+    ThemeMode themeMode = ThemeMode.dark,
   }) async {
     tester.view.physicalSize = viewport;
     tester.view.devicePixelRatio = 1.0;
@@ -384,7 +388,9 @@ class QaHarness {
           ...overrides,
         ],
         child: MaterialApp(
-          theme: AppTheme().dark,
+          theme: AppTheme().light,
+          darkTheme: AppTheme().dark,
+          themeMode: themeMode,
           builder: textScaler == null
               ? null
               : (context, child) => MediaQuery(
@@ -404,6 +410,28 @@ class QaHarness {
       await tester.pump();
     }
   }
+}
+
+/// Convenience alias for pumping a widget under a specific [ThemeMode].
+Future<void> qaPumpWithTheme(
+  WidgetTester tester,
+  Widget widget,
+  ThemeMode mode, {
+  QaHarness? harness,
+  List<Override> overrides = const <Override>[],
+  Size viewport = const Size(800, 1600),
+  bool settle = true,
+  TextScaler? textScaler,
+}) {
+  return (harness ?? QaHarness()).pumpScreen(
+    tester,
+    widget,
+    overrides: overrides,
+    viewport: viewport,
+    settle: settle,
+    textScaler: textScaler,
+    themeMode: mode,
+  );
 }
 
 /// Settles all pending frames and fails the test on any Flutter error

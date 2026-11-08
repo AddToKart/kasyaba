@@ -2,6 +2,7 @@ import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 
+import '../../app/theme/kasyaba_color_scheme.dart';
 import '../../app/theme/kasyaba_tokens.dart';
 
 enum KasyabaCardVariant { standard, hero, flat }
@@ -29,16 +30,17 @@ class KasyabaCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.kColors;
     final isFlat = variant == KasyabaCardVariant.flat;
     final isHero = variant == KasyabaCardVariant.hero;
 
     final Color fill = isFlat
         ? Colors.transparent
-        : (isHero ? KasyabaTokens.cello60 : KasyabaTokens.bigStone);
+        : (isHero ? colors.cardHero : colors.card);
     final Color? effectiveBorder = isFlat
         ? null
         : (borderColor ??
-            (isHero ? KasyabaTokens.poloBlue30 : KasyabaTokens.poloBlue22));
+            (isHero ? colors.cardBorderStrong : colors.cardBorder));
 
     Widget content = Padding(padding: padding, child: child);
     if (onTap != null) {

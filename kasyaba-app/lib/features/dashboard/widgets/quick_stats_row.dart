@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../app/theme/kasyaba_color_scheme.dart';
 import '../../../shared/widgets/motion_components.dart';
 import '../../../core/utils/currency_formatter.dart';
-import 'dashboard_tokens.dart';
 
 class QuickStatsRow extends StatelessWidget {
   final double savings;
@@ -26,21 +26,20 @@ class QuickStatsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.kColors;
     final formattedSaved = CurrencyFormatter.formatCompact(savings);
     final formattedBudget = '${budgetPercent.toStringAsFixed(0)}%';
     final days = runwayDays;
     final formattedBuffer = days == null
         ? '—'
         : (days >= 90 ? '90+ days' : '$days days');
-    final bufferColor = days == null
-        ? DashboardTokens.periwinkleGraySubtitle
-        : DashboardTokens.bermuda;
+    final bufferColor = days == null ? colors.textSecondary : colors.success;
 
     final budgetColor = budgetPercent >= 100
-        ? DashboardTokens.apricot
+        ? colors.danger
         : (budgetPercent >= 80
-              ? DashboardTokens.apricot.withValues(alpha: 0.9)
-              : DashboardTokens.bermuda);
+              ? colors.danger.withValues(alpha: 0.9)
+              : colors.success);
 
     return Row(
       children: [
@@ -49,7 +48,7 @@ class QuickStatsRow extends StatelessWidget {
           child: _QuickStatCard(
             value: formattedSaved,
             label: 'Saved',
-            valueColor: DashboardTokens.periwinkleGray,
+            valueColor: colors.textPrimary,
             onTap: onSavedTap,
           ),
         ),
@@ -95,15 +94,16 @@ class _QuickStatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.kColors;
     return SpringTouch(
       scaleDown: 0.94,
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 15),
         decoration: BoxDecoration(
-          color: DashboardTokens.bigStone,
+          color: colors.card,
           borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: DashboardTokens.poloBlue22, width: 1.0),
+          border: Border.all(color: colors.cardBorder, width: 1.0),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -130,7 +130,7 @@ class _QuickStatCard extends StatelessWidget {
               style: GoogleFonts.dmSans(
                 fontSize: 13,
                 fontWeight: FontWeight.normal,
-                color: DashboardTokens.periwinkleGraySubtitle,
+                color: colors.textSecondary,
               ),
             ),
           ],

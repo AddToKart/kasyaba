@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:reactive_forms/reactive_forms.dart';
 import '../../../app/theme/app_motion.dart';
-import '../../../app/theme/app_theme.dart';
+import '../../../app/theme/kasyaba_color_scheme.dart';
 import '../../../core/auth/auth_provider.dart';
 import '../../settings/screens/privacy_about_screen.dart';
 import '../widgets/auth_widgets.dart';
@@ -27,9 +27,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
       'password': FormControl<String>(
         validators: [Validators.required, Validators.minLength(8)],
       ),
-      'confirmPassword': FormControl<String>(
-        validators: [Validators.required],
-      ),
+      'confirmPassword': FormControl<String>(validators: [Validators.required]),
       'agreeToTerms': FormControl<bool>(
         value: false,
         validators: [Validators.requiredTrue],
@@ -94,7 +92,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
       return;
     }
     try {
-      await ref.read(authProvider.notifier).register(
+      await ref
+          .read(authProvider.notifier)
+          .register(
             formGroup.control('email').value as String,
             formGroup.control('password').value as String,
             displayName: formGroup.control('name').value as String,
@@ -108,9 +108,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
     final authState = ref.watch(authProvider);
     final size = MediaQuery.sizeOf(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = context.kColors;
 
     return Scaffold(
-      backgroundColor: isDark ? AuthFigmaTokens.ebony : AppColors.lightScaffold,
+      backgroundColor: colors.canvas,
       body: Stack(
         children: [
           // ── Background with exact Figma radial gradients & radar arcs (Node 11:738) ──
@@ -156,11 +157,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                                 size: 46,
                                 radius: 22,
                                 backgroundColor: isDark
-                                    ? AuthFigmaTokens.cello55
-                                    : AppColors.lightCardSurface,
+                                    ? colors.cardHero.withValues(alpha: 0.55)
+                                    : colors.card,
                                 borderColor: isDark
-                                    ? AuthFigmaTokens.poloBlue28
-                                    : AppColors.lightBorderHairline,
+                                    ? colors.icon.withValues(alpha: 0.28)
+                                    : colors.cardBorder,
                                 hasBlur: true,
                               ),
                             ),
@@ -173,9 +174,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                                 fontWeight: FontWeight.w700,
                                 fontSize: 32,
                                 height: 1.1,
-                                color: isDark
-                                    ? AuthFigmaTokens.periwinkleGray
-                                    : AppColors.lightTextPrimary,
+                                color: colors.textPrimary,
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -188,8 +187,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                                 fontWeight: FontWeight.w400,
                                 height: 1.45,
                                 color: isDark
-                                    ? AuthFigmaTokens.poloBlue
-                                    : AppColors.lightTextSecondary,
+                                    ? colors.icon
+                                    : colors.textSecondary,
                               ),
                             ),
                             const SizedBox(height: 24),
@@ -200,9 +199,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
                                   if (authState.error != null) ...[
-                                    AuthErrorBanner(
-                                      message: authState.error!,
-                                    ),
+                                    AuthErrorBanner(message: authState.error!),
                                     const SizedBox(height: 14),
                                   ],
 
@@ -253,11 +250,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                                     builder: (context, form, child) {
                                       final password =
                                           (form.control('password').value
-                                                  as String?) ??
-                                              '';
+                                              as String?) ??
+                                          '';
                                       return PasswordStrengthBar(
-                                        strength:
-                                            _passwordStrength(password),
+                                        strength: _passwordStrength(password),
                                       );
                                     },
                                   ),
@@ -282,13 +278,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                                     builder: (context, form, child) {
                                       final password =
                                           (form.control('password').value
-                                                  as String?) ??
-                                              '';
+                                              as String?) ??
+                                          '';
                                       final confirm =
-                                          (form.control('confirmPassword')
-                                                      .value
-                                                  as String?) ??
-                                              '';
+                                          (form.control('confirmPassword').value
+                                              as String?) ??
+                                          '';
                                       return PasswordMatchIndicator(
                                         isMatching: password == confirm,
                                         hasConfirmText: confirm.isNotEmpty,
@@ -305,8 +300,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                                           context,
                                         ),
                                     onTapPrivacy: () =>
-                                        PrivacyAndAboutScreen
-                                            .showPrivacyPolicySheet(context),
+                                        PrivacyAndAboutScreen.showPrivacyPolicySheet(
+                                          context,
+                                        ),
                                   ),
                                   const SizedBox(height: 18),
 

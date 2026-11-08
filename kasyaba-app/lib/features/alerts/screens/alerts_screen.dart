@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../app/theme/app_motion.dart';
+import '../../../app/theme/kasyaba_color_scheme.dart';
 import '../../../shared/widgets/motion_components.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/database/cache_service.dart';
@@ -31,17 +32,17 @@ class AlertsScreen extends ConsumerWidget {
     );
 
     return Scaffold(
-      backgroundColor: DashboardTokens.ebony,
+      backgroundColor: context.kColors.canvas,
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        decoration: const BoxDecoration(
-          color: DashboardTokens.ebony,
-          gradient: DashboardTokens.canvasGradient,
+        decoration: BoxDecoration(
+          color: context.kColors.canvas,
+          gradient: context.kColors.backgroundGradient,
         ),
         child: RefreshIndicator(
-          color: DashboardTokens.periwinkleGray,
-          backgroundColor: DashboardTokens.bigStone,
+          color: context.kColors.textPrimary,
+          backgroundColor: context.kColors.card,
           onRefresh: () async {
             ref.invalidate(alertsProvider);
           },
@@ -194,15 +195,15 @@ class _NotificationHeader extends StatelessWidget {
           onPressed: onBackTap,
           size: 50,
           radius: 24,
-          backgroundColor: DashboardTokens.bigStone,
-          borderColor: DashboardTokens.poloBlue22,
+          backgroundColor: context.kColors.card,
+          borderColor: context.kColors.cardBorder,
         ),
         const SizedBox(width: 12),
         Expanded(
           child: Text(
             'Notifications',
             style: GoogleFonts.bricolageGrotesque(
-              color: DashboardTokens.periwinkleGray,
+              color: context.kColors.textPrimary,
               fontSize: 24,
               fontWeight: FontWeight.bold,
             ),
@@ -226,7 +227,7 @@ class _SectionHeader extends StatelessWidget {
       child: Text(
         title,
         style: GoogleFonts.dmSans(
-          color: DashboardTokens.periwinkleGraySubtitle,
+          color: context.kColors.textSecondary,
           fontSize: 12,
           fontWeight: FontWeight.bold,
           letterSpacing: 1.0, // 0.0833em
@@ -250,15 +251,15 @@ class _NotificationGroupCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: DashboardTokens.bigStone,
+        color: context.kColors.card,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: DashboardTokens.poloBlue22, width: 1),
+        border: Border.all(color: context.kColors.cardBorder, width: 1),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 19, vertical: 3),
       child: Column(
         children: [
           for (int i = 0; i < alerts.length; i++) ...[
-            if (i > 0) Container(height: 1, color: DashboardTokens.poloBlue16),
+            if (i > 0) Container(height: 1, color: context.kColors.divider),
             _NotificationItemRow(
               alert: alerts[i],
               onTap: () => onAlertTap(alerts[i]),
@@ -285,7 +286,7 @@ class _NotificationItemRow extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        splashColor: DashboardTokens.periwinkleGray.withValues(alpha: 0.06),
+        splashColor: context.kColors.textPrimary.withValues(alpha: 0.06),
         highlightColor: Colors.transparent,
         borderRadius: BorderRadius.circular(20),
         child: Padding(
@@ -306,7 +307,7 @@ class _NotificationItemRow extends StatelessWidget {
                       height: 10,
                       decoration: BoxDecoration(
                         color: isUnread
-                            ? DashboardTokens.apricot
+                            ? context.kColors.danger
                             : Colors.transparent,
                         shape: BoxShape.circle,
                       ),
@@ -325,7 +326,7 @@ class _NotificationItemRow extends StatelessWidget {
                     Text(
                       alert.title,
                       style: GoogleFonts.dmSans(
-                        color: DashboardTokens.periwinkleGray,
+                        color: context.kColors.textPrimary,
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
@@ -334,7 +335,7 @@ class _NotificationItemRow extends StatelessWidget {
                     Text(
                       alert.message,
                       style: GoogleFonts.dmSans(
-                        color: DashboardTokens.periwinkleGraySubtitle,
+                        color: context.kColors.textSecondary,
                         fontSize: 14,
                         height: 20.3 / 14,
                         fontWeight: FontWeight.normal,
@@ -351,7 +352,7 @@ class _NotificationItemRow extends StatelessWidget {
                 child: Text(
                   _formatNotificationTime(alert.createdAt),
                   style: GoogleFonts.dmSans(
-                    color: DashboardTokens.periwinkleGraySubtitle,
+                    color: context.kColors.textSecondary,
                     fontSize: 13,
                     fontWeight: FontWeight.normal,
                   ),
@@ -411,9 +412,9 @@ class _NotificationsEmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: DashboardTokens.bigStone,
+        color: context.kColors.card,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: DashboardTokens.poloBlue22, width: 1),
+        border: Border.all(color: context.kColors.cardBorder, width: 1),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
       child: Column(
@@ -423,13 +424,13 @@ class _NotificationsEmptyState extends StatelessWidget {
             width: 56,
             height: 56,
             decoration: BoxDecoration(
-              color: DashboardTokens.ebony85,
+              color: context.kColors.dockFill,
               shape: BoxShape.circle,
-              border: Border.all(color: DashboardTokens.poloBlue22, width: 1),
+              border: Border.all(color: context.kColors.cardBorder, width: 1),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.notifications_none_rounded,
-              color: DashboardTokens.periwinkleGray,
+              color: context.kColors.textPrimary,
               size: 26,
             ),
           ),
@@ -437,7 +438,7 @@ class _NotificationsEmptyState extends StatelessWidget {
           Text(
             'No notifications yet',
             style: GoogleFonts.bricolageGrotesque(
-              color: DashboardTokens.periwinkleGray,
+              color: context.kColors.textPrimary,
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
@@ -447,7 +448,7 @@ class _NotificationsEmptyState extends StatelessWidget {
             'You\'re all caught up! Predictive insights and budget updates will appear here.',
             textAlign: TextAlign.center,
             style: GoogleFonts.dmSans(
-              color: DashboardTokens.periwinkleGraySubtitle,
+              color: context.kColors.textSecondary,
               fontSize: 14,
               height: 1.4,
             ),
@@ -479,10 +480,10 @@ class _NotificationsErrorCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: DashboardTokens.bigStone,
+        color: context.kColors.card,
         borderRadius: BorderRadius.circular(28),
         border: Border.all(
-          color: DashboardTokens.apricot.withValues(alpha: 0.4),
+          color: context.kColors.danger.withValues(alpha: 0.4),
           width: 1,
         ),
       ),
@@ -492,9 +493,9 @@ class _NotificationsErrorCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.error_outline_rounded,
-                color: DashboardTokens.apricot,
+                color: context.kColors.danger,
                 size: 22,
               ),
               const SizedBox(width: 10),
@@ -502,7 +503,7 @@ class _NotificationsErrorCard extends StatelessWidget {
                 child: Text(
                   message,
                   style: GoogleFonts.dmSans(
-                    color: DashboardTokens.apricot,
+                    color: context.kColors.danger,
                     fontWeight: FontWeight.w600,
                     fontSize: 13,
                   ),
@@ -515,15 +516,15 @@ class _NotificationsErrorCard extends StatelessWidget {
             alignment: Alignment.centerRight,
             child: TextButton.icon(
               onPressed: onRetry,
-              icon: const Icon(
+              icon: Icon(
                 Icons.refresh_rounded,
                 size: 16,
-                color: DashboardTokens.periwinkleGray,
+                color: context.kColors.textPrimary,
               ),
               label: Text(
                 'Retry',
                 style: GoogleFonts.dmSans(
-                  color: DashboardTokens.periwinkleGray,
+                  color: context.kColors.textPrimary,
                   fontWeight: FontWeight.bold,
                 ),
               ),

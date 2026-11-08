@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_motion.dart';
+import '../../../app/theme/kasyaba_color_scheme.dart';
 import '../../../core/connectivity/connectivity_service.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
@@ -186,6 +187,12 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
         ? DateFormat('MMM yyyy').format(_targetDate!)
         : 'Pick date';
 
+    // Dark keeps the legacy poloBlue30 hint exactly; light needs a readable
+    // muted hint on the porcelain surfaces.
+    final hintColor = Theme.of(context).brightness == Brightness.dark
+        ? context.kColors.cardBorderStrong
+        : context.kColors.textMuted;
+
     return Theme(
       data: Theme.of(context).copyWith(
         inputDecorationTheme: const InputDecorationTheme(
@@ -200,7 +207,7 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
         ),
       ),
       child: Scaffold(
-        backgroundColor: DashboardTokens.ebony,
+        backgroundColor: context.kColors.canvas,
         body: KasyabaBackground(
           child: SizedBox.expand(
             child: SingleChildScrollView(
@@ -232,15 +239,15 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
                             width: 50,
                             height: 50,
                             decoration: BoxDecoration(
-                              color: DashboardTokens.bigStone,
+                              color: context.kColors.card,
                               borderRadius: BorderRadius.circular(24),
                               border: Border.all(
-                                color: DashboardTokens.poloBlue22,
+                                color: context.kColors.cardBorder,
                               ),
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.arrow_back_rounded,
-                              color: DashboardTokens.periwinkleGray,
+                              color: context.kColors.textPrimary,
                               size: 22,
                             ),
                           ),
@@ -249,7 +256,7 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
                         Text(
                           isEditing ? 'Edit goal' : 'New goal',
                           style: GoogleFonts.bricolageGrotesque(
-                            color: DashboardTokens.periwinkleGray,
+                            color: context.kColors.textPrimary,
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
                           ),
@@ -272,10 +279,10 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
                             vertical: 18.5,
                           ),
                           decoration: BoxDecoration(
-                            color: DashboardTokens.bigStone,
+                            color: context.kColors.card,
                             borderRadius: BorderRadius.circular(28),
                             border: Border.all(
-                              color: DashboardTokens.poloBlue22,
+                              color: context.kColors.cardBorder,
                             ),
                           ),
                           child: Row(
@@ -285,8 +292,7 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
                                 child: Text(
                                   'Name',
                                   style: GoogleFonts.dmSans(
-                                    color:
-                                        DashboardTokens.periwinkleGraySubtitle,
+                                    color: context.kColors.textSecondary,
                                     fontSize: 14,
                                   ),
                                 ),
@@ -303,16 +309,14 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
                                         maxLength,
                                       }) => null,
                                   style: GoogleFonts.dmSans(
-                                    color: DashboardTokens.periwinkleGray,
+                                    color: context.kColors.textPrimary,
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
                                   ),
-                                  decoration: const InputDecoration(
+                                  decoration: InputDecoration(
                                     isDense: true,
                                     hintText: 'e.g. New phone',
-                                    hintStyle: TextStyle(
-                                      color: DashboardTokens.poloBlue30,
-                                    ),
+                                    hintStyle: TextStyle(color: hintColor),
                                     filled: false,
                                     fillColor: Colors.transparent,
                                     border: InputBorder.none,
@@ -336,10 +340,10 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
                             vertical: 18,
                           ),
                           decoration: BoxDecoration(
-                            color: DashboardTokens.cello60,
+                            color: context.kColors.cardHero,
                             borderRadius: BorderRadius.circular(28),
                             border: Border.all(
-                              color: DashboardTokens.poloBlue30,
+                              color: context.kColors.cardBorderStrong,
                             ),
                           ),
                           child: Column(
@@ -352,8 +356,7 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
                                   Text(
                                     '₱',
                                     style: GoogleFonts.bricolageGrotesque(
-                                      color: DashboardTokens
-                                          .periwinkleGraySubtitle,
+                                      color: context.kColors.textSecondary,
                                       fontSize: 26,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -376,7 +379,7 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
                                         textAlign: TextAlign.center,
                                         onChanged: (_) => setState(() {}),
                                         style: GoogleFonts.bricolageGrotesque(
-                                          color: DashboardTokens.periwinkleGray,
+                                          color: context.kColors.textPrimary,
                                           fontSize: 40,
                                           fontWeight: FontWeight.bold,
                                         ),
@@ -400,7 +403,7 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
                               Text(
                                 'Target amount',
                                 style: GoogleFonts.dmSans(
-                                  color: DashboardTokens.periwinkleGraySubtitle,
+                                  color: context.kColors.textSecondary,
                                   fontSize: 14,
                                 ),
                               ),
@@ -419,10 +422,10 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
                               vertical: 18.5,
                             ),
                             decoration: BoxDecoration(
-                              color: DashboardTokens.bigStone,
+                              color: context.kColors.card,
                               borderRadius: BorderRadius.circular(28),
                               border: Border.all(
-                                color: DashboardTokens.poloBlue22,
+                                color: context.kColors.cardBorder,
                               ),
                             ),
                             child: Row(
@@ -432,8 +435,7 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
                                   child: Text(
                                     'Target date',
                                     style: GoogleFonts.dmSans(
-                                      color: DashboardTokens
-                                          .periwinkleGraySubtitle,
+                                      color: context.kColors.textSecondary,
                                       fontSize: 14,
                                     ),
                                   ),
@@ -442,16 +444,16 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
                                   child: Text(
                                     dateText,
                                     style: GoogleFonts.dmSans(
-                                      color: DashboardTokens.periwinkleGray,
+                                      color: context.kColors.textPrimary,
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                 ),
-                                const Icon(
+                                Icon(
                                   Icons.calendar_today_rounded,
                                   size: 18,
-                                  color: DashboardTokens.periwinkleGraySubtitle,
+                                  color: context.kColors.textSecondary,
                                 ),
                               ],
                             ),
@@ -466,10 +468,10 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
                             vertical: 18.5,
                           ),
                           decoration: BoxDecoration(
-                            color: DashboardTokens.bigStone,
+                            color: context.kColors.card,
                             borderRadius: BorderRadius.circular(28),
                             border: Border.all(
-                              color: DashboardTokens.poloBlue22,
+                              color: context.kColors.cardBorder,
                             ),
                           ),
                           child: Row(
@@ -479,8 +481,7 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
                                 child: Text(
                                   'Already saved',
                                   style: GoogleFonts.dmSans(
-                                    color:
-                                        DashboardTokens.periwinkleGraySubtitle,
+                                    color: context.kColors.textSecondary,
                                     fontSize: 14,
                                   ),
                                 ),
@@ -488,7 +489,7 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
                               Text(
                                 '₱',
                                 style: GoogleFonts.dmSans(
-                                  color: DashboardTokens.periwinkleGray,
+                                  color: context.kColors.textPrimary,
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -506,16 +507,14 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
                                       ),
                                   onChanged: (_) => setState(() {}),
                                   style: GoogleFonts.dmSans(
-                                    color: DashboardTokens.periwinkleGray,
+                                    color: context.kColors.textPrimary,
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
                                   ),
-                                  decoration: const InputDecoration(
+                                  decoration: InputDecoration(
                                     isDense: true,
                                     hintText: '0',
-                                    hintStyle: TextStyle(
-                                      color: DashboardTokens.poloBlue30,
-                                    ),
+                                    hintStyle: TextStyle(color: hintColor),
                                     filled: false,
                                     fillColor: Colors.transparent,
                                     border: InputBorder.none,
@@ -541,9 +540,9 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
-                        color: DashboardTokens.bigStone,
+                        color: context.kColors.card,
                         borderRadius: BorderRadius.circular(28),
-                        border: Border.all(color: DashboardTokens.poloBlue22),
+                        border: Border.all(color: context.kColors.cardBorder),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -551,7 +550,7 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
                           Text(
                             'You would need about',
                             style: GoogleFonts.dmSans(
-                              color: DashboardTokens.periwinkleGraySubtitle,
+                              color: context.kColors.textSecondary,
                               fontSize: 14,
                             ),
                           ),
@@ -559,7 +558,7 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
                           Text(
                             '${CurrencyFormatter.format(_monthlyRequired, decimalDigits: 0)} a month',
                             style: GoogleFonts.bricolageGrotesque(
-                              color: DashboardTokens.bermuda,
+                              color: context.kColors.success,
                               fontSize: 26,
                               fontWeight: FontWeight.bold,
                             ),
@@ -568,7 +567,7 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
                           Text(
                             'This comes out of your safe-to-spend each day,\nso you will see it in your daily number.',
                             style: GoogleFonts.dmSans(
-                              color: DashboardTokens.periwinkleGraySubtitle,
+                              color: context.kColors.textSecondary,
                               fontSize: 13,
                               height: 1.4,
                             ),
@@ -584,7 +583,7 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
                       _errorMessage!,
                       textAlign: TextAlign.center,
                       style: GoogleFonts.dmSans(
-                        color: DashboardTokens.apricot,
+                        color: context.kColors.danger,
                         fontSize: 13,
                       ),
                     ),

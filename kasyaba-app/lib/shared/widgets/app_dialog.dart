@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../app/theme/kasyaba_color_scheme.dart';
 import '../../app/theme/kasyaba_tokens.dart';
 
 Future<bool?> showKasyabaConfirmDialog(
@@ -14,24 +15,24 @@ Future<bool?> showKasyabaConfirmDialog(
   return showDialog<bool>(
     context: context,
     builder: (ctx) {
-      final Color confirmForeground = KasyabaTokens.ebony;
-      final Color confirmBackground = destructive
-          ? KasyabaTokens.apricot
-          : KasyabaTokens.periwinkleGray;
+      final colors = ctx.kColors;
+      final Color confirmForeground = colors.onPrimaryButton;
+      final Color confirmBackground =
+          destructive ? colors.danger : colors.primaryButton;
 
       return AlertDialog(
-        backgroundColor: KasyabaTokens.bigStone,
+        backgroundColor: colors.card,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(KasyabaTokens.radiusDialog),
-          side: const BorderSide(color: KasyabaTokens.poloBlue22),
+          side: BorderSide(color: colors.cardBorder),
         ),
         title: Text(
           title,
           style: GoogleFonts.bricolageGrotesque(
             fontSize: 20,
             fontWeight: FontWeight.w700,
-            color: KasyabaTokens.periwinkleGray,
+            color: colors.textPrimary,
           ),
         ),
         content: Text(
@@ -39,14 +40,14 @@ Future<bool?> showKasyabaConfirmDialog(
           style: GoogleFonts.dmSans(
             fontSize: 14,
             height: 1.45,
-            color: KasyabaTokens.periwinkleGraySubtitle,
+            color: colors.textSecondary,
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
             style: TextButton.styleFrom(
-              foregroundColor: KasyabaTokens.periwinkleGraySubtitle,
+              foregroundColor: colors.textSecondary,
             ),
             child: Text(
               cancelLabel,

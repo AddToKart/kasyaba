@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
-import '../../../app/theme/kasyaba_tokens.dart';
+import '../../../app/theme/kasyaba_color_scheme.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/auth/auth_provider.dart';
 import '../../../core/errors/error_messages.dart';
@@ -184,7 +184,7 @@ class _ExportBackupSheetState extends ConsumerState<_ExportBackupSheet> {
     final jsonPretty = _jsonPretty;
 
     return AppSheet(
-      color: KasyabaTokens.ebony,
+      color: context.kColors.canvas,
       padding: EdgeInsets.fromLTRB(
         20,
         0,
@@ -199,7 +199,7 @@ class _ExportBackupSheetState extends ConsumerState<_ExportBackupSheet> {
             children: [
               _SheetHeader(
                 icon: Icons.cloud_download_rounded,
-                accent: KasyabaTokens.poloBlue,
+                accent: context.kColors.icon,
                 title: 'Export Backup',
                 badge: 'PORTABLE JSON',
                 subtitle: 'Snapshot generated $formattedTime',
@@ -214,7 +214,7 @@ class _ExportBackupSheetState extends ConsumerState<_ExportBackupSheet> {
                       'Compiling complete account snapshot...',
                       style: GoogleFonts.dmSans(
                         fontSize: 13,
-                        color: KasyabaTokens.periwinkleGraySubtitle,
+                        color: context.kColors.textSecondary,
                       ),
                     ),
                   ],
@@ -225,9 +225,9 @@ class _ExportBackupSheetState extends ConsumerState<_ExportBackupSheet> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: KasyabaTokens.bigStone,
+                    color: context.kColors.card,
                     borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: KasyabaTokens.poloBlue22),
+                    border: Border.all(color: context.kColors.cardBorder),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -237,7 +237,7 @@ class _ExportBackupSheetState extends ConsumerState<_ExportBackupSheet> {
                         style: GoogleFonts.dmSans(
                           fontSize: 10.5,
                           fontWeight: FontWeight.w700,
-                          color: KasyabaTokens.periwinkleGraySubtitle,
+                          color: context.kColors.textSecondary,
                           letterSpacing: 0.8,
                         ),
                       ),
@@ -249,47 +249,47 @@ class _ExportBackupSheetState extends ConsumerState<_ExportBackupSheet> {
                           _MetricPill(
                             label: 'Wallets',
                             count: validation.accountCount,
-                            color: KasyabaTokens.poloBlue,
+                            color: context.kColors.icon,
                           ),
                           _MetricPill(
                             label: 'Expenses',
                             count: validation.expenseCount,
-                            color: KasyabaTokens.apricot,
+                            color: context.kColors.danger,
                           ),
                           _MetricPill(
                             label: 'Income',
                             count: validation.incomeCount,
-                            color: KasyabaTokens.bermuda,
+                            color: context.kColors.success,
                           ),
                           _MetricPill(
                             label: 'Transfers',
                             count: validation.transferCount,
-                            color: KasyabaTokens.java,
+                            color: context.kColors.accentTeal,
                           ),
                           _MetricPill(
                             label: 'Goals',
                             count: validation.goalCount,
-                            color: KasyabaTokens.casablanca,
+                            color: context.kColors.warning,
                           ),
                           _MetricPill(
                             label: 'Budgets',
                             count: validation.budgetCount,
-                            color: KasyabaTokens.cornflowerBlue,
+                            color: context.kColors.accentViolet,
                           ),
                           _MetricPill(
                             label: 'Bills',
                             count: validation.billCount,
-                            color: KasyabaTokens.baliHai,
+                            color: context.kColors.textMuted,
                           ),
                         ],
                       ),
                       const SizedBox(height: 12),
                       Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.verified_user_rounded,
                             size: 15,
-                            color: KasyabaTokens.bermuda,
+                            color: context.kColors.success,
                           ),
                           const SizedBox(width: 6),
                           Expanded(
@@ -298,7 +298,7 @@ class _ExportBackupSheetState extends ConsumerState<_ExportBackupSheet> {
                               style: GoogleFonts.dmSans(
                                 fontSize: 11.5,
                                 fontWeight: FontWeight.w600,
-                                color: KasyabaTokens.periwinkleGraySubtitle,
+                                color: context.kColors.textSecondary,
                               ),
                             ),
                           ),
@@ -425,7 +425,7 @@ class _RestoreBackupSheetState extends ConsumerState<_RestoreBackupSheet> {
     final res = _validationResult;
 
     return AppSheet(
-      color: KasyabaTokens.ebony,
+      color: context.kColors.canvas,
       padding: EdgeInsets.fromLTRB(
         20,
         0,
@@ -438,9 +438,9 @@ class _RestoreBackupSheetState extends ConsumerState<_RestoreBackupSheet> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
-              const _SheetHeader(
+              _SheetHeader(
                 icon: Icons.cloud_upload_rounded,
-                accent: KasyabaTokens.bermuda,
+                accent: context.kColors.success,
                 title: 'Import Backup',
                 badge: 'SCHEMA VALIDATED',
                 subtitle: 'Restore your complete ledger offline or online',
@@ -451,7 +451,7 @@ class _RestoreBackupSheetState extends ConsumerState<_RestoreBackupSheet> {
                 style: GoogleFonts.dmSans(
                   fontSize: 10.5,
                   fontWeight: FontWeight.w700,
-                  color: KasyabaTokens.periwinkleGraySubtitle,
+                  color: context.kColors.textSecondary,
                   letterSpacing: 0.8,
                 ),
               ),
@@ -461,32 +461,32 @@ class _RestoreBackupSheetState extends ConsumerState<_RestoreBackupSheet> {
                 maxLines: 5,
                 style: GoogleFonts.robotoMono(
                   fontSize: 12,
-                  color: KasyabaTokens.periwinkleGray,
+                  color: context.kColors.textPrimary,
                 ),
                 decoration: InputDecoration(
                   hintText: '{\n  "exportedAt": "...",\n  "user": { ... }\n}',
                   hintStyle: GoogleFonts.robotoMono(
                     fontSize: 12,
-                    color: KasyabaTokens.poloBlue40,
+                    color: context.kColors.icon.withValues(alpha: 0.4),
                   ),
                   filled: true,
-                  fillColor: KasyabaTokens.bigStone,
+                  fillColor: context.kColors.inputFill,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(24),
-                    borderSide: const BorderSide(
-                      color: KasyabaTokens.poloBlue22,
+                    borderSide: BorderSide(
+                      color: context.kColors.cardBorder,
                     ),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(24),
-                    borderSide: const BorderSide(
-                      color: KasyabaTokens.poloBlue22,
+                    borderSide: BorderSide(
+                      color: context.kColors.cardBorder,
                     ),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(24),
-                    borderSide: const BorderSide(
-                      color: KasyabaTokens.poloBlue,
+                    borderSide: BorderSide(
+                      color: context.kColors.icon,
                       width: 1.5,
                     ),
                   ),
@@ -496,35 +496,35 @@ class _RestoreBackupSheetState extends ConsumerState<_RestoreBackupSheet> {
               const SizedBox(height: 12),
               if (res == null)
                 _ValidationCard(
-                  background: KasyabaTokens.bigStone,
-                  border: KasyabaTokens.poloBlue22,
+                  background: context.kColors.card,
+                  border: context.kColors.cardBorder,
                   icon: Icons.info_outline_rounded,
-                  iconColor: KasyabaTokens.periwinkleGraySubtitle,
+                  iconColor: context.kColors.textSecondary,
                   title: null,
-                  titleColor: KasyabaTokens.periwinkleGray,
+                  titleColor: context.kColors.textPrimary,
                   message:
                       'Paste your Kasyaba JSON backup above. It will be verified against our strict deterministic schema before restoring.',
-                  messageColor: KasyabaTokens.periwinkleGraySubtitle,
+                  messageColor: context.kColors.textSecondary,
                 )
               else if (!res.isValid)
                 _ValidationCard(
-                  background: KasyabaTokens.apricot15,
-                  border: KasyabaTokens.apricot.withValues(alpha: 0.55),
+                  background: context.kColors.dangerTint,
+                  border: context.kColors.danger.withValues(alpha: 0.55),
                   icon: Icons.error_outline_rounded,
-                  iconColor: KasyabaTokens.apricot,
+                  iconColor: context.kColors.danger,
                   title: null,
-                  titleColor: KasyabaTokens.apricot,
+                  titleColor: context.kColors.danger,
                   message: res.errorMessage ?? 'Invalid backup format.',
-                  messageColor: KasyabaTokens.apricot,
+                  messageColor: context.kColors.danger,
                 )
               else
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: KasyabaTokens.bermuda15,
+                    color: context.kColors.successTint,
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(
-                      color: KasyabaTokens.bermuda.withValues(alpha: 0.55),
+                      color: context.kColors.success.withValues(alpha: 0.55),
                     ),
                   ),
                   child: Column(
@@ -532,10 +532,10 @@ class _RestoreBackupSheetState extends ConsumerState<_RestoreBackupSheet> {
                     children: [
                       Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.check_circle_rounded,
                             size: 18,
-                            color: KasyabaTokens.bermuda,
+                            color: context.kColors.success,
                           ),
                           const SizedBox(width: 8),
                           Expanded(
@@ -544,7 +544,7 @@ class _RestoreBackupSheetState extends ConsumerState<_RestoreBackupSheet> {
                               style: GoogleFonts.dmSans(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
-                                color: KasyabaTokens.bermuda,
+                                color: context.kColors.success,
                               ),
                             ),
                           ),
@@ -558,37 +558,37 @@ class _RestoreBackupSheetState extends ConsumerState<_RestoreBackupSheet> {
                           _MetricPill(
                             label: 'Wallets',
                             count: res.accountCount,
-                            color: KasyabaTokens.poloBlue,
+                            color: context.kColors.icon,
                           ),
                           _MetricPill(
                             label: 'Expenses',
                             count: res.expenseCount,
-                            color: KasyabaTokens.apricot,
+                            color: context.kColors.danger,
                           ),
                           _MetricPill(
                             label: 'Income',
                             count: res.incomeCount,
-                            color: KasyabaTokens.bermuda,
+                            color: context.kColors.success,
                           ),
                           _MetricPill(
                             label: 'Transfers',
                             count: res.transferCount,
-                            color: KasyabaTokens.java,
+                            color: context.kColors.accentTeal,
                           ),
                           _MetricPill(
                             label: 'Goals',
                             count: res.goalCount,
-                            color: KasyabaTokens.casablanca,
+                            color: context.kColors.warning,
                           ),
                           _MetricPill(
                             label: 'Budgets',
                             count: res.budgetCount,
-                            color: KasyabaTokens.cornflowerBlue,
+                            color: context.kColors.accentViolet,
                           ),
                           _MetricPill(
                             label: 'Bills',
                             count: res.billCount,
-                            color: KasyabaTokens.baliHai,
+                            color: context.kColors.textMuted,
                           ),
                         ],
                       ),
@@ -813,7 +813,7 @@ class _ExportCsvSheetState extends ConsumerState<_ExportCsvSheet> {
         : 'All time';
 
     return AppSheet(
-      color: KasyabaTokens.ebony,
+      color: context.kColors.canvas,
       padding: EdgeInsets.fromLTRB(
         20,
         0,
@@ -826,9 +826,9 @@ class _ExportCsvSheetState extends ConsumerState<_ExportCsvSheet> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
-              const _SheetHeader(
+              _SheetHeader(
                 icon: Icons.table_chart_rounded,
-                accent: KasyabaTokens.casablanca,
+                accent: context.kColors.warning,
                 title: 'Export to CSV',
                 badge: 'SPREADSHEET READY',
                 subtitle: 'Compatible with Excel, Google Sheets & Numbers',
@@ -843,7 +843,7 @@ class _ExportCsvSheetState extends ConsumerState<_ExportCsvSheet> {
                       'Compiling transaction ledger...',
                       style: GoogleFonts.dmSans(
                         fontSize: 13,
-                        color: KasyabaTokens.periwinkleGraySubtitle,
+                        color: context.kColors.textSecondary,
                       ),
                     ),
                   ],
@@ -854,9 +854,9 @@ class _ExportCsvSheetState extends ConsumerState<_ExportCsvSheet> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: KasyabaTokens.bigStone,
+                    color: context.kColors.card,
                     borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: KasyabaTokens.poloBlue22),
+                    border: Border.all(color: context.kColors.cardBorder),
                   ),
                   child: Column(
                     children: [
@@ -870,7 +870,7 @@ class _ExportCsvSheetState extends ConsumerState<_ExportCsvSheet> {
                       _MetricRow(
                         label: 'CSV Schema:',
                         value: 'RFC 4180 (8 Columns)',
-                        valueColor: KasyabaTokens.casablanca,
+                        valueColor: context.kColors.warning,
                       ),
                     ],
                   ),
@@ -938,7 +938,7 @@ class _SheetHeader extends StatelessWidget {
                       style: GoogleFonts.bricolageGrotesque(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
-                        color: KasyabaTokens.periwinkleGray,
+                        color: context.kColors.textPrimary,
                       ),
                     ),
                   ),
@@ -969,7 +969,7 @@ class _SheetHeader extends StatelessWidget {
                 subtitle,
                 style: GoogleFonts.dmSans(
                   fontSize: 12,
-                  color: KasyabaTokens.periwinkleGraySubtitle,
+                  color: context.kColors.textSecondary,
                 ),
               ),
             ],
@@ -977,8 +977,8 @@ class _SheetHeader extends StatelessWidget {
         ),
         IconButton(
           onPressed: () => Navigator.of(context).pop(),
-          icon: const Icon(Icons.close_rounded, size: 20),
-          color: KasyabaTokens.periwinkleGraySubtitle,
+          icon: Icon(Icons.close_rounded, size: 20),
+          color: context.kColors.textSecondary,
         ),
       ],
     );
@@ -1068,7 +1068,7 @@ class _MetricRow extends StatelessWidget {
           label,
           style: GoogleFonts.dmSans(
             fontSize: 13,
-            color: KasyabaTokens.periwinkleGraySubtitle,
+            color: context.kColors.textSecondary,
           ),
         ),
         Flexible(
@@ -1079,7 +1079,7 @@ class _MetricRow extends StatelessWidget {
               fontSize: 13,
               fontWeight: FontWeight.w700,
               fontFeatures: CurrencyFormatter.tabularFigures,
-              color: valueColor ?? KasyabaTokens.periwinkleGray,
+              color: valueColor ?? context.kColors.textPrimary,
             ),
           ),
         ),

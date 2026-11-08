@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../shared/widgets/motion_components.dart';
 import '../theme/app_motion.dart';
-import '../../features/dashboard/widgets/dashboard_tokens.dart';
+import '../theme/kasyaba_color_scheme.dart';
 
 /// ─────────────────────────────────────────────────────────────
 ///  AppShell — Floating Navigation Dock (Figma Node 106:2024)
@@ -106,6 +106,10 @@ class _LuxuryFloatingDock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bottomPadding = MediaQuery.paddingOf(context).bottom;
+    final colors = context.kColors;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final shadowColor =
+        isDark ? colors.shadow.withValues(alpha: 0.5) : colors.shadow;
 
     return Center(
       heightFactor: 1.0,
@@ -121,7 +125,7 @@ class _LuxuryFloatingDock extends StatelessWidget {
           borderRadius: BorderRadius.circular(34),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.5),
+              color: shadowColor,
               blurRadius: 16,
               offset: const Offset(0, 8),
             ),
@@ -135,10 +139,10 @@ class _LuxuryFloatingDock extends StatelessWidget {
               height: 68,
               padding: const EdgeInsets.all(7),
               decoration: BoxDecoration(
-                color: DashboardTokens.ebony85,
+                color: colors.dockFill,
                 borderRadius: BorderRadius.circular(34),
                 border: Border.all(
-                  color: DashboardTokens.poloBlue30,
+                  color: colors.dockBorder,
                   width: 1,
                 ),
               ),
@@ -188,9 +192,10 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fgColor = isSelected
-        ? DashboardTokens.ebony
-        : DashboardTokens.periwinkleGraySubtitle;
+    final colors = context.kColors;
+    final iconColor = isSelected ? colors.onPrimaryButton : colors.icon;
+    final labelColor =
+        isSelected ? colors.onPrimaryButton : colors.textSecondary;
 
     return Expanded(
       child: SpringTouch(
@@ -204,9 +209,7 @@ class _NavItem extends StatelessWidget {
           curve: Curves.easeOutCubic,
           height: 54,
           decoration: BoxDecoration(
-            color: isSelected
-                ? DashboardTokens.periwinkleGray
-                : Colors.transparent,
+            color: isSelected ? colors.primaryButton : Colors.transparent,
             borderRadius: BorderRadius.circular(27),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 6),
@@ -218,11 +221,13 @@ class _NavItem extends StatelessWidget {
                 scale: isSelected ? 1.08 : 1.0,
                 duration: const Duration(milliseconds: 240),
                 curve: Curves.easeOutBack,
-                child: SvgPicture.asset(
-                  destination.svgAsset,
-                  width: 20,
-                  height: 20,
-                  colorFilter: ColorFilter.mode(fgColor, BlendMode.srcIn),
+                child: ColorFiltered(
+                  colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
+                  child: SvgPicture.asset(
+                    destination.svgAsset,
+                    width: 20,
+                    height: 20,
+                  ),
                 ),
               ),
               const SizedBox(height: 3),
@@ -235,7 +240,7 @@ class _NavItem extends StatelessWidget {
                     maxLines: 1,
                     softWrap: false,
                     style: GoogleFonts.dmSans(
-                      color: fgColor,
+                      color: labelColor,
                       fontWeight: FontWeight.bold,
                       fontSize: 11,
                       letterSpacing: -0.2,
