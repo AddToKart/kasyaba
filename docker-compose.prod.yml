@@ -47,7 +47,7 @@ services:
       GOOGLE_WEB_CLIENT_ID: ${GOOGLE_WEB_CLIENT_ID:-}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://api.kasyaba.site,https://kasyaba.site}
       TRUST_PROXY: ${TRUST_PROXY:-1}
-      SUPPORT_EMAIL: ${SUPPORT_EMAIL:-support@kasyaba.app}
+      SUPPORT_EMAIL: ${SUPPORT_EMAIL:-jelooabihayy@gmail.com}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-Kasyaba <noreply@kasyaba.app>}
       APP_NAME: ${APP_NAME:-Kasyaba}

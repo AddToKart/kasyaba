@@ -20,6 +20,7 @@ class CacheService {
   static const String snapshotKeyGoals = 'goals';
   static const String snapshotKeyBudgets = 'budgets';
   static const String snapshotKeyAlerts = 'alerts';
+  static const String snapshotKeyBalances = 'balances';
 
   static const int maxTransactionSnapshots = 10;
   static const String _transactionSnapshotPrefix = 'transactions:';

@@ -19,7 +19,7 @@ export function registerRoutes(router: Router) {
         `
         <h1>KASYABA Privacy Policy</h1>
         <p class="updated">Last updated: November 6, 2026 &middot; Policy version 2.0</p>
-        <p>KASYABA is an online-first personal finance tracker. Your ledger is stored on our server, which is the source of truth for your account. The app adds on-device math for instant feedback and a local cache for continuity when connectivity is limited. This policy explains what we collect, where it is processed and stored, how long we keep it, and your rights under the <strong>Philippine Data Privacy Act of 2012 (Republic Act No. 10173)</strong>. We do not sell your personal or financial data.</p>
+        <p>KASYABA is developed and operated by <strong>Jelo Abihay</strong> (the &ldquo;KASYABA&rdquo; developer account published on Google Play). KASYABA is an online-first personal finance tracker. Your ledger is stored on our server, which is the source of truth for your account. The app adds on-device math for instant feedback and a local cache for continuity when connectivity is limited. This policy explains what we collect, where it is processed and stored, how long we keep it, and your rights under the <strong>Philippine Data Privacy Act of 2012 (Republic Act No. 10173)</strong>. KASYABA is strictly a personal budgeting, financial tracking, and forecasting utility: it is <strong>not a bank, financial institution, or lender</strong>, and it does not facilitate real-world money transfers, credit issuance, or loan disbursements. We do not sell your personal or financial data.</p>
 
         <h2>Architecture Summary</h2>
         <ul>
@@ -72,7 +72,7 @@ export function registerRoutes(router: Router) {
           <li><strong>Plaintext local database (Drift/SQLite):</strong> an offline snapshot cache of your dashboard, wallets, recent transactions, bills, goals, budgets, alerts, and categories. This database is not encrypted at the database level. It is protected by your device&rsquo;s operating-system sandbox and lock screen; anyone with access to an unlocked or rooted device may be able to read it.</li>
           <li><strong>Offline queue:</strong> expense, income, transfer, and goal-deposit entries you create while offline are stored in the same plaintext local database and replayed to the server when connectivity returns. Each entry is retried up to five times; entries that still fail are shown in the app with the failure reason so you can review them.</li>
         </ul>
-        <p>Signing out clears your authentication tokens and read caches from the device. The offline queue is retained across sign-out to avoid losing unsynced entries; it is re-attached to your account when you sign back in. App preferences remain until you clear the app&rsquo;s storage or uninstall the app. Deleting your account through the app wipes tokens, read caches, and the queue. If deletion is completed through the web portal while the app is offline, the device clears its read caches the next time the app signs out or its session is revoked; because the offline queue is intentionally retained across sign-out, unsynced entries may remain on that device &mdash; uninstall the app or clear its storage to remove them.</p>
+        <p>Signing out clears your authentication tokens and read caches from the device. The offline queue is tagged to your unique account ID and retained across sign-out to avoid losing unsynced entries; it is only re-attached if the same account signs back in, and it is never shown to a different account. App preferences remain until you clear the app&rsquo;s storage or uninstall the app. Deleting your account through the app wipes tokens, read caches, and the queue. If deletion is completed through the web portal while the app is offline, the device clears its read caches the next time the app signs out or its session is revoked; because the offline queue is intentionally retained across sign-out, unsynced entries may remain on that device &mdash; uninstall the app or clear its storage to remove them.</p>
 
         <h2>5. Storage, Encryption &amp; Security</h2>
         <p>Data is encrypted in transit using HTTPS/TLS. Passwords are salted and hashed with Argon2id; we never store cleartext passwords. Refresh tokens are stored only as SHA-256 hashes; cleartext refresh tokens are never persisted on the server. IP addresses are used only for rate limiting.</p>
@@ -86,9 +86,9 @@ export function registerRoutes(router: Router) {
         <p>We retain your records while your account is active. Session records have a fixed expiry; expired sessions are pruned. When you delete your account, we delete your profile and financial records from the live production database and revoke all sessions.</p>
         <ul>
           <li><strong>Export:</strong> download a full account snapshot in JSON, or export your transaction history in CSV, via <em>Settings &rarr; Export &amp; Backup</em>. JSON contains your account snapshot; CSV contains transactions only and does not include budgets, goals, bills, or account settings.</li>
-          <li><strong>Deletion:</strong> irreversibly delete your account and associated ledger records directly in the app via <em>Settings &rarr; Delete Account and Data</em>, or online via <a href="/account-deletion">/account-deletion</a>.</li>
+          <li><strong>Deletion:</strong> irreversibly delete your account and associated ledger records directly in the app via <em>Settings &rarr; Delete Account and Data</em>, or online via <a href="https://api.kasyaba.site/account-deletion">https://api.kasyaba.site/account-deletion</a>.</li>
         </ul>
-        <p>We do not keep a separate archive of your ledger after deletion. Infrastructure backups, where configured, follow the hosting provider&rsquo;s retention cycle and are not used to restore deleted accounts.</p>
+        <p>We do not keep a separate archive of your ledger after deletion. Infrastructure backups, where configured, are automatically overwritten within 30 days and are never used to restore deleted accounts.</p>
 
         <h2>8. Breach Notification</h2>
         <p>If we discover a personal data breach that qualifies for notification under RA 10173 and its Implementing Rules and Regulations, we will notify the National Privacy Commission and affected users within 72 hours of discovery, consistent with the applicable requirements.</p>
@@ -97,9 +97,10 @@ export function registerRoutes(router: Router) {
         <p>KASYABA is not directed to individuals under 13 years of age, and we do not knowingly collect personal data from minors.</p>
 
         <h2>10. Contact &amp; Data Protection</h2>
-        <p>For inquiries regarding data privacy or to exercise your rights under RA 10173, contact our support team at: <a href="mailto:${escapeHtml(env.SUPPORT_EMAIL)}">${escapeHtml(env.SUPPORT_EMAIL)}</a></p>
+        <p>KASYABA is developed and operated by <strong>Jelo Abihay</strong>. For inquiries regarding data privacy, or to exercise your rights under RA 10173, contact our support team at: <a href="mailto:${escapeHtml(env.SUPPORT_EMAIL)}">${escapeHtml(env.SUPPORT_EMAIL)}</a></p>
 
         <h2>11. Policy Version &amp; Changelog</h2>
+        <p><strong>Version 2.1 &mdash; November 6, 2026:</strong> added the developer identity, a not-a-bank / not-a-lender scope statement, a concrete 30-day infrastructure-backup bound, absolute legal-page URLs, and clarified that the offline queue is account-tagged and never shown to a different account.</p>
         <p><strong>Version 2.0 &mdash; November 6, 2026:</strong> rewritten for the online-first architecture. Clarified which calculations run on the server and which run on-device; disclosed the plaintext device cache and offline queue; corrected the export scope, encryption wording, retention statement, and breach-notification commitment.</p>
         `,
       ),
@@ -140,7 +141,7 @@ export function registerRoutes(router: Router) {
         <p>Online-only features &mdash; including the 30-day planning horizon, health score, month-to-date and predicted month-end figures, bill generation, and the final affordability verdict &mdash; require an internet connection. When you are offline, the app can show the last cached snapshot and queue certain entries for replay. Cached data may be stale, and queued entries may be delayed or fail after repeated attempts. Do not rely on KASYABA as the sole record of a payment, bill, or transfer.</p>
 
         <h2>7. Termination &amp; Deletion</h2>
-        <p>You may terminate your account at any time. When you trigger account deletion via <em>Settings &rarr; Delete Account and Data</em> or via our online <a href="/account-deletion">Account Deletion Portal</a>, your profile and financial records are deleted from the live production database and all sessions are revoked. The app also wipes tokens, caches, and the offline queue on that device. Any queued entries that have not yet synced are discarded. We do not keep a separate archive of your ledger after deletion; infrastructure backups, where configured, follow the hosting provider&rsquo;s retention cycle and are not used to restore deleted accounts.</p>
+        <p>You may terminate your account at any time. When you trigger account deletion via <em>Settings &rarr; Delete Account and Data</em> or via our online <a href="https://api.kasyaba.site/account-deletion">Account Deletion Portal</a>, your profile and financial records are deleted from the live production database and all sessions are revoked. The app also wipes tokens, caches, and the offline queue on that device. Any queued entries that have not yet synced are discarded. We do not keep a separate archive of your ledger after deletion; infrastructure backups, where configured, are automatically overwritten within 30 days and are never used to restore deleted accounts.</p>
 
         <h2>8. Contact Support</h2>
         <p>For questions or assistance regarding these terms, please contact: <a href="mailto:${escapeHtml(env.SUPPORT_EMAIL)}">${escapeHtml(env.SUPPORT_EMAIL)}</a></p>
@@ -183,7 +184,7 @@ export function registerRoutes(router: Router) {
         </ul>
 
         <h2>Retention After Deletion</h2>
-        <p>We do not keep a separate archive of your ledger after deletion. Infrastructure backups, where configured, follow the hosting provider&rsquo;s retention cycle and are not used to restore deleted accounts. Records are otherwise retained only while your account is active, and expired sessions are pruned.</p>
+        <p>We do not keep a separate archive of your ledger after deletion. Infrastructure backups, where configured, are automatically overwritten within 30 days and are never used to restore deleted accounts. Records are otherwise retained only while your account is active, and expired sessions are pruned.</p>
 
         <h2>Need Help?</h2>
         <p>For questions about deletion or your rights under RA 10173, contact: <a href="mailto:${escapeHtml(env.SUPPORT_EMAIL)}">${escapeHtml(env.SUPPORT_EMAIL)}</a></p>
@@ -241,11 +242,11 @@ function renderPage(title: string, body: string): string {
 <main>
 ${body}
 <nav class="footer-links">
-  <a href="/terms">Terms of Service</a>
+  <a href="https://api.kasyaba.site/terms">Terms of Service</a>
   <span>&bull;</span>
-  <a href="/privacy">Privacy Policy</a>
+  <a href="https://api.kasyaba.site/privacy">Privacy Policy</a>
   <span>&bull;</span>
-  <a href="/account-deletion">Account Deletion</a>
+  <a href="https://api.kasyaba.site/account-deletion">Account Deletion</a>
 </nav>
 </main>
 </body>

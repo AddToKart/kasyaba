@@ -21,7 +21,7 @@ const envSchema = z.object({
   // when the API is exposed directly, or an IP/subnet list). Left unset by
   // default so the API can require an explicit value in production.
   TRUST_PROXY: z.string().optional(),
-  SUPPORT_EMAIL: z.string().email().default('support@kasyaba.app'),
+  SUPPORT_EMAIL: z.string().email().default('jelooabihayy@gmail.com'),
   RESEND_API_KEY: z.string().optional(),
   RESEND_FROM_EMAIL: z.string().default('Kasyaba <noreply@kasyaba.app>'),
   APP_NAME: z.string().default('Kasyaba'),
