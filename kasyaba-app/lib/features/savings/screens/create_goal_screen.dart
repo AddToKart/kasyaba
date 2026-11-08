@@ -204,7 +204,12 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
         body: KasyabaBackground(
           child: SizedBox.expand(
             child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(20, topPadding + 14, 20, DashboardTokens.dockClearance),
+              padding: EdgeInsets.fromLTRB(
+                20,
+                topPadding + 14,
+                20,
+                DashboardTokens.dockClearance,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -290,12 +295,13 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
                                 child: TextField(
                                   controller: _nameController,
                                   maxLength: kMaxNameLength,
-                                  buildCounter: (
-                                    context, {
-                                    required currentLength,
-                                    required isFocused,
-                                    maxLength,
-                                  }) => null,
+                                  buildCounter:
+                                      (
+                                        context, {
+                                        required currentLength,
+                                        required isFocused,
+                                        maxLength,
+                                      }) => null,
                                   style: GoogleFonts.dmSans(
                                     color: DashboardTokens.periwinkleGray,
                                     fontSize: 16,
@@ -354,32 +360,37 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
                                   ),
                                   const SizedBox(width: 4),
                                   IntrinsicWidth(
-                                    child: TextField(
-                                      controller: _amountController,
-                                      inputFormatters: [
-                                        currencyAmountInputFormatter,
-                                      ],
-                                      keyboardType:
-                                          const TextInputType.numberWithOptions(
-                                            decimal: true,
-                                          ),
-                                      textAlign: TextAlign.center,
-                                      onChanged: (_) => setState(() {}),
-                                      style: GoogleFonts.bricolageGrotesque(
-                                        color: DashboardTokens.periwinkleGray,
-                                        fontSize: 40,
-                                        fontWeight: FontWeight.bold,
+                                    child: ConstrainedBox(
+                                      constraints: const BoxConstraints(
+                                        minWidth: 96,
                                       ),
-                                      decoration: const InputDecoration(
-                                        isDense: true,
-                                        filled: false,
-                                        fillColor: Colors.transparent,
-                                        border: InputBorder.none,
-                                        enabledBorder: InputBorder.none,
-                                        focusedBorder: InputBorder.none,
-                                        errorBorder: InputBorder.none,
-                                        disabledBorder: InputBorder.none,
-                                        contentPadding: EdgeInsets.zero,
+                                      child: TextField(
+                                        controller: _amountController,
+                                        inputFormatters: [
+                                          currencyAmountInputFormatter,
+                                        ],
+                                        keyboardType:
+                                            const TextInputType.numberWithOptions(
+                                              decimal: true,
+                                            ),
+                                        textAlign: TextAlign.center,
+                                        onChanged: (_) => setState(() {}),
+                                        style: GoogleFonts.bricolageGrotesque(
+                                          color: DashboardTokens.periwinkleGray,
+                                          fontSize: 40,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        decoration: const InputDecoration(
+                                          isDense: true,
+                                          filled: false,
+                                          fillColor: Colors.transparent,
+                                          border: InputBorder.none,
+                                          enabledBorder: InputBorder.none,
+                                          focusedBorder: InputBorder.none,
+                                          errorBorder: InputBorder.none,
+                                          disabledBorder: InputBorder.none,
+                                          contentPadding: EdgeInsets.zero,
+                                        ),
                                       ),
                                     ),
                                   ),

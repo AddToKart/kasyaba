@@ -192,182 +192,180 @@ class _GoalDepositModalState extends ConsumerState<_GoalDepositModal> {
             ),
             const SizedBox(height: 16),
 
-                      // ── Amount Display & Seamless Input ──────────────────
-                      Center(
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.baseline,
-                          textBaseline: TextBaseline.alphabetic,
-                          children: [
-                            Text(
-                              '₱',
-                              style: GoogleFonts.bricolageGrotesque(
-                                color: DashboardTokens.periwinkleGraySubtitle,
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            IntrinsicWidth(
-                              child: TextField(
-                                controller: _amountController,
-                                keyboardType:
-                                    const TextInputType.numberWithOptions(
-                                      decimal: true,
-                                    ),
-                                textAlign: TextAlign.center,
-                                autofocus: true,
-                                onChanged: (_) => setState(() {}),
-                                style: GoogleFonts.bricolageGrotesque(
-                                  color: DashboardTokens.periwinkleGray,
-                                  fontSize: 44,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                decoration: const InputDecoration(
-                                  isDense: true,
-                                  filled: false,
-                                  fillColor: Colors.transparent,
-                                  border: InputBorder.none,
-                                  enabledBorder: InputBorder.none,
-                                  focusedBorder: InputBorder.none,
-                                  errorBorder: InputBorder.none,
-                                  disabledBorder: InputBorder.none,
-                                  contentPadding: EdgeInsets.zero,
-                                ),
-                              ),
-                            ),
-                          ],
+            // ── Amount Display & Seamless Input ──────────────────
+            Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Text(
+                    '₱',
+                    style: GoogleFonts.bricolageGrotesque(
+                      color: DashboardTokens.periwinkleGraySubtitle,
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  IntrinsicWidth(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(minWidth: 96),
+                      child: TextField(
+                        controller: _amountController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        textAlign: TextAlign.center,
+                        autofocus: true,
+                        onChanged: (_) => setState(() {}),
+                        style: GoogleFonts.bricolageGrotesque(
+                          color: DashboardTokens.periwinkleGray,
+                          fontSize: 44,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        decoration: const InputDecoration(
+                          isDense: true,
+                          filled: false,
+                          fillColor: Colors.transparent,
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          errorBorder: InputBorder.none,
+                          disabledBorder: InputBorder.none,
+                          contentPadding: EdgeInsets.zero,
                         ),
                       ),
-                      const SizedBox(height: 10),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
 
-                      // ── Projected Impact Subtitle ────────────────────────
-                      Center(
-                        child: RichText(
-                          textAlign: TextAlign.center,
-                          text: TextSpan(
+            // ── Projected Impact Subtitle ────────────────────────
+            Center(
+              child: RichText(
+                textAlign: TextAlign.center,
+                text: TextSpan(
+                  style: GoogleFonts.dmSans(
+                    color: DashboardTokens.periwinkleGraySubtitle,
+                    fontSize: 14,
+                  ),
+                  children: [
+                    TextSpan(
+                      text:
+                          '${widget.goal.name}: ${CurrencyFormatter.format(widget.goal.currentAmount, decimalDigits: 0)} → ',
+                    ),
+                    TextSpan(
+                      text:
+                          '${CurrencyFormatter.format(projectedCurrent, decimalDigits: 0)} ($projectedPercent%)',
+                      style: GoogleFonts.dmSans(
+                        color: DashboardTokens.bermuda,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+
+            // ── From Wallet Card (Node 11:1881) ──────────────────
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 21,
+                vertical: 18.5,
+              ),
+              decoration: BoxDecoration(
+                color: DashboardTokens.bigStone,
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(color: DashboardTokens.poloBlue22),
+              ),
+              child: selectedAccount != null
+                  ? Row(
+                      children: [
+                        SizedBox(
+                          width: 72,
+                          child: Text(
+                            'From',
                             style: GoogleFonts.dmSans(
                               color: DashboardTokens.periwinkleGraySubtitle,
                               fontSize: 14,
                             ),
-                            children: [
-                              TextSpan(
-                                text:
-                                    '${widget.goal.name}: ${CurrencyFormatter.format(widget.goal.currentAmount, decimalDigits: 0)} → ',
-                              ),
-                              TextSpan(
-                                text:
-                                    '${CurrencyFormatter.format(projectedCurrent, decimalDigits: 0)} ($projectedPercent%)',
-                                style: GoogleFonts.dmSans(
-                                  color: DashboardTokens.bermuda,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 18),
-
-                      // ── From Wallet Card (Node 11:1881) ──────────────────
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 21,
-                          vertical: 18.5,
+                        Expanded(
+                          child: Text(
+                            selectedAccount.name,
+                            style: GoogleFonts.dmSans(
+                              color: DashboardTokens.periwinkleGray,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
-                        decoration: BoxDecoration(
-                          color: DashboardTokens.bigStone,
-                          borderRadius: BorderRadius.circular(28),
-                          border: Border.all(color: DashboardTokens.poloBlue22),
-                        ),
-                        child: selectedAccount != null
-                            ? Row(
-                                children: [
-                                  SizedBox(
-                                    width: 72,
-                                    child: Text(
-                                      'From',
-                                      style: GoogleFonts.dmSans(
-                                        color: DashboardTokens
-                                            .periwinkleGraySubtitle,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child: Text(
-                                      selectedAccount.name,
-                                      style: GoogleFonts.dmSans(
-                                        color: DashboardTokens.periwinkleGray,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                  Text(
-                                    selectedBalance != null
-                                        ? CurrencyFormatter.format(
-                                            selectedBalance,
-                                          )
-                                        : '—',
-                                    style: GoogleFonts.dmSans(
-                                      color: DashboardTokens
-                                          .periwinkleGraySubtitle,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ],
-                              )
-                            : Text(
-                                walletUnavailableMessage,
-                                textAlign: TextAlign.center,
-                                style: GoogleFonts.dmSans(
-                                  color: accountsAsync.hasError
-                                      ? DashboardTokens.apricot
-                                      : DashboardTokens.periwinkleGraySubtitle,
-                                  fontSize: 14,
-                                ),
-                              ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // ── Explanatory Note ─────────────────────────────────
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Text(
-                          'This money is set aside for the goal and comes out of your safe-to-spend.',
-                          textAlign: TextAlign.center,
+                        Text(
+                          selectedBalance != null
+                              ? CurrencyFormatter.format(selectedBalance)
+                              : '—',
                           style: GoogleFonts.dmSans(
                             color: DashboardTokens.periwinkleGraySubtitle,
                             fontSize: 14,
-                            height: 1.4,
-                          ),
-                        ),
-                      ),
-                      if (_errorMessage != null) ...[
-                        const SizedBox(height: 8),
-                        Text(
-                          _errorMessage!,
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.dmSans(
-                            color: DashboardTokens.apricot,
-                            fontSize: 13,
                           ),
                         ),
                       ],
-                      const SizedBox(height: 20),
-
-                      if (!isOnline) ...[
-                        const OfflineQueuedNote(),
-                        const SizedBox(height: 12),
-                      ],
-
-                      // ── CTA Button ───────────────────────────────────────
-                      PillButton(
-                        label: 'Save deposit',
-                        onPressed: canSubmit ? _handleSaveDeposit : null,
-                        isLoading: _isSubmitting,
+                    )
+                  : Text(
+                      walletUnavailableMessage,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.dmSans(
+                        color: accountsAsync.hasError
+                            ? DashboardTokens.apricot
+                            : DashboardTokens.periwinkleGraySubtitle,
+                        fontSize: 14,
                       ),
+                    ),
+            ),
+            const SizedBox(height: 12),
+
+            // ── Explanatory Note ─────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Text(
+                'This money is set aside for the goal and comes out of your safe-to-spend.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.dmSans(
+                  color: DashboardTokens.periwinkleGraySubtitle,
+                  fontSize: 14,
+                  height: 1.4,
+                ),
+              ),
+            ),
+            if (_errorMessage != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                _errorMessage!,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.dmSans(
+                  color: DashboardTokens.apricot,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+            const SizedBox(height: 20),
+
+            if (!isOnline) ...[
+              const OfflineQueuedNote(),
+              const SizedBox(height: 12),
+            ],
+
+            // ── CTA Button ───────────────────────────────────────
+            PillButton(
+              label: 'Save deposit',
+              onPressed: canSubmit ? _handleSaveDeposit : null,
+              isLoading: _isSubmitting,
+            ),
           ],
         ),
       ),

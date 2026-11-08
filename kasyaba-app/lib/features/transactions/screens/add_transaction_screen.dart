@@ -228,54 +228,54 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                 const SizedBox(height: 12),
                 ListView.separated(
                   shrinkWrap: true,
-                    itemCount: accounts.length,
-                    separatorBuilder: (_, _) =>
-                        Divider(height: 1, color: DashboardTokens.poloBlue16),
-                    itemBuilder: (ctx, idx) {
-                      final acc = accounts[idx];
-                      final bal = balances[acc.id] ?? 0.0;
-                      final isSelected = isDestination
-                          ? _selectedToAccount == acc.id
-                          : _selectedAccount == acc.id;
-                      return ListTile(
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
+                  itemCount: accounts.length,
+                  separatorBuilder: (_, _) =>
+                      Divider(height: 1, color: DashboardTokens.poloBlue16),
+                  itemBuilder: (ctx, idx) {
+                    final acc = accounts[idx];
+                    final bal = balances[acc.id] ?? 0.0;
+                    final isSelected = isDestination
+                        ? _selectedToAccount == acc.id
+                        : _selectedAccount == acc.id;
+                    return ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      title: Text(
+                        acc.name,
+                        style: GoogleFonts.dmSans(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: isSelected
+                              ? DashboardTokens.bermuda
+                              : DashboardTokens.periwinkleGray,
                         ),
-                        title: Text(
-                          acc.name,
-                          style: GoogleFonts.dmSans(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: isSelected
-                                ? DashboardTokens.bermuda
-                                : DashboardTokens.periwinkleGray,
-                          ),
+                      ),
+                      subtitle: Text(
+                        acc.type.toUpperCase(),
+                        style: GoogleFonts.dmSans(
+                          fontSize: 12,
+                          color: DashboardTokens.periwinkleGraySubtitle,
                         ),
-                        subtitle: Text(
-                          acc.type.toUpperCase(),
-                          style: GoogleFonts.dmSans(
-                            fontSize: 12,
-                            color: DashboardTokens.periwinkleGraySubtitle,
-                          ),
+                      ),
+                      trailing: Text(
+                        CurrencyFormatter.format(bal),
+                        style: GoogleFonts.dmSans(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: DashboardTokens.periwinkleGraySubtitle,
                         ),
-                        trailing: Text(
-                          CurrencyFormatter.format(bal),
-                          style: GoogleFonts.dmSans(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: DashboardTokens.periwinkleGraySubtitle,
-                          ),
-                        ),
-                        onTap: () {
-                          Navigator.of(sheetContext).pop(acc.id);
-                        },
-                      );
-                    },
-              ),
-            ],
+                      ),
+                      onTap: () {
+                        Navigator.of(sheetContext).pop(acc.id);
+                      },
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
-        ),
         );
       },
     ).then((chosenId) {
@@ -674,7 +674,12 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
             gradient: DashboardTokens.canvasGradient,
           ),
           child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(20, topPadding + 14, 20, DashboardTokens.dockClearance),
+            padding: EdgeInsets.fromLTRB(
+              20,
+              topPadding + 14,
+              20,
+              DashboardTokens.dockClearance,
+            ),
             child: Form(
               key: _formKey,
               child: Column(
@@ -769,47 +774,52 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                             const SizedBox(width: 8),
                             Flexible(
                               child: IntrinsicWidth(
-                                child: TextFormField(
-                                  controller: _amountController,
-                                  inputFormatters: [
-                                    currencyAmountInputFormatter,
-                                  ],
-                                  keyboardType:
-                                      const TextInputType.numberWithOptions(
-                                        decimal: true,
-                                      ),
-                                  style: GoogleFonts.bricolageGrotesque(
-                                    fontSize: 46,
-                                    fontWeight: FontWeight.bold,
-                                    color: DashboardTokens.periwinkleGray,
-                                    height: 1.1,
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(
+                                    minWidth: 96,
                                   ),
-                                  textAlign: TextAlign.left,
-                                  cursorColor: DashboardTokens.periwinkleGray,
-                                  decoration: InputDecoration(
-                                    hintText: '0',
-                                    hintStyle: GoogleFonts.bricolageGrotesque(
+                                  child: TextFormField(
+                                    controller: _amountController,
+                                    inputFormatters: [
+                                      currencyAmountInputFormatter,
+                                    ],
+                                    keyboardType:
+                                        const TextInputType.numberWithOptions(
+                                          decimal: true,
+                                        ),
+                                    style: GoogleFonts.bricolageGrotesque(
                                       fontSize: 46,
                                       fontWeight: FontWeight.bold,
-                                      color: DashboardTokens.periwinkleGray
-                                          .withValues(alpha: 0.35),
+                                      color: DashboardTokens.periwinkleGray,
+                                      height: 1.1,
                                     ),
-                                    border: InputBorder.none,
-                                    enabledBorder: InputBorder.none,
-                                    focusedBorder: InputBorder.none,
-                                    filled: false,
-                                    fillColor: Colors.transparent,
-                                    contentPadding: EdgeInsets.zero,
+                                    textAlign: TextAlign.left,
+                                    cursorColor: DashboardTokens.periwinkleGray,
+                                    decoration: InputDecoration(
+                                      hintText: '0',
+                                      hintStyle: GoogleFonts.bricolageGrotesque(
+                                        fontSize: 46,
+                                        fontWeight: FontWeight.bold,
+                                        color: DashboardTokens.periwinkleGray
+                                            .withValues(alpha: 0.35),
+                                      ),
+                                      border: InputBorder.none,
+                                      enabledBorder: InputBorder.none,
+                                      focusedBorder: InputBorder.none,
+                                      filled: false,
+                                      fillColor: Colors.transparent,
+                                      contentPadding: EdgeInsets.zero,
+                                    ),
+                                    validator: (value) {
+                                      final val = double.tryParse(
+                                        value?.replaceAll(',', '').trim() ?? '',
+                                      );
+                                      if (val == null || val <= 0) {
+                                        return 'Enter valid amount';
+                                      }
+                                      return null;
+                                    },
                                   ),
-                                  validator: (value) {
-                                    final val = double.tryParse(
-                                      value?.replaceAll(',', '').trim() ?? '',
-                                    );
-                                    if (val == null || val <= 0) {
-                                      return 'Enter valid amount';
-                                    }
-                                    return null;
-                                  },
                                 ),
                               ),
                             ),
@@ -920,12 +930,13 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
           child: TextFormField(
             controller: _descriptionController,
             maxLength: kMaxDescriptionLength,
-            buildCounter: (
-              context, {
-              required currentLength,
-              required isFocused,
-              maxLength,
-            }) => null,
+            buildCounter:
+                (
+                  context, {
+                  required currentLength,
+                  required isFocused,
+                  maxLength,
+                }) => null,
             style: GoogleFonts.dmSans(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -1097,12 +1108,13 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
           child: TextFormField(
             controller: _descriptionController,
             maxLength: kMaxDescriptionLength,
-            buildCounter: (
-              context, {
-              required currentLength,
-              required isFocused,
-              maxLength,
-            }) => null,
+            buildCounter:
+                (
+                  context, {
+                  required currentLength,
+                  required isFocused,
+                  maxLength,
+                }) => null,
             style: GoogleFonts.dmSans(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -1182,12 +1194,13 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
           child: TextFormField(
             controller: _notesController,
             maxLength: kMaxNotesLength,
-            buildCounter: (
-              context, {
-              required currentLength,
-              required isFocused,
-              maxLength,
-            }) => null,
+            buildCounter:
+                (
+                  context, {
+                  required currentLength,
+                  required isFocused,
+                  maxLength,
+                }) => null,
             style: GoogleFonts.dmSans(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -1402,12 +1415,13 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
           child: TextFormField(
             controller: _notesController,
             maxLength: kMaxNotesLength,
-            buildCounter: (
-              context, {
-              required currentLength,
-              required isFocused,
-              maxLength,
-            }) => null,
+            buildCounter:
+                (
+                  context, {
+                  required currentLength,
+                  required isFocused,
+                  maxLength,
+                }) => null,
             style: GoogleFonts.dmSans(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -1539,27 +1553,27 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                 const SizedBox(height: 12),
                 ListView.separated(
                   shrinkWrap: true,
-                itemCount: categories.length,
-                separatorBuilder: (_, _) =>
-                    Divider(height: 1, color: DashboardTokens.poloBlue16),
-                itemBuilder: (ctx, idx) {
-                  final c = categories[idx];
-                  return ListTile(
-                    title: Text(
-                      c.name,
-                      style: GoogleFonts.dmSans(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: DashboardTokens.periwinkleGray,
+                  itemCount: categories.length,
+                  separatorBuilder: (_, _) =>
+                      Divider(height: 1, color: DashboardTokens.poloBlue16),
+                  itemBuilder: (ctx, idx) {
+                    final c = categories[idx];
+                    return ListTile(
+                      title: Text(
+                        c.name,
+                        style: GoogleFonts.dmSans(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: DashboardTokens.periwinkleGray,
+                        ),
                       ),
-                    ),
-                    onTap: () => Navigator.of(sheetContext).pop(c),
-                  );
-                },
-              ),
-            ],
+                      onTap: () => Navigator.of(sheetContext).pop(c),
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
-        ),
         );
       },
     ).then((cat) {

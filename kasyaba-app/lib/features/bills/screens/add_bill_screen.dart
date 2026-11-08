@@ -141,40 +141,15 @@ class _AddBillScreenState extends ConsumerState<AddBillScreen> {
                 const SizedBox(height: 12),
                 ListView.separated(
                   shrinkWrap: true,
-                    itemCount: categories.length + 1,
-                    separatorBuilder: (_, _) =>
-                        Divider(height: 1, color: DashboardTokens.poloBlue16),
-                    itemBuilder: (ctx, idx) {
-                      if (idx == 0) {
-                        final isSelected = _selectedCategoryId == null;
-                        return ListTile(
-                          title: Text(
-                            'No category',
-                            style: GoogleFonts.dmSans(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: isSelected
-                                  ? DashboardTokens.bermuda
-                                  : DashboardTokens.periwinkleGray,
-                            ),
-                          ),
-                          trailing: isSelected
-                              ? const Icon(
-                                  Icons.check_rounded,
-                                  color: DashboardTokens.bermuda,
-                                  size: 20,
-                                )
-                              : null,
-                          onTap: () => Navigator.of(
-                            sheetContext,
-                          ).pop(const Category(id: '', name: 'No category')),
-                        );
-                      }
-                      final category = categories[idx - 1];
-                      final isSelected = _selectedCategoryId == category.id;
+                  itemCount: categories.length + 1,
+                  separatorBuilder: (_, _) =>
+                      Divider(height: 1, color: DashboardTokens.poloBlue16),
+                  itemBuilder: (ctx, idx) {
+                    if (idx == 0) {
+                      final isSelected = _selectedCategoryId == null;
                       return ListTile(
                         title: Text(
-                          category.name,
+                          'No category',
                           style: GoogleFonts.dmSans(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
@@ -190,13 +165,38 @@ class _AddBillScreenState extends ConsumerState<AddBillScreen> {
                                 size: 20,
                               )
                             : null,
-                        onTap: () => Navigator.of(sheetContext).pop(category),
+                        onTap: () => Navigator.of(
+                          sheetContext,
+                        ).pop(const Category(id: '', name: 'No category')),
                       );
-                    },
-              ),
-            ],
+                    }
+                    final category = categories[idx - 1];
+                    final isSelected = _selectedCategoryId == category.id;
+                    return ListTile(
+                      title: Text(
+                        category.name,
+                        style: GoogleFonts.dmSans(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: isSelected
+                              ? DashboardTokens.bermuda
+                              : DashboardTokens.periwinkleGray,
+                        ),
+                      ),
+                      trailing: isSelected
+                          ? const Icon(
+                              Icons.check_rounded,
+                              color: DashboardTokens.bermuda,
+                              size: 20,
+                            )
+                          : null,
+                      onTap: () => Navigator.of(sheetContext).pop(category),
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
-        ),
         );
       },
     );
@@ -304,7 +304,12 @@ class _AddBillScreenState extends ConsumerState<AddBillScreen> {
             gradient: DashboardTokens.canvasGradient,
           ),
           child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(20, topPadding + 14, 20, DashboardTokens.dockClearance),
+            padding: EdgeInsets.fromLTRB(
+              20,
+              topPadding + 14,
+              20,
+              DashboardTokens.dockClearance,
+            ),
             child: Form(
               key: _formKey,
               child: Column(
@@ -359,12 +364,13 @@ class _AddBillScreenState extends ConsumerState<AddBillScreen> {
                     child: TextFormField(
                       controller: _nameController,
                       maxLength: kMaxNameLength,
-                      buildCounter: (
-                        context, {
-                        required currentLength,
-                        required isFocused,
-                        maxLength,
-                      }) => null,
+                      buildCounter:
+                          (
+                            context, {
+                            required currentLength,
+                            required isFocused,
+                            maxLength,
+                          }) => null,
                       style: GoogleFonts.dmSans(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -420,37 +426,38 @@ class _AddBillScreenState extends ConsumerState<AddBillScreen> {
                         const SizedBox(width: 8),
                         Flexible(
                           child: IntrinsicWidth(
-                            child: TextFormField(
-                              controller: _amountController,
-                              inputFormatters: [
-                                currencyAmountInputFormatter,
-                              ],
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                              style: GoogleFonts.bricolageGrotesque(
-                                fontSize: 44,
-                                fontWeight: FontWeight.bold,
-                                color: DashboardTokens.periwinkleGray,
-                                height: 1.1,
-                              ),
-                              textAlign: TextAlign.left,
-                              cursorColor: DashboardTokens.periwinkleGray,
-                              decoration: InputDecoration(
-                                hintText: '0',
-                                hintStyle: GoogleFonts.bricolageGrotesque(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(minWidth: 96),
+                              child: TextFormField(
+                                controller: _amountController,
+                                inputFormatters: [currencyAmountInputFormatter],
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                      decimal: true,
+                                    ),
+                                style: GoogleFonts.bricolageGrotesque(
                                   fontSize: 44,
                                   fontWeight: FontWeight.bold,
-                                  color: DashboardTokens.periwinkleGray
-                                      .withValues(alpha: 0.35),
+                                  color: DashboardTokens.periwinkleGray,
+                                  height: 1.1,
                                 ),
-                                border: InputBorder.none,
-                                enabledBorder: InputBorder.none,
-                                focusedBorder: InputBorder.none,
-                                filled: false,
-                                fillColor: Colors.transparent,
-                                contentPadding: EdgeInsets.zero,
+                                textAlign: TextAlign.left,
+                                cursorColor: DashboardTokens.periwinkleGray,
+                                decoration: InputDecoration(
+                                  hintText: '0',
+                                  hintStyle: GoogleFonts.bricolageGrotesque(
+                                    fontSize: 44,
+                                    fontWeight: FontWeight.bold,
+                                    color: DashboardTokens.periwinkleGray
+                                        .withValues(alpha: 0.35),
+                                  ),
+                                  border: InputBorder.none,
+                                  enabledBorder: InputBorder.none,
+                                  focusedBorder: InputBorder.none,
+                                  filled: false,
+                                  fillColor: Colors.transparent,
+                                  contentPadding: EdgeInsets.zero,
+                                ),
                               ),
                             ),
                           ),
