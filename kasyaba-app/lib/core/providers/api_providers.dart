@@ -125,6 +125,39 @@ final accountBalancesProvider = FutureProvider<Map<String, double>>((
     }),
   );
 
+  // If every per-account call failed (offline / endpoint unreachable), serve
+  // the last-known balances so wallets keep their amounts, per the privacy
+  // policy's device-cache list.
+  if (map.isEmpty && accounts.isNotEmpty && userId != null) {
+    try {
+      final snapshot = await cacheService.getSnapshot(
+        userId,
+        CacheService.snapshotKeyBalances,
+      );
+      if (snapshot != null) {
+        final decoded = jsonDecode(snapshot.json) as Map<String, dynamic>;
+        decoded.forEach((key, value) {
+          final amount = double.tryParse(value?.toString() ?? '');
+          if (amount != null) {
+            map[key] = amount;
+          }
+        });
+      }
+    } catch (_) {}
+  }
+
+  // Persist the fetched (network-path) balances before the pending-overlay
+  // deltas are applied, so offline fallbacks never double-count them.
+  if (userId != null && map.isNotEmpty) {
+    try {
+      await cacheService.putSnapshot(
+        userId: userId,
+        key: CacheService.snapshotKeyBalances,
+        json: jsonEncode(map),
+      );
+    } catch (_) {}
+  }
+
   // If there are pending local offline transactions, apply their net effect
   if (userId != null) {
     try {
