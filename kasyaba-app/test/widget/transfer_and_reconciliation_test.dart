@@ -78,6 +78,49 @@ void main() {
       // Save button now says "Save transfer"
       expect(find.text('Save transfer'), findsOneWidget);
     });
+
+    testWidgets('swap button flips the from and to wallets', (tester) async {
+      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            accountsProvider.overrideWith((ref) async => testAccounts),
+            accountBalancesProvider.overrideWith((ref) async => testBalances),
+            categoriesProvider.overrideWith((ref) async => []),
+          ],
+          child: const MaterialApp(
+            home: AddTransactionScreen(),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Switch to Transfer mode: from = first wallet (BDO), to = other (GCash).
+      await tester.tap(find.text('Transfer'));
+      await tester.pumpAndSettle();
+
+      // Both wallet names render exactly once each.
+      expect(find.text('BDO Checking'), findsOneWidget);
+      expect(find.text('GCash Wallet'), findsOneWidget);
+
+      double topOf(String name) => tester.getTopLeft(find.text(name)).dy;
+
+      // Sanity: before the swap GCash (destination) sits BELOW BDO (source).
+      expect(topOf('GCash Wallet'), greaterThan(topOf('BDO Checking')));
+
+      await tester.tap(find.text('Swap'));
+      await tester.pumpAndSettle();
+
+      // After the swap the destination wallet must appear first.
+      expect(topOf('GCash Wallet'), lessThan(topOf('BDO Checking')));
+      expect(find.text('BDO Checking'), findsOneWidget);
+      expect(find.text('GCash Wallet'), findsOneWidget);
+    });
   });
 
   group('ReconcileBalanceSheet - 1-Tap Wallet Balance Reconciliation', () {

@@ -8,6 +8,7 @@ import '../../../core/connectivity/connectivity_service.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../../../shared/widgets/account_picker_sheet.dart';
 import '../../../shared/widgets/app_sheet.dart';
 import '../../../shared/widgets/kasyaba_toast.dart';
 import '../../../shared/widgets/offline_status.dart';
@@ -118,6 +119,23 @@ class _GoalDepositModalState extends ConsumerState<_GoalDepositModal> {
         });
       }
     }
+  }
+
+  /// Opens the shared wallet picker and stores the chosen wallet so deposits
+  /// are not locked to the first wallet in the list.
+  Future<void> _pickWallet(
+    List<Account> accounts,
+    Map<String, double>? balances,
+  ) async {
+    if (accounts.isEmpty) return;
+    final chosen = await showKasyabaAccountPicker(
+      context: context,
+      accounts: accounts,
+      selectedId: _effectiveAccountId(accounts),
+      balances: balances,
+    );
+    if (chosen == null || !mounted) return;
+    setState(() => _selectedAccountId = chosen.id);
   }
 
   @override
@@ -272,8 +290,13 @@ class _GoalDepositModalState extends ConsumerState<_GoalDepositModal> {
             ),
             const SizedBox(height: 18),
 
-            // ── From Wallet Card (Node 11:1881) ──────────────────
-            Container(
+            // ── From Wallet Card (Node 11:1881) — tappable wallet picker ──
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: accounts.isEmpty
+                  ? null
+                  : () => _pickWallet(accounts, balances),
+              child: Container(
               padding: const EdgeInsets.symmetric(
                 horizontal: 21,
                 vertical: 18.5,
@@ -327,6 +350,7 @@ class _GoalDepositModalState extends ConsumerState<_GoalDepositModal> {
                         fontSize: 14,
                       ),
                     ),
+              ),
             ),
             const SizedBox(height: 12),
 

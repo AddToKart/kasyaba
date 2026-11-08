@@ -532,6 +532,13 @@ const Account qaDefaultAccount = Account(
   type: 'cash',
 );
 
+/// Secondary wallet fixture for multi-wallet flows (pickers, transfers).
+const Account qaSecondAccount = Account(
+  id: 'qa-account-gcash',
+  name: 'GCash',
+  type: 'ewallet',
+);
+
 UserProfile qaDefaultProfile({double? salaryAmount, String? displayName}) {
   return UserProfile(
     id: qaTestUserId,
@@ -589,9 +596,12 @@ List<Override> qaDefaultDataOverrides({
   List<TransactionEntry>? transactions,
 }) {
   final resolvedProfile = profile ?? qaDefaultProfile();
-  const resolvedAccounts = <Account>[qaDefaultAccount];
-  final resolvedBalances =
-      balances ?? const <String, double>{qaAccountId: 12345.67};
+  final resolvedAccounts = accounts ?? const <Account>[qaDefaultAccount, qaSecondAccount];
+  final resolvedBalances = balances ??
+      const <String, double>{
+        qaAccountId: 12345.67,
+        'qa-account-gcash': 2500.00,
+      };
   final resolvedBills = bills ?? const <BillItem>[];
   final resolvedGoals = goals ?? const <SavingsGoal>[];
   final resolvedAlerts = alerts ?? const <AlertItem>[];

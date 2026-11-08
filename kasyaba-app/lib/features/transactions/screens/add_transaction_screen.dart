@@ -295,10 +295,19 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
 
   void _swapAccounts() {
     AppHaptics.mediumImpact();
+    final accounts = ref.read(accountsProvider).valueOrNull ?? const <Account>[];
+    final fromId = _effectiveAccountId(accounts);
+    final toId = _effectiveToAccountId(accounts, fromId);
+
+    // After swapping nulls, the effective-selection fallbacks would still
+    // pick the same wallets (first account / its counterpart), making the
+    // button look dead. Materialize the effective wallets as explicit
+    // selections so the swap visibly flips the two rows.
+    if (toId == null || toId == fromId) return;
+
     setState(() {
-      final temp = _selectedAccount;
-      _selectedAccount = _selectedToAccount;
-      _selectedToAccount = temp;
+      _selectedAccount = toId;
+      _selectedToAccount = fromId;
     });
   }
 
