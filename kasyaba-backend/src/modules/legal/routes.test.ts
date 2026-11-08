@@ -32,6 +32,10 @@ describe('Public legal pages', () => {
       '00:10 Asia/Manila',
       'HTTPS/TLS',
       'used only for rate limiting',
+      'Jelo Abihay',
+      'not a bank, financial institution, or lender',
+      'are automatically overwritten within 30 days',
+      'https://api.kasyaba.site/account-deletion',
       'full account snapshot',
       'CSV contains transactions only',
     ];
@@ -69,9 +73,9 @@ describe('Public legal pages', () => {
 
   it('links all three legal pages from every footer', async () => {
     const footerLinks = [
-      'href="/terms"',
-      'href="/privacy"',
-      'href="/account-deletion"',
+      'href="https://api.kasyaba.site/terms"',
+      'href="https://api.kasyaba.site/privacy"',
+      'href="https://api.kasyaba.site/account-deletion"',
     ];
 
     for (const path of PAGES) {

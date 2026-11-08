@@ -340,12 +340,22 @@ Keep the account active until the listing is live.
 
 ## 7. Privacy policy and account-deletion URLs
 
+Canonical host: `api.kasyaba.site` (matches the app's `dart-define` defaults).
+Console and policy links must use these exact absolute URLs:
+
 | Play Console field | Value |
 |---|---|
-| Privacy policy URL | `https://<API_HOST>/privacy` |
-| Account deletion URL | `https://<API_HOST>/account-deletion` |
-| Terms (in-app link) | `https://<API_HOST>/terms` |
-| API base URL | `https://<API_HOST>/api/v1` |
+| Privacy policy URL | `https://api.kasyaba.site/privacy` |
+| Account deletion URL | `https://api.kasyaba.site/account-deletion` |
+| Terms (in-app link) | `https://api.kasyaba.site/terms` |
+| API base URL | `https://api.kasyaba.site/api/v1` |
+
+Developer identity (must match the Play developer account exactly):
+**Jelo Abihay**. The hosted policy already declares this (privacy §intro
+and §10). Support email: `jelooabihayy@gmail.com` (backend `SUPPORT_EMAIL`
+default; also the Console contact). Backup retention the policy commits to:
+**30 days** — keep any snapshot/`pg_dump` cycle ≤ 30 days so the claim stays
+true.
 
 Verification:
 

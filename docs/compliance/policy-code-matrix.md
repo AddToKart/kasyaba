@@ -293,3 +293,17 @@ Remaining gaps and follow-ups:
 10. **Play Data Safety form.** Re-check the Console form against §2 after deployment; the privacy URL must serve the rewritten `/privacy`.
 11. **Remaining policy assertions.** The new tests cover the headline claims and banned phrases but not: stored Argon2id hash format, SHA-256-only refresh-token persistence in the DB, the “Last updated” date, support-email rendering, and all five RA 10173 rights being named.
 12. **Email-delivery logs include the recipient address.** `src/lib/email.ts` logs `to` on send success/failure. This is operational PII (not financial data); decide whether to mask it or document log retention.
+
+---
+
+## Policy hardening update — v2.1 (2026-11-06, late)
+
+| Policy statement (added) | Implementation evidence |
+|---|---|
+| Developer identity: "KASYABA is developed and operated by Jelo Abihay" (privacy intro + §10) | `legal/routes.ts` intro + Contact section; must match the Play developer account |
+| Not-a-lender scope: "not a bank, financial institution, or lender; does not facilitate money transfers, credit issuance, or loan disbursements" | `legal/routes.ts` intro; prevents Finance-category misclassification against the BNPL/loans scanner |
+| Offline queue is account-tagged: "tagged to your unique account ID; only re-attached if the same account signs back in; never shown to a different account" | `kasyaba-app/lib/core/database/cache_service.dart` (`queueTransaction` stores userId; `syncPendingTransactions(userId)`; `deleteAllForUser(userId)`), `database.dart` `OfflineTransactions.userId` — wording now matches code exactly |
+| Backup retention bound: "automatically overwritten within 30 days" | Owner decision (30-day cycle); keep any pg_dump/snapshot job <= 30 days; privacy §Retention, terms §6, account-deletion page all state it |
+| Absolute canonical URLs (https://api.kasyaba.site/privacy | terms | account-deletion) in all three pages + footer | `legal/routes.ts` (footer + deletion §7); canonical host matches `app_info.dart` defaults |
+| SUPPORT_EMAIL default | jelooabihayy@gmail.com (env default, `.env.example`, prod compose) |
+| Copy gate additions | `legal/routes.test.ts` now requires: "Jelo Abihay", "not a bank, financial institution, or lender", "are automatically overwritten within 30 days", absolute deletion URL; footer-link assertions upgraded to absolute URLs |
