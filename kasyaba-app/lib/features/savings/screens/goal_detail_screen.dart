@@ -223,23 +223,33 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
 
     final now = DateTime.now();
     final monthlyNeed = goalMonthlyNeed(goal);
+    final daysLeft = goalDaysUntilTarget(goal, now: now);
     final double dailySetAside;
     if (remaining <= 0) {
       dailySetAside = 0;
-    } else if (targetDateTime != null) {
-      final daysRemaining = targetDateTime.difference(now).inDays;
-      dailySetAside = daysRemaining > 0 ? remaining / daysRemaining : remaining;
+    } else if (daysLeft != null) {
+      dailySetAside = remaining / daysLeft;
     } else {
       dailySetAside = monthlyNeed / 30;
     }
+    final shortHorizon = daysLeft != null && daysLeft < 31 && remaining > 0;
 
+    // Brand-new goals owe nothing yet: "Behind schedule" only makes sense
+    // once the goal has money in it, otherwise the label reads like a
+    // punishment for simply creating a plan.
+    final hasStarted = goal.currentAmount > 0;
     final bool? canAfford = goal.canAffordByTargetDate;
-    final String? statusLabel = canAfford == null
-        ? null
-        : (canAfford ? 'On track' : 'Behind schedule');
-    final statusColor = canAfford == true
+    final String? statusLabel = switch (canAfford) {
+      null => null,
+      true => 'On track',
+      false when hasStarted => 'Behind schedule',
+      false => 'Just started',
+    };
+    final statusColor = statusLabel == 'On track'
         ? context.kColors.success
-        : context.kColors.danger;
+        : statusLabel == 'Behind schedule'
+            ? context.kColors.danger
+            : context.kColors.textSecondary;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -316,7 +326,9 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
                 const SizedBox(height: 4),
               ],
               Text(
-                'Needs about ${CurrencyFormatter.format(monthlyNeed, decimalDigits: 0)} a month',
+                shortHorizon
+                    ? 'Save about ${CurrencyFormatter.format(dailySetAside, decimalDigits: 2)} a day for the remaining $daysLeft day${daysLeft == 1 ? '' : 's'}'
+                    : 'Needs about ${CurrencyFormatter.format(monthlyNeed, decimalDigits: 0)} a month',
                 style: GoogleFonts.dmSans(
                   color: context.kColors.textSecondary,
                   fontSize: 14,

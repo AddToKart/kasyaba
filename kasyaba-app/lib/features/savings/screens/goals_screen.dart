@@ -303,15 +303,35 @@ class GoalsScreen extends ConsumerWidget {
                             final percent = (progress * 100).round();
                             final monthlyNeed = goalMonthlyNeed(goal);
                             final dateText = _formatTargetDate(goal.targetDate);
+                            final daysLeft = goalDaysUntilTarget(goal);
+                            final shortHorizon = daysLeft != null &&
+                                daysLeft < 31 &&
+                                goal.currentAmount < goal.targetAmount;
+                            final remainingAmount =
+                                (goal.targetAmount - goal.currentAmount)
+                                    .clamp(0.0, double.infinity);
+                            final dailyRate = daysLeft != null &&
+                                    remainingAmount > 0
+                                ? remainingAmount / daysLeft
+                                : monthlyNeed / 30;
+                            final hasStarted = goal.currentAmount > 0;
                             final bool? canAfford = goal.canAffordByTargetDate;
-                            final statusLabel = canAfford == null
-                                ? null
-                                : (canAfford
-                                      ? 'On track · $dateText'
-                                      : 'Behind schedule · $dateText');
-                            final statusColor = canAfford == true
+                            final statusLabel = switch (canAfford) {
+                              null => null,
+                              true => 'On track',
+                              false when hasStarted => 'Behind schedule',
+                              false => 'Just started',
+                            };
+                            final statusColor = statusLabel == 'On track'
                                 ? context.kColors.success
-                                : context.kColors.danger;
+                                : statusLabel == 'Behind schedule'
+                                    ? context.kColors.danger
+                                    : context.kColors.textSecondary;
+                            final paceLabel = statusLabel == null
+                                ? null
+                                : shortHorizon
+                                    ? 'Needs ~${CurrencyFormatter.format(dailyRate, decimalDigits: 2)} a day for the next $daysLeft days'
+                                    : 'Needs about ${CurrencyFormatter.format(monthlyNeed)} a month';
 
                             return FadeSlideEntrance.staggered(
                               index: 1 + i,
@@ -441,28 +461,31 @@ class GoalsScreen extends ConsumerWidget {
                                               crossAxisAlignment:
                                                   CrossAxisAlignment.start,
                                               children: [
-                                                Text(
-                                                  statusLabel ?? dateText,
-                                                  style: GoogleFonts.dmSans(
-                                                    fontSize: 14,
-                                                    fontWeight: FontWeight.w700,
-                                                    color: statusLabel == null
-                                                        ? context
-                                                              .kColors
-                                                              .textSecondary
-                                                        : statusColor,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 2),
-                                                Text(
-                                                  'Needs about ${CurrencyFormatter.format(monthlyNeed)} a month',
-                                                  style: GoogleFonts.dmSans(
-                                                    fontSize: 13,
-                                                    color: context
-                                                        .kColors
-                                                        .textSecondary,
-                                                  ),
-                                                ),
+                                                 Text(
+                                                   statusLabel != null
+                                                       ? '$statusLabel - $dateText'
+                                                       : dateText,
+                                                   style: GoogleFonts.dmSans(
+                                                     fontSize: 14,
+                                                     fontWeight: FontWeight.w700,
+                                                     color: statusLabel == null
+                                                         ? context
+                                                               .kColors
+                                                               .textSecondary
+                                                         : statusColor,
+                                                   ),
+                                                 ),
+                                                 const SizedBox(height: 2),
+                                                 if (paceLabel != null)
+                                                   Text(
+                                                     paceLabel,
+                                                     style: GoogleFonts.dmSans(
+                                                       fontSize: 13,
+                                                       color: context
+                                                           .kColors
+                                                           .textSecondary,
+                                                     ),
+                                                   ),
                                               ],
                                             ),
                                           ),

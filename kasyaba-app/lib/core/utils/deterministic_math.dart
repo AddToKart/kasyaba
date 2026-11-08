@@ -176,6 +176,30 @@ double goalMonthlyNeed(SavingsGoal goal) {
   return remaining / 365 * 30;
 }
 
+/// Days remaining for a goal using the same priority chain as
+/// [goalMonthlyNeed]: server-provided [SavingsGoal.daysRemaining], then the
+/// target date, otherwise null (open-ended horizon).
+///
+/// Horizons shorter than 31 days make a "per month" figure read absurd (it
+/// can exceed the goal itself), so UI callers treat that range as a
+/// short-horizon and display a per-day pace instead.
+int? goalDaysUntilTarget(SavingsGoal goal, {DateTime? now}) {
+  if (goal.daysRemaining != null && goal.daysRemaining! > 0) {
+    return goal.daysRemaining;
+  }
+
+  final current = now ?? DateTime.now();
+  final today = DateTime(current.year, current.month, current.day);
+  final targetDate = goal.targetDate != null
+      ? DateTime.tryParse(goal.targetDate!)
+      : null;
+  if (targetDate != null) {
+    final days = targetDate.difference(today).inDays;
+    if (days > 0) return days;
+  }
+  return null;
+}
+
 /// Calculates the deterministic "Kasya Ba Today?" Daily Safe-to-Spend metric:
 /// Daily Safe Spend = Math.max(0, (Total Liquid Balance - Unpaid Bills Due Before Next Payday - Scheduled Goal Contributions) / Days Until Next Payday)
 DailySafeSpendCalculation calculateDailySafeSpend({

@@ -89,6 +89,40 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
     );
   }
 
+  bool get _previewShortHorizon {
+    if (_targetDate == null || _targetAmount <= 0) return false;
+    final today = DateTime.now();
+    final calendarToday = DateTime(today.year, today.month, today.day);
+    final days = DateTime(_targetDate!.year, _targetDate!.month, _targetDate!.day)
+        .difference(calendarToday)
+        .inDays;
+    return days < 31;
+  }
+
+  /// For horizons under a month, a "per month" run-rate reads absurd (it can
+  /// exceed the goal itself), so the preview switches to an honest per-day pace.
+  String get _previewPaceLabel {
+    final remainingPreview =
+        (_targetAmount - _alreadySaved).clamp(0.0, double.infinity);
+    if (remainingPreview <= 0) return 'Goal already funded';
+
+    if (!_previewShortHorizon) {
+      return '${CurrencyFormatter.format(_monthlyRequired, decimalDigits: 0)} a month';
+    }
+
+    final today = DateTime.now();
+    final calendarToday = DateTime(today.year, today.month, today.day);
+    final days = DateTime(_targetDate!.year, _targetDate!.month, _targetDate!.day)
+        .difference(calendarToday)
+        .inDays;
+    if (days <= 0) {
+      return '${CurrencyFormatter.format(remainingPreview, decimalDigits: 0)} today';
+    }
+
+    final daily = remainingPreview / days;
+    return '${CurrencyFormatter.format(daily, decimalDigits: 2)} a day for the next $days days';
+  }
+
   Future<void> _pickDate() async {
     final now = DateTime.now();
     final picked = await showDatePicker(
@@ -184,7 +218,7 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
     final isOnline = ref.watch(isOnlineProvider);
 
     final dateText = _targetDate != null
-        ? DateFormat('MMM yyyy').format(_targetDate!)
+        ? DateFormat('MMM d, yyyy').format(_targetDate!)
         : 'Pick date';
 
     // Dark keeps the legacy poloBlue30 hint exactly; light needs a readable
@@ -556,10 +590,10 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '${CurrencyFormatter.format(_monthlyRequired, decimalDigits: 0)} a month',
+                            _previewPaceLabel,
                             style: GoogleFonts.bricolageGrotesque(
                               color: context.kColors.success,
-                              fontSize: 26,
+                              fontSize: _previewShortHorizon ? 22 : 26,
                               fontWeight: FontWeight.bold,
                             ),
                           ),

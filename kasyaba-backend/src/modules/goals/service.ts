@@ -50,13 +50,19 @@ export async function listGoals(userId: string) {
       if (goal.targetDate) {
         const targetTime = new Date(goal.targetDate).getTime();
         daysRemaining = Math.max(1, Math.ceil((targetTime - now.getTime()) / 86400000));
-        const projectedSavings = currentAmount.plus(dailySurplus.times(daysRemaining));
-        canAffordByTargetDate = projectedSavings.gte(targetAmount);
         monthlySavingsRequired = remaining
           .div(daysRemaining)
           .times(30)
           .toDecimalPlaces(2)
           .toNumber();
+        // Honest affordability: when there is no surplus basis (no configured
+        // salary and no trailing cashflow history), leave
+        // canAffordByTargetDate null — the client renders that as a neutral
+        // state instead of falsely declaring a brand-new goal "behind".
+        if (dailySurplus.gt(0)) {
+          const projectedSavings = currentAmount.plus(dailySurplus.times(daysRemaining));
+          canAffordByTargetDate = projectedSavings.gte(targetAmount);
+        }
       }
     }
 
