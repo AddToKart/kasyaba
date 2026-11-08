@@ -9,7 +9,7 @@ import '../connectivity/connectivity_service.dart';
 // it so a misconfigured build can never silently point at localhost.
 const String kApiBaseUrl = String.fromEnvironment(
   'API_BASE_URL',
-  defaultValue: 'https://kasyaba-api.addtokart.tech',
+  defaultValue: 'https://api.kasyaba.site',
 );
 
 final dioProvider = Provider<Dio>((ref) {

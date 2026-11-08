@@ -16,9 +16,9 @@ const String kAppVersionLabel = 'v$kAppVersion (Build $kAppBuild)';
 /// ```
 const String kPrivacyPolicyUrl = String.fromEnvironment(
   'PRIVACY_POLICY_URL',
-  defaultValue: 'https://kasyaba-api.addtokart.tech/privacy',
+  defaultValue: 'https://api.kasyaba.site/privacy',
 );
 const String kTermsUrl = String.fromEnvironment(
   'TERMS_URL',
-  defaultValue: 'https://kasyaba-api.addtokart.tech/terms',
+  defaultValue: 'https://api.kasyaba.site/terms',
 );
