@@ -8,26 +8,25 @@ void main() {
   final mockOverview = PlanningOverview(
     from: DateTime(2026, 10, 16),
     to: DateTime(2026, 11, 15),
-    currentBalance: 29172.0,
+    currentBalance: 825149.80,
     minimumBalanceThreshold: 0.0,
     totalPlannedIncome: 0.0,
-    totalPlannedExpenses: 0.0,
+    totalPlannedExpenses: 4799.0,
     totalUpcomingBills: 6300.0,
-    projectedClosingBalance: 22872.0,
-    availableBuffer: 22872.0,
-    safeToSpendPerDay: 737.81,
+    projectedClosingBalance: 814050.80,
+    availableBuffer: 814050.80,
+    safeToSpendPerDay: 72967.09,
     daysInWindow: 31,
     status: 'clear',
-    calculationNote:
-        'Planning window is 31 days. Daily allowance distributes your free buffer (₱22,872.00) evenly over 31 days.',
+    calculationNote: 'Planning window is 31 days.',
     days: [
       PlanningDay(
         date: DateTime(2026, 10, 16),
         income: 0,
-        expenses: 0,
+        expenses: 4799.0,
         bills: 6300.0,
-        net: -6300.0,
-        projectedBalance: 22872.0,
+        net: -11099.0,
+        projectedBalance: 814050.80,
         pressure: 'watch',
       ),
       for (int i = 1; i <= 30; i++)
@@ -37,18 +36,33 @@ void main() {
           expenses: 0,
           bills: 0,
           net: 0,
-          projectedBalance: 22872.0,
+          projectedBalance: 814050.80,
           pressure: 'clear',
         ),
     ],
   );
 
-  testWidgets('planning screen renders daily allowance, narrative, and quiet spans',
+  const mockDashboard = DashboardData(
+    totalBalance: 825149.80,
+    income: 150000.0,
+    expenses: 45000.0,
+    savings: 25000.0,
+    healthScore: 'Good',
+    predictedMonthEnd: 814050.80,
+    budgetUsedPercent: 30.0,
+    categoryExpenses: [],
+  );
+
+  testWidgets(
+      'planning screen renders 1:1 Figma Affordability Forecasting (Node 85:110)',
       (tester) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           planningProvider.overrideWith((ref) async => mockOverview),
+          dashboardProvider.overrideWith((ref) async => mockDashboard),
+          billsProvider.overrideWith((ref) async => []),
+          goalsProvider.overrideWith((ref) async => []),
         ],
         child: const MaterialApp(
           home: PlanningScreen(),
@@ -56,38 +70,41 @@ void main() {
       ),
     );
 
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
 
-    // Title and Hero
-    expect(find.text('Daily Allowance & Runway'), findsOneWidget);
-    expect(find.text('DAILY SPENDING ALLOWANCE'), findsOneWidget);
-    expect(find.text('₱737.81'), findsWidgets);
+    // Title and Header Subtitle (Node 92:38)
+    expect(find.text('Affordability Forecasting'), findsOneWidget);
+    expect(
+      find.text(
+          'Simulate any purchase before you spend. Evaluates bill conflicts, cash buffer, and savings goal delays.'),
+      findsOneWidget,
+    );
 
-    // 3 high-signal cards
-    expect(find.text('Current Cash'), findsOneWidget);
-    expect(find.text('Due for Bills'), findsOneWidget);
-    expect(find.text('Free to Spend'), findsOneWidget);
+    // Hero Card (Node 85:1085)
+    expect(find.text('SAFE TO SPEND TODAY'), findsOneWidget);
+    expect(find.text('Total balance'), findsOneWidget);
+    expect(find.text('Test a purchase'), findsOneWidget);
 
-    // Milestones grouping (collapses 30 quiet days into 1 span tile)
-    await tester.scrollUntilVisible(find.text('30 quiet days'), 200);
-    expect(find.text('30 quiet days'), findsOneWidget);
-    expect(find.text('-₱6,300.00 bills due'), findsOneWidget);
+    // Allocation Card (Node 92:57)
+    expect(find.textContaining('WHERE TODAY’S'), findsOneWidget);
+    expect(find.textContaining('Free'), findsOneWidget);
+    expect(find.textContaining('Goals'), findsOneWidget);
+    expect(find.textContaining('Bills'), findsOneWidget);
 
-    // Switch to All Days view
-    await tester.tap(find.text('All (31)'));
-    await tester.pumpAndSettle();
-
-    // Now all days are shown, so quiet span summary pill is gone
-    expect(find.text('30 quiet days'), findsNothing);
-    expect(find.text('No scheduled activity'), findsWidgets);
+    // Assumptions Card (Node 92:106)
+    expect(find.text('Planned transactions'), findsOneWidget);
   });
 
-  testWidgets('tapping what-if button opens simulator bottom sheet',
+  testWidgets('tapping Test a purchase opens KasyaBa purchase simulator modal',
       (tester) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           planningProvider.overrideWith((ref) async => mockOverview),
+          dashboardProvider.overrideWith((ref) async => mockDashboard),
+          billsProvider.overrideWith((ref) async => []),
+          goalsProvider.overrideWith((ref) async => []),
         ],
         child: const MaterialApp(
           home: PlanningScreen(),
@@ -95,31 +112,32 @@ void main() {
       ),
     );
 
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    final testButton = find.text('Test a purchase');
+    expect(testButton, findsOneWidget);
+
+    await tester.tap(testButton);
     await tester.pumpAndSettle();
 
-    final whatIfButton = find.text('Simulate a "What-If" Purchase');
-    expect(whatIfButton, findsOneWidget);
+    // Modal sheet appears with Evaluate affordability title, tabs, and action button
+    expect(find.text('Evaluate affordability'), findsNWidgets(2));
+    expect(find.text('Pay in full'), findsOneWidget);
+    expect(find.text('Installment'), findsOneWidget);
 
-    await tester.tap(whatIfButton);
+    // Tap Installment tab -> smooth sliding animation reveals installment tenure & rate
+    await tester.tap(find.text('Installment'));
     await tester.pumpAndSettle();
 
-    // Modal sheet appears
-    expect(find.text('What-If Simulator'), findsOneWidget);
-    expect(find.text('QUICK PRESETS'), findsOneWidget);
-    expect(find.text('SIMULATED IMPACT'), findsOneWidget);
-    expect(find.text('Done'), findsOneWidget);
+    expect(find.text('INSTALLMENT TENURE'), findsOneWidget);
+    expect(find.text('MONTHLY INTEREST RATE'), findsOneWidget);
+    expect(find.text('3m'), findsOneWidget);
 
-    // Tap a preset chip
-    await tester.tap(find.text('Shopping (-₱5k)'));
+    // Tap Pay in full -> smooth sliding animation contracts back
+    await tester.tap(find.text('Pay in full'));
     await tester.pumpAndSettle();
 
-    // Check that simulated impact updated
-    expect(find.text('FEASIBLE'), findsOneWidget);
-
-    // Close sheet via close button
-    await tester.tap(find.byTooltip('Close'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('What-If Simulator'), findsNothing);
+    expect(find.text('INSTALLMENT TENURE'), findsNothing);
   });
 }

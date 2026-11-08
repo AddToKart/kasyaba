@@ -1,20 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../app/theme/app_theme.dart';
+import 'package:google_fonts/google_fonts.dart';
+
 import '../../../app/theme/app_motion.dart';
-import '../../../core/providers/theme_provider.dart';
-import '../../../shared/widgets/pressable_scale.dart';
+import '../../../app/theme/kasyaba_color_scheme.dart';
+import '../../../app/theme/kasyaba_tokens.dart';
 import '../../../core/app_info.dart';
 import '../../../core/auth/auth_provider.dart';
+import '../../../core/connectivity/connectivity_service.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
+import '../../../core/providers/theme_provider.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/ph_salary_calculator.dart';
-import '../../../shared/widgets/modern_card.dart';
-import '../../../shared/widgets/modern_bottom_sheet.dart';
-import '../../../shared/widgets/modern_text_field.dart';
-import '../widgets/data_backup_sheets.dart';
+import '../../../shared/widgets/app_sheet.dart';
+import '../../../shared/widgets/app_state_widgets.dart';
+import '../../../shared/widgets/kasyaba_toast.dart';
+import '../../../shared/widgets/motion_components.dart';
+import '../../../shared/widgets/offline_status.dart';
+import '../../../shared/widgets/pill_button.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -27,29 +32,47 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _salaryController = TextEditingController();
   final _grossSalaryController = TextEditingController();
   final _allowancesController = TextEditingController();
-  final _minThresholdController = TextEditingController();
-  final _deleteAccountPasswordController = TextEditingController();
 
   @override
   void dispose() {
     _salaryController.dispose();
     _grossSalaryController.dispose();
     _allowancesController.dispose();
-    _minThresholdController.dispose();
-    _deleteAccountPasswordController.dispose();
     super.dispose();
   }
 
-  void _showEditProfileBottomSheet(UserProfile profile) {
-    // Reset previous input, then seed the sheet from the saved profile.
+  double _perPaycheck(double monthlySalary, String? frequency) {
+    switch ((frequency ?? 'semi-monthly').toLowerCase()) {
+      case 'monthly':
+        return monthlySalary;
+      case 'weekly':
+        return monthlySalary * 12 / 52;
+      case 'bi-weekly':
+        return monthlySalary * 12 / 26;
+      case 'semi-monthly':
+      default:
+        return monthlySalary / 2;
+    }
+  }
+
+  String _budgetSubtitle(AsyncValue<BudgetStatus> statusAsync) {
+    final status = statusAsync.valueOrNull;
+    if (status == null || status.budgetCount == 0) {
+      return 'View budget status';
+    }
+    if (status.overallPercent >= 100) {
+      return 'Over budget this month';
+    }
+    return '${status.overallPercent.round()}% of budget used this month';
+  }
+
+  void _showSalarySheet(UserProfile profile) {
     _salaryController.clear();
     _grossSalaryController.clear();
     _allowancesController.clear();
-    _minThresholdController.clear();
+    final isOnline = ref.read(isOnlineProvider);
 
     _salaryController.text = profile.salaryAmount?.toStringAsFixed(2) ?? '';
-    _minThresholdController.text =
-        profile.minimumBalanceThreshold?.toStringAsFixed(2) ?? '0';
     final formKey = GlobalKey<FormState>();
     var isSubmitting = false;
     var isCalculatorMode = false;
@@ -67,442 +90,622 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       );
     }
 
-    ModernBottomSheet.show(
+    showKasyabaSheet<void>(
       context: context,
-      title: 'Salary & Payday Settings',
-      subtitle:
-          'Feed your exact income schedule into the deterministic forecasting engine.',
-      child: StatefulBuilder(
-        builder: (context, setModalState) {
-          final isDark = Theme.of(context).brightness == Brightness.dark;
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (ctx, setModalState) {
+          final bottomInset = MediaQuery.viewInsetsOf(ctx).bottom;
 
-          return Form(
-            key: formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // ── Mode Switcher: Direct Net vs Statutory Calculator ──
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? AppColors.surface700
-                        : AppColors.lightInputFill,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isDark
-                          ? AppColors.subtleBorder
-                          : AppColors.lightBorderHairline,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(8),
-                          onTap: () =>
-                              setModalState(() => isCalculatorMode = false),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 9),
-                            decoration: BoxDecoration(
-                              color: !isCalculatorMode
-                                  ? (isDark
-                                      ? const Color(0xFF27272A)
-                                      : Colors.white)
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(8),
-                              boxShadow: !isCalculatorMode
-                                  ? [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.12),
-                                        blurRadius: 4,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ]
-                                  : null,
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.edit_note_rounded,
-                                  size: 16,
-                                  color: !isCalculatorMode
-                                      ? const Color(0xFF10B981)
-                                      : Colors.grey,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  'Direct Net Pay',
-                                  style: TextStyle(
-                                    fontSize: 12.5,
-                                    fontWeight: !isCalculatorMode
-                                        ? FontWeight.w700
-                                        : FontWeight.w500,
-                                    color: !isCalculatorMode
-                                        ? (isDark
-                                            ? Colors.white
-                                            : AppColors.textLight)
-                                        : Colors.grey,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(8),
-                          onTap: () {
-                            setModalState(() {
-                              isCalculatorMode = true;
-                              recomputeBreakdown();
-                            });
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 9),
-                            decoration: BoxDecoration(
-                              color: isCalculatorMode
-                                  ? (isDark
-                                      ? const Color(0xFF27272A)
-                                      : Colors.white)
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(8),
-                              boxShadow: isCalculatorMode
-                                  ? [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.12),
-                                        blurRadius: 4,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ]
-                                  : null,
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.calculate_outlined,
-                                  size: 16,
-                                  color: isCalculatorMode
-                                      ? const Color(0xFF38BDF8)
-                                      : Colors.grey,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  'PH Statutory Calc',
-                                  style: TextStyle(
-                                    fontSize: 12.5,
-                                    fontWeight: isCalculatorMode
-                                        ? FontWeight.w700
-                                        : FontWeight.w500,
-                                    color: isCalculatorMode
-                                        ? (isDark
-                                            ? Colors.white
-                                            : AppColors.textLight)
-                                        : Colors.grey,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                if (!isCalculatorMode) ...[
-                  ModernTextField(
-                    controller: _salaryController,
-                    label: 'Monthly Net Take-Home Salary (₱)',
-                    hint: '45000.00',
-                    prefixIcon: Icons.payments_outlined,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    validator: (v) {
-                      if (v == null || v.trim().isEmpty) return null;
-                      final value = double.tryParse(v.trim());
-                      if (value == null || !value.isFinite || value < 0) {
-                        return 'Enter a valid non-negative amount';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 6),
+          return AppSheet(
+            color: context.kColors.canvas,
+            padding: EdgeInsets.fromLTRB(20, 0, 20, 24 + bottomInset),
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
                   Text(
-                    'Directly input what lands in your bank or e-wallet every month.',
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      color: isDark
-                          ? AppColors.textMuted
-                          : AppColors.textMutedL,
+                    'Salary & Payday Settings',
+                    style: GoogleFonts.bricolageGrotesque(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      color: context.kColors.textPrimary,
                     ),
                   ),
-                ] else ...[
-                  ModernTextField(
-                    controller: _grossSalaryController,
-                    label: 'Monthly Gross Basic Salary (₱)',
-                    hint: '50000.00',
-                    prefixIcon: Icons.account_balance_outlined,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
+                  const SizedBox(height: 4),
+                  Text(
+                    'Set your salary and payout schedule so Kasyaba can accurately compute your daily safe-to-spend and forecast your money.',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 14,
+                      color: context.kColors.textSecondary,
                     ),
-                    onChanged: (_) => setModalState(recomputeBreakdown),
-                    validator: (v) {
-                      if (isCalculatorMode) {
-                        if (v == null || v.trim().isEmpty) {
-                          return 'Please enter your gross basic salary';
+                  ),
+                  const SizedBox(height: 18),
+                  SlidingSegmentedPill(
+                    items: const ['Direct Net Pay', 'PH Statutory Calc'],
+                    selectedIndex: isCalculatorMode ? 1 : 0,
+                    height: 52,
+                    borderRadius: 26,
+                    pillRadius: 22,
+                    backgroundColor: context.kColors.card,
+                    activeColor: context.kColors.primaryButton,
+                    activeTextColor: context.kColors.onPrimaryButton,
+                    inactiveTextColor: context.kColors.textSecondary,
+                    fontSize: 13,
+                    onChanged: (index) {
+                      AppHaptics.selectionClick();
+                      setModalState(() {
+                        isCalculatorMode = index == 1;
+                        if (isCalculatorMode) {
+                          recomputeBreakdown();
                         }
-                        final val = double.tryParse(v.trim());
-                        if (val == null || !val.isFinite || val <= 0) {
-                          return 'Enter a valid positive salary';
-                        }
-                      }
-                      return null;
+                      });
                     },
                   ),
-                  const SizedBox(height: 12),
-                  ModernTextField(
-                    controller: _allowancesController,
-                    label: 'Non-Taxable Allowances / De Minimis (₱)',
-                    hint: '2000.00 (Optional)',
-                    prefixIcon: Icons.card_giftcard_rounded,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
+                  const SizedBox(height: 10),
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    child: Text(
+                      !isCalculatorMode
+                          ? 'Enter the actual take-home pay deposited into your account each month.'
+                          : 'Enter your basic salary before deductions. Kasyaba will automatically compute PH SSS, PhilHealth, Pag-IBIG, and tax deductions.',
+                      key: ValueKey(isCalculatorMode),
+                      style: GoogleFonts.dmSans(
+                        fontSize: 13,
+                        color: context.kColors.textSecondary,
+                        height: 1.35,
+                      ),
                     ),
-                    onChanged: (_) => setModalState(recomputeBreakdown),
+                  ),
+                  const SizedBox(height: 18),
+                  AnimatedSize(
+                    duration: const Duration(milliseconds: 260),
+                    curve: Curves.easeOutCubic,
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 220),
+                      switchInCurve: Curves.easeOutCubic,
+                      switchOutCurve: Curves.easeInCubic,
+                      child: !isCalculatorMode
+                          ? KeyedSubtree(
+                              key: const ValueKey('direct_mode'),
+                              child: _sheetInputField(
+                                label: 'Monthly Net Take-Home Salary',
+                                controller: _salaryController,
+                                hint: '0.00',
+                              ),
+                            )
+                          : KeyedSubtree(
+                              key: const ValueKey('calculator_mode'),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _sheetInputField(
+                                    label: 'Monthly Gross Basic Salary',
+                                    controller: _grossSalaryController,
+                                    hint: '0.00',
+                                    onChanged: (_) =>
+                                        setModalState(recomputeBreakdown),
+                                  ),
+                                  const SizedBox(height: 14),
+                                  _sheetInputField(
+                                    label: 'Non-Taxable Allowances',
+                                    controller: _allowancesController,
+                                    hint: '0.00',
+                                    onChanged: (_) =>
+                                        setModalState(recomputeBreakdown),
+                                  ),
+                                  if (liveBreakdown != null) ...[
+                                    const SizedBox(height: 14),
+                                    Container(
+                                      padding: const EdgeInsets.all(19),
+                                      decoration: BoxDecoration(
+                                        color: context.kColors.cardHero,
+                                        borderRadius: BorderRadius.circular(
+                                          KasyabaTokens.radiusCard,
+                                        ),
+                                        border: Border.all(
+                                          color: context.kColors.cardBorderStrong,
+                                        ),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'ESTIMATED NET PAYSLIP (PH 2026)',
+                                            style: GoogleFonts.dmSans(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w700,
+                                              color: context.kColors.textSecondary,
+                                              letterSpacing: 0.8,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 10),
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment
+                                                    .spaceBetween,
+                                            children: [
+                                              Text(
+                                                'Computed Net Pay:',
+                                                style: GoogleFonts.dmSans(
+                                                  fontSize: 14,
+                                                  color: context.kColors.textSecondary,
+                                                ),
+                                              ),
+                                              Text(
+                                                CurrencyFormatter.format(
+                                                  liveBreakdown!.netMonthlyPay,
+                                                ),
+                                                style: GoogleFonts
+                                                    .bricolageGrotesque(
+                                                  fontSize: 18,
+                                                  fontWeight: FontWeight.w700,
+                                                  color:
+                                                      context.kColors.success,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 8),
+                                          _buildBreakdownItem(
+                                            'Gross Basic',
+                                            liveBreakdown!.grossBasicSalary,
+                                          ),
+                                          _buildBreakdownItem(
+                                            'SSS Contribution',
+                                            -liveBreakdown!.sssContribution,
+                                          ),
+                                          _buildBreakdownItem(
+                                            'PhilHealth',
+                                            -liveBreakdown!
+                                                .philHealthContribution,
+                                          ),
+                                          _buildBreakdownItem(
+                                            'Pag-IBIG',
+                                            -liveBreakdown!
+                                                .pagIbigContribution,
+                                          ),
+                                          _buildBreakdownItem(
+                                            'Withholding Tax',
+                                            -liveBreakdown!.withholdingTax,
+                                          ),
+                                          if (liveBreakdown!
+                                                  .nonTaxableAllowances >
+                                              0)
+                                            _buildBreakdownItem(
+                                              'Allowances',
+                                              liveBreakdown!
+                                                  .nonTaxableAllowances,
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                    ),
                   ),
                   const SizedBox(height: 14),
-
-                  // Payslip Breakdown Card
-                  _buildPayslipBreakdownCard(
-                    context: context,
-                    breakdown: liveBreakdown,
-                    paydaySched: paydaySched,
-                  ),
-                ],
-                const SizedBox(height: 18),
-
-                const Text(
-                  'Payday Frequency',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                ),
-                const SizedBox(height: 8),
-                DropdownButtonFormField<String>(
-                  initialValue: paydayFreq,
-                  decoration: InputDecoration(
-                    prefixIcon: const Icon(
-                      Icons.event_repeat_outlined,
-                      color: Color(0xFF10B981),
-                    ),
-                    filled: true,
-                    fillColor: isDark
-                        ? AppColors.surface700
-                        : AppColors.lightInputFill,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(
-                        color: AppColors.subtleBorderAdaptive(isDark),
+                  _sheetDropdown(
+                    label: 'Payout Frequency',
+                    value: paydayFreq,
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'semi-monthly',
+                        child: Text('Semi-monthly (Twice a month)'),
                       ),
-                    ),
-                  ),
-                  dropdownColor: isDark ? AppColors.surfaceCard : AppColors.lightCardSurface,
-                  items: const [
-                    DropdownMenuItem(
-                      value: 'semi-monthly',
-                      child: Text('Semi-Monthly (Twice a month)'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'monthly',
-                      child: Text('Monthly (Once a month)'),
-                    ),
-                    DropdownMenuItem(value: 'weekly', child: Text('Weekly')),
-                  ],
-                  onChanged: isSubmitting
-                      ? null
-                      : (val) {
-                          if (val != null) {
-                            setModalState(() => paydayFreq = val);
-                          }
-                        },
-                ),
-                const SizedBox(height: 16),
-
-                const Text(
-                  'Payday Schedule',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                ),
-                const SizedBox(height: 8),
-                DropdownButtonFormField<String>(
-                  initialValue: paydaySched,
-                  dropdownColor: isDark ? AppColors.surfaceCard : AppColors.lightCardSurface,
-                  decoration: InputDecoration(
-                    prefixIcon: const Icon(
-                      Icons.calendar_today_outlined,
-                      color: Color(0xFF10B981),
-                    ),
-                    filled: true,
-                    fillColor: isDark
-                        ? AppColors.surface700
-                        : AppColors.lightInputFill,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(
-                        color: AppColors.subtleBorderAdaptive(isDark),
+                      DropdownMenuItem(
+                        value: 'monthly',
+                        child: Text('Monthly (Once a month)'),
                       ),
-                    ),
+                      DropdownMenuItem(
+                        value: 'weekly',
+                        child: Text('Weekly (Every 7 days)'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'bi-weekly',
+                        child: Text('Bi-weekly (Every 14 days)'),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
+                        setModalState(() => paydayFreq = value);
+                      }
+                    },
                   ),
-                  items: const [
-                    DropdownMenuItem(
-                      value: '15th & 30th',
-                      child: Text('15th & 30th of the month'),
-                    ),
-                    DropdownMenuItem(
-                      value: '1st & 15th',
-                      child: Text('1st & 15th of the month'),
-                    ),
-                    DropdownMenuItem(
-                      value: '1st of month',
-                      child: Text('1st day of the month'),
-                    ),
-                    DropdownMenuItem(
-                      value: '30th of month',
-                      child: Text('End of the month'),
-                    ),
-                  ],
-                  onChanged: isSubmitting
-                      ? null
-                      : (val) {
-                          if (val != null) {
-                            setModalState(() => paydaySched = val);
-                          }
-                        },
-                ),
-                const SizedBox(height: 16),
-
-                ModernTextField(
-                  controller: _minThresholdController,
-                  label: 'Minimum Safety Buffer Threshold (₱)',
-                  hint: '2000.00',
-                  prefixIcon: Icons.shield_outlined,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
+                  const SizedBox(height: 14),
+                  _sheetDropdown(
+                    label: 'Payout Schedule',
+                    value: paydaySched,
+                    items: const [
+                      DropdownMenuItem(
+                        value: '15th & 30th',
+                        child: Text('15th & 30th (Standard PH)'),
+                      ),
+                      DropdownMenuItem(
+                        value: '10th & 25th',
+                        child: Text('10th & 25th'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'End of Month',
+                        child: Text('End of Month (Last working day)'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Custom / Other',
+                        child: Text('Custom / Other'),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
+                        setModalState(() => paydaySched = value);
+                      }
+                    },
                   ),
-                  validator: (v) {
-                    if (v == null || v.trim().isEmpty) return null;
-                    final value = double.tryParse(v.trim());
-                    if (value == null || !value.isFinite || value < 0) {
-                      return 'Enter a valid non-negative amount';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 24),
+                    const SizedBox(height: 20),
+                    if (!isOnline) ...[
+                      const NeedsInternetNotice(
+                        message:
+                            'Saving salary and payday settings needs an internet connection.',
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                     PillButton(
+                      label: 'Save settings',
+                      isLoading: isSubmitting,
+                      onPressed: isSubmitting || !isOnline
+                          ? null
+                          : () async {
+                              final double? finalSalary;
+                              if (isCalculatorMode) {
+                                final gross = double.tryParse(
+                                  _grossSalaryController.text.trim(),
+                                );
+                                if (gross == null || gross <= 0) {
+                                  KasyabaToast.showError(
+                                    sheetContext,
+                                    'Enter a monthly gross basic salary greater than zero.',
+                                  );
+                                  return;
+                                }
+                                recomputeBreakdown();
+                                finalSalary = liveBreakdown!.netMonthlyPay;
+                              } else {
+                                finalSalary = double.tryParse(
+                                  _salaryController.text.trim(),
+                                );
+                                if (finalSalary == null || finalSalary <= 0) {
+                                  KasyabaToast.showError(
+                                    sheetContext,
+                                    'Enter your monthly net salary.',
+                                  );
+                                  return;
+                                }
+                              }
 
-                FilledButton.icon(
-                  onPressed: isSubmitting
-                      ? null
-                      : () async {
-                          if (isSubmitting) return;
-                          if (!formKey.currentState!.validate()) return;
-
-                          final double? finalSalary;
-                          if (isCalculatorMode) {
-                            final gross = double.tryParse(
-                              _grossSalaryController.text.trim(),
-                            ) ?? 0.0;
-                            final allow = double.tryParse(
-                              _allowancesController.text.trim(),
-                            ) ?? 0.0;
-                            final calc = PhSalaryCalculator.calculate(
-                              grossBasicSalary: gross,
-                              nonTaxableAllowances: allow,
-                            );
-                            finalSalary = calc.netMonthlyPay;
-                            _salaryController.text =
-                                finalSalary.toStringAsFixed(2);
-                          } else {
-                            finalSalary = double.tryParse(
-                              _salaryController.text.trim(),
-                            );
-                          }
-
-                          final minThresh = double.tryParse(
-                            _minThresholdController.text.trim(),
-                          );
-                          setModalState(() => isSubmitting = true);
-
-                          try {
-                            final mutator = ref.read(
-                              transactionMutatorProvider,
-                            );
-                            await mutator.updateProfile(
-                              salaryAmount: finalSalary,
-                              paydayFrequency: paydayFreq,
-                              paydaySchedule: paydaySched,
-                              minimumBalanceThreshold: minThresh,
-                            );
-                            if (context.mounted) {
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    finalSalary != null
-                                        ? 'Salary settings updated! Net: ${CurrencyFormatter.format(finalSalary)}/mo'
-                                        : 'Salary & Payday settings updated!',
-                                  ),
-                                  backgroundColor: const Color(0xFF10B981),
-                                ),
-                              );
-                            }
-                          } catch (error) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
+                              setModalState(() => isSubmitting = true);
+                              try {
+                                await ref
+                                    .read(transactionMutatorProvider)
+                                    .updateProfile(
+                                      salaryAmount: finalSalary,
+                                      paydayFrequency: paydayFreq,
+                                      paydaySchedule: paydaySched,
+                                    );
+                                if (sheetContext.mounted) {
+                                  Navigator.of(sheetContext).pop();
+                                }
+                                if (mounted) {
+                                  KasyabaToast.showSuccess(
+                                    context,
+                                    'Salary settings updated.',
+                                  );
+                                }
+                              } catch (error) {
+                                if (sheetContext.mounted) {
+                                  KasyabaToast.showError(
+                                    sheetContext,
                                     friendlyErrorMessage(
                                       error,
                                       fallback:
-                                          'Unable to update settings. Please try again.',
+                                          'Could not update your salary settings. Please try again.',
                                     ),
-                                  ),
+                                  );
+                                }
+                              } finally {
+                                if (sheetContext.mounted) {
+                                  setModalState(() => isSubmitting = false);
+                                }
+                              }
+                            },
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      );
+    }
+
+  Widget _sheetTextInputField({
+    required String label,
+    required TextEditingController controller,
+    required String hint,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 6, bottom: 8),
+          child: Text(
+            label,
+            style: GoogleFonts.dmSans(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.0,
+              color: context.kColors.textSecondary,
+            ),
+          ),
+        ),
+        TextField(
+          controller: controller,
+          style: GoogleFonts.dmSans(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+            color: context.kColors.textPrimary,
+          ),
+          decoration: InputDecoration(
+            isDense: true,
+            hintText: hint,
+            hintStyle: GoogleFonts.dmSans(
+              fontSize: 15,
+              color: context.kColors.icon.withValues(alpha: 0.4),
+            ),
+            filled: true,
+            fillColor: context.kColors.inputFill,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 22,
+              vertical: 17,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(28),
+              borderSide: BorderSide(
+                color: context.kColors.cardBorder,
+                width: 1.0,
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(28),
+              borderSide: BorderSide(
+                color: context.kColors.icon,
+                width: 1.5,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _sheetPasswordInputField({
+    required String label,
+    required TextEditingController controller,
+    required String hint,
+    required bool obscure,
+    required VoidCallback onToggleObscure,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 6, bottom: 8),
+          child: Text(
+            label,
+            style: GoogleFonts.dmSans(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.0,
+              color: context.kColors.textSecondary,
+            ),
+          ),
+        ),
+        TextField(
+          controller: controller,
+          obscureText: obscure,
+          style: GoogleFonts.dmSans(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+            color: context.kColors.textPrimary,
+          ),
+          decoration: InputDecoration(
+            isDense: true,
+            hintText: hint,
+            hintStyle: GoogleFonts.dmSans(
+              fontSize: 15,
+              color: context.kColors.icon.withValues(alpha: 0.4),
+            ),
+            filled: true,
+            fillColor: context.kColors.inputFill,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 22,
+              vertical: 17,
+            ),
+            suffixIcon: GestureDetector(
+              onTap: onToggleObscure,
+              behavior: HitTestBehavior.opaque,
+              child: Padding(
+                padding: const EdgeInsets.only(right: 18, left: 10),
+                child: Icon(
+                  obscure
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                  color: context.kColors.icon,
+                  size: 20,
+                ),
+              ),
+            ),
+            suffixIconConstraints: const BoxConstraints(
+              minWidth: 44,
+              minHeight: 44,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(28),
+              borderSide: BorderSide(
+                color: context.kColors.cardBorder,
+                width: 1.0,
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(28),
+              borderSide: BorderSide(
+                color: context.kColors.icon,
+                width: 1.5,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showEditProfileSheet(String currentName) {
+    AppHaptics.selectionClick();
+    final nameController = TextEditingController(text: currentName);
+    final isOnline = ref.read(isOnlineProvider);
+    var isSubmitting = false;
+    String? sheetError;
+
+    showKasyabaSheet<void>(
+      context: context,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (ctx, setModalState) {
+          final bottomInset = MediaQuery.viewInsetsOf(ctx).bottom;
+
+          return AppSheet(
+            color: context.kColors.canvas,
+            padding: EdgeInsets.fromLTRB(20, 0, 20, 20 + bottomInset),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Edit Profile',
+                  style: GoogleFonts.bricolageGrotesque(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    color: context.kColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Update your display name as it appears in Kasyaba.',
+                  style: GoogleFonts.dmSans(
+                    fontSize: 14,
+                    color: context.kColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                if (sheetError != null) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 11,
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      color: context.kColors.dangerTint,
+                      border: Border.all(
+                        color: context.kColors.danger.withValues(alpha: 0.35),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.error_outline_rounded,
+                          color: context.kColors.danger,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            sheetError!,
+                            style: GoogleFonts.dmSans(
+                              color: context.kColors.danger,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                ],
+                _sheetTextInputField(
+                  label: 'FULL NAME',
+                  controller: nameController,
+                  hint: 'e.g. Juan Dela Cruz',
+                ),
+                const SizedBox(height: 24),
+                if (!isOnline) ...[
+                  const NeedsInternetNotice(
+                    message:
+                        'Updating your profile needs an internet connection.',
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                PillButton(
+                  label: isSubmitting ? 'Saving...' : 'Save Changes',
+                  onPressed: (isSubmitting || !isOnline)
+                      ? null
+                      : () async {
+                          final trimmed = nameController.text.trim();
+                          if (trimmed.isEmpty) {
+                            setModalState(
+                              () => sheetError = 'Name cannot be empty.',
+                            );
+                            return;
+                          }
+                          setModalState(() {
+                            isSubmitting = true;
+                            sheetError = null;
+                          });
+                          try {
+                            await ref
+                                .read(transactionMutatorProvider)
+                                .updateProfile(displayName: trimmed);
+                            ref
+                                .read(authProvider.notifier)
+                                .setDisplayName(trimmed);
+                            if (sheetContext.mounted) {
+                              Navigator.of(sheetContext).pop();
+                            }
+                            if (mounted) {
+                              KasyabaToast.showSuccess(
+                                context,
+                                'Profile updated successfully.',
+                              );
+                            }
+                          } catch (error) {
+                            if (sheetContext.mounted) {
+                              setModalState(
+                                () => sheetError = friendlyErrorMessage(
+                                  error,
+                                  fallback: 'Could not update profile.',
                                 ),
                               );
                             }
                           } finally {
-                            if (context.mounted) {
+                            if (sheetContext.mounted) {
                               setModalState(() => isSubmitting = false);
                             }
                           }
                         },
-                  icon: isSubmitting
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Icon(Icons.check, size: 20),
-                  label: Text(
-                    isSubmitting ? 'Saving...' : 'Save Salary Settings',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF10B981),
-                    minimumSize: const Size.fromHeight(50),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
                 ),
-                const SizedBox(height: 8),
               ],
             ),
           );
@@ -511,1018 +714,902 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  Widget _buildPayslipBreakdownCard({
-    required BuildContext context,
-    required PhSalaryBreakdown? breakdown,
-    required String paydaySched,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+  void _showChangePasswordSheet() {
+    AppHaptics.selectionClick();
+    final currentPasswordController = TextEditingController();
+    final newPasswordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
+    var isSubmitting = false;
+    var obscureCurrent = true;
+    var obscureNew = true;
+    var obscureConfirm = true;
+    String? sheetError;
 
-    if (breakdown == null || breakdown.grossBasicSalary <= 0) {
-      return Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.surface700 : AppColors.lightInputFill,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: AppColors.subtleBorderAdaptive(isDark),
-          ),
-        ),
-        child: Row(
-          children: [
-            const Icon(
-              Icons.info_outline_rounded,
-              size: 18,
-              color: AppColors.info,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                'Enter your Gross Basic Salary to see your official statutory deductions and take-home pay.',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isDark ? AppColors.textMuted : AppColors.lightTextSecondary,
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
+    showKasyabaSheet<void>(
+      context: context,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (ctx, setModalState) {
+          final bottomInset = MediaQuery.viewInsetsOf(ctx).bottom;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.surface800 : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0xFF10B981).withValues(alpha: 0.35),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF10B981).withValues(alpha: 0.06),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  const Icon(
-                    Icons.receipt_long_rounded,
-                    size: 18,
-                    color: Color(0xFF10B981),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'PHILIPPINE PAYSLIP BREAKDOWN',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.8,
-                      color: isDark ? Colors.white : AppColors.textLight,
-                    ),
-                  ),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Text(
-                  'STATUTORY 2026',
-                  style: TextStyle(
-                    fontSize: 9.5,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.5,
-                    color: Color(0xFF10B981),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          const Divider(height: 1, color: Color(0x22334155)),
-          const SizedBox(height: 10),
-
-          // Earnings
-          _payslipRow(
-            label: 'Gross Basic Salary',
-            amount: breakdown.grossBasicSalary,
-            isBold: true,
-            color: isDark ? Colors.white : AppColors.textLight,
-          ),
-          if (breakdown.nonTaxableAllowances > 0) ...[
-            const SizedBox(height: 5),
-            _payslipRow(
-              label: '+ Non-Taxable Allowances',
-              amount: breakdown.nonTaxableAllowances,
-              color: const Color(0xFF10B981),
-            ),
-          ],
-          const SizedBox(height: 10),
-
-          // Statutory Deductions
-          Text(
-            'MANDATORY CONTRIBUTIONS & TAXES',
-            style: TextStyle(
-              fontSize: 9.5,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.8,
-              color: isDark ? AppColors.textMuted : AppColors.textMutedL,
-            ),
-          ),
-          const SizedBox(height: 6),
-          _payslipRow(
-            label: 'SSS Employee (RA 11199)',
-            amount: -breakdown.sssContribution,
-            color: AppColors.expense,
-          ),
-          const SizedBox(height: 5),
-          _payslipRow(
-            label: 'PhilHealth (2.5% share)',
-            amount: -breakdown.philHealthContribution,
-            color: AppColors.expense,
-          ),
-          const SizedBox(height: 5),
-          _payslipRow(
-            label: 'Pag-IBIG Fund (Standard)',
-            amount: -breakdown.pagIbigContribution,
-            color: AppColors.expense,
-          ),
-          const SizedBox(height: 5),
-          _payslipRow(
-            label: 'TRAIN Withholding Tax',
-            amount: -breakdown.withholdingTax,
-            color: AppColors.expense,
-          ),
-          const SizedBox(height: 10),
-          const Divider(height: 1, color: Color(0x22334155)),
-          const SizedBox(height: 10),
-
-          // Total Deductions
-          _payslipRow(
-            label: 'Total Monthly Deductions',
-            amount: -breakdown.totalDeductions,
-            isBold: true,
-            color: AppColors.expense,
-          ),
-          const SizedBox(height: 12),
-
-          // Net Monthly Take-Home Hero Card
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: isDark
-                    ? const [Color(0xFF064E3B), Color(0xFF022C22)]
-                    : const [Color(0xFFD1FAE5), Color(0xFFA7F3D0)],
-              ),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: const Color(0xFF10B981).withValues(alpha: 0.5),
-              ),
-            ),
+          return AppSheet(
+            color: context.kColors.canvas,
+            padding: EdgeInsets.fromLTRB(20, 0, 20, 20 + bottomInset),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Net Monthly Take-Home',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: isDark
-                            ? const Color(0xFFA7F3D0)
-                            : const Color(0xFF065F46),
-                      ),
-                    ),
-                    Text(
-                      CurrencyFormatter.format(breakdown.netMonthlyPay),
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.5,
-                        color: isDark ? Colors.white : const Color(0xFF064E3B),
-                      ),
-                    ),
-                  ],
+                Text(
+                  'Change Password',
+                  style: GoogleFonts.bricolageGrotesque(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    color: context.kColors.textPrimary,
+                  ),
                 ),
                 const SizedBox(height: 6),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Semi-Monthly ($paydaySched)',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        color: isDark
-                            ? AppColors.textMuted
-                            : const Color(0xFF047857),
-                      ),
-                    ),
-                    Text(
-                      '${CurrencyFormatter.format(breakdown.semiMonthlyPayout)} / payout',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: isDark
-                            ? const Color(0xFF34D399)
-                            : const Color(0xFF065F46),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _payslipRow({
-    required String label,
-    required double amount,
-    bool isBold = false,
-    Color? color,
-  }) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 11.5,
-            fontWeight: isBold ? FontWeight.w700 : FontWeight.w500,
-            color: color,
-          ),
-        ),
-        Text(
-          amount < 0
-              ? '- ${CurrencyFormatter.format(amount.abs())}'
-              : CurrencyFormatter.format(amount),
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: isBold ? FontWeight.w800 : FontWeight.w600,
-            color: color,
-          ),
-        ),
-      ],
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final currentThemeMode = ref.watch(themeModeProvider);
-    final authState = ref.watch(authProvider);
-    final profileAsync = ref.watch(userProfileProvider);
-
-    final displayName = authState.displayName ?? 'User';
-    final initial = displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U';
-
-    return Scaffold(
-      appBar: AppBar(
-        titleSpacing: 20,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        title: Text(
-          'Profile & Settings',
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w800,
-            fontSize: 22,
-            letterSpacing: 0.5,
-          ),
-        ),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
-        children: [
-          // User Profile Card
-          ModernCard(
-            padding: const EdgeInsets.all(20),
-            borderRadius: 16,
-            borderColor: AppColors.subtleBorderAdaptive(isDark),
-            backgroundColor: isDark ? AppColors.surface800 : AppColors.lightCard,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Container(
-                  width: 54,
-                  height: 54,
-                  decoration: BoxDecoration(
-                    color: isDark ? AppColors.surface700 : AppColors.lightCard2,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: AppColors.emerald500,
-                      width: 2,
-                    ),
-                  ),
-                  child: Center(
-                    child: Text(
-                      initial,
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : AppColors.textLight,
-                      ),
-                    ),
+                Text(
+                  'Choose a strong password with at least 8 characters.',
+                  style: GoogleFonts.dmSans(
+                    fontSize: 14,
+                    color: context.kColors.textSecondary,
                   ),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        displayName,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                const SizedBox(height: 16),
+                if (sheetError != null) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 11,
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      color: context.kColors.dangerTint,
+                      border: Border.all(
+                        color: context.kColors.danger.withValues(alpha: 0.35),
+                        width: 1,
                       ),
-                      const SizedBox(height: 3),
-                      Text(
-                        authState.email ?? 'No email set',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: isDark ? AppColors.textMuted : AppColors.textMutedL,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          // ── Salary & Payday Settings Card ────────────────────────
-          profileAsync.when(
-            loading: () => const SizedBox.shrink(),
-            error: (err, _) => const SizedBox.shrink(),
-            data: (profile) {
-              final salaryStr = profile.salaryAmount != null
-                  ? '${CurrencyFormatter.format(profile.salaryAmount!)} / month'
-                  : 'Not configured';
-              final schedStr =
-                  '${profile.paydayFrequency ?? 'semi-monthly'} (${profile.paydaySchedule ?? '15th & 30th'})';
-
-              return ModernCard(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+                    ),
+                    child: Row(
                       children: [
-                        const Expanded(
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.work_outline_rounded,
-                                color: Color(0xFF10B981),
-                                size: 22,
-                              ),
-                              SizedBox(width: 10),
-                              Flexible(
-                                child: Text(
-                                  'Salary & Payday Settings',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 15,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
+                        Icon(
+                          Icons.error_outline_rounded,
+                          color: context.kColors.danger,
+                          size: 18,
                         ),
-                        IconButton(
-                          tooltip: 'Edit salary & payday settings',
-                          icon: const Icon(
-                            Icons.edit_outlined,
-                            size: 18,
-                            color: Color(0xFF10B981),
-                          ),
-                          onPressed: () => _showEditProfileBottomSheet(profile),
-                        ),
-                      ],
-                    ),
-                    const Divider(height: 16),
-                    Row(
-                      children: [
-                        const Text(
-                          'Monthly Net Pay:',
-                          style: TextStyle(fontSize: 12, color: Colors.grey),
-                        ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            salaryStr,
-                            textAlign: TextAlign.end,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            sheetError!,
+                            style: GoogleFonts.dmSans(
+                              color: context.kColors.danger,
                               fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF10B981),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (profile.salaryAmount != null &&
-                        profile.salaryAmount! > 0) ...[
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          const Text(
-                            'Estimated Semi-Monthly:',
-                            style: TextStyle(fontSize: 12, color: Colors.grey),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              '${CurrencyFormatter.format(profile.salaryAmount! / 2)} / payout',
-                              textAlign: TextAlign.end,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF38BDF8),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        const Text(
-                          'Payout Schedule:',
-                          style: TextStyle(fontSize: 12, color: Colors.grey),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            schedStr,
-                            textAlign: TextAlign.end,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 12,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
                       ],
                     ),
-                  ],
+                  ),
+                  const SizedBox(height: 14),
+                ],
+                _sheetPasswordInputField(
+                  label: 'CURRENT PASSWORD',
+                  controller: currentPasswordController,
+                  hint: 'Enter your current password',
+                  obscure: obscureCurrent,
+                  onToggleObscure: () =>
+                      setModalState(() => obscureCurrent = !obscureCurrent),
                 ),
-              );
-            },
-          ),
-          const SizedBox(height: 20),
+                const SizedBox(height: 14),
+                _sheetPasswordInputField(
+                  label: 'NEW PASSWORD',
+                  controller: newPasswordController,
+                  hint: 'At least 8 characters',
+                  obscure: obscureNew,
+                  onToggleObscure: () =>
+                      setModalState(() => obscureNew = !obscureNew),
+                ),
+                const SizedBox(height: 14),
+                _sheetPasswordInputField(
+                  label: 'CONFIRM NEW PASSWORD',
+                  controller: confirmPasswordController,
+                  hint: 'Re-enter your new password',
+                  obscure: obscureConfirm,
+                  onToggleObscure: () =>
+                      setModalState(() => obscureConfirm = !obscureConfirm),
+                ),
+                const SizedBox(height: 24),
+                PillButton(
+                  label: isSubmitting ? 'Updating...' : 'Update Password',
+                  onPressed: isSubmitting
+                      ? null
+                      : () async {
+                          final currentPass = currentPasswordController.text;
+                          final newPass = newPasswordController.text;
+                          final confirmPass = confirmPasswordController.text;
 
-          // ── Appearance & Theme Card ──────────────────────────────
-          _ThemeSelectorCard(
-            currentMode: currentThemeMode,
-            isDark: isDark,
-            onThemeChanged: (mode) {
-              ref.read(themeModeProvider.notifier).setThemeMode(mode);
-            },
-          ),
-          const SizedBox(height: 24),
+                          if (currentPass.isEmpty) {
+                            setModalState(
+                              () => sheetError =
+                                  'Please enter your current password.',
+                            );
+                            return;
+                          }
+                          if (newPass.length < 8) {
+                            setModalState(
+                              () => sheetError =
+                                  'New password must be at least 8 characters.',
+                            );
+                            return;
+                          }
+                          if (newPass != confirmPass) {
+                            setModalState(
+                              () => sheetError =
+                                  'New passwords do not match.',
+                            );
+                            return;
+                          }
+                          if (currentPass == newPass) {
+                            setModalState(
+                              () => sheetError =
+                                  'New password must be different from your current password.',
+                            );
+                            return;
+                          }
 
-          // Settings Section Label
-          Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 8),
-            child: Text(
-              'PREFERENCES',
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1,
-              ),
-            ),
-          ),
-
-          // Settings Options Card
-          ModernCard(
-            padding: EdgeInsets.zero,
-            child: Column(
-              children: [
-                ListTile(
-                  leading: const Icon(
-                    Icons.auto_graph_rounded,
-                    color: Color(0xFFD4AF37),
-                  ),
-                  title: const Text(
-                    'Planning Lab',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  subtitle: const Text(
-                    'Map your runway and test decisions manually',
-                  ),
-                  trailing: const Icon(Icons.chevron_right, size: 20),
-                  onTap: () => context.push('/planning'),
-                ),
-                const Divider(height: 1, indent: 56),
-                ListTile(
-                  leading: const Icon(
-                    Icons.account_balance_wallet_outlined,
-                    color: Color(0xFF10B981),
-                  ),
-                  title: const Text(
-                    'Accounts & Wallets',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  subtitle: const Text(
-                    'Manage cash, bank accounts & e-wallets',
-                  ),
-                  trailing: const Icon(Icons.chevron_right, size: 20),
-                  onTap: () => context.push('/accounts'),
-                ),
-                const Divider(height: 1, indent: 56),
-                ListTile(
-                  leading: const Icon(
-                    Icons.notifications_outlined,
-                    color: Color(0xFFF59E0B),
-                  ),
-                  title: const Text(
-                    'Notifications',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  subtitle: const Text('Bill reminders & budget alerts'),
-                  trailing: const Icon(Icons.chevron_right, size: 20),
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Notifications enabled for bill reminders',
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                const Divider(height: 1, indent: 56),
-                ListTile(
-                  leading: const Icon(
-                    Icons.privacy_tip_outlined,
-                    color: Color(0xFF059669),
-                  ),
-                  title: const Text(
-                    'Privacy Policy',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  subtitle: const Text('Data protection & user rights'),
-                  trailing: const Icon(Icons.chevron_right, size: 20),
-                  onTap: () {
-                    showDialog(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        title: const Row(
-                          children: [
-                            Icon(
-                              Icons.shield_outlined,
-                              color: Color(0xFF059669),
-                            ),
-                            SizedBox(width: 8),
-                            Text('Privacy Policy'),
-                          ],
-                        ),
-                        content: const SingleChildScrollView(
-                          child: Text(
-                            'KASYABA values your privacy. We do not sell your personal or financial data. '
-                            'Your financial ledger, accounts, and budgets are securely encrypted and used strictly '
-                            'to provide deterministic forecasting, safety calculations, and bill reminders.\n\n'
-                            'You may request complete account and data deletion at any time in Profile & Settings.',
-                          ),
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(ctx),
-                            child: const Text('Close'),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-                const Divider(height: 1, indent: 56),
-                ListTile(
-                  leading: const Icon(
-                    Icons.info_outline,
-                    color: Color(0xFF64748B),
-                  ),
-                  title: const Text(
-                    'About Kasyaba',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  subtitle: const Text(kAppVersionLabel),
-                  onTap: () {
-                    showAboutDialog(
-                      context: context,
-                      applicationName: 'Kasyaba',
-                      applicationVersion: 'v$kAppVersion',
-                      applicationLegalese:
-                          '© 2026 Kasyaba Finance. All rights reserved.',
-                    );
-                  },
+                          setModalState(() {
+                            isSubmitting = true;
+                            sheetError = null;
+                          });
+                          try {
+                            await ref
+                                .read(authProvider.notifier)
+                                .changePassword(
+                                  currentPassword: currentPass,
+                                  newPassword: newPass,
+                                );
+                            if (sheetContext.mounted) {
+                              Navigator.of(sheetContext).pop();
+                            }
+                            if (mounted) {
+                              KasyabaToast.showSuccess(
+                                context,
+                                'Password updated successfully.',
+                              );
+                            }
+                          } catch (error) {
+                            if (sheetContext.mounted) {
+                              setModalState(
+                                () => sheetError = friendlyErrorMessage(
+                                  error,
+                                  fallback: 'Failed to update password.',
+                                ),
+                              );
+                            }
+                          } finally {
+                            if (sheetContext.mounted) {
+                              setModalState(() => isSubmitting = false);
+                            }
+                          }
+                        },
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: 24),
-
-          // Data & Backup Management Section Label
-          Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 8),
-            child: Text(
-              'DATA & BACKUP MANAGEMENT',
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1,
-              ),
-            ),
-          ),
-
-          // Data & Backup Management Card
-          ModernCard(
-            padding: EdgeInsets.zero,
-            child: Column(
-              children: [
-                ListTile(
-                  leading: const Icon(
-                    Icons.cloud_download_outlined,
-                    color: Color(0xFF0284C7),
-                  ),
-                  title: const Text(
-                    'Export Backup (JSON)',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  subtitle: const Text('Complete account & ledger snapshot'),
-                  trailing: const Icon(Icons.chevron_right, size: 20),
-                  onTap: () => showExportBackupSheet(context, ref),
-                ),
-                const Divider(height: 1, indent: 56),
-                ListTile(
-                  leading: const Icon(
-                    Icons.cloud_upload_outlined,
-                    color: Color(0xFF10B981),
-                  ),
-                  title: const Text(
-                    'Import / Restore Backup (JSON)',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  subtitle: const Text(
-                    'Restore financial records with schema check',
-                  ),
-                  trailing: const Icon(Icons.chevron_right, size: 20),
-                  onTap: () => showRestoreBackupSheet(context, ref),
-                ),
-                const Divider(height: 1, indent: 56),
-                ListTile(
-                  leading: const Icon(
-                    Icons.table_chart_outlined,
-                    color: Color(0xFFD4AF37),
-                  ),
-                  title: const Text(
-                    'Export Transactions to CSV',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  subtitle: const Text(
-                    'RFC 4180 format for Excel & Google Sheets',
-                  ),
-                  trailing: const Icon(Icons.chevron_right, size: 20),
-                  onTap: () => showExportCsvSheet(context, ref),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 28),
-
-          // Sign Out Button
-          OutlinedButton.icon(
-            onPressed: () async {
-              await ref.read(authProvider.notifier).logout();
-              if (context.mounted) context.go('/login');
-            },
-            icon: const Icon(Icons.logout),
-            label: const Text(
-              'Sign Out',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            style: OutlinedButton.styleFrom(
-              minimumSize: const Size.fromHeight(50),
-              foregroundColor: theme.colorScheme.onSurface,
-              side: BorderSide(color: theme.colorScheme.outlineVariant),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Delete Account Button (Google Play Compliance)
-          TextButton.icon(
-            onPressed: () async {
-              final hasPassword = ref.read(authProvider).hasPassword;
-              _deleteAccountPasswordController.clear();
-              final confirmed = await showDialog<bool>(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  title: const Text('Delete Account?'),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Are you sure you want to permanently delete your KASYABA account?\n\n'
-                        'This action is irreversible and will immediately erase all your financial records, accounts, transactions, and budgets.',
-                      ),
-                      if (hasPassword) ...[
-                        const SizedBox(height: 20),
-                        TextField(
-                          controller: _deleteAccountPasswordController,
-                          obscureText: true,
-                          decoration: const InputDecoration(
-                            labelText: 'Confirm your password',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx, false),
-                      child: const Text('Cancel'),
-                    ),
-                    FilledButton(
-                      onPressed: () => Navigator.pop(ctx, true),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: theme.colorScheme.error,
-                      ),
-                      child: const Text('Delete Permanently'),
-                    ),
-                  ],
-                ),
-              );
-
-              if (confirmed != true) return;
-
-              try {
-                await ref
-                    .read(authProvider.notifier)
-                    .deleteAccount(
-                      password: hasPassword
-                          ? _deleteAccountPasswordController.text
-                          : null,
-                    );
-                if (context.mounted) {
-                  context.go('/login');
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Your account and data have been completely deleted.',
-                      ),
-                    ),
-                  );
-                }
-              } catch (error) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        friendlyErrorMessage(
-                          error,
-                          fallback:
-                              'Failed to delete account. Please check your password and try again.',
-                        ),
-                      ),
-                    ),
-                  );
-                }
-              }
-            },
-            icon: Icon(
-              Icons.delete_forever_outlined,
-              color: theme.colorScheme.error,
-              size: 20,
-            ),
-            label: Text(
-              'Delete Account and Data',
-              style: TextStyle(
-                color: theme.colorScheme.error,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          const SizedBox(height: 120),
-        ],
+          );
+        },
       ),
     );
   }
-}
 
-
-// ─────────────────────────────────────────────────────────────
-//  Tactile Appearance & Theme Selector
-// ─────────────────────────────────────────────────────────────
-
-class _ThemeSelectorCard extends StatelessWidget {
-  final ThemeMode currentMode;
-  final bool isDark;
-  final ValueChanged<ThemeMode> onThemeChanged;
-
-  const _ThemeSelectorCard({
-    required this.currentMode,
-    required this.isDark,
-    required this.onThemeChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ModernCard(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+  Widget _sheetInputField({
+    required String label,
+    required TextEditingController controller,
+    required String hint,
+    ValueChanged<String>? onChanged,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 6, bottom: 8),
+          child: Text(
+            label,
+            style: GoogleFonts.dmSans(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: context.kColors.textSecondary,
+            ),
+          ),
+        ),
+        Container(
+          height: 58,
+          padding: const EdgeInsets.symmetric(horizontal: 21),
+          decoration: BoxDecoration(
+            color: context.kColors.inputFill,
+            borderRadius: BorderRadius.circular(KasyabaTokens.radiusCard),
+            border: Border.all(color: context.kColors.cardBorder, width: 1),
+          ),
+          child: Row(
             children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: AppColors.emerald500.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: AppColors.emerald500.withValues(alpha: 0.25),
-                  ),
-                ),
-                child: const Icon(
-                  Icons.palette_outlined,
-                  color: AppColors.emerald500,
-                  size: 20,
+              Text(
+                '₱ ',
+                style: GoogleFonts.dmSans(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: context.kColors.textPrimary,
                 ),
               ),
-              const SizedBox(width: 12),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Appearance & Theme',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                        color: isDark ? AppColors.textDark : AppColors.textLight,
-                      ),
+                child: TextFormField(
+                  controller: controller,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  onChanged: onChanged,
+                  style: GoogleFonts.dmSans(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: context.kColors.textPrimary,
+                  ),
+                  cursorColor: context.kColors.textPrimary,
+                  decoration: InputDecoration(
+                    hintText: hint,
+                    hintStyle: GoogleFonts.dmSans(
+                      fontSize: 16,
+                      color: context.kColors.icon.withValues(alpha: 0.4),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Choose your lighting atmosphere',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isDark ? AppColors.textMuted : AppColors.textMutedL,
-                      ),
-                    ),
-                  ],
+                    filled: false,
+                    fillColor: Colors.transparent,
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    errorBorder: InputBorder.none,
+                    focusedErrorBorder: InputBorder.none,
+                    contentPadding: EdgeInsets.zero,
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: isDark ? AppColors.surface700 : AppColors.lightInputFill,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: isDark ? AppColors.subtleBorder : AppColors.lightBorderHairline,
-                width: 1,
-              ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBreakdownItem(String label, double amount) {
+    final isDeduction = amount < 0;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2.5),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: GoogleFonts.dmSans(
+              fontSize: 13,
+              color: context.kColors.textSecondary,
             ),
-            child: Row(
-              children: [
-                _ThemeSegmentButton(
-                  icon: Icons.dark_mode_rounded,
-                  label: 'Dark',
-                  isSelected: currentMode == ThemeMode.dark,
-                  isDark: isDark,
-                  onTap: () => onThemeChanged(ThemeMode.dark),
-                ),
-                const SizedBox(width: 4),
-                _ThemeSegmentButton(
-                  icon: Icons.light_mode_rounded,
-                  label: 'Light',
-                  isSelected: currentMode == ThemeMode.light,
-                  isDark: isDark,
-                  onTap: () => onThemeChanged(ThemeMode.light),
-                ),
-                const SizedBox(width: 4),
-                _ThemeSegmentButton(
-                  icon: Icons.brightness_auto_rounded,
-                  label: 'System',
-                  isSelected: currentMode == ThemeMode.system,
-                  isDark: isDark,
-                  onTap: () => onThemeChanged(ThemeMode.system),
-                ),
-              ],
+          ),
+          Text(
+            '${isDeduction ? '-' : ''}${CurrencyFormatter.format(amount.abs())}',
+            style: GoogleFonts.dmSans(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: isDeduction ? context.kColors.danger : context.kColors.textPrimary,
             ),
           ),
         ],
       ),
     );
   }
+
+  Widget _sheetDropdown({
+    required String label,
+    required String value,
+    required List<DropdownMenuItem<String>> items,
+    required ValueChanged<String?> onChanged,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 6, bottom: 8),
+          child: Text(
+            label,
+            style: GoogleFonts.dmSans(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: context.kColors.textSecondary,
+            ),
+          ),
+        ),
+        Container(
+          height: 58,
+          padding: const EdgeInsets.symmetric(horizontal: 21),
+          decoration: BoxDecoration(
+            color: context.kColors.inputFill,
+            borderRadius: BorderRadius.circular(KasyabaTokens.radiusCard),
+            border: Border.all(color: context.kColors.cardBorder, width: 1),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: value,
+              isExpanded: true,
+              borderRadius: BorderRadius.circular(20),
+              dropdownColor: context.kColors.card,
+              elevation: 12,
+              icon: Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: context.kColors.textPrimary,
+                size: 24,
+              ),
+              style: GoogleFonts.dmSans(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: context.kColors.textPrimary,
+              ),
+              items: items,
+              onChanged: onChanged,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+
+
+  String _themeModeLabel(ThemeMode mode) {
+    switch (mode) {
+      case ThemeMode.light:
+        return 'Light';
+      case ThemeMode.system:
+        return 'System (follow device)';
+      case ThemeMode.dark:
+        return 'Dark';
+    }
+  }
+
+  void _showAppearanceSheet() {
+    AppHaptics.selectionClick();
+    showKasyabaSheet<void>(
+      context: context,
+      builder: (sheetContext) {
+        final current = ref.read(themeModeProvider);
+
+        void select(ThemeMode mode) {
+          AppHaptics.selectionClick();
+          ref.read(themeModeProvider.notifier).setThemeMode(mode);
+          Navigator.of(sheetContext).pop();
+        }
+
+        Widget option({
+          required String label,
+          required IconData icon,
+          required ThemeMode mode,
+        }) {
+          final selected = current == mode;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: PillButton(
+              label: label,
+              icon: icon,
+              height: 50,
+              variant: selected
+                  ? PillButtonVariant.primary
+                  : PillButtonVariant.secondary,
+              onPressed: () => select(mode),
+            ),
+          );
+        }
+
+        return AppSheet(
+          color: context.kColors.canvas,
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Appearance',
+                style: GoogleFonts.bricolageGrotesque(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: context.kColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Choose how Kasyaba looks on this device.',
+                style: GoogleFonts.dmSans(
+                  fontSize: 14,
+                  color: context.kColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 18),
+              option(
+                label: 'Dark',
+                icon: Icons.dark_mode_rounded,
+                mode: ThemeMode.dark,
+              ),
+              option(
+                label: 'Light',
+                icon: Icons.light_mode_rounded,
+                mode: ThemeMode.light,
+              ),
+              option(
+                label: 'System',
+                icon: Icons.brightness_auto_rounded,
+                mode: ThemeMode.system,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
+    final profileAsync = ref.watch(userProfileProvider);
+    final budgetStatusAsync = ref.watch(budgetStatusProvider);
+    final themeMode = ref.watch(themeModeProvider);
+
+    final displayName = authState.displayName ?? 'User';
+    final initial = displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U';
+
+    return Scaffold(
+      backgroundColor: context.kColors.canvas,
+      body: Container(
+        decoration: BoxDecoration(gradient: context.kColors.backgroundGradient),
+        child: SafeArea(
+          bottom: false,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(
+              20,
+              16,
+              20,
+              KasyabaTokens.dockClearance,
+            ),
+            children: [
+              FadeSlideEntrance.staggered(
+                index: 0,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Text(
+                    'Profile',
+                    style: GoogleFonts.bricolageGrotesque(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w700,
+                      color: context.kColors.textPrimary,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              FadeSlideEntrance.staggered(
+                index: 1,
+                child: Container(
+                  padding: const EdgeInsets.all(19),
+                  decoration: BoxDecoration(
+                    color: context.kColors.cardHero,
+                    borderRadius: BorderRadius.circular(
+                      KasyabaTokens.radiusCard,
+                    ),
+                    border: Border.all(
+                      color: context.kColors.cardBorderStrong,
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          color: context.kColors.primaryButton,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Text(
+                            initial,
+                            style: GoogleFonts.bricolageGrotesque(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w700,
+                              color: context.kColors.onPrimaryButton,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              displayName,
+                              style: GoogleFonts.bricolageGrotesque(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w700,
+                                color: context.kColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              authState.email ?? 'No email set',
+                              style: GoogleFonts.dmSans(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w400,
+                                color: context.kColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Tooltip(
+                        message: 'Edit profile name',
+                        child: SpringTouch(
+                          onTap: () => _showEditProfileSheet(displayName),
+                          child: Container(
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              color: context.kColors.card,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: context.kColors.cardBorder,
+                                width: 1,
+                              ),
+                            ),
+                            child: Center(
+                              child: Icon(
+                                Icons.edit_outlined,
+                                size: 16,
+                                color: context.kColors.success,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              FadeSlideEntrance.staggered(
+                index: 2,
+                child: profileAsync.when(
+                  loading: () => const KasyabaLoadingSkeleton(lines: 3),
+                  error: (error, _) => KasyabaErrorCard(
+                    message: friendlyErrorMessage(
+                      error,
+                      fallback: 'Could not load your salary settings.',
+                    ),
+                    onRetry: () => ref.invalidate(userProfileProvider),
+                  ),
+                  data: _buildSalaryCard,
+                ),
+              ),
+              const SizedBox(height: 20),
+              FadeSlideEntrance.staggered(
+                index: 3,
+                child: _sectionHeader('PREFERENCES'),
+              ),
+              const SizedBox(height: 6),
+              FadeSlideEntrance.staggered(
+                index: 4,
+                child: _settingsCard([
+                  _SettingsRow(
+                    title: 'Appearance',
+                    subtitle: _themeModeLabel(themeMode),
+                    onTap: _showAppearanceSheet,
+                  ),
+                ]),
+              ),
+              const SizedBox(height: 20),
+              FadeSlideEntrance.staggered(
+                index: 3,
+                child: _sectionHeader('MONEY'),
+              ),
+              const SizedBox(height: 6),
+              FadeSlideEntrance.staggered(
+                index: 4,
+                child: _settingsCard([
+                  _SettingsRow(
+                    title: 'Accounts and wallets',
+                    subtitle: 'Cash, bank and e-wallets',
+                    onTap: () => context.push('/accounts'),
+                  ),
+                  _divider(),
+                  _SettingsRow(
+                    title: 'Budgets',
+                    subtitle: _budgetSubtitle(budgetStatusAsync),
+                    onTap: () => context.push('/budgets'),
+                  ),
+                  _divider(),
+                  _SettingsRow(
+                    title: 'Notifications',
+                    subtitle: 'Bill reminders and budget alerts',
+                    onTap: () => context.push('/settings/notifications'),
+                  ),
+                ]),
+              ),
+              const SizedBox(height: 20),
+              FadeSlideEntrance.staggered(
+                index: 5,
+                child: _sectionHeader('SECURITY'),
+              ),
+              const SizedBox(height: 6),
+              FadeSlideEntrance.staggered(
+                index: 6,
+                child: _settingsCard([
+                  _SettingsRow(
+                    title: 'Change password',
+                    subtitle: 'Update your account login password',
+                    onTap: _showChangePasswordSheet,
+                  ),
+                ]),
+              ),
+              const SizedBox(height: 20),
+              FadeSlideEntrance.staggered(
+                index: 7,
+                child: _sectionHeader('YOUR DATA'),
+              ),
+              const SizedBox(height: 6),
+              FadeSlideEntrance.staggered(
+                index: 8,
+                child: _settingsCard([
+                  _SettingsRow(
+                    title: 'Backup and export',
+                    subtitle: 'JSON backup, restore, CSV for Excel',
+                    onTap: () => context.push('/settings/backup'),
+                  ),
+                  _divider(),
+                  _SettingsRow(
+                    title: 'Privacy policy',
+                    subtitle: 'Server-backed, cached on this device',
+                    onTap: () => context.push('/settings/privacy'),
+                  ),
+                  _divider(),
+                  _SettingsRow(
+                    title: 'About Kasyaba',
+                    subtitle: 'Version $kAppVersionLabel',
+                    onTap: () => context.push('/settings/privacy'),
+                  ),
+                ]),
+              ),
+              const SizedBox(height: 24),
+              FadeSlideEntrance.staggered(
+                index: 7,
+                child: PillButton(
+                  label: 'Sign out',
+                  variant: PillButtonVariant.secondary,
+                  onPressed: () async {
+                    await ref.read(authProvider.notifier).logout();
+                    if (context.mounted) context.go('/login');
+                  },
+                ),
+              ),
+              const SizedBox(height: 14),
+              FadeSlideEntrance.staggered(
+                index: 8,
+                child: Center(
+                  child: SpringTouch(
+                    onTap: () => context.push('/settings/delete-account'),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 8,
+                        horizontal: 16,
+                      ),
+                      child: Text(
+                        'Delete account and data',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: context.kColors.danger,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSalaryCard(UserProfile profile) {
+    final salary = profile.salaryAmount;
+    final schedule = profile.paydaySchedule ?? '15th & 30th';
+
+    return Container(
+      padding: const EdgeInsets.all(19),
+      decoration: BoxDecoration(
+        color: context.kColors.card,
+        borderRadius: BorderRadius.circular(KasyabaTokens.radiusCard),
+        border: Border.all(color: context.kColors.cardBorder, width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Salary and payday',
+                style: GoogleFonts.dmSans(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: context.kColors.textPrimary,
+                ),
+              ),
+              if (salary != null)
+                Tooltip(
+                  message: 'Edit salary & payday settings',
+                  child: SpringTouch(
+                    onTap: () => _showSalarySheet(profile),
+                    child: Text(
+                      'Edit',
+                      style: GoogleFonts.dmSans(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: context.kColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          if (salary == null) ...[
+            Text(
+              'No salary set',
+              style: GoogleFonts.bricolageGrotesque(
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+                color: context.kColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Add your net pay to unlock safe-to-spend, payday, and forecast calculations.',
+              style: GoogleFonts.dmSans(
+                fontSize: 14,
+                fontWeight: FontWeight.w400,
+                color: context.kColors.textSecondary,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 14),
+            PillButton(
+              label: 'Set salary',
+              variant: PillButtonVariant.secondary,
+              height: 48,
+              onPressed: () => _showSalarySheet(profile),
+            ),
+          ] else ...[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(
+                  '${CurrencyFormatter.format(salary)} ',
+                  style: GoogleFonts.bricolageGrotesque(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w700,
+                    color: context.kColors.textPrimary,
+                  ),
+                ),
+                Text(
+                  'per month',
+                  style: GoogleFonts.dmSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: context.kColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Paid on the $schedule · ${CurrencyFormatter.format(_perPaycheck(salary, profile.paydayFrequency))} each',
+              style: GoogleFonts.dmSans(
+                fontSize: 14,
+                fontWeight: FontWeight.w400,
+                color: context.kColors.textSecondary,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionHeader(String label) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+      child: Text(
+        label,
+        style: GoogleFonts.dmSans(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 1.0,
+          color: context.kColors.textSecondary,
+        ),
+      ),
+    );
+  }
+
+  Widget _settingsCard(List<Widget> children) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 19, vertical: 3),
+      decoration: BoxDecoration(
+        color: context.kColors.card,
+        borderRadius: BorderRadius.circular(KasyabaTokens.radiusCard),
+        border: Border.all(color: context.kColors.cardBorder, width: 1),
+      ),
+      child: Column(children: children),
+    );
+  }
+
+  Widget _divider() {
+    return Container(height: 1, color: context.kColors.divider);
+  }
 }
 
-class _ThemeSegmentButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool isSelected;
-  final bool isDark;
+class _SettingsRow extends StatelessWidget {
+  final String title;
+  final String subtitle;
   final VoidCallback onTap;
 
-  const _ThemeSegmentButton({
-    required this.icon,
-    required this.label,
-    required this.isSelected,
-    required this.isDark,
+  const _SettingsRow({
+    required this.title,
+    required this.subtitle,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final activeBg = isDark ? const Color(0xFF27272A) : Colors.white;
-    final activeTextColor = isDark ? Colors.white : AppColors.textLight;
-    final inactiveTextColor = isDark ? AppColors.textMuted : AppColors.textMutedL;
-
-    return Expanded(
-      child: PressableScale(
-        onTap: () {
-          AppHaptics.selectionClick();
-          onTap();
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOutCubic,
-          padding: const EdgeInsets.symmetric(vertical: 9),
-          decoration: BoxDecoration(
-            color: isSelected ? activeBg : Colors.transparent,
-            borderRadius: BorderRadius.circular(9),
-            border: isSelected
-                ? Border.all(
-                    color: isDark ? AppColors.subtleBorder : AppColors.lightBorderHairline,
-                    width: 1,
-                  )
-                : null,
-            boxShadow: isSelected && !isDark
-                ? [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.06),
-                      blurRadius: 4,
-                      offset: const Offset(0, 1),
+    return SpringTouch(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 15),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: GoogleFonts.dmSans(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: context.kColors.textPrimary,
                     ),
-                  ]
-                : null,
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 16,
-                color: isSelected ? AppColors.emerald500 : inactiveTextColor,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: GoogleFonts.dmSans(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                      color: context.kColors.textSecondary,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: isSelected ? activeTextColor : inactiveTextColor,
-                ),
-              ),
-            ],
-          ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: context.kColors.textSecondary,
+              size: 20,
+            ),
+          ],
         ),
       ),
     );

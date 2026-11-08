@@ -1,428 +1,509 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../app/theme/app_theme.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+import '../../../app/theme/app_motion.dart';
+import '../../../app/theme/kasyaba_color_scheme.dart';
+import '../../../shared/widgets/motion_components.dart';
+import '../../../core/api/api_client.dart';
+import '../../../core/database/cache_service.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
-import '../../../core/utils/currency_formatter.dart';
-import '../../../shared/widgets/modern_card.dart';
+import '../../../shared/widgets/app_state_widgets.dart';
+import '../../../shared/widgets/kasyaba_toast.dart';
+import '../../../shared/widgets/offline_status.dart';
+import '../../auth/widgets/auth_widgets.dart';
+import '../../dashboard/widgets/dashboard_tokens.dart';
 
+/// ─────────────────────────────────────────────────────────────
+///  Notifications Screen — 1:1 Pixel-Perfect Figma (Node 13:6204)
+/// ─────────────────────────────────────────────────────────────
 class AlertsScreen extends ConsumerWidget {
   const AlertsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final dashboardAsync = ref.watch(dashboardProvider);
     final alertsAsync = ref.watch(alertsProvider);
-    final recoveryAsync = ref.watch(recoveryAnalysisProvider);
+    final topPadding = math.max(
+      56.0,
+      MediaQuery.paddingOf(context).top + 16.0,
+    );
 
     return Scaffold(
-      appBar: AppBar(
-        titleSpacing: 20,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          tooltip: 'Back',
-          onPressed: () {
-            if (context.canPop()) {
-              context.pop();
-            } else {
-              context.go('/dashboard');
-            }
+      backgroundColor: context.kColors.canvas,
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: BoxDecoration(
+          color: context.kColors.canvas,
+          gradient: context.kColors.backgroundGradient,
+        ),
+        child: RefreshIndicator(
+          color: context.kColors.textPrimary,
+          backgroundColor: context.kColors.card,
+          onRefresh: () async {
+            ref.invalidate(alertsProvider);
           },
-        ),
-        title: Text(
-          'Predictive Financial Alerts',
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              ref.invalidate(alertsProvider);
-              ref.invalidate(recoveryAnalysisProvider);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('All alerts refreshed')),
-              );
-            },
-            child: Text(
-              'Refresh',
-              style: TextStyle(
-                color: isDark ? Colors.white70 : Colors.black54,
-                fontWeight: FontWeight.w600,
-                fontSize: 13,
+          child: ListView(
+            padding: EdgeInsets.fromLTRB(20, topPadding, 20, DashboardTokens.dockClearance),
+            children: [
+              // ── Header (Node 11:2427) ──────────────────────────
+              FadeSlideEntrance.staggered(
+                index: 0,
+                child: _NotificationHeader(
+                  onBackTap: () {
+                    AppHaptics.selectionClick();
+                    if (context.canPop()) {
+                      context.pop();
+                    } else {
+                      context.go('/dashboard');
+                    }
+                  },
+                ),
               ),
-            ),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: RefreshIndicator(
-        color: const Color(0xFF10B981),
-        onRefresh: () async {
-          ref.invalidate(dashboardProvider);
-          ref.invalidate(alertsProvider);
-          ref.invalidate(recoveryAnalysisProvider);
-        },
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
-          children: [
-            // ── Dynamic Health Score Header Banner ─────────────────────────
-            dashboardAsync.when(
-              loading: () => const SizedBox(
-                height: 90,
-                child: Center(child: CircularProgressIndicator()),
+              const OfflineStatusBadge(
+                snapshotKey: CacheService.snapshotKeyAlerts,
+                margin: EdgeInsets.only(top: 12),
               ),
-              error: (err, _) => _AlertsErrorCard(
-                message: friendlyErrorMessage(err),
-                onRetry: () => ref.invalidate(dashboardProvider),
-              ),
-              data: (data) {
-                final grade = data
-                    .healthScore; // 'Needs Attention', 'Fair', 'Good', 'Excellent'
-                List<Color> gradientColors;
-                IconData headerIcon;
+              const SizedBox(height: 20),
 
-                if (grade == 'Needs Attention' || grade == 'Critical') {
-                  gradientColors = const [Color(0xFFDC2626), Color(0xFFEF4444)];
-                  headerIcon = Icons.warning_amber_rounded;
-                } else if (grade == 'Fair') {
-                  gradientColors = const [Color(0xFFD97706), Color(0xFFF59E0B)];
-                  headerIcon = Icons.info_outline_rounded;
-                } else {
-                  gradientColors = const [Color(0xFF059669), Color(0xFF10B981)];
-                  headerIcon = Icons.health_and_safety_rounded;
-                }
-
-                return ModernCard(
-                  padding: const EdgeInsets.all(20),
-                  gradient: LinearGradient(
-                    colors: gradientColors,
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+              // ── Notifications Content ──────────────────────────
+              alertsAsync.when(
+                loading: () => FadeSlideEntrance.staggered(
+                  index: 1,
+                  child: const _NotificationsLoadingState(),
+                ),
+                error: (err, _) => FadeSlideEntrance.staggered(
+                  index: 1,
+                  child: _NotificationsErrorCard(
+                    message: friendlyErrorMessage(err),
+                    onRetry: () => ref.invalidate(alertsProvider),
                   ),
-                  child: Row(
+                ),
+                data: (alerts) {
+                  if (alerts.isEmpty) {
+                    return FadeSlideEntrance.staggered(
+                      index: 1,
+                      child: const _NotificationsEmptyState(),
+                    );
+                  }
+
+                  final now = DateTime.now();
+                  final todayStart = DateTime(now.year, now.month, now.day);
+
+                  final todayAlerts = alerts
+                      .where((a) => !a.createdAt.isBefore(todayStart))
+                      .toList();
+                  final earlierAlerts = alerts
+                      .where((a) => a.createdAt.isBefore(todayStart))
+                      .toList();
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(headerIcon, color: Colors.white, size: 28),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Financial Health Status',
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.9),
-                                fontSize: 13,
-                              ),
-                            ),
-                            Text(
-                              grade,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: -0.5,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 24),
-
-            // ── Financial Analysis & How to Recover Section ────────────────
-            recoveryAsync.when(
-              loading: () => const SizedBox.shrink(),
-              error: (err, _) => _AlertsErrorCard(
-                message: friendlyErrorMessage(err),
-                onRetry: () => ref.invalidate(recoveryAnalysisProvider),
-              ),
-              data: (analysis) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.analytics_outlined,
-                          color: Color(0xFF0284C7),
-                          size: 22,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Financial Analysis & Recovery Plan',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-
-                    ModernCard(
-                      padding: const EdgeInsets.all(18),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Summary Message
-                          Text(
-                            analysis.summaryMessage,
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: isDark
-                                  ? AppColors.textMuted
-                                  : AppColors.lightTextSecondary,
-                              height: 1.4,
-                            ),
-                          ),
-                          const Divider(height: 24),
-
-                          // Root Causes Analysis
-                          const Text(
-                            'ROOT CAUSE ANALYSIS',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.grey,
-                              letterSpacing: 0.8,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-
-                          for (final cause in analysis.rootCauses) ...[
-                            _RootCauseTile(cause: cause, isDark: isDark),
-                            const SizedBox(height: 8),
-                          ],
-
-                          const Divider(height: 24),
-
-                          // Recommended Daily Spend Limit & Recovery Plan
-                          Row(
+                      // "TODAY" Section (Node 11:2433 & 11:2436)
+                      if (todayAlerts.isNotEmpty) ...[
+                        FadeSlideEntrance.staggered(
+                          index: 1,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(
-                                    0xFF0284C7,
-                                  ).withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: const Color(
-                                      0xFF0284C7,
-                                    ).withValues(alpha: 0.3),
-                                  ),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'Daily Spend Limit',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF0284C7),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      '${CurrencyFormatter.format(analysis.recommendedDailySpendLimit)} / day',
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w800,
-                                        color: Color(0xFF0284C7),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  'Pacing limit for the remaining ${analysis.daysRemainingInMonth} days of this month.',
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.grey,
-                                    height: 1.3,
-                                  ),
-                                ),
+                              const _SectionHeader(title: 'TODAY'),
+                              const SizedBox(height: 8),
+                              _NotificationGroupCard(
+                                alerts: todayAlerts,
+                                onAlertTap: (alert) =>
+                                    _handleAlertTap(context, ref, alert),
                               ),
                             ],
                           ),
-
-                          if (analysis.estimatedRecoveryDate != null) ...[
-                            const SizedBox(height: 14),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(
-                                  0xFF10B981,
-                                ).withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(
-                                    Icons.event_available_outlined,
-                                    size: 16,
-                                    color: Color(0xFF10B981),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      'Estimated Full Recovery: ${analysis.estimatedRecoveryDate}',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF10B981),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-
-                          const SizedBox(height: 16),
-                          const Text(
-                            'ACTIONABLE RECOVERY STEPS',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.grey,
-                              letterSpacing: 0.8,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-
-                          for (final step in analysis.actionSteps) ...[
-                            _ActionStepTile(step: step, isDark: isDark),
-                            const SizedBox(height: 8),
-                          ],
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
-                );
-              },
-            ),
-
-            // ── Active Predictive Insights List ─────────────────────────────
-            Text(
-              'Active Predictive Insights',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            alertsAsync.when(
-              loading: () => const SizedBox(
-                height: 120,
-                child: Center(child: CircularProgressIndicator()),
-              ),
-              error: (err, _) => _AlertsErrorCard(
-                message: friendlyErrorMessage(err),
-                onRetry: () => ref.invalidate(alertsProvider),
-              ),
-              data: (alerts) {
-                if (alerts.isEmpty) {
-                  return ModernCard(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.check_circle_outline_rounded,
-                          size: 40,
-                          color: AppColors.emerald500.withValues(alpha: 0.8),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'No unread alerts — your baseline predictions are updated.',
-                          textAlign: TextAlign.center,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: isDark
-                                ? AppColors.textMuted
-                                : AppColors.textMutedL,
-                            fontWeight: FontWeight.w500,
-                          ),
                         ),
                       ],
-                    ),
-                  );
-                }
 
-                return ModernCard(
-                  padding: EdgeInsets.zero,
-                  child: Column(
-                    children: [
-                      for (int i = 0; i < alerts.length; i++) ...[
-                        if (i > 0) const Divider(height: 1, indent: 56),
-                        _AlertTile(alert: alerts[i], isDark: isDark),
+                      // Spacing between sections
+                      if (todayAlerts.isNotEmpty && earlierAlerts.isNotEmpty)
+                        const SizedBox(height: 20),
+
+                      // "EARLIER" Section (Node 11:2458 & 11:2461)
+                      if (earlierAlerts.isNotEmpty) ...[
+                        FadeSlideEntrance.staggered(
+                          index: 2,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              const _SectionHeader(title: 'EARLIER'),
+                              const SizedBox(height: 8),
+                              _NotificationGroupCard(
+                                alerts: earlierAlerts,
+                                onAlertTap: (alert) =>
+                                    _handleAlertTap(context, ref, alert),
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
                     ],
-                  ),
-                );
-              },
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _handleAlertTap(
+    BuildContext context,
+    WidgetRef ref,
+    AlertItem alert,
+  ) async {
+    AppHaptics.selectionClick();
+    if (!alert.isRead) {
+      try {
+        final dio = ref.read(dioProvider);
+        await dio.post('/alerts/${alert.id}/read');
+        ref.invalidate(alertsProvider);
+      } catch (e) {
+        if (context.mounted) {
+          KasyabaToast.showError(
+            context,
+            friendlyErrorMessage(
+              e,
+              fallback: 'Could not mark this notification as read.',
             ),
-          ],
+          );
+        }
+      }
+    }
+  }
+}
+
+/// ── Header with 50x50 Back Button & Bricolage Title (Node 11:2427) ──────
+class _NotificationHeader extends StatelessWidget {
+  final VoidCallback onBackTap;
+
+  const _NotificationHeader({required this.onBackTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        AuthBackButton(
+          onPressed: onBackTap,
+          size: 50,
+          radius: 24,
+          backgroundColor: context.kColors.card,
+          borderColor: context.kColors.cardBorder,
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            'Notifications',
+            style: GoogleFonts.bricolageGrotesque(
+              color: context.kColors.textPrimary,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// ── Section Header: "TODAY", "EARLIER" (Node 11:2433 / 11:2458) ────────
+class _SectionHeader extends StatelessWidget {
+  final String title;
+
+  const _SectionHeader({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: Text(
+        title,
+        style: GoogleFonts.dmSans(
+          color: context.kColors.textSecondary,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 1.0, // 0.0833em
         ),
       ),
     );
   }
 }
 
-class _AlertsErrorCard extends StatelessWidget {
-  final String message;
-  final VoidCallback onRetry;
+/// ── Group Container Card (Node 11:2436 / 11:2461) ──────────────────────
+class _NotificationGroupCard extends StatelessWidget {
+  final List<AlertItem> alerts;
+  final ValueChanged<AlertItem> onAlertTap;
 
-  const _AlertsErrorCard({required this.message, required this.onRetry});
+  const _NotificationGroupCard({
+    required this.alerts,
+    required this.onAlertTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return ModernCard(
+    return Container(
+      decoration: BoxDecoration(
+        color: context.kColors.card,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: context.kColors.cardBorder, width: 1),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 19, vertical: 3),
+      child: Column(
+        children: [
+          for (int i = 0; i < alerts.length; i++) ...[
+            if (i > 0) Container(height: 1, color: context.kColors.divider),
+            _NotificationItemRow(
+              alert: alerts[i],
+              onTap: () => onAlertTap(alerts[i]),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// ── Notification Item Row (Node 11:2437 / 11:2448 / 11:2462) ───────────
+class _NotificationItemRow extends StatelessWidget {
+  final AlertItem alert;
+  final VoidCallback onTap;
+
+  const _NotificationItemRow({required this.alert, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final isUnread = !alert.isRead;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        splashColor: context.kColors.textPrimary.withValues(alpha: 0.06),
+        highlightColor: Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Unread Indicator Dot (Node 11:2438, 11:2439)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: SizedBox(
+                  width: 10,
+                  height: 16,
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: isUnread
+                            ? context.kColors.danger
+                            : Colors.transparent,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+
+              // Title and Subtitle Column (Node 11:2440)
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      alert.title,
+                      style: GoogleFonts.dmSans(
+                        color: context.kColors.textPrimary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      alert.message,
+                      style: GoogleFonts.dmSans(
+                        color: context.kColors.textSecondary,
+                        fontSize: 14,
+                        height: 20.3 / 14,
+                        fontWeight: FontWeight.normal,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+
+              // Timestamp (Node 11:2445, 11:2446)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(
+                  _formatNotificationTime(alert.createdAt),
+                  style: GoogleFonts.dmSans(
+                    color: context.kColors.textSecondary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.normal,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  static String _formatNotificationTime(DateTime date) {
+    final now = DateTime.now();
+    final diff = now.difference(date);
+
+    final isToday =
+        now.year == date.year && now.month == date.month && now.day == date.day;
+
+    if (isToday) {
+      if (diff.inMinutes < 1) return 'Just now';
+      if (diff.inMinutes < 60) return '${diff.inMinutes}m';
+      if (diff.inHours < 6) return '${diff.inHours}h';
+      final hour = date.hour;
+      final h = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+      final ampm = hour >= 12 ? 'pm' : 'am';
+      return '$h$ampm';
+    }
+
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    final monthStr = months[date.month - 1];
+    if (now.year == date.year) {
+      return '$monthStr ${date.day}';
+    }
+    return '$monthStr ${date.day}, ${date.year}';
+  }
+}
+
+/// ── Empty State ─────────────────────────────────────────────────────────
+class _NotificationsEmptyState extends StatelessWidget {
+  const _NotificationsEmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: context.kColors.card,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: context.kColors.cardBorder, width: 1),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: context.kColors.dockFill,
+              shape: BoxShape.circle,
+              border: Border.all(color: context.kColors.cardBorder, width: 1),
+            ),
+            child: Icon(
+              Icons.notifications_none_rounded,
+              color: context.kColors.textPrimary,
+              size: 26,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'No notifications yet',
+            style: GoogleFonts.bricolageGrotesque(
+              color: context.kColors.textPrimary,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'You\'re all caught up! Predictive insights and budget updates will appear here.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.dmSans(
+              color: context.kColors.textSecondary,
+              fontSize: 14,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// ── Loading Shimmer / Skeletons ─────────────────────────────────────────
+class _NotificationsLoadingState extends StatelessWidget {
+  const _NotificationsLoadingState();
+
+  @override
+  Widget build(BuildContext context) {
+    return const KasyabaLoadingSkeleton(lines: 5);
+  }
+}
+
+/// ── Error State ─────────────────────────────────────────────────────────
+class _NotificationsErrorCard extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+
+  const _NotificationsErrorCard({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: context.kColors.card,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: context.kColors.danger.withValues(alpha: 0.4),
+          width: 1,
+        ),
+      ),
       padding: const EdgeInsets.all(20),
-      borderColor: AppColors.expense.withValues(alpha: 0.4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.error_outline_rounded,
-                color: AppColors.expense,
-                size: 24,
+                color: context.kColors.danger,
+                size: 22,
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   message,
-                  style: const TextStyle(
-                    color: AppColors.expense,
+                  style: GoogleFonts.dmSans(
+                    color: context.kColors.danger,
                     fontWeight: FontWeight.w600,
                     fontSize: 13,
                   ),
@@ -430,247 +511,27 @@ class _AlertsErrorCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Align(
             alignment: Alignment.centerRight,
             child: TextButton.icon(
               onPressed: onRetry,
-              icon: const Icon(Icons.refresh_rounded, size: 18),
-              label: const Text('Retry'),
-              style: TextButton.styleFrom(foregroundColor: AppColors.expense),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RootCauseTile extends StatelessWidget {
-  final RootCauseItem cause;
-  final bool isDark;
-
-  const _RootCauseTile({required this.cause, required this.isDark});
-
-  @override
-  Widget build(BuildContext context) {
-    Color tagColor;
-    if (cause.severity == 'critical') {
-      tagColor = const Color(0xFFEF4444);
-    } else if (cause.severity == 'warning') {
-      tagColor = const Color(0xFFF59E0B);
-    } else {
-      tagColor = const Color(0xFF3B82F6);
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: tagColor.withValues(alpha: isDark ? 0.12 : 0.08),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: tagColor.withValues(alpha: 0.25)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.error_outline_rounded, color: tagColor, size: 20),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  cause.title,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: tagColor,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  cause.description,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isDark ? AppColors.textMuted : AppColors.lightTextSecondary,
-                    height: 1.3,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ActionStepTile extends StatelessWidget {
-  final ActionStepItem step;
-  final bool isDark;
-
-  const _ActionStepTile({required this.step, required this.isDark});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.surface700 : AppColors.lightInputFill,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppColors.subtleBorderAdaptive(isDark),
-        ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 24,
-            height: 24,
-            decoration: const BoxDecoration(
-              color: Color(0xFF10B981),
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Text(
-                '${step.stepNumber}',
-                style: const TextStyle(
-                  color: Colors.white,
+              icon: Icon(
+                Icons.refresh_rounded,
+                size: 16,
+                color: context.kColors.textPrimary,
+              ),
+              label: Text(
+                'Retry',
+                style: GoogleFonts.dmSans(
+                  color: context.kColors.textPrimary,
                   fontWeight: FontWeight.bold,
-                  fontSize: 12,
                 ),
               ),
             ),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  step.title,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  step.description,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isDark
-                        ? AppColors.textMuted
-                        : AppColors.lightTextSecondary,
-                    height: 1.3,
-                  ),
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );
-  }
-}
-
-class _AlertTile extends StatelessWidget {
-  final AlertItem alert;
-  final bool isDark;
-
-  const _AlertTile({required this.alert, required this.isDark});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    final IconData icon;
-    switch (alert.type) {
-      case 'budget_overrun':
-        icon = Icons.pie_chart_outline;
-      case 'low_balance':
-        icon = Icons.account_balance_wallet_outlined;
-      case 'savings_goal':
-        icon = Icons.savings_outlined;
-      case 'bill_due':
-        icon = Icons.receipt_long_outlined;
-      case 'month_end':
-        icon = Icons.auto_graph;
-      default:
-        icon = Icons.info_outline;
-    }
-
-    final Color color;
-    switch (alert.severity) {
-      case 'critical':
-        color = const Color(0xFFEF4444);
-      case 'warning':
-        color = const Color(0xFFF59E0B);
-      case 'info':
-        color = const Color(0xFF3B82F6);
-      default:
-        color = const Color(0xFF64748B);
-    }
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: isDark ? 0.15 : 0.10),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: color, size: 22),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  alert.title,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    color: isDark ? AppColors.textDark : AppColors.textLight,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  alert.message,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: isDark ? AppColors.textMuted : AppColors.textMutedL,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _timeAgo(alert.createdAt),
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: isDark
-                        ? AppColors.textMuted.withValues(alpha: 0.7)
-                        : AppColors.textMutedL.withValues(alpha: 0.7),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _timeAgo(DateTime date) {
-    final now = DateTime.now();
-    final diff = now.difference(date);
-    if (diff.inMinutes < 1) return 'Just now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    if (diff.inDays < 7) return '${diff.inDays}d ago';
-    return '${(diff.inDays / 7).floor()}w ago';
   }
 }

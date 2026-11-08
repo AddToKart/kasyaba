@@ -601,11 +601,14 @@ export async function generateAlertsFromSnapshot(userId: string): Promise<void> 
   }
 
   // --- Bill Due Alerts ---
+  // Due dates are UTC-midnight date-only values. Use the start of the user's
+  // local day so a bill due today survives the 00:00 UTC boundary.
+  const billDueWindowStart = startOfZonedDay(now, timeZone);
   const upcomingBills = await prisma.billInstance.findMany({
     where: {
       userId,
       status: 'upcoming',
-      dueDate: { gte: now, lte: new Date(now.getTime() + 7 * 86400000) },
+      dueDate: { gte: billDueWindowStart, lte: new Date(now.getTime() + 7 * 86400000) },
     },
   });
   await alertService.resolveAlertsByKey(userId, `${userId}:bill_due:`);
@@ -658,7 +661,29 @@ export async function generateAlertsFromSnapshot(userId: string): Promise<void> 
 
   // --- Health Score Alert ---
   const healthGrade = currentSnapshot.healthGrade;
-  if (healthGrade === 'Needs Attention' || healthGrade === 'Fair') {
+  const hasFinancialActivity =
+    toDecimalOrZero(currentSnapshot.incomeMonthToDate).gt(0) ||
+    toDecimalOrZero(currentSnapshot.expensesMonthToDate).gt(0) ||
+    toDecimalOrZero(currentSnapshot.actualBalance).gt(0);
+
+  if (!hasFinancialActivity) {
+    // New account with no transactions or balance yet: clear premature health warnings
+    await alertService.resolveAlertsByKey(userId, `${userId}:health_score:`);
+
+    // Surface the onboarding notification matching Figma Node 13:6204
+    const welcomeKey = `${userId}:welcome`;
+    await alertService.createAlert({
+      userId,
+      snapshotId: currentSnapshot.id,
+      type: 'month_end',
+      severity: 'info',
+      title: 'Welcome to Kasyaba',
+      message: 'Add your salary and payday to see your forecast.',
+      reasonData: { isNewUser: true },
+      effectiveDate: now,
+      deduplicationKey: welcomeKey,
+    });
+  } else if (healthGrade === 'Needs Attention' || healthGrade === 'Fair') {
     const key = `${userId}:health_score:${currentYearMonth}`;
     await alertService.createAlert({
       userId,

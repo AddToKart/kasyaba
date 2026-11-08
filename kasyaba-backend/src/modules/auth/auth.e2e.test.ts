@@ -348,7 +348,132 @@ describe('Auth Endpoints E2E Integration Tests', () => {
     });
   });
 
+  describe('Password Management Routes', () => {
+    it('returns success on POST /api/v1/auth/forgot-password with valid email', async () => {
+      vi.mocked(authService.requestPasswordReset).mockResolvedValueOnce();
+
+      const res = await request(app)
+        .post('/api/v1/auth/forgot-password')
+        .send({ email: 'user@example.com' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.message).toContain('password reset code');
+      expect(authService.requestPasswordReset).toHaveBeenCalledWith('user@example.com');
+    });
+
+    it('rejects invalid email on POST /api/v1/auth/forgot-password', async () => {
+      const res = await request(app)
+        .post('/api/v1/auth/forgot-password')
+        .send({ email: 'not-an-email' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('successfully verifies OTP on POST /api/v1/auth/verify-otp', async () => {
+      vi.mocked(authService.verifyOtp).mockResolvedValueOnce({
+        resetToken: 'mock-reset-token-5min',
+      });
+
+      const res = await request(app)
+        .post('/api/v1/auth/verify-otp')
+        .send({ email: 'user@example.com', otp: '123456' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.resetToken).toBe('mock-reset-token-5min');
+      expect(authService.verifyOtp).toHaveBeenCalledWith('user@example.com', '123456');
+    });
+
+    it('rejects invalid OTP format on POST /api/v1/auth/verify-otp', async () => {
+      const res = await request(app)
+        .post('/api/v1/auth/verify-otp')
+        .send({ email: 'user@example.com', otp: '123' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('resets password on POST /api/v1/auth/reset-password with Bearer token', async () => {
+      vi.mocked(authService.resetPassword).mockResolvedValueOnce();
+
+      const res = await request(app)
+        .post('/api/v1/auth/reset-password')
+        .set('Authorization', 'Bearer mock-reset-token-5min')
+        .send({ newPassword: 'NewSecurePassword123!' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.message).toContain('Password has been reset successfully');
+      expect(authService.resetPassword).toHaveBeenCalledWith(
+        'mock-reset-token-5min',
+        'NewSecurePassword123!',
+      );
+    });
+
+    it('resets password on POST /api/v1/auth/reset-password with token in body', async () => {
+      vi.mocked(authService.resetPassword).mockResolvedValueOnce();
+
+      const res = await request(app)
+        .post('/api/v1/auth/reset-password')
+        .send({
+          token: 'mock-reset-token-5min',
+          newPassword: 'NewSecurePassword123!',
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.message).toContain('Password has been reset successfully');
+      expect(authService.resetPassword).toHaveBeenCalledWith(
+        'mock-reset-token-5min',
+        'NewSecurePassword123!',
+      );
+    });
+
+    it('rejects POST /api/v1/auth/reset-password when token is missing', async () => {
+      const res = await request(app)
+        .post('/api/v1/auth/reset-password')
+        .send({ newPassword: 'NewSecurePassword123!' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('changes password on POST /api/v1/auth/change-password with valid auth', async () => {
+      const validToken = await signAccessToken({ sub: 'user-123', email: 'test@kasyaba.app' });
+      vi.mocked(authService.changePassword).mockResolvedValueOnce();
+
+      const res = await request(app)
+        .post('/api/v1/auth/change-password')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({ currentPassword: 'OldPassword123!', newPassword: 'NewPassword123!' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.message).toContain('Password updated');
+      expect(authService.changePassword).toHaveBeenCalledWith('user-123', {
+        currentPassword: 'OldPassword123!',
+        newPassword: 'NewPassword123!',
+      });
+    });
+
+    it('rejects same password on POST /api/v1/auth/change-password', async () => {
+      const validToken = await signAccessToken({ sub: 'user-123', email: 'test@kasyaba.app' });
+
+      const res = await request(app)
+        .post('/api/v1/auth/change-password')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({ currentPassword: 'SamePassword123!', newPassword: 'SamePassword123!' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+  });
+
   describe('Public Legal & Health Check Routes', () => {
+    it('serves Terms of Service page at /terms', async () => {
+      const res = await request(app).get('/terms');
+      expect(res.status).toBe(200);
+      expect(res.text).toContain('Terms of Service');
+      expect(res.text).toContain('KASYABA');
+    });
+
     it('serves Privacy Policy page at /privacy', async () => {
       const res = await request(app).get('/privacy');
       expect(res.status).toBe(200);

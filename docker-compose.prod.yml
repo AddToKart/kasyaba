@@ -1,0 +1,115 @@
+# Production Docker Compose stack for VPS deployment with Supabase.
+# Services:
+#   1. migrate - Runs Prisma migrations against Supabase once on deploy
+#   2. api     - Kasyaba Express REST API
+#   3. worker  - Single-replica background worker for cron, bills, and snapshots
+#   4. caddy   - Automatic HTTPS reverse proxy with Let's Encrypt (ports 80 & 443)
+#
+# Usage:
+#   1. Copy .env.production.example to .env
+#   2. Fill in your Supabase connection strings, JWT secret, and domain
+#   3. Run: docker compose -f docker-compose.prod.yml up -d --build
+
+services:
+  # ── 1. One-shot Migration Runner ──────────────────────────
+  migrate:
+    build:
+      context: ./kasyaba-backend
+      dockerfile: Dockerfile
+      target: migrate
+    image: kasyaba-backend-migrate:latest
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+      DIRECT_URL: ${DIRECT_URL:?DIRECT_URL is required}
+    restart: "no"
+    networks:
+      - kasyaba-network
+
+  # ── 2. Express API Server ─────────────────────────────────
+  api:
+    build:
+      context: ./kasyaba-backend
+      dockerfile: Dockerfile
+    image: kasyaba-backend:latest
+    restart: unless-stopped
+    ports:
+      # Expose 3000 if accessing directly or behind external Nginx/Cloudflare Tunnel
+      - "${PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+      DIRECT_URL: ${DIRECT_URL:?DIRECT_URL is required}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?JWT_ACCESS_SECRET is required}
+      ACCESS_TOKEN_TTL_MINUTES: ${ACCESS_TOKEN_TTL_MINUTES:-15}
+      REFRESH_TOKEN_TTL_DAYS: ${REFRESH_TOKEN_TTL_DAYS:-30}
+      GOOGLE_WEB_CLIENT_ID: ${GOOGLE_WEB_CLIENT_ID:-}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://api.kasyaba.site,https://kasyaba.site}
+      TRUST_PROXY: ${TRUST_PROXY:-1}
+      SUPPORT_EMAIL: ${SUPPORT_EMAIL:-support@kasyaba.app}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-Kasyaba <noreply@kasyaba.app>}
+      APP_NAME: ${APP_NAME:-Kasyaba}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - kasyaba-network
+
+  # ── 3. Background Cron Worker ────────────────────────────
+  worker:
+    build:
+      context: ./kasyaba-backend
+      dockerfile: Dockerfile
+    image: kasyaba-backend:latest
+    restart: unless-stopped
+    command: ["node", "dist/worker.js"]
+    deploy:
+      # Exactly 1 replica: prevents duplicate cron runs and race conditions
+      replicas: 1
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+      DIRECT_URL: ${DIRECT_URL:?DIRECT_URL is required}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?JWT_ACCESS_SECRET is required}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      WORKER_TIMEZONE: ${WORKER_TIMEZONE:-Asia/Manila}
+      SNAPSHOT_CRON: ${SNAPSHOT_CRON:-10 0 * * *}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-Kasyaba <noreply@kasyaba.app>}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      disable: true
+    networks:
+      - kasyaba-network
+
+  # ── 4. Caddy Reverse Proxy (Automatic HTTPS via Let's Encrypt) ──
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    depends_on:
+      - api
+    networks:
+      - kasyaba-network
+
+networks:
+  kasyaba-network:
+    driver: bridge
+
+volumes:
+  caddy_data:
+  caddy_config:
+

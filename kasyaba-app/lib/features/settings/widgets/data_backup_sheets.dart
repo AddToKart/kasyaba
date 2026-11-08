@@ -1,58 +1,53 @@
 import 'dart:convert';
-import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
-import '../../../app/theme/app_theme.dart';
+import '../../../app/theme/kasyaba_color_scheme.dart';
+import '../../../core/api/api_client.dart';
 import '../../../core/auth/auth_provider.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
+import '../../../core/storage/secure_storage_service.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/data_export_helper.dart';
+import '../../../shared/widgets/app_dialog.dart';
+import '../../../shared/widgets/app_sheet.dart';
+import '../../../shared/widgets/app_state_widgets.dart';
+import '../../../shared/widgets/kasyaba_toast.dart';
+import '../../../shared/widgets/pill_button.dart';
 
-/// Shows the modal bottom sheet to export a full JSON backup.
+const String lastBackupAtKey = 'last_backup_at';
+
 Future<void> showExportBackupSheet(
   BuildContext context,
   WidgetRef ref, {
   Map<String, dynamic>? initialData,
-}) {
-  return showModalBottomSheet(
+}) async {
+  await showKasyabaSheet<void>(
     context: context,
-    isScrollControlled: true,
-    useRootNavigator: true,
-    backgroundColor: Colors.transparent,
-    barrierColor: Colors.black.withValues(alpha: 0.75),
     builder: (ctx) => _ExportBackupSheet(initialData: initialData),
   );
 }
 
-/// Shows the modal bottom sheet to import / restore a JSON backup.
-Future<void> showRestoreBackupSheet(BuildContext context, WidgetRef ref) {
-  return showModalBottomSheet(
+Future<void> showRestoreBackupSheet(BuildContext context, WidgetRef ref) async {
+  await showKasyabaSheet<void>(
     context: context,
-    isScrollControlled: true,
-    useRootNavigator: true,
-    backgroundColor: Colors.transparent,
-    barrierColor: Colors.black.withValues(alpha: 0.75),
     builder: (ctx) => const _RestoreBackupSheet(),
   );
 }
 
-/// Shows the modal bottom sheet to export all transactions to CSV.
 Future<void> showExportCsvSheet(
   BuildContext context,
   WidgetRef ref, {
   List<TransactionEntry>? initialTransactions,
   String? initialCsvContent,
-}) {
-  return showModalBottomSheet(
+}) async {
+  await showKasyabaSheet<void>(
     context: context,
-    isScrollControlled: true,
-    useRootNavigator: true,
-    backgroundColor: Colors.transparent,
-    barrierColor: Colors.black.withValues(alpha: 0.75),
     builder: (ctx) => _ExportCsvSheet(
       initialTransactions: initialTransactions,
       initialCsvContent: initialCsvContent,
@@ -60,9 +55,15 @@ Future<void> showExportCsvSheet(
   );
 }
 
-// ─────────────────────────────────────────────────────────────
-// 1. Export Backup Sheet
-// ─────────────────────────────────────────────────────────────
+Future<void> _recordBackupTimestamp(WidgetRef ref) async {
+  try {
+    await ref
+        .read(secureStorageProvider)
+        .writeRaw(lastBackupAtKey, DateTime.now().toIso8601String());
+  } catch (_) {
+    return;
+  }
+}
 
 class _ExportBackupSheet extends ConsumerStatefulWidget {
   final Map<String, dynamic>? initialData;
@@ -75,6 +76,7 @@ class _ExportBackupSheet extends ConsumerStatefulWidget {
 
 class _ExportBackupSheetState extends ConsumerState<_ExportBackupSheet> {
   bool _isLoading = true;
+  bool _isSaving = false;
   String? _errorMessage;
   String? _jsonPretty;
   BackupValidationResult? _validation;
@@ -84,8 +86,9 @@ class _ExportBackupSheetState extends ConsumerState<_ExportBackupSheet> {
     super.initState();
     if (widget.initialData != null) {
       _validation = DataExportHelper.validateBackup(widget.initialData!);
-      _jsonPretty =
-          const JsonEncoder.withIndent('  ').convert(widget.initialData!);
+      _jsonPretty = const JsonEncoder.withIndent(
+        '  ',
+      ).convert(widget.initialData!);
       _isLoading = false;
     } else {
       _loadBackup();
@@ -110,12 +113,12 @@ class _ExportBackupSheetState extends ConsumerState<_ExportBackupSheet> {
           _isLoading = false;
         });
       }
-    } catch (e) {
+    } catch (error) {
       if (mounted) {
         setState(() {
           _isLoading = false;
           _errorMessage = friendlyErrorMessage(
-            e,
+            error,
             fallback: 'Failed to export financial backup.',
           );
         });
@@ -123,234 +126,118 @@ class _ExportBackupSheetState extends ConsumerState<_ExportBackupSheet> {
     }
   }
 
+  Future<void> _saveFile(String content) async {
+    if (_isSaving) return;
+    setState(() => _isSaving = true);
+    try {
+      final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+      final filename = 'kasyaba_backup_$timestamp.json';
+      final path = await DataExportHelper.saveToFile(
+        filename: filename,
+        content: content,
+      );
+      await _recordBackupTimestamp(ref);
+      if (!mounted) return;
+      KasyabaToast.showSuccess(context, 'Backup saved.', subtitle: path);
+      Navigator.of(context).pop();
+    } catch (error) {
+      if (mounted) {
+        KasyabaToast.showError(
+          context,
+          friendlyErrorMessage(
+            error,
+            fallback: 'Could not save the backup file. Please try again.',
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  Future<void> _copyJson(String content) async {
+    try {
+      await Clipboard.setData(ClipboardData(text: content));
+      // Clipboard copies are not backups; timestamps are only recorded when a
+      // backup file is actually saved to the device.
+      if (!mounted) return;
+      KasyabaToast.showSuccess(context, 'Backup JSON copied to clipboard.');
+      Navigator.of(context).pop();
+    } catch (error) {
+      if (mounted) {
+        KasyabaToast.showError(
+          context,
+          friendlyErrorMessage(
+            error,
+            fallback: 'Could not copy the backup. Please try again.',
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final now = DateTime.now();
     final formattedTime = DateFormat('MMM d, yyyy h:mm a').format(now);
     final validation = _validation;
     final jsonPretty = _jsonPretty;
 
-    return ClipRRect(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-        child: Container(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.sizeOf(context).height * 0.92,
-          ),
-          padding: EdgeInsets.fromLTRB(
-            20,
-            12,
-            20,
-            20 +
-                MediaQuery.viewInsetsOf(context).bottom +
-                MediaQuery.paddingOf(context).bottom,
-          ),
-          decoration: BoxDecoration(
-            color: isDark
-                ? AppColors.surface900.withValues(alpha: 0.95)
-                : AppColors.lightCard.withValues(alpha: 0.98),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            border: Border.all(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : AppColors.lightBorder,
-              width: 1,
-            ),
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Drag handle
-                Center(
-                  child: Container(
-                    width: 36,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: 14),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? AppColors.surface600
-                          : AppColors.lightBorder,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-
-                // Header
-                Row(
+    return AppSheet(
+      color: context.kColors.canvas,
+      padding: EdgeInsets.fromLTRB(
+        20,
+        0,
+        20,
+        20 +
+            MediaQuery.viewInsetsOf(context).bottom +
+            MediaQuery.paddingOf(context).bottom,
+      ),
+      child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _SheetHeader(
+                icon: Icons.cloud_download_rounded,
+                accent: context.kColors.icon,
+                title: 'Export Backup',
+                badge: 'PORTABLE JSON',
+                subtitle: 'Snapshot generated $formattedTime',
+              ),
+              const SizedBox(height: 18),
+              if (_isLoading)
+                Column(
                   children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF0284C7).withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: const Color(0xFF0284C7).withValues(alpha: 0.3),
-                        ),
+                    const KasyabaLoadingSkeleton(lines: 4),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Compiling complete account snapshot...',
+                      style: GoogleFonts.dmSans(
+                        fontSize: 13,
+                        color: context.kColors.textSecondary,
                       ),
-                      child: const Icon(
-                        Icons.cloud_download_rounded,
-                        color: Color(0xFF38BDF8),
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Text(
-                                'Export Backup',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: -0.3,
-                                  color: isDark
-                                      ? Colors.white
-                                      : AppColors.textLight,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 7,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF0284C7)
-                                      .withValues(alpha: 0.16),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: const Text(
-                                  'PORTABLE JSON',
-                                  style: TextStyle(
-                                    fontSize: 9.5,
-                                    fontWeight: FontWeight.w800,
-                                    color: Color(0xFF38BDF8),
-                                    letterSpacing: 0.6,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Snapshot generated $formattedTime',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: isDark
-                                  ? AppColors.textMuted
-                                  : AppColors.textMutedL,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.close_rounded, size: 20),
-                      color: isDark ? AppColors.textMuted : AppColors.textMutedL,
                     ),
                   ],
-                ),
-                const SizedBox(height: 18),
-
-                if (_isLoading) ...[
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 48),
-                    child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          CircularProgressIndicator(color: Color(0xFF38BDF8)),
-                          SizedBox(height: 16),
-                          Text(
-                            'Compiling complete account snapshot...',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: AppColors.textMuted,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ] else if (_errorMessage != null) ...[
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: AppColors.expense.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: AppColors.expense.withValues(alpha: 0.4),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.error_outline_rounded,
-                          size: 18,
-                          color: Color(0xFFF87171),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            _errorMessage!,
-                            style: const TextStyle(
-                              fontSize: 12.5,
-                              color: Color(0xFFF87171),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    onPressed: _loadBackup,
-                    icon: const Icon(Icons.refresh_rounded, size: 18),
-                    label: const Text('Try Again'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0284C7),
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size.fromHeight(48),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                ] else if (validation != null && jsonPretty != null) ...[
-
-                // Record Counts Grid Card
+                )
+              else if (_errorMessage != null)
+                KasyabaErrorCard(message: _errorMessage!, onRetry: _loadBackup)
+              else if (validation != null && jsonPretty != null) ...[
                 Container(
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: isDark ? AppColors.surface800 : AppColors.lightCard2,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: isDark
-                          ? AppColors.subtleBorder
-                          : AppColors.lightBorder,
-                    ),
+                    color: context.kColors.card,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: context.kColors.cardBorder),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'BACKUP PAYLOAD CONTENTS',
-                        style: TextStyle(
+                        style: GoogleFonts.dmSans(
                           fontSize: 10.5,
-                          fontWeight: FontWeight.w800,
-                          color: isDark
-                              ? AppColors.textMuted
-                              : AppColors.textMutedL,
+                          fontWeight: FontWeight.w700,
+                          color: context.kColors.textSecondary,
                           letterSpacing: 0.8,
                         ),
                       ),
@@ -362,37 +249,37 @@ class _ExportBackupSheetState extends ConsumerState<_ExportBackupSheet> {
                           _MetricPill(
                             label: 'Wallets',
                             count: validation.accountCount,
-                            color: const Color(0xFF10B981),
+                            color: context.kColors.icon,
                           ),
                           _MetricPill(
                             label: 'Expenses',
                             count: validation.expenseCount,
-                            color: AppColors.expense,
+                            color: context.kColors.danger,
                           ),
                           _MetricPill(
                             label: 'Income',
                             count: validation.incomeCount,
-                            color: AppColors.income,
+                            color: context.kColors.success,
                           ),
                           _MetricPill(
                             label: 'Transfers',
                             count: validation.transferCount,
-                            color: const Color(0xFF38BDF8),
+                            color: context.kColors.accentTeal,
                           ),
                           _MetricPill(
                             label: 'Goals',
                             count: validation.goalCount,
-                            color: const Color(0xFFD4AF37),
+                            color: context.kColors.warning,
                           ),
                           _MetricPill(
                             label: 'Budgets',
                             count: validation.budgetCount,
-                            color: const Color(0xFFA855F7),
+                            color: context.kColors.accentViolet,
                           ),
                           _MetricPill(
                             label: 'Bills',
                             count: validation.billCount,
-                            color: const Color(0xFFF97316),
+                            color: context.kColors.textMuted,
                           ),
                         ],
                       ),
@@ -402,18 +289,16 @@ class _ExportBackupSheetState extends ConsumerState<_ExportBackupSheet> {
                           Icon(
                             Icons.verified_user_rounded,
                             size: 15,
-                            color: AppColors.emerald400,
+                            color: context.kColors.success,
                           ),
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
                               'Account: ${validation.userEmail ?? "Signed-in user"} • Total records: ${validation.totalRecordsCount}',
-                              style: TextStyle(
+                              style: GoogleFonts.dmSans(
                                 fontSize: 11.5,
                                 fontWeight: FontWeight.w600,
-                                color: isDark
-                                    ? AppColors.textDark
-                                    : AppColors.textLight,
+                                color: context.kColors.textSecondary,
                               ),
                             ),
                           ),
@@ -423,93 +308,25 @@ class _ExportBackupSheetState extends ConsumerState<_ExportBackupSheet> {
                   ),
                 ),
                 const SizedBox(height: 20),
-
-                // Action Buttons
-                ElevatedButton.icon(
-                  onPressed: () async {
-                    try {
-                      final timestamp =
-                          DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
-                      final filename = 'kasyaba_backup_$timestamp.json';
-                      final path = await DataExportHelper.saveToFile(
-                        filename: filename,
-                        content: jsonPretty,
-                      );
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Backup saved to: $path'),
-                            backgroundColor: const Color(0xFF0284C7),
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
-                        Navigator.of(context).pop();
-                      }
-                    } catch (err) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Failed to save file: $err'),
-                            backgroundColor: AppColors.expense,
-                          ),
-                        );
-                      }
-                    }
-                  },
-                  icon: const Icon(Icons.download_rounded, size: 18),
-                  label: const Text('Save Backup File to Device'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0284C7),
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size.fromHeight(48),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
+                PillButton(
+                  label: 'Save Backup File to Device',
+                  icon: Icons.download_rounded,
+                  isLoading: _isSaving,
+                  onPressed: _isSaving ? null : () => _saveFile(jsonPretty),
                 ),
                 const SizedBox(height: 10),
-                OutlinedButton.icon(
-                  onPressed: () async {
-                    await Clipboard.setData(ClipboardData(text: jsonPretty));
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Backup JSON copied to clipboard!'),
-                          backgroundColor: Color(0xFF10B981),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                      Navigator.of(context).pop();
-                    }
-                  },
-                  icon: const Icon(Icons.copy_rounded, size: 18),
-                  label: const Text('Copy JSON to Clipboard'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: isDark ? Colors.white : AppColors.textLight,
-                    side: BorderSide(
-                      color: isDark
-                          ? AppColors.surface600
-                          : AppColors.lightBorder,
-                    ),
-                    minimumSize: const Size.fromHeight(48),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
+                PillButton(
+                  label: 'Copy JSON to Clipboard',
+                  icon: Icons.copy_rounded,
+                  variant: PillButtonVariant.secondary,
+                  onPressed: () => _copyJson(jsonPretty),
                 ),
-                ],
               ],
-            ),
+            ],
           ),
-        ),
-      ),
     );
   }
 }
-
-// ─────────────────────────────────────────────────────────────
-// 2. Import / Restore Backup Sheet
-// ─────────────────────────────────────────────────────────────
 
 class _RestoreBackupSheet extends ConsumerStatefulWidget {
   const _RestoreBackupSheet();
@@ -551,27 +368,12 @@ class _RestoreBackupSheetState extends ConsumerState<_RestoreBackupSheet> {
     final res = _validationResult;
     if (res == null || !res.isValid || res.sanitizedPayload == null) return;
 
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Confirm Restore'),
-        content: Text(
+    final confirmed = await showKasyabaConfirmDialog(
+      context,
+      title: 'Confirm Restore',
+      message:
           'This will restore ${res.totalRecordsCount} records (${res.accountCount} wallets, ${res.expenseCount} expenses, ${res.incomeCount} incomes) into your active ledger.\n\nProceed?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.emerald500,
-            ),
-            child: const Text('Restore Now'),
-          ),
-        ],
-      ),
+      confirmLabel: 'Restore Now',
     );
 
     if (confirmed != true) return;
@@ -583,56 +385,35 @@ class _RestoreBackupSheetState extends ConsumerState<_RestoreBackupSheet> {
           .read(authProvider.notifier)
           .restoreData(res.sanitizedPayload!);
 
-      // Invalidate all providers to reflect the freshly restored data
       ref.invalidate(accountsProvider);
       ref.invalidate(accountBalancesProvider);
       ref.invalidate(paginatedTransactionsProvider);
       ref.invalidate(dashboardProvider);
       ref.invalidate(userProfileProvider);
       ref.invalidate(goalsProvider);
+      ref.invalidate(goalDetailProvider);
       ref.invalidate(billsProvider);
       ref.invalidate(budgetStatusProvider);
+      ref.invalidate(planningProvider);
+      ref.invalidate(alertsProvider);
 
       if (mounted) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(
-                  Icons.check_circle_rounded,
-                  color: Colors.white,
-                  size: 18,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Backup restored! ${restoreRes["counts"]?["accounts"] ?? res.accountCount} wallets and ${restoreRes["counts"]?["expenses"] ?? res.expenseCount} expenses synchronized.',
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ],
-            ),
-            backgroundColor: AppColors.emerald500,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-          ),
+        KasyabaToast.showSuccess(
+          context,
+          'Backup restored.',
+          subtitle:
+              '${restoreRes["counts"]?["accounts"] ?? res.accountCount} wallets and ${restoreRes["counts"]?["expenses"] ?? res.expenseCount} expenses synchronized.',
         );
+        Navigator.of(context).pop();
       }
-    } catch (e) {
+    } catch (error) {
       if (mounted) {
         setState(() => _isRestoring = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              friendlyErrorMessage(
-                e,
-                fallback: 'Failed to restore backup payload.',
-              ),
-            ),
-            backgroundColor: AppColors.expense,
+        KasyabaToast.showError(
+          context,
+          friendlyErrorMessage(
+            error,
+            fallback: 'Failed to restore backup payload.',
           ),
         );
       }
@@ -641,385 +422,201 @@ class _RestoreBackupSheetState extends ConsumerState<_RestoreBackupSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final res = _validationResult;
 
-    return ClipRRect(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-        child: Container(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.sizeOf(context).height * 0.92,
-          ),
-          padding: EdgeInsets.fromLTRB(
-            20,
-            12,
-            20,
-            20 +
-                MediaQuery.viewInsetsOf(context).bottom +
-                MediaQuery.paddingOf(context).bottom,
-          ),
-          decoration: BoxDecoration(
-            color: isDark
-                ? AppColors.surface900.withValues(alpha: 0.95)
-                : AppColors.lightCard.withValues(alpha: 0.98),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            border: Border.all(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : AppColors.lightBorder,
-              width: 1,
-            ),
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Drag handle
-                Center(
-                  child: Container(
-                    width: 36,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: 14),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? AppColors.surface600
-                          : AppColors.lightBorder,
-                      borderRadius: BorderRadius.circular(2),
+    return AppSheet(
+      color: context.kColors.canvas,
+      padding: EdgeInsets.fromLTRB(
+        20,
+        0,
+        20,
+        20 +
+            MediaQuery.viewInsetsOf(context).bottom +
+            MediaQuery.paddingOf(context).bottom,
+      ),
+      child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _SheetHeader(
+                icon: Icons.cloud_upload_rounded,
+                accent: context.kColors.success,
+                title: 'Import Backup',
+                badge: 'SCHEMA VALIDATED',
+                subtitle: 'Restore your complete ledger offline or online',
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'PASTE BACKUP JSON',
+                style: GoogleFonts.dmSans(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w700,
+                  color: context.kColors.textSecondary,
+                  letterSpacing: 0.8,
+                ),
+              ),
+              const SizedBox(height: 6),
+              TextField(
+                controller: _jsonController,
+                maxLines: 5,
+                style: GoogleFonts.robotoMono(
+                  fontSize: 12,
+                  color: context.kColors.textPrimary,
+                ),
+                decoration: InputDecoration(
+                  hintText: '{\n  "exportedAt": "...",\n  "user": { ... }\n}',
+                  hintStyle: GoogleFonts.robotoMono(
+                    fontSize: 12,
+                    color: context.kColors.icon.withValues(alpha: 0.4),
+                  ),
+                  filled: true,
+                  fillColor: context.kColors.inputFill,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(24),
+                    borderSide: BorderSide(
+                      color: context.kColors.cardBorder,
                     ),
                   ),
-                ),
-
-                // Header
-                Row(
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: AppColors.emerald500.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: AppColors.emerald500.withValues(alpha: 0.3),
-                        ),
-                      ),
-                      child: const Icon(
-                        Icons.cloud_upload_rounded,
-                        color: AppColors.emerald400,
-                        size: 20,
-                      ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(24),
+                    borderSide: BorderSide(
+                      color: context.kColors.cardBorder,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(24),
+                    borderSide: BorderSide(
+                      color: context.kColors.icon,
+                      width: 1.5,
+                    ),
+                  ),
+                  contentPadding: const EdgeInsets.all(14),
+                ),
+              ),
+              const SizedBox(height: 12),
+              if (res == null)
+                _ValidationCard(
+                  background: context.kColors.card,
+                  border: context.kColors.cardBorder,
+                  icon: Icons.info_outline_rounded,
+                  iconColor: context.kColors.textSecondary,
+                  title: null,
+                  titleColor: context.kColors.textPrimary,
+                  message:
+                      'Paste your Kasyaba JSON backup above. It will be verified against our strict deterministic schema before restoring.',
+                  messageColor: context.kColors.textSecondary,
+                )
+              else if (!res.isValid)
+                _ValidationCard(
+                  background: context.kColors.dangerTint,
+                  border: context.kColors.danger.withValues(alpha: 0.55),
+                  icon: Icons.error_outline_rounded,
+                  iconColor: context.kColors.danger,
+                  title: null,
+                  titleColor: context.kColors.danger,
+                  message: res.errorMessage ?? 'Invalid backup format.',
+                  messageColor: context.kColors.danger,
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: context.kColors.successTint,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: context.kColors.success.withValues(alpha: 0.55),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
                         children: [
-                          Row(
-                            children: [
-                              Text(
-                                'Import Backup',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: -0.3,
-                                  color: isDark
-                                      ? Colors.white
-                                      : AppColors.textLight,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 7,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.emerald500
-                                      .withValues(alpha: 0.16),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: const Text(
-                                  'SCHEMA VALIDATED',
-                                  style: TextStyle(
-                                    fontSize: 9.5,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.emerald400,
-                                    letterSpacing: 0.6,
-                                  ),
-                                ),
-                              ),
-                            ],
+                          Icon(
+                            Icons.check_circle_rounded,
+                            size: 18,
+                            color: context.kColors.success,
                           ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Restore your complete ledger offline or online',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: isDark
-                                  ? AppColors.textMuted
-                                  : AppColors.textMutedL,
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Valid Backup Detected (${res.totalRecordsCount} records)',
+                              style: GoogleFonts.dmSans(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: context.kColors.success,
+                              ),
                             ),
                           ),
                         ],
                       ),
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.close_rounded, size: 20),
-                      color: isDark ? AppColors.textMuted : AppColors.textMutedL,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-
-                // JSON Input Text Area
-                Text(
-                  'PASTE BACKUP JSON',
-                  style: TextStyle(
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w800,
-                    color: isDark ? AppColors.textMuted : AppColors.textMutedL,
-                    letterSpacing: 0.8,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: _jsonController,
-                  maxLines: 5,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontFamily: 'monospace',
-                    color: isDark ? Colors.white : AppColors.textLight,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: '{\n  "exportedAt": "...",\n  "user": { ... }\n}',
-                    hintStyle: TextStyle(
-                      fontSize: 12,
-                      fontFamily: 'monospace',
-                      color: isDark ? AppColors.surface500 : AppColors.textMutedL,
-                    ),
-                    filled: true,
-                    fillColor: isDark
-                        ? AppColors.surface800
-                        : AppColors.lightCard2,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(
-                        color: isDark
-                            ? AppColors.surface700
-                            : AppColors.lightBorder,
-                      ),
-                    ),
-                    contentPadding: const EdgeInsets.all(12),
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                // Live Validation Feedback
-                if (res == null)
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? AppColors.surface800
-                          : AppColors.lightCard2,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isDark
-                            ? AppColors.subtleBorder
-                            : AppColors.lightBorder,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.info_outline_rounded,
-                          size: 16,
-                          color: isDark
-                              ? AppColors.textMuted
-                              : AppColors.textMutedL,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Paste your Kasyaba JSON backup above. It will be verified against our strict deterministic schema before restoring.',
-                            style: TextStyle(
-                              fontSize: 11.5,
-                              color: isDark
-                                  ? AppColors.textMuted
-                                  : AppColors.textMutedL,
-                            ),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _MetricPill(
+                            label: 'Wallets',
+                            count: res.accountCount,
+                            color: context.kColors.icon,
                           ),
-                        ),
-                      ],
-                    ),
-                  )
-                else if (!res.isValid)
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppColors.expense.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: AppColors.expense.withValues(alpha: 0.4),
-                      ),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(
-                          Icons.error_outline_rounded,
-                          size: 18,
-                          color: Color(0xFFF87171),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            res.errorMessage ?? 'Invalid backup format.',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFFF87171),
-                              fontWeight: FontWeight.w600,
-                            ),
+                          _MetricPill(
+                            label: 'Expenses',
+                            count: res.expenseCount,
+                            color: context.kColors.danger,
                           ),
-                        ),
-                      ],
-                    ),
-                  )
-                else
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: AppColors.emerald500.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: AppColors.emerald500.withValues(alpha: 0.4),
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.check_circle_rounded,
-                              size: 18,
-                              color: AppColors.emerald400,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'Valid Backup Detected (${res.totalRecordsCount} records)',
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w800,
-                                  color: AppColors.emerald400,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            _MetricPill(
-                              label: 'Wallets',
-                              count: res.accountCount,
-                              color: const Color(0xFF10B981),
-                            ),
-                            _MetricPill(
-                              label: 'Expenses',
-                              count: res.expenseCount,
-                              color: AppColors.expense,
-                            ),
-                            _MetricPill(
-                              label: 'Income',
-                              count: res.incomeCount,
-                              color: AppColors.income,
-                            ),
-                            _MetricPill(
-                              label: 'Transfers',
-                              count: res.transferCount,
-                              color: const Color(0xFF38BDF8),
-                            ),
-                            _MetricPill(
-                              label: 'Goals',
-                              count: res.goalCount,
-                              color: const Color(0xFFD4AF37),
-                            ),
-                            _MetricPill(
-                              label: 'Budgets',
-                              count: res.budgetCount,
-                              color: const Color(0xFFA855F7),
-                            ),
-                            _MetricPill(
-                              label: 'Bills',
-                              count: res.billCount,
-                              color: const Color(0xFFF97316),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                const SizedBox(height: 20),
-
-                // Restore Button
-                ElevatedButton.icon(
-                  onPressed: (_validationResult?.isValid == true && !_isRestoring)
-                      ? _handleRestore
-                      : null,
-                  icon: _isRestoring
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
+                          _MetricPill(
+                            label: 'Income',
+                            count: res.incomeCount,
+                            color: context.kColors.success,
                           ),
-                        )
-                      : const Icon(Icons.sync_rounded, size: 18),
-                  label: Text(
-                    _isRestoring ? 'Restoring Ledger...' : 'Restore & Sync Backup',
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.emerald500,
-                    foregroundColor: Colors.black,
-                    disabledBackgroundColor: isDark
-                        ? AppColors.surface700
-                        : AppColors.lightCard2,
-                    disabledForegroundColor: AppColors.textMuted,
-                    minimumSize: const Size.fromHeight(48),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                          _MetricPill(
+                            label: 'Transfers',
+                            count: res.transferCount,
+                            color: context.kColors.accentTeal,
+                          ),
+                          _MetricPill(
+                            label: 'Goals',
+                            count: res.goalCount,
+                            color: context.kColors.warning,
+                          ),
+                          _MetricPill(
+                            label: 'Budgets',
+                            count: res.budgetCount,
+                            color: context.kColors.accentViolet,
+                          ),
+                          _MetricPill(
+                            label: 'Bills',
+                            count: res.billCount,
+                            color: context.kColors.textMuted,
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+              const SizedBox(height: 20),
+              PillButton(
+                label: _isRestoring
+                    ? 'Restoring Ledger...'
+                    : 'Restore & Sync Backup',
+                icon: Icons.sync_rounded,
+                isLoading: _isRestoring,
+                onPressed: (_validationResult?.isValid == true && !_isRestoring)
+                    ? _handleRestore
+                    : null,
+              ),
+             ],
+           ),
+     );
   }
 }
-
-// ─────────────────────────────────────────────────────────────
-// 3. Export CSV Sheet
-// ─────────────────────────────────────────────────────────────
 
 class _ExportCsvSheet extends ConsumerStatefulWidget {
   final List<TransactionEntry>? initialTransactions;
   final String? initialCsvContent;
 
-  const _ExportCsvSheet({
-    this.initialTransactions,
-    this.initialCsvContent,
-  });
+  const _ExportCsvSheet({this.initialTransactions, this.initialCsvContent});
 
   @override
   ConsumerState<_ExportCsvSheet> createState() => _ExportCsvSheetState();
@@ -1027,6 +624,7 @@ class _ExportCsvSheet extends ConsumerStatefulWidget {
 
 class _ExportCsvSheetState extends ConsumerState<_ExportCsvSheet> {
   bool _isLoading = true;
+  bool _isSaving = false;
   String? _errorMessage;
   List<TransactionEntry> _transactions = const [];
   String _csvContent = '';
@@ -1044,6 +642,36 @@ class _ExportCsvSheetState extends ConsumerState<_ExportCsvSheet> {
     }
   }
 
+  DateTime _parseDate(dynamic value) {
+    final raw = value?.toString() ?? '';
+    final match = RegExp(r'^(\d{4})-(\d{2})-(\d{2})').firstMatch(raw);
+    if (match != null) {
+      return DateTime(
+        int.parse(match.group(1)!),
+        int.parse(match.group(2)!),
+        int.parse(match.group(3)!),
+      );
+    }
+    return DateTime.tryParse(raw) ?? DateTime.now();
+  }
+
+  TransactionEntry _mapTransaction(Map<String, dynamic> item) {
+    final type = item['type']?.toString() ?? 'expense';
+    return TransactionEntry(
+      id: item['id']?.toString() ?? '',
+      title: item['title']?.toString() ?? 'Transaction',
+      amount: double.tryParse(item['amount']?.toString() ?? '0') ?? 0.0,
+      isExpense: type == 'expense',
+      date: _parseDate(item['date']),
+      categoryName: item['categoryName']?.toString() ?? 'Transaction',
+      type: type,
+      status: item['status']?.toString() ?? 'posted',
+      accountId: item['accountId']?.toString(),
+      categoryId: item['categoryId']?.toString(),
+      notes: item['notes']?.toString(),
+    );
+  }
+
   Future<void> _loadCsv() async {
     setState(() {
       _isLoading = true;
@@ -1051,28 +679,68 @@ class _ExportCsvSheetState extends ConsumerState<_ExportCsvSheet> {
     });
 
     try {
-      final paginated = await ref.read(paginatedTransactionsProvider.future);
+      final dio = ref.read(dioProvider);
       final accounts = await ref.read(accountsProvider.future);
       final accountMap = {for (final a in accounts) a.id: a.name};
-      final transactions = paginated.items;
+
+      // The server rejects `limit` values above 100, so page at its cap and
+      // keep a hard safety ceiling on total requests/rows.
+      const pageSize = 100;
+      const maxPages = 200;
+      const maxRows = 10000;
+      var page = 1;
+      var totalCount = 0;
+      final all = <TransactionEntry>[];
+      final seenIds = <String>{};
+
+      while (page <= maxPages && all.length < maxRows) {
+        final response = await dio.get(
+          '/transactions',
+          queryParameters: {'page': page, 'limit': pageSize},
+        );
+        final rawItems = response.data['data'] as List<dynamic>? ?? const [];
+        final items = rawItems
+            .whereType<Map<String, dynamic>>()
+            .map(_mapTransaction)
+            .toList();
+        var added = 0;
+        for (final item in items) {
+          if (all.length >= maxRows) break;
+          if (seenIds.add(item.id)) {
+            all.add(item);
+            added++;
+          }
+        }
+        totalCount =
+            (response.data['meta']?['total'] as num?)?.toInt() ?? all.length;
+
+        if (items.isEmpty ||
+            items.length < pageSize ||
+            all.length >= totalCount ||
+            added == 0) {
+          break;
+        }
+        page++;
+      }
+
       final csv = DataExportHelper.generateTransactionsCsv(
-        transactions: transactions,
+        transactions: all,
         accountNames: accountMap,
       );
 
       if (mounted) {
         setState(() {
-          _transactions = transactions;
+          _transactions = all;
           _csvContent = csv;
           _isLoading = false;
         });
       }
-    } catch (e) {
+    } catch (error) {
       if (mounted) {
         setState(() {
           _isLoading = false;
           _errorMessage = friendlyErrorMessage(
-            e,
+            error,
             fallback: 'Failed to compile transactions for CSV export.',
           );
         });
@@ -1080,9 +748,55 @@ class _ExportCsvSheetState extends ConsumerState<_ExportCsvSheet> {
     }
   }
 
+  Future<void> _saveCsv(String content) async {
+    if (_isSaving) return;
+    setState(() => _isSaving = true);
+    try {
+      final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+      final filename = 'kasyaba_transactions_$timestamp.csv';
+      final path = await DataExportHelper.saveToFile(
+        filename: filename,
+        content: content,
+      );
+      if (!mounted) return;
+      KasyabaToast.showSuccess(context, 'CSV saved.', subtitle: path);
+      Navigator.of(context).pop();
+    } catch (error) {
+      if (mounted) {
+        KasyabaToast.showError(
+          context,
+          friendlyErrorMessage(
+            error,
+            fallback: 'Could not save the CSV file. Please try again.',
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  Future<void> _copyCsv(String content) async {
+    try {
+      await Clipboard.setData(ClipboardData(text: content));
+      if (!mounted) return;
+      KasyabaToast.showSuccess(context, 'CSV content copied to clipboard.');
+      Navigator.of(context).pop();
+    } catch (error) {
+      if (mounted) {
+        KasyabaToast.showError(
+          context,
+          friendlyErrorMessage(
+            error,
+            fallback: 'Could not copy the CSV. Please try again.',
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final transactions = _transactions;
     final csvContent = _csvContent;
     final totalCount = transactions.length;
@@ -1098,385 +812,281 @@ class _ExportCsvSheetState extends ConsumerState<_ExportCsvSheet> {
         ? '${DateFormat("MMM d, yyyy").format(earliest)} – ${DateFormat("MMM d, yyyy").format(latest)}'
         : 'All time';
 
-    return ClipRRect(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-        child: Container(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.sizeOf(context).height * 0.92,
-          ),
-          padding: EdgeInsets.fromLTRB(
-            20,
-            12,
-            20,
-            20 +
-                MediaQuery.viewInsetsOf(context).bottom +
-                MediaQuery.paddingOf(context).bottom,
-          ),
-          decoration: BoxDecoration(
-            color: isDark
-                ? AppColors.surface900.withValues(alpha: 0.95)
-                : AppColors.lightCard.withValues(alpha: 0.98),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            border: Border.all(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : AppColors.lightBorder,
-              width: 1,
-            ),
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Drag handle
-                Center(
-                  child: Container(
-                    width: 36,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: 14),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? AppColors.surface600
-                          : AppColors.lightBorder,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-
-                // Header
-                Row(
+    return AppSheet(
+      color: context.kColors.canvas,
+      padding: EdgeInsets.fromLTRB(
+        20,
+        0,
+        20,
+        20 +
+            MediaQuery.viewInsetsOf(context).bottom +
+            MediaQuery.paddingOf(context).bottom,
+      ),
+      child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _SheetHeader(
+                icon: Icons.table_chart_rounded,
+                accent: context.kColors.warning,
+                title: 'Export to CSV',
+                badge: 'SPREADSHEET READY',
+                subtitle: 'Compatible with Excel, Google Sheets & Numbers',
+              ),
+              const SizedBox(height: 18),
+              if (_isLoading)
+                Column(
                   children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: const Color(0xFFF59E0B).withValues(alpha: 0.3),
-                        ),
+                    const KasyabaLoadingSkeleton(lines: 4),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Compiling transaction ledger...',
+                      style: GoogleFonts.dmSans(
+                        fontSize: 13,
+                        color: context.kColors.textSecondary,
                       ),
-                      child: const Icon(
-                        Icons.table_chart_rounded,
-                        color: Color(0xFFFBBF24),
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Text(
-                                'Export to CSV',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: -0.3,
-                                  color: isDark
-                                      ? Colors.white
-                                      : AppColors.textLight,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 7,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF59E0B)
-                                      .withValues(alpha: 0.16),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: const Text(
-                                  'SPREADSHEET READY',
-                                  style: TextStyle(
-                                    fontSize: 9.5,
-                                    fontWeight: FontWeight.w800,
-                                    color: Color(0xFFFBBF24),
-                                    letterSpacing: 0.6,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Compatible with Excel, Google Sheets & Numbers',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: isDark
-                                  ? AppColors.textMuted
-                                  : AppColors.textMutedL,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.close_rounded, size: 20),
-                      color: isDark ? AppColors.textMuted : AppColors.textMutedL,
                     ),
                   ],
+                )
+              else if (_errorMessage != null)
+                KasyabaErrorCard(message: _errorMessage!, onRetry: _loadCsv)
+              else ...[
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: context.kColors.card,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: context.kColors.cardBorder),
+                  ),
+                  child: Column(
+                    children: [
+                      _MetricRow(
+                        label: 'Total Transactions:',
+                        value: '$totalCount entries',
+                      ),
+                      const SizedBox(height: 8),
+                      _MetricRow(label: 'Date Coverage:', value: dateRangeStr),
+                      const SizedBox(height: 8),
+                      _MetricRow(
+                        label: 'CSV Schema:',
+                        value: 'RFC 4180 (8 Columns)',
+                        valueColor: context.kColors.warning,
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 20),
+                PillButton(
+                  label: 'Save CSV File to Device',
+                  icon: Icons.file_download_rounded,
+                  isLoading: _isSaving,
+                  onPressed: _isSaving ? null : () => _saveCsv(csvContent),
+                ),
+                const SizedBox(height: 10),
+                PillButton(
+                  label: 'Copy CSV to Clipboard',
+                  icon: Icons.copy_rounded,
+                  variant: PillButtonVariant.secondary,
+                  onPressed: () => _copyCsv(csvContent),
+                ),
+              ],
+            ],
+          ),
+    );
+  }
+}
 
-                if (_isLoading) ...[
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 48),
-                    child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          CircularProgressIndicator(color: Color(0xFFFBBF24)),
-                          SizedBox(height: 16),
-                          Text(
-                            'Compiling transaction ledger...',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: AppColors.textMuted,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ] else if (_errorMessage != null) ...[
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: AppColors.expense.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: AppColors.expense.withValues(alpha: 0.4),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.error_outline_rounded,
-                          size: 18,
-                          color: Color(0xFFF87171),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            _errorMessage!,
-                            style: const TextStyle(
-                              fontSize: 12.5,
-                              color: Color(0xFFF87171),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    onPressed: _loadCsv,
-                    icon: const Icon(Icons.refresh_rounded, size: 18),
-                    label: const Text('Try Again'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFD97706),
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size.fromHeight(48),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                ] else ...[
-                  // Metrics Box
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? AppColors.surface800
-                          : AppColors.lightCard2,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: isDark
-                            ? AppColors.subtleBorder
-                            : AppColors.lightBorder,
-                      ),
-                    ),
-                    child: Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Total Transactions:',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: isDark
-                                    ? AppColors.textMuted
-                                    : AppColors.textMutedL,
-                              ),
-                            ),
-                            Text(
-                              '$totalCount entries',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w800,
-                                fontFeatures: CurrencyFormatter.tabularFigures,
-                                color: isDark
-                                    ? Colors.white
-                                    : AppColors.textLight,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Date Coverage:',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: isDark
-                                    ? AppColors.textMuted
-                                    : AppColors.textMutedL,
-                              ),
-                            ),
-                            Text(
-                              dateRangeStr,
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: isDark
-                                    ? Colors.white
-                                    : AppColors.textLight,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'CSV Schema:',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: isDark
-                                    ? AppColors.textMuted
-                                    : AppColors.textMutedL,
-                              ),
-                            ),
-                            const Text(
-                              'RFC 4180 (8 Columns)',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFFFBBF24),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
+class _SheetHeader extends StatelessWidget {
+  final IconData icon;
+  final Color accent;
+  final String title;
+  final String badge;
+  final String subtitle;
 
-                  // Action Buttons
-                  ElevatedButton.icon(
-                    onPressed: () async {
-                      try {
-                        final timestamp = DateFormat(
-                          'yyyyMMdd_HHmmss',
-                        ).format(DateTime.now());
-                        final filename = 'kasyaba_transactions_$timestamp.csv';
-                        final path = await DataExportHelper.saveToFile(
-                          filename: filename,
-                          content: csvContent,
-                        );
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('CSV saved to: $path'),
-                              backgroundColor: const Color(0xFFD97706),
-                              behavior: SnackBarBehavior.floating,
-                            ),
-                          );
-                          Navigator.of(context).pop();
-                        }
-                      } catch (err) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Failed to save CSV: $err'),
-                              backgroundColor: AppColors.expense,
-                            ),
-                          );
-                        }
-                      }
-                    },
-                    icon: const Icon(Icons.file_download_rounded, size: 18),
-                    label: const Text('Save CSV File to Device'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFD97706),
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size.fromHeight(48),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+  const _SheetHeader({
+    required this.icon,
+    required this.accent,
+    required this.title,
+    required this.badge,
+    required this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: accent.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: accent.withValues(alpha: 0.35)),
+          ),
+          child: Icon(icon, color: accent, size: 22),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Flexible(
+                    child: Text(
+                      title,
+                      style: GoogleFonts.bricolageGrotesque(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: context.kColors.textPrimary,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  OutlinedButton.icon(
-                    onPressed: () async {
-                      await Clipboard.setData(ClipboardData(text: csvContent));
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('CSV content copied to clipboard!'),
-                            backgroundColor: Color(0xFF10B981),
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
-                        Navigator.of(context).pop();
-                      }
-                    },
-                    icon: const Icon(Icons.copy_rounded, size: 18),
-                    label: const Text('Copy CSV to Clipboard'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: isDark
-                          ? Colors.white
-                          : AppColors.textLight,
-                      side: BorderSide(
-                        color: isDark
-                            ? AppColors.surface600
-                            : AppColors.lightBorder,
-                      ),
-                      minimumSize: const Size.fromHeight(48),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: accent.withValues(alpha: 0.16),
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: Text(
+                      badge,
+                      style: GoogleFonts.dmSans(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w700,
+                        color: accent,
+                        letterSpacing: 0.6,
                       ),
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 3),
+              Text(
+                subtitle,
+                style: GoogleFonts.dmSans(
+                  fontSize: 12,
+                  color: context.kColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+        IconButton(
+          onPressed: () => Navigator.of(context).pop(),
+          icon: Icon(Icons.close_rounded, size: 20),
+          color: context.kColors.textSecondary,
+        ),
+      ],
+    );
+  }
+}
+
+class _ValidationCard extends StatelessWidget {
+  final Color background;
+  final Color border;
+  final IconData icon;
+  final Color iconColor;
+  final String? title;
+  final Color titleColor;
+  final String message;
+  final Color messageColor;
+
+  const _ValidationCard({
+    required this.background,
+    required this.border,
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.titleColor,
+    required this.message,
+    required this.messageColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: border),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 18, color: iconColor),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (title != null) ...[
+                  Text(
+                    title!,
+                    style: GoogleFonts.dmSans(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: titleColor,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                ],
+                Text(
+                  message,
+                  style: GoogleFonts.dmSans(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: messageColor,
+                  ),
+                ),
               ],
             ),
           ),
-        ),
+        ],
       ),
     );
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// Metric Pill Widget
-// ─────────────────────────────────────────────────────────────
+class _MetricRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color? valueColor;
+
+  const _MetricRow({required this.label, required this.value, this.valueColor});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.dmSans(
+            fontSize: 13,
+            color: context.kColors.textSecondary,
+          ),
+        ),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            style: GoogleFonts.dmSans(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              fontFeatures: CurrencyFormatter.tabularFigures,
+              color: valueColor ?? context.kColors.textPrimary,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
 
 class _MetricPill extends StatelessWidget {
   final String label;
@@ -1495,12 +1105,12 @@ class _MetricPill extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha: 0.25)),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: color.withValues(alpha: 0.28)),
       ),
       child: Text(
         '$count $label',
-        style: TextStyle(
+        style: GoogleFonts.dmSans(
           fontSize: 11.5,
           fontWeight: FontWeight.w700,
           fontFeatures: CurrencyFormatter.tabularFigures,

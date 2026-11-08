@@ -35,6 +35,13 @@ export function registerRoutes(app: Router) {
     } catch (err) { next(err); }
   });
 
+  app.delete('/api/v1/goals/:id', authenticate, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await goalService.deleteGoal(req.userId!, req.params.id);
+      sendNoContent(res);
+    } catch (err) { next(err); }
+  });
+
   app.post('/api/v1/goals/:id/contributions', authenticate, validate(createContributionSchema), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const contrib = await goalService.addContribution(req.userId!, req.params.id, req.body);

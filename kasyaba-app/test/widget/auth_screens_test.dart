@@ -3,6 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kasyaba/features/auth/screens/login_screen.dart';
 import 'package:kasyaba/features/auth/screens/register_screen.dart';
+import 'package:kasyaba/features/auth/screens/forgot_password_screen.dart';
+import 'package:kasyaba/features/auth/screens/otp_verification_screen.dart';
+import 'package:kasyaba/features/auth/screens/new_password_screen.dart';
+import 'package:kasyaba/features/auth/widgets/auth_widgets.dart';
 
 void main() {
   testWidgets('LoginScreen renders brand lockup, explicit labels, demo button, and trust footer',
@@ -18,31 +22,32 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 1000));
 
-    // Brand lockup and differentiator badge
-    expect(find.text('KASYABA'), findsOneWidget);
-    expect(find.text('100% Deterministic • Zero AI • Private'), findsOneWidget);
+    // Brand lockup and runway badge
+    expect(find.text('Kasyaba'), findsOneWidget);
+    expect(find.text('Can I afford it?'), findsOneWidget);
 
     // Title and subtitle
-    expect(find.text('Welcome Back'), findsOneWidget);
-    expect(find.text('Sign in to access your financial runway'), findsOneWidget);
+    expect(find.text('Welcome back.'), findsOneWidget);
+    expect(find.text('Pick up where your runway left off.'), findsOneWidget);
 
     // Explicit typography labels
-    expect(find.text('EMAIL ADDRESS'), findsOneWidget);
+    expect(find.text('EMAIL'), findsOneWidget);
     expect(find.text('PASSWORD'), findsOneWidget);
 
     // Forgot password link
-    expect(find.text('Forgot Password?'), findsOneWidget);
+    expect(find.text('Forgot password?'), findsOneWidget);
 
-    // Primary Sign In button
-    expect(find.text('Sign In'), findsOneWidget);
+    // Primary Sign in button
+    expect(find.text('Sign in'), findsOneWidget);
     expect(find.text('OR'), findsNothing);
     expect(find.text('Continue with Demo Account'), findsNothing);
 
-    // Bottom trust footer
-    expect(find.text('100% Deterministic • Zero AI'), findsOneWidget);
+    // Bottom reassurance footnote
+    expect(find.text('Server-backed security. Instant on-device math.'), findsOneWidget);
 
     // Test Forgot Password dialog
-    await tester.tap(find.text('Forgot Password?'));
+    await tester.ensureVisible(find.text('Forgot password?'));
+    await tester.tap(find.text('Forgot password?'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
@@ -56,7 +61,7 @@ void main() {
     expect(find.text('Reset Password'), findsNothing);
   });
 
-  testWidgets('RegisterScreen renders brand lockup, password strength, and match indicator',
+  testWidgets('RegisterScreen renders exact Figma elements, form card, and continue button',
       (tester) async {
     await tester.pumpWidget(
       const ProviderScope(
@@ -69,35 +74,146 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 1000));
 
-    // Brand lockup and header
-    expect(find.text('KASYABA'), findsOneWidget);
-    expect(find.text('100% Deterministic • Zero AI • Private'), findsOneWidget);
-    expect(find.text('Create Account'), findsNWidgets(2));
+    // No onboarding step copy (single-step registration)
+    expect(find.text('STEP 1 OF 2'), findsNothing);
 
-    // Explicit labels
+    // Screen Title and Subtitle
+    expect(find.text('Create your account.'), findsOneWidget);
+    expect(find.text('Takes a minute. Then we tailor Kasyaba to you.'), findsOneWidget);
+
+    // Explicit field labels
     expect(find.text('FULL NAME'), findsOneWidget);
-    expect(find.text('EMAIL ADDRESS'), findsOneWidget);
+    expect(find.text('EMAIL'), findsOneWidget);
     expect(find.text('PASSWORD'), findsOneWidget);
     expect(find.text('CONFIRM PASSWORD'), findsOneWidget);
 
-    // Trust footer and terms note
-    expect(find.text('100% Deterministic • Zero AI'), findsOneWidget);
-    expect(find.textContaining('Terms of Service and Privacy Policy'), findsOneWidget);
+    // Primary Continue button
+    expect(find.text('Continue'), findsOneWidget);
 
-    // Enter a password to trigger strength indicator
-    final passwordFields = find.byType(TextField);
-    // passwordFields: [0: name, 1: email, 2: password, 3: confirmPassword]
-    await tester.enterText(passwordFields.at(2), 'Pass123!@#');
+    // Trust footer
+    expect(find.text('Server-backed security. Instant on-device math.'), findsOneWidget);
+
+    // Fill form and check validity
+    final fields = find.byType(TextField);
+    expect(fields, findsNWidgets(4));
+    await tester.enterText(fields.at(0), 'Juan Dela Cruz');
+    await tester.enterText(fields.at(1), 'juan@example.com');
+    await tester.enterText(fields.at(2), 'Password123!');
+    await tester.enterText(fields.at(3), 'Password123!');
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
 
-    expect(find.textContaining('password'), findsWidgets);
-
-    // Enter matching confirm password
-    await tester.enterText(passwordFields.at(3), 'Pass123!@#');
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
-
+    // Password strength and match indicators are wired to the form
+    expect(find.text('Strong password'), findsOneWidget);
     expect(find.text('Passwords match'), findsOneWidget);
+
+    // Terms & Conditions checkbox rendered
+    expect(find.text('Terms & Conditions'), findsOneWidget);
+    expect(find.text('Privacy Policy'), findsOneWidget);
+
+    // Tapping Continue without checking triggers validation message
+    await tester.ensureVisible(find.text('Continue'));
+    await tester.tap(find.text('Continue'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(
+      find.text('You must accept the Terms & Conditions to proceed'),
+      findsOneWidget,
+    );
+
+    // Tapping the checkbox clears the validation error
+    await tester.tap(find.descendant(
+      of: find.byType(AuthTermsCheckbox),
+      matching: find.byType(AnimatedContainer),
+    ));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(
+      find.text('You must accept the Terms & Conditions to proceed'),
+      findsNothing,
+    );
+  });
+
+  testWidgets('ForgotPasswordScreen renders exact Figma elements, back button, inline field, and action button',
+      (tester) async {
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(
+          home: ForgotPasswordScreen(),
+        ),
+      ),
+    );
+
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    // Title and Subtitle
+    expect(find.text('Reset your password'), findsOneWidget);
+    expect(find.textContaining('Enter the email you signed up with'), findsOneWidget);
+
+    // Inline capsule email field and label
+    expect(find.text('Email'), findsOneWidget);
+    expect(find.byType(TextField), findsOneWidget);
+
+    // Sign in link
+    expect(find.text('Remembered it? '), findsOneWidget);
+    expect(find.text('Sign in'), findsOneWidget);
+
+    // Primary Action Button
+    expect(find.text('Send reset link'), findsOneWidget);
+  });
+
+  testWidgets('OtpVerificationScreen renders verification code title, cells, expiry, and action button',
+      (tester) async {
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(
+          home: OtpVerificationScreen(email: 'test@kasyaba.app'),
+        ),
+      ),
+    );
+
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(find.text('Verification Code'), findsOneWidget);
+    expect(
+      find.text('Enter the 6-digit code sent to test@kasyaba.app.'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Code expires in'), findsOneWidget);
+    expect(find.textContaining('Resend'), findsOneWidget);
+    expect(find.text('Verify code'), findsOneWidget);
+  });
+
+  testWidgets('NewPasswordScreen renders new password, confirm password, and action button',
+      (tester) async {
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(
+          home: NewPasswordScreen(
+            email: 'test@kasyaba.app',
+            resetToken: 'mock-token',
+          ),
+        ),
+      ),
+    );
+
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(find.text('New password'), findsOneWidget);
+    expect(find.text('Set a strong password to secure your Kasyaba account.'), findsOneWidget);
+    expect(find.text('NEW PASSWORD'), findsOneWidget);
+    expect(find.text('CONFIRM PASSWORD'), findsOneWidget);
+    expect(find.text('Reset password'), findsOneWidget);
+
+    // Visibility toggle eye icon
+    final eyeIcons = find.byIcon(Icons.visibility_off_outlined);
+    expect(eyeIcons, findsNWidgets(2));
+
+    // Tap first eye icon to reveal password
+    await tester.tap(eyeIcons.first);
+    await tester.pump();
+    expect(find.byIcon(Icons.visibility_outlined), findsOneWidget);
   });
 }

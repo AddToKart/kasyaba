@@ -6,12 +6,16 @@ const amountSchema = z
   .regex(/^\d{1,12}(\.\d{1,2})?$/, 'Invalid amount format')
   .refine((value) => Number(value) > 0, 'Amount must be greater than zero');
 
+const recurrenceSchema = z
+  .preprocess((val) => (val === 'once' ? 'none' : val), z.enum(['none', 'weekly', 'monthly']))
+  .default('monthly');
+
 export const createBillTemplateSchema = z
   .object({
     name: z.string().min(1, 'Bill name is required').max(200),
     defaultAmount: amountSchema,
     categoryId: z.string().uuid().optional(),
-    recurrence: z.enum(['none', 'weekly', 'monthly']).default('monthly'),
+    recurrence: recurrenceSchema,
     dayOfWeek: z.number().int().min(0).max(6).optional(),
     dayOfMonth: z.number().int().min(1).max(31).optional(),
     startsOn: dateOnlySchema,
@@ -29,7 +33,9 @@ export const updateBillTemplateSchema = z
     name: z.string().min(1).max(200).optional(),
     defaultAmount: amountSchema.optional(),
     categoryId: z.string().uuid().nullable().optional(),
-    recurrence: z.enum(['none', 'weekly', 'monthly']).optional(),
+    recurrence: z
+      .preprocess((val) => (val === 'once' ? 'none' : val), z.enum(['none', 'weekly', 'monthly']))
+      .optional(),
     dayOfWeek: z.number().int().min(0).max(6).nullable().optional(),
     dayOfMonth: z.number().int().min(1).max(31).nullable().optional(),
     startsOn: dateOnlySchema.optional(),

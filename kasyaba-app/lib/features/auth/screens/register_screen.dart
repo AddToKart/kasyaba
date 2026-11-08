@@ -1,10 +1,12 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:reactive_forms/reactive_forms.dart';
-import '../../../app/theme/app_theme.dart';
+import '../../../app/theme/app_motion.dart';
+import '../../../app/theme/kasyaba_color_scheme.dart';
 import '../../../core/auth/auth_provider.dart';
+import '../../settings/screens/privacy_about_screen.dart';
 import '../widgets/auth_widgets.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -26,18 +28,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
         validators: [Validators.required, Validators.minLength(8)],
       ),
       'confirmPassword': FormControl<String>(validators: [Validators.required]),
+      'agreeToTerms': FormControl<bool>(
+        value: false,
+        validators: [Validators.requiredTrue],
+      ),
     },
     validators: [Validators.mustMatch('password', 'confirmPassword')],
   );
-
-  bool _obscurePassword = true;
-  bool _obscureConfirm = true;
-  int _passwordStrength = 0;
-  bool _isPasswordMatching = false;
-  bool _hasConfirmText = false;
-
-  StreamSubscription<dynamic>? _passwordSub;
-  StreamSubscription<dynamic>? _confirmSub;
 
   late final AnimationController _bgController;
   late final AnimationController _entryController;
@@ -63,63 +60,41 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
           CurvedAnimation(parent: _entryController, curve: Curves.easeOutCubic),
         );
     _entryController.forward();
-
-    // Listen to password strength & matching
-    _passwordSub = formGroup.control('password').valueChanges.listen((val) {
-      final pwd = val?.toString() ?? '';
-      final confirm = formGroup.control('confirmPassword').value?.toString() ?? '';
-      if (mounted) {
-        setState(() {
-          _passwordStrength = _computeStrength(pwd);
-          _hasConfirmText = confirm.isNotEmpty;
-          _isPasswordMatching = pwd.isNotEmpty && pwd == confirm;
-        });
-      }
-    });
-
-    _confirmSub = formGroup.control('confirmPassword').valueChanges.listen((val) {
-      final confirm = val?.toString() ?? '';
-      final pwd = formGroup.control('password').value?.toString() ?? '';
-      if (mounted) {
-        setState(() {
-          _hasConfirmText = confirm.isNotEmpty;
-          _isPasswordMatching = pwd.isNotEmpty && pwd == confirm;
-        });
-      }
-    });
-  }
-
-  int _computeStrength(String pwd) {
-    if (pwd.isEmpty) return 0;
-    int score = 0;
-    if (pwd.length >= 8) score++;
-    if (pwd.length >= 12) score++;
-    if (RegExp(r'[0-9]').hasMatch(pwd) && RegExp(r'[a-zA-Z]').hasMatch(pwd)) {
-      score++;
-    }
-    if (RegExp(r'[^a-zA-Z0-9]').hasMatch(pwd) ||
-        (RegExp(r'[A-Z]').hasMatch(pwd) && RegExp(r'[a-z]').hasMatch(pwd))) {
-      score++;
-    }
-    return score.clamp(1, 4);
   }
 
   @override
   void dispose() {
-    _passwordSub?.cancel();
-    _confirmSub?.cancel();
     _bgController.dispose();
     _entryController.dispose();
     formGroup.dispose();
     super.dispose();
   }
 
+  double _passwordStrength(String password) {
+    if (password.isEmpty) return 0;
+    var score = 0;
+    if (password.length >= 8) score++;
+    if (password.length >= 12) score++;
+    if (RegExp(r'[a-z]').hasMatch(password) &&
+        RegExp(r'[A-Z]').hasMatch(password)) {
+      score++;
+    }
+    if (RegExp(r'\d').hasMatch(password)) score++;
+    if (RegExp(r'[^A-Za-z0-9]').hasMatch(password)) score++;
+    return (score / 5).clamp(0.0, 1.0).toDouble();
+  }
+
   Future<void> _handleRegister() async {
     if (ref.read(authProvider).isLoading) return;
     formGroup.markAllAsTouched();
-    if (!formGroup.valid) return;
+    if (!formGroup.valid) {
+      AppHaptics.heavyImpact();
+      return;
+    }
     try {
-      await ref.read(authProvider.notifier).register(
+      await ref
+          .read(authProvider.notifier)
+          .register(
             formGroup.control('email').value as String,
             formGroup.control('password').value as String,
             displayName: formGroup.control('name').value as String,
@@ -133,12 +108,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
     final authState = ref.watch(authProvider);
     final size = MediaQuery.sizeOf(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = context.kColors;
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.obsidian : AppColors.lightScaffold,
+      backgroundColor: colors.canvas,
       body: Stack(
         children: [
-          // ── Background with grid & emerald aura ───────────
+          // ── Background with exact Figma radial gradients & radar arcs (Node 11:738) ──
           AuthBackground(
             rotateAnimation: _bgRotate,
             isDark: isDark,
@@ -147,296 +123,214 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
 
           // ── Scrollable Content ────────────────────────────
           SafeArea(
-            child: Stack(
-              children: [
-                Center(
-                  child: SingleChildScrollView(
-                    physics: const ClampingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 22,
-                      vertical: 24,
-                    ),
-                    child: FadeTransition(
-                      opacity: _fadeIn,
-                      child: SlideTransition(
-                        position: _slideUp,
-                        child: ReactiveForm(
-                      formGroup: formGroup,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          const SizedBox(height: 38),
+            child: Center(
+              child: SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 16,
+                ),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 342),
+                  child: FadeTransition(
+                    opacity: _fadeIn,
+                    child: SlideTransition(
+                      position: _slideUp,
+                      child: ReactiveForm(
+                        formGroup: formGroup,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const SizedBox(height: 12),
 
-                          // ── Upgraded Brand Header Lockup ──
-                          const AuthBrandHeader(),
-                          const SizedBox(height: 24),
+                            // ── Top Navigation (Node 11:741-746) ──
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: AuthBackButton(
+                                onPressed: () {
+                                  if (context.canPop()) {
+                                    context.pop();
+                                  } else {
+                                    context.go('/login');
+                                  }
+                                },
+                                size: 46,
+                                radius: 22,
+                                backgroundColor: isDark
+                                    ? colors.cardHero.withValues(alpha: 0.55)
+                                    : colors.card,
+                                borderColor: isDark
+                                    ? colors.icon.withValues(alpha: 0.28)
+                                    : colors.cardBorder,
+                                hasBlur: true,
+                              ),
+                            ),
+                            const SizedBox(height: 28),
 
-                          // ── Screen Title ──────────────────
-                          Center(
-                            child: Column(
-                              children: [
-                                Text(
-                                  'Create Account',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 26,
-                                    letterSpacing: -0.6,
-                                    color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
-                                  ),
-                                ),
-                                    SizedBox(height: 6),
-                                    Text(
-                                      'Start tracking your deterministic runway today',
-                                      style: TextStyle(
-                                        fontSize: 13.5,
-                                        color: AppColors.textMuted,
-                                        height: 1.4,
-                                      ),
-                                    ),
+                            // ── Title (Node 11:747-750) ──
+                            Text(
+                              'Create your account.',
+                              style: GoogleFonts.bricolageGrotesque(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 32,
+                                height: 1.1,
+                                color: colors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+
+                            // ── Subtitle (Node 11:751-753) ──
+                            Text(
+                              'Takes a minute. Then we tailor Kasyaba to you.',
+                              style: GoogleFonts.dmSans(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w400,
+                                height: 1.45,
+                                color: isDark
+                                    ? colors.icon
+                                    : colors.textSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+
+                            // ── Form Card (Node 11:754-775, width: 342, r: 32) ──
+                            AuthFormCard(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  if (authState.error != null) ...[
+                                    AuthErrorBanner(message: authState.error!),
+                                    const SizedBox(height: 14),
                                   ],
-                                ),
-                              ),
-                              const SizedBox(height: 28),
 
-                              // ── Glassmorphic Form Card ────────
-                              AuthFormCard(
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: [
-                                    if (authState.error != null) ...[
-                                      AuthErrorBanner(
-                                        message: authState.error!,
-                                      ),
-                                      const SizedBox(height: 18),
-                                    ],
-
-                                    // Full Name Field
-                                    AuthReactiveField(
-                                      formControlName: 'name',
-                                      label: 'Full Name',
-                                      hintText: 'John Doe',
-                                      prefixIcon: Icons.person_outline_rounded,
-                                      textInputAction: TextInputAction.next,
-                                      validationMessages: {
-                                        ValidationMessage.required: (_) =>
-                                            'Please enter your name',
-                                      },
-                                    ),
-                                    const SizedBox(height: 16),
-
-                                    // Email Address Field with Envelope Icon
-                                    AuthReactiveField(
-                                      formControlName: 'email',
-                                      label: 'Email Address',
-                                      hintText: 'name@example.com',
-                                      prefixIcon: Icons.mail_outline_rounded,
-                                      keyboardType: TextInputType.emailAddress,
-                                      textInputAction: TextInputAction.next,
-                                      validationMessages: {
-                                        ValidationMessage.required: (_) =>
-                                            'Email is required',
-                                        ValidationMessage.email: (_) =>
-                                            'Enter a valid email address',
-                                      },
-                                    ),
-                                    const SizedBox(height: 16),
-
-                                    // Password Field
-                                    AuthReactiveField(
-                                      formControlName: 'password',
-                                      label: 'Password',
-                                      hintText: '••••••••',
-                                      prefixIcon: Icons.lock_outline_rounded,
-                                      obscureText: _obscurePassword,
-                                      textInputAction: TextInputAction.next,
-                                      suffixIcon: IconButton(
-                                        tooltip: _obscurePassword
-                                            ? 'Show password'
-                                            : 'Hide password',
-                                        icon: Icon(
-                                          _obscurePassword
-                                              ? Icons.visibility_off_outlined
-                                              : Icons.visibility_outlined,
-                                          size: 19,
-                                        ),
-                                        color: const Color(0xFF64748B),
-                                        onPressed: () => setState(
-                                          () => _obscurePassword =
-                                              !_obscurePassword,
-                                        ),
-                                      ),
-                                      validationMessages: {
-                                        ValidationMessage.required: (_) =>
-                                            'At least 8 characters required',
-                                        ValidationMessage.minLength: (_) =>
-                                            'At least 8 characters required',
-                                      },
-                                    ),
-
-                                    // Live 4-segment Password Strength Indicator
-                                    PasswordStrengthBar(
-                                      strength: _passwordStrength,
-                                    ),
-                                    const SizedBox(height: 16),
-
-                                    // Confirm Password Field
-                                    AuthReactiveField(
-                                      formControlName: 'confirmPassword',
-                                      label: 'Confirm Password',
-                                      hintText: '••••••••',
-                                      prefixIcon: Icons.lock_outline_rounded,
-                                      obscureText: _obscureConfirm,
-                                      textInputAction: TextInputAction.done,
-                                      onSubmitted: _handleRegister,
-                                      suffixIcon: IconButton(
-                                        tooltip: _obscureConfirm
-                                            ? 'Show password'
-                                            : 'Hide password',
-                                        icon: Icon(
-                                          _obscureConfirm
-                                              ? Icons.visibility_off_outlined
-                                              : Icons.visibility_outlined,
-                                          size: 19,
-                                        ),
-                                        color: const Color(0xFF64748B),
-                                        onPressed: () => setState(
-                                          () => _obscureConfirm =
-                                              !_obscureConfirm,
-                                        ),
-                                      ),
-                                      validationMessages: {
-                                        ValidationMessage.required: (_) =>
-                                            'Please confirm your password',
-                                        ValidationMessage.mustMatch: (_) =>
-                                            'Passwords do not match',
-                                      },
-                                    ),
-
-                                    // Live Match Indicator
-                                    PasswordMatchIndicator(
-                                      isMatching: _isPasswordMatching,
-                                      hasConfirmText: _hasConfirmText,
-                                    ),
-                                    const SizedBox(height: 24),
-
-                                    // Primary Create Account Button (12px radius)
-                                    AuthGradientButton(
-                                      isLoading: authState.isLoading,
-                                      onPressed: _handleRegister,
-                                      label: 'Create Account',
-                                    ),
-                                    const SizedBox(height: 16),
-
-                                    // Muted Terms & Privacy Notice
-                                    const Text(
-                                      'By continuing, you agree to Kasyaba\'s Terms of Service and Privacy Policy. All financial records are calculated locally with zero AI telemetry.',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        color: Color(0xFF64748B),
-                                        fontSize: 11,
-                                        height: 1.45,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 20),
-
-                              // ── Sign In Navigation Link ───────
-                              Center(
-                                child: TextButton(
-                                  onPressed: () => context.go('/login'),
-                                  style: TextButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 8,
-                                    ),
+                                  // FULL NAME Field (Node 11:756-761)
+                                  AuthReactiveField(
+                                    formControlName: 'name',
+                                    label: 'Full name',
+                                    hintText: 'Juan Dela Cruz',
+                                    textInputAction: TextInputAction.next,
+                                    validationMessages: {
+                                      ValidationMessage.required: (_) =>
+                                          'Please enter your name',
+                                    },
                                   ),
-                                  child: RichText(
-                                    text: const TextSpan(
-                                      children: [
-                                        TextSpan(
-                                          text: 'Already have an account?  ',
-                                          style: TextStyle(
-                                            color: Color(0xFF94A3B8),
-                                            fontSize: 13.5,
-                                          ),
-                                        ),
-                                        TextSpan(
-                                          text: 'Sign In',
-                                          style: TextStyle(
-                                            color: AppColors.emerald400,
-                                            fontWeight: FontWeight.w700,
-                                            fontSize: 13.5,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
+                                  const SizedBox(height: 14),
 
-                              // ── Bottom Trust Footer ───────────
-                              const AuthTrustFooter(),
-                            ],
-                          ),
+                                  // EMAIL Field (Node 11:762-767)
+                                  AuthReactiveField(
+                                    formControlName: 'email',
+                                    label: 'Email',
+                                    hintText: 'name@example.com',
+                                    keyboardType: TextInputType.emailAddress,
+                                    textInputAction: TextInputAction.next,
+                                    validationMessages: {
+                                      ValidationMessage.required: (_) =>
+                                          'Email is required',
+                                      ValidationMessage.email: (_) =>
+                                          'Enter a valid email address',
+                                    },
+                                  ),
+                                  const SizedBox(height: 14),
+
+                                  // PASSWORD Field (Node 11:768-773)
+                                  AuthReactiveField(
+                                    formControlName: 'password',
+                                    label: 'Password',
+                                    hintText: 'At least 8 characters',
+                                    isPasswordField: true,
+                                    textInputAction: TextInputAction.next,
+                                    validationMessages: {
+                                      ValidationMessage.required: (_) =>
+                                          'Password is required',
+                                      ValidationMessage.minLength: (_) =>
+                                          'At least 8 characters required',
+                                    },
+                                  ),
+                                  ReactiveFormConsumer(
+                                    builder: (context, form, child) {
+                                      final password =
+                                          (form.control('password').value
+                                              as String?) ??
+                                          '';
+                                      return PasswordStrengthBar(
+                                        strength: _passwordStrength(password),
+                                      );
+                                    },
+                                  ),
+                                  const SizedBox(height: 14),
+
+                                  // CONFIRM PASSWORD Field
+                                  AuthReactiveField(
+                                    formControlName: 'confirmPassword',
+                                    label: 'Confirm password',
+                                    hintText: 'Re-enter your password',
+                                    isPasswordField: true,
+                                    textInputAction: TextInputAction.done,
+                                    onSubmitted: _handleRegister,
+                                    validationMessages: {
+                                      ValidationMessage.required: (_) =>
+                                          'Please confirm your password',
+                                      ValidationMessage.mustMatch: (_) =>
+                                          'Passwords do not match',
+                                    },
+                                  ),
+                                  ReactiveFormConsumer(
+                                    builder: (context, form, child) {
+                                      final password =
+                                          (form.control('password').value
+                                              as String?) ??
+                                          '';
+                                      final confirm =
+                                          (form.control('confirmPassword').value
+                                              as String?) ??
+                                          '';
+                                      return PasswordMatchIndicator(
+                                        isMatching: password == confirm,
+                                        hasConfirmText: confirm.isNotEmpty,
+                                      );
+                                    },
+                                  ),
+                                  const SizedBox(height: 16),
+
+                                  // Terms & Conditions Checkbox (Figma Luxury Squircle)
+                                  AuthTermsCheckbox(
+                                    formControlName: 'agreeToTerms',
+                                    onTapTerms: () =>
+                                        PrivacyAndAboutScreen.showTermsSheet(
+                                          context,
+                                        ),
+                                    onTapPrivacy: () =>
+                                        PrivacyAndAboutScreen.showPrivacyPolicySheet(
+                                          context,
+                                        ),
+                                  ),
+                                  const SizedBox(height: 18),
+
+                                  // Continue Button (Node 11:774-775, height: 56, r: 28)
+                                  AuthPrimaryPillButton(
+                                    isLoading: authState.isLoading,
+                                    onPressed: _handleRegister,
+                                    label: 'Continue',
+                                    height: 56,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 28),
+
+                            // ── Footnote (Node 11:776-778) ──
+                            const AuthTrustFooter(),
+                            const SizedBox(height: 16),
+                          ],
                         ),
                       ),
                     ),
                   ),
                 ),
-
-                // Top-left back button
-                const Positioned(
-                  top: 8,
-                  left: 12,
-                  child: _AuthBackButton(),
-                ),
-              ],
+              ),
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _AuthBackButton extends StatelessWidget {
-  const _AuthBackButton();
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Tooltip(
-      message: 'Back to sign in',
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: () => context.go('/login'),
-          child: Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              color: isDark ? const Color(0xBF0F172A) : AppColors.lightInputFill,
-              border: Border.all(
-                color: isDark
-                    ? const Color(0x14FFFFFF)
-                    : AppColors.lightBorderHairline,
-                width: 1,
-              ),
-            ),
-            child: Icon(
-              Icons.arrow_back_ios_new_rounded,
-              size: 16,
-              color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
-            ),
-          ),
-        ),
       ),
     );
   }

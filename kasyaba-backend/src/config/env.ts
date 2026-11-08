@@ -22,6 +22,9 @@ const envSchema = z.object({
   // default so the API can require an explicit value in production.
   TRUST_PROXY: z.string().optional(),
   SUPPORT_EMAIL: z.string().email().default('support@kasyaba.app'),
+  RESEND_API_KEY: z.string().optional(),
+  RESEND_FROM_EMAIL: z.string().default('Kasyaba <noreply@kasyaba.app>'),
+  APP_NAME: z.string().default('Kasyaba'),
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
   WORKER_TIMEZONE: z.string().default('Asia/Manila'),
   SNAPSHOT_CRON: z.string().default('10 0 * * *'),

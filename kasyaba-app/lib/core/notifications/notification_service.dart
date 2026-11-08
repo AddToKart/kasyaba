@@ -1,6 +1,10 @@
+import 'package:flutter/material.dart' show TimeOfDay;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest_all.dart' as tz_data;
+import 'package:timezone/timezone.dart' as tz;
+
+import '../utils/deterministic_math.dart';
+import 'bill_reminder_logic.dart';
 
 /// A bill occurrence that should (or should no longer) have a local reminder.
 class BillReminder {
@@ -9,12 +13,16 @@ class BillReminder {
     required this.name,
     required this.dueDate,
     required this.status,
+    this.leadDays,
   });
 
   final String id;
   final String name;
   final DateTime dueDate;
   final String status;
+
+  /// Per-bill override for how many days before the due date to notify.
+  final int? leadDays;
 }
 
 class NotificationService {
@@ -24,9 +32,16 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
 
+  /// Immediate reminders already delivered during this app session. Keyed by
+  /// `<billId>:<due-yyyy-mm-dd>` so repeated bill syncs do not re-fire.
+  final Set<String> _deliveredImmediateReminders = <String>{};
+
   static const _channelId = 'bill_reminders';
   static const _channelName = 'Bill Reminders';
   static const _channelDescription = 'Reminders for upcoming bills';
+
+  static const _instantChannelId = 'financial_alerts';
+  static const _instantChannelName = 'Financial alerts';
 
   Future<void> init() async {
     tz_data.initializeTimeZones();
@@ -46,7 +61,13 @@ class NotificationService {
       android: androidSettings,
       iOS: iosSettings,
     );
-    await _plugin.initialize(settings);
+
+    try {
+      await _plugin.initialize(settings);
+    } catch (_) {
+      // The plugin is unavailable in some environments (e.g. unit tests).
+      return;
+    }
 
     // Permission requests must never crash startup (for example when the
     // Android 13+ permission dialog cannot be shown).
@@ -64,76 +85,255 @@ class NotificationService {
       await ios?.requestPermissions(alert: true, badge: true, sound: true);
     } catch (_) {
       // Permission can also be requested later from system settings.
+      return;
     }
   }
 
   /// Keeps local reminders in step with the current bill list: every upcoming
-  /// bill gets a reminder the day before at 09:00, and paid/cancelled/overdue
-  /// bills have their reminder cancelled.
-  Future<void> syncBillReminders(Iterable<BillReminder> reminders) async {
+  /// bill gets a reminder [leadDays] before its due date at [timeOfDay], and
+  /// paid/cancelled/overdue bills have their reminder cancelled.
+  ///
+  /// If the lead-day notification time already passed while the bill is still
+  /// due today or later (a sync after 09:00 on the lead day), an immediate
+  /// notification is shown instead. Immediate reminders are deduped per bill
+  /// occurrence for the lifetime of the app session.
+  Future<void> syncBillReminders(
+    Iterable<BillReminder> reminders, {
+    bool enabled = true,
+    int defaultLeadDays = 1,
+    TimeOfDay timeOfDay = const TimeOfDay(hour: 9, minute: 0),
+  }) async {
+    final now = DateTime.now();
     for (final reminder in reminders) {
-      final id = _notificationId('bill_${reminder.id}');
-      if (reminder.status != 'upcoming') {
-        await _plugin.cancel(id);
+      final id = notificationIdFor('bill_${reminder.id}');
+      if (!enabled || reminder.status != 'upcoming') {
+        await _cancel(id);
         continue;
       }
 
-      final dueDay = DateTime(
-        reminder.dueDate.year,
-        reminder.dueDate.month,
-        reminder.dueDate.day,
-        9,
+      final decision = resolveBillReminder(
+        billId: reminder.id,
+        dueDate: reminder.dueDate,
+        now: now,
+        leadDays: reminder.leadDays ?? defaultLeadDays,
+        time: timeOfDay,
       );
-      final notifyAt = dueDay.subtract(const Duration(days: 1));
-      if (!notifyAt.isAfter(DateTime.now())) {
-        await _plugin.cancel(id);
-        continue;
-      }
 
-      await _schedule(id, reminder.name, 'Due tomorrow', notifyAt);
+      switch (decision.action) {
+        case BillReminderAction.cancel:
+          await _cancel(id);
+        case BillReminderAction.schedule:
+          final notifyAt = decision.notifyAt;
+          if (notifyAt != null) {
+            await _schedule(id, reminder.name, decision.body, notifyAt);
+          }
+        case BillReminderAction.showNow:
+          final dedupeKey = decision.dedupeKey;
+          if (dedupeKey == null ||
+              _deliveredImmediateReminders.contains(dedupeKey)) {
+            continue;
+          }
+          // Drop any stale pending schedule for this bill before showing the
+          // replacement reminder with the same id.
+          await _cancel(id);
+          final delivered = await _showBillReminderNow(
+            id,
+            reminder.name,
+            decision.body,
+          );
+          if (delivered) _deliveredImmediateReminders.add(dedupeKey);
+      }
     }
   }
 
-  Future<void> cancelAllNotifications() async {
-    await _plugin.cancelAll();
+  /// Shows an immediate notification (used for alert/goal-milestone sync).
+  Future<void> showInstantNotification({
+    required int id,
+    required String title,
+    required String body,
+    String channelId = _instantChannelId,
+    String channelName = _instantChannelName,
+  }) async {
+    try {
+      final details = NotificationDetails(
+        android: AndroidNotificationDetails(
+          channelId,
+          channelName,
+          channelDescription: 'Alerts and updates from Kasyaba',
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+        iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
+      );
+      await _plugin.show(id, title, body, details);
+    } catch (_) {
+      return;
+    }
+  }
+
+  /// Schedules a single reminder for the next payday, or cancels it when the
+  /// payday reminder preference is disabled.
+  Future<void> syncPaydayReminder({
+    required bool enabled,
+    required String? frequency,
+    required String? schedule,
+    TimeOfDay timeOfDay = const TimeOfDay(hour: 9, minute: 0),
+  }) async {
+    final id = notificationIdFor('payday_reminder');
+    try {
+      if (!enabled) {
+        await _plugin.cancel(id);
+        return;
+      }
+
+      final nextPayday = computeNextPayday(
+        DateTime.now(),
+        frequency: frequency,
+        schedule: schedule,
+      );
+      final notifyAt = DateTime(
+        nextPayday.year,
+        nextPayday.month,
+        nextPayday.day,
+        timeOfDay.hour,
+        timeOfDay.minute,
+      );
+      if (!notifyAt.isAfter(DateTime.now())) {
+        await _plugin.cancel(id);
+        return;
+      }
+
+      await _schedule(id, 'Payday', 'Your payday is today.', notifyAt);
+    } catch (_) {
+      return;
+    }
+  }
+
+  /// Schedules a recurring weekly summary notification for Sunday at
+  /// [timeOfDay], or cancels it when disabled.
+  Future<void> syncWeeklySummary({
+    required bool enabled,
+    required TimeOfDay timeOfDay,
+  }) async {
+    final id = notificationIdFor('weekly_summary');
+    try {
+      if (!enabled) {
+        await _plugin.cancel(id);
+        return;
+      }
+
+      final now = DateTime.now();
+      final daysUntilSunday = (DateTime.sunday - now.weekday) % 7;
+      var scheduled = DateTime(
+        now.year,
+        now.month,
+        now.day + daysUntilSunday,
+        timeOfDay.hour,
+        timeOfDay.minute,
+      );
+      if (!scheduled.isAfter(now)) {
+        scheduled = scheduled.add(const Duration(days: 7));
+      }
+
+      await _schedule(
+        id,
+        'Weekly summary',
+        'Review your week in Kasyaba.',
+        scheduled,
+        matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+      );
+    } catch (_) {
+      return;
+    }
+  }
+
+  Future<void> cancelNotification(int id) async {
+    await _cancel(id);
+  }
+
+  Future<void> _cancel(int id) async {
+    try {
+      await _plugin.cancel(id);
+    } catch (_) {
+      return;
+    }
+  }
+
+  /// Shows an immediate bill reminder using the bill's stable notification id.
+  /// Returns `true` only when the platform accepted the notification, so the
+  /// caller can retry later if showing fails.
+  Future<bool> _showBillReminderNow(int id, String title, String body) async {
+    try {
+      final details = NotificationDetails(
+        android: AndroidNotificationDetails(
+          _channelId,
+          _channelName,
+          channelDescription: _channelDescription,
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+        iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
+      );
+      await _plugin.show(id, title, body, details);
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<void> _schedule(
     int id,
     String title,
     String body,
-    DateTime scheduledDate,
-  ) async {
-    const notificationDetails = NotificationDetails(
-      android: AndroidNotificationDetails(
-        _channelId,
-        _channelName,
-        channelDescription: _channelDescription,
-        importance: Importance.high,
-        priority: Priority.high,
-      ),
-      iOS: DarwinNotificationDetails(
-        presentAlert: true,
-        presentBadge: true,
-        presentSound: true,
-      ),
-    );
+    DateTime scheduledDate, {
+    DateTimeComponents? matchDateTimeComponents,
+    String channelId = _channelId,
+    String channelName = _channelName,
+    String channelDescription = _channelDescription,
+  }) async {
+    try {
+      final notificationDetails = NotificationDetails(
+        android: AndroidNotificationDetails(
+          channelId,
+          channelName,
+          channelDescription: channelDescription,
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+        iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
+      );
 
-    await _plugin.zonedSchedule(
-      id,
-      title,
-      body,
-      tz.TZDateTime.from(scheduledDate, tz.UTC),
-      notificationDetails,
-      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-    );
+      await _plugin.zonedSchedule(
+        id,
+        title,
+        body,
+        tz.TZDateTime.from(scheduledDate, tz.UTC),
+        notificationDetails,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: matchDateTimeComponents,
+      );
+    } catch (_) {
+      return;
+    }
   }
 
-  /// Stable FNV-1a hash so the same bill always maps to the same notification
+  /// Stable FNV-1a hash so the same key always maps to the same notification
   /// id (Dart's `String.hashCode` is not a stable contract across runs).
-  static int _notificationId(String key) {
+  static int notificationIdFor(String key) {
     var hash = 0x811c9dc5;
     for (final unit in key.codeUnits) {
       hash ^= unit;

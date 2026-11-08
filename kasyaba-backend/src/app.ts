@@ -59,7 +59,10 @@ export function createApp() {
   app.use(requestIdMiddleware);
 
   // HTTP request logging. The URL serializer strips query strings so search
-  // terms and other sensitive parameters never reach the logs.
+  // terms and other sensitive parameters never reach the logs. It also omits
+  // the client IP: /privacy states that IP addresses are used only for rate
+  // limiting, so remoteAddress must not be persisted in request logs. Keep it
+  // out even if this serializer changes (see policy-code-matrix.md §1 row 5).
   app.use(
     pinoHttp({
       logger,
@@ -67,11 +70,7 @@ export function createApp() {
         ignore: (req) => (req.url ?? '').startsWith('/health'),
       },
       serializers: {
-        req: (req) => ({
-          method: req.method,
-          url: (req.url ?? '').split('?')[0],
-          remoteAddress: req.remoteAddress,
-        }),
+        req: requestLogSerializer,
       },
     }),
   );
@@ -118,6 +117,22 @@ export function createApp() {
   app.use(errorHandler);
 
   return app;
+}
+
+/**
+ * Pino-http request serializer. Deliberately allow-lists the two fields the
+ * request log needs: query strings are stripped and the client IP is never
+ * emitted (IP addresses are used only for rate limiting).
+ */
+export function requestLogSerializer(req: {
+  method?: string;
+  url?: string;
+  remoteAddress?: string;
+}) {
+  return {
+    method: req.method,
+    url: (req.url ?? '').split('?')[0],
+  };
 }
 
 function parseTrustProxy(value: string | undefined): boolean | number | string {

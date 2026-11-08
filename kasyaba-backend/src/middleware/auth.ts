@@ -30,6 +30,40 @@ export async function verifyAccessToken(token: string): Promise<TokenPayload> {
   }
 }
 
+export interface ResetTokenPayload {
+  sub: string;
+  email: string;
+  purpose: 'password_reset';
+}
+
+export async function signResetToken(payload: Omit<ResetTokenPayload, 'purpose'>): Promise<string> {
+  return new SignJWT({ sub: payload.sub, email: payload.email, purpose: 'password_reset' })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('5m')
+    .sign(secret);
+}
+
+export async function verifyResetToken(token: string): Promise<ResetTokenPayload> {
+  try {
+    const { payload } = await jwtVerify(token, secret);
+    if (
+      typeof payload.sub !== 'string' ||
+      typeof payload.email !== 'string' ||
+      payload.purpose !== 'password_reset'
+    ) {
+      throw new Error('Invalid reset token payload');
+    }
+    return {
+      sub: payload.sub,
+      email: payload.email,
+      purpose: 'password_reset',
+    };
+  } catch {
+    throw new UnauthorizedError('Invalid or expired password reset session');
+  }
+}
+
 export async function authenticate(req: Request, _res: Response, next: NextFunction) {
   try {
     const authHeader = req.headers.authorization;

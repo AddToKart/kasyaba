@@ -3,24 +3,29 @@
 part of 'database.dart';
 
 // ignore_for_file: type=lint
-class $CachedDashboardTable extends CachedDashboard
-    with TableInfo<$CachedDashboardTable, CachedDashboardData> {
+class $CachedSnapshotsTable extends CachedSnapshots
+    with TableInfo<$CachedSnapshotsTable, CachedSnapshot> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $CachedDashboardTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  $CachedSnapshotsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
   @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
-    'id',
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
     aliasedName,
     false,
-    hasAutoIncrement: true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'PRIMARY KEY AUTOINCREMENT',
-    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _keyMeta = const VerificationMeta('key');
+  @override
+  late final GeneratedColumn<String> key = GeneratedColumn<String>(
+    'key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
   );
   static const VerificationMeta _jsonMeta = const VerificationMeta('json');
   @override
@@ -31,33 +36,46 @@ class $CachedDashboardTable extends CachedDashboard
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
-    'updatedAt',
+  static const VerificationMeta _fetchedAtMeta = const VerificationMeta(
+    'fetchedAt',
   );
   @override
-  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
-    'updated_at',
+  late final GeneratedColumn<DateTime> fetchedAt = GeneratedColumn<DateTime>(
+    'fetched_at',
     aliasedName,
     false,
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
   @override
-  List<GeneratedColumn> get $columns => [id, json, updatedAt];
+  List<GeneratedColumn> get $columns => [userId, key, json, fetchedAt];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
-  static const String $name = 'cached_dashboard';
+  static const String $name = 'cached_snapshots';
   @override
   VerificationContext validateIntegrity(
-    Insertable<CachedDashboardData> instance, {
+    Insertable<CachedSnapshot> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('key')) {
+      context.handle(
+        _keyMeta,
+        key.isAcceptableOrUnknown(data['key']!, _keyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_keyMeta);
     }
     if (data.containsKey('json')) {
       context.handle(
@@ -67,187 +85,228 @@ class $CachedDashboardTable extends CachedDashboard
     } else if (isInserting) {
       context.missing(_jsonMeta);
     }
-    if (data.containsKey('updated_at')) {
+    if (data.containsKey('fetched_at')) {
       context.handle(
-        _updatedAtMeta,
-        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+        _fetchedAtMeta,
+        fetchedAt.isAcceptableOrUnknown(data['fetched_at']!, _fetchedAtMeta),
       );
     } else if (isInserting) {
-      context.missing(_updatedAtMeta);
+      context.missing(_fetchedAtMeta);
     }
     return context;
   }
 
   @override
-  Set<GeneratedColumn> get $primaryKey => {id};
+  Set<GeneratedColumn> get $primaryKey => {userId, key};
   @override
-  CachedDashboardData map(Map<String, dynamic> data, {String? tablePrefix}) {
+  CachedSnapshot map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return CachedDashboardData(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}id'],
+    return CachedSnapshot(
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
+      key: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}key'],
       )!,
       json: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}json'],
       )!,
-      updatedAt: attachedDatabase.typeMapping.read(
+      fetchedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
-        data['${effectivePrefix}updated_at'],
+        data['${effectivePrefix}fetched_at'],
       )!,
     );
   }
 
   @override
-  $CachedDashboardTable createAlias(String alias) {
-    return $CachedDashboardTable(attachedDatabase, alias);
+  $CachedSnapshotsTable createAlias(String alias) {
+    return $CachedSnapshotsTable(attachedDatabase, alias);
   }
 }
 
-class CachedDashboardData extends DataClass
-    implements Insertable<CachedDashboardData> {
-  final int id;
+class CachedSnapshot extends DataClass implements Insertable<CachedSnapshot> {
+  final String userId;
+  final String key;
   final String json;
-  final DateTime updatedAt;
-  const CachedDashboardData({
-    required this.id,
+  final DateTime fetchedAt;
+  const CachedSnapshot({
+    required this.userId,
+    required this.key,
     required this.json,
-    required this.updatedAt,
+    required this.fetchedAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    map['id'] = Variable<int>(id);
+    map['user_id'] = Variable<String>(userId);
+    map['key'] = Variable<String>(key);
     map['json'] = Variable<String>(json);
-    map['updated_at'] = Variable<DateTime>(updatedAt);
+    map['fetched_at'] = Variable<DateTime>(fetchedAt);
     return map;
   }
 
-  CachedDashboardCompanion toCompanion(bool nullToAbsent) {
-    return CachedDashboardCompanion(
-      id: Value(id),
+  CachedSnapshotsCompanion toCompanion(bool nullToAbsent) {
+    return CachedSnapshotsCompanion(
+      userId: Value(userId),
+      key: Value(key),
       json: Value(json),
-      updatedAt: Value(updatedAt),
+      fetchedAt: Value(fetchedAt),
     );
   }
 
-  factory CachedDashboardData.fromJson(
+  factory CachedSnapshot.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return CachedDashboardData(
-      id: serializer.fromJson<int>(json['id']),
+    return CachedSnapshot(
+      userId: serializer.fromJson<String>(json['userId']),
+      key: serializer.fromJson<String>(json['key']),
       json: serializer.fromJson<String>(json['json']),
-      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      fetchedAt: serializer.fromJson<DateTime>(json['fetchedAt']),
     );
   }
   @override
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
-      'id': serializer.toJson<int>(id),
+      'userId': serializer.toJson<String>(userId),
+      'key': serializer.toJson<String>(key),
       'json': serializer.toJson<String>(json),
-      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'fetchedAt': serializer.toJson<DateTime>(fetchedAt),
     };
   }
 
-  CachedDashboardData copyWith({int? id, String? json, DateTime? updatedAt}) =>
-      CachedDashboardData(
-        id: id ?? this.id,
-        json: json ?? this.json,
-        updatedAt: updatedAt ?? this.updatedAt,
-      );
-  CachedDashboardData copyWithCompanion(CachedDashboardCompanion data) {
-    return CachedDashboardData(
-      id: data.id.present ? data.id.value : this.id,
+  CachedSnapshot copyWith({
+    String? userId,
+    String? key,
+    String? json,
+    DateTime? fetchedAt,
+  }) => CachedSnapshot(
+    userId: userId ?? this.userId,
+    key: key ?? this.key,
+    json: json ?? this.json,
+    fetchedAt: fetchedAt ?? this.fetchedAt,
+  );
+  CachedSnapshot copyWithCompanion(CachedSnapshotsCompanion data) {
+    return CachedSnapshot(
+      userId: data.userId.present ? data.userId.value : this.userId,
+      key: data.key.present ? data.key.value : this.key,
       json: data.json.present ? data.json.value : this.json,
-      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      fetchedAt: data.fetchedAt.present ? data.fetchedAt.value : this.fetchedAt,
     );
   }
 
   @override
   String toString() {
-    return (StringBuffer('CachedDashboardData(')
-          ..write('id: $id, ')
+    return (StringBuffer('CachedSnapshot(')
+          ..write('userId: $userId, ')
+          ..write('key: $key, ')
           ..write('json: $json, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('fetchedAt: $fetchedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, json, updatedAt);
+  int get hashCode => Object.hash(userId, key, json, fetchedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is CachedDashboardData &&
-          other.id == this.id &&
+      (other is CachedSnapshot &&
+          other.userId == this.userId &&
+          other.key == this.key &&
           other.json == this.json &&
-          other.updatedAt == this.updatedAt);
+          other.fetchedAt == this.fetchedAt);
 }
 
-class CachedDashboardCompanion extends UpdateCompanion<CachedDashboardData> {
-  final Value<int> id;
+class CachedSnapshotsCompanion extends UpdateCompanion<CachedSnapshot> {
+  final Value<String> userId;
+  final Value<String> key;
   final Value<String> json;
-  final Value<DateTime> updatedAt;
-  const CachedDashboardCompanion({
-    this.id = const Value.absent(),
+  final Value<DateTime> fetchedAt;
+  final Value<int> rowid;
+  const CachedSnapshotsCompanion({
+    this.userId = const Value.absent(),
+    this.key = const Value.absent(),
     this.json = const Value.absent(),
-    this.updatedAt = const Value.absent(),
+    this.fetchedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
   });
-  CachedDashboardCompanion.insert({
-    this.id = const Value.absent(),
+  CachedSnapshotsCompanion.insert({
+    required String userId,
+    required String key,
     required String json,
-    required DateTime updatedAt,
-  }) : json = Value(json),
-       updatedAt = Value(updatedAt);
-  static Insertable<CachedDashboardData> custom({
-    Expression<int>? id,
+    required DateTime fetchedAt,
+    this.rowid = const Value.absent(),
+  }) : userId = Value(userId),
+       key = Value(key),
+       json = Value(json),
+       fetchedAt = Value(fetchedAt);
+  static Insertable<CachedSnapshot> custom({
+    Expression<String>? userId,
+    Expression<String>? key,
     Expression<String>? json,
-    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? fetchedAt,
+    Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
-      if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
+      if (key != null) 'key': key,
       if (json != null) 'json': json,
-      if (updatedAt != null) 'updated_at': updatedAt,
+      if (fetchedAt != null) 'fetched_at': fetchedAt,
+      if (rowid != null) 'rowid': rowid,
     });
   }
 
-  CachedDashboardCompanion copyWith({
-    Value<int>? id,
+  CachedSnapshotsCompanion copyWith({
+    Value<String>? userId,
+    Value<String>? key,
     Value<String>? json,
-    Value<DateTime>? updatedAt,
+    Value<DateTime>? fetchedAt,
+    Value<int>? rowid,
   }) {
-    return CachedDashboardCompanion(
-      id: id ?? this.id,
+    return CachedSnapshotsCompanion(
+      userId: userId ?? this.userId,
+      key: key ?? this.key,
       json: json ?? this.json,
-      updatedAt: updatedAt ?? this.updatedAt,
+      fetchedAt: fetchedAt ?? this.fetchedAt,
+      rowid: rowid ?? this.rowid,
     );
   }
 
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<int>(id.value);
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (key.present) {
+      map['key'] = Variable<String>(key.value);
     }
     if (json.present) {
       map['json'] = Variable<String>(json.value);
     }
-    if (updatedAt.present) {
-      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    if (fetchedAt.present) {
+      map['fetched_at'] = Variable<DateTime>(fetchedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
     }
     return map;
   }
 
   @override
   String toString() {
-    return (StringBuffer('CachedDashboardCompanion(')
-          ..write('id: $id, ')
+    return (StringBuffer('CachedSnapshotsCompanion(')
+          ..write('userId: $userId, ')
+          ..write('key: $key, ')
           ..write('json: $json, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('fetchedAt: $fetchedAt, ')
+          ..write('rowid: $rowid')
           ..write(')'))
         .toString();
   }
@@ -815,7 +874,7 @@ class OfflineTransactionsCompanion extends UpdateCompanion<OfflineTransaction> {
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
-  late final $CachedDashboardTable cachedDashboard = $CachedDashboardTable(
+  late final $CachedSnapshotsTable cachedSnapshots = $CachedSnapshotsTable(
     this,
   );
   late final $OfflineTransactionsTable offlineTransactions =
@@ -825,35 +884,44 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
-    cachedDashboard,
+    cachedSnapshots,
     offlineTransactions,
   ];
 }
 
-typedef $$CachedDashboardTableCreateCompanionBuilder =
-    CachedDashboardCompanion Function({
-      Value<int> id,
+typedef $$CachedSnapshotsTableCreateCompanionBuilder =
+    CachedSnapshotsCompanion Function({
+      required String userId,
+      required String key,
       required String json,
-      required DateTime updatedAt,
+      required DateTime fetchedAt,
+      Value<int> rowid,
     });
-typedef $$CachedDashboardTableUpdateCompanionBuilder =
-    CachedDashboardCompanion Function({
-      Value<int> id,
+typedef $$CachedSnapshotsTableUpdateCompanionBuilder =
+    CachedSnapshotsCompanion Function({
+      Value<String> userId,
+      Value<String> key,
       Value<String> json,
-      Value<DateTime> updatedAt,
+      Value<DateTime> fetchedAt,
+      Value<int> rowid,
     });
 
-class $$CachedDashboardTableFilterComposer
-    extends Composer<_$AppDatabase, $CachedDashboardTable> {
-  $$CachedDashboardTableFilterComposer({
+class $$CachedSnapshotsTableFilterComposer
+    extends Composer<_$AppDatabase, $CachedSnapshotsTable> {
+  $$CachedSnapshotsTableFilterComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnFilters<int> get id => $composableBuilder(
-    column: $table.id,
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get key => $composableBuilder(
+    column: $table.key,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -862,23 +930,28 @@ class $$CachedDashboardTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
-    column: $table.updatedAt,
+  ColumnFilters<DateTime> get fetchedAt => $composableBuilder(
+    column: $table.fetchedAt,
     builder: (column) => ColumnFilters(column),
   );
 }
 
-class $$CachedDashboardTableOrderingComposer
-    extends Composer<_$AppDatabase, $CachedDashboardTable> {
-  $$CachedDashboardTableOrderingComposer({
+class $$CachedSnapshotsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CachedSnapshotsTable> {
+  $$CachedSnapshotsTableOrderingComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnOrderings<int> get id => $composableBuilder(
-    column: $table.id,
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get key => $composableBuilder(
+    column: $table.key,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -887,85 +960,96 @@ class $$CachedDashboardTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
-    column: $table.updatedAt,
+  ColumnOrderings<DateTime> get fetchedAt => $composableBuilder(
+    column: $table.fetchedAt,
     builder: (column) => ColumnOrderings(column),
   );
 }
 
-class $$CachedDashboardTableAnnotationComposer
-    extends Composer<_$AppDatabase, $CachedDashboardTable> {
-  $$CachedDashboardTableAnnotationComposer({
+class $$CachedSnapshotsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CachedSnapshotsTable> {
+  $$CachedSnapshotsTableAnnotationComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  GeneratedColumn<int> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<String> get key =>
+      $composableBuilder(column: $table.key, builder: (column) => column);
 
   GeneratedColumn<String> get json =>
       $composableBuilder(column: $table.json, builder: (column) => column);
 
-  GeneratedColumn<DateTime> get updatedAt =>
-      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+  GeneratedColumn<DateTime> get fetchedAt =>
+      $composableBuilder(column: $table.fetchedAt, builder: (column) => column);
 }
 
-class $$CachedDashboardTableTableManager
+class $$CachedSnapshotsTableTableManager
     extends
         RootTableManager<
           _$AppDatabase,
-          $CachedDashboardTable,
-          CachedDashboardData,
-          $$CachedDashboardTableFilterComposer,
-          $$CachedDashboardTableOrderingComposer,
-          $$CachedDashboardTableAnnotationComposer,
-          $$CachedDashboardTableCreateCompanionBuilder,
-          $$CachedDashboardTableUpdateCompanionBuilder,
+          $CachedSnapshotsTable,
+          CachedSnapshot,
+          $$CachedSnapshotsTableFilterComposer,
+          $$CachedSnapshotsTableOrderingComposer,
+          $$CachedSnapshotsTableAnnotationComposer,
+          $$CachedSnapshotsTableCreateCompanionBuilder,
+          $$CachedSnapshotsTableUpdateCompanionBuilder,
           (
-            CachedDashboardData,
+            CachedSnapshot,
             BaseReferences<
               _$AppDatabase,
-              $CachedDashboardTable,
-              CachedDashboardData
+              $CachedSnapshotsTable,
+              CachedSnapshot
             >,
           ),
-          CachedDashboardData,
+          CachedSnapshot,
           PrefetchHooks Function()
         > {
-  $$CachedDashboardTableTableManager(
+  $$CachedSnapshotsTableTableManager(
     _$AppDatabase db,
-    $CachedDashboardTable table,
+    $CachedSnapshotsTable table,
   ) : super(
         TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
-              $$CachedDashboardTableFilterComposer($db: db, $table: table),
+              $$CachedSnapshotsTableFilterComposer($db: db, $table: table),
           createOrderingComposer: () =>
-              $$CachedDashboardTableOrderingComposer($db: db, $table: table),
+              $$CachedSnapshotsTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
-              $$CachedDashboardTableAnnotationComposer($db: db, $table: table),
+              $$CachedSnapshotsTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
-                Value<int> id = const Value.absent(),
+                Value<String> userId = const Value.absent(),
+                Value<String> key = const Value.absent(),
                 Value<String> json = const Value.absent(),
-                Value<DateTime> updatedAt = const Value.absent(),
-              }) => CachedDashboardCompanion(
-                id: id,
+                Value<DateTime> fetchedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CachedSnapshotsCompanion(
+                userId: userId,
+                key: key,
                 json: json,
-                updatedAt: updatedAt,
+                fetchedAt: fetchedAt,
+                rowid: rowid,
               ),
           createCompanionCallback:
               ({
-                Value<int> id = const Value.absent(),
+                required String userId,
+                required String key,
                 required String json,
-                required DateTime updatedAt,
-              }) => CachedDashboardCompanion.insert(
-                id: id,
+                required DateTime fetchedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => CachedSnapshotsCompanion.insert(
+                userId: userId,
+                key: key,
                 json: json,
-                updatedAt: updatedAt,
+                fetchedAt: fetchedAt,
+                rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -975,25 +1059,21 @@ class $$CachedDashboardTableTableManager
       );
 }
 
-typedef $$CachedDashboardTableProcessedTableManager =
+typedef $$CachedSnapshotsTableProcessedTableManager =
     ProcessedTableManager<
       _$AppDatabase,
-      $CachedDashboardTable,
-      CachedDashboardData,
-      $$CachedDashboardTableFilterComposer,
-      $$CachedDashboardTableOrderingComposer,
-      $$CachedDashboardTableAnnotationComposer,
-      $$CachedDashboardTableCreateCompanionBuilder,
-      $$CachedDashboardTableUpdateCompanionBuilder,
+      $CachedSnapshotsTable,
+      CachedSnapshot,
+      $$CachedSnapshotsTableFilterComposer,
+      $$CachedSnapshotsTableOrderingComposer,
+      $$CachedSnapshotsTableAnnotationComposer,
+      $$CachedSnapshotsTableCreateCompanionBuilder,
+      $$CachedSnapshotsTableUpdateCompanionBuilder,
       (
-        CachedDashboardData,
-        BaseReferences<
-          _$AppDatabase,
-          $CachedDashboardTable,
-          CachedDashboardData
-        >,
+        CachedSnapshot,
+        BaseReferences<_$AppDatabase, $CachedSnapshotsTable, CachedSnapshot>,
       ),
-      CachedDashboardData,
+      CachedSnapshot,
       PrefetchHooks Function()
     >;
 typedef $$OfflineTransactionsTableCreateCompanionBuilder =
@@ -1294,8 +1374,8 @@ typedef $$OfflineTransactionsTableProcessedTableManager =
 class $AppDatabaseManager {
   final _$AppDatabase _db;
   $AppDatabaseManager(this._db);
-  $$CachedDashboardTableTableManager get cachedDashboard =>
-      $$CachedDashboardTableTableManager(_db, _db.cachedDashboard);
+  $$CachedSnapshotsTableTableManager get cachedSnapshots =>
+      $$CachedSnapshotsTableTableManager(_db, _db.cachedSnapshots);
   $$OfflineTransactionsTableTableManager get offlineTransactions =>
       $$OfflineTransactionsTableTableManager(_db, _db.offlineTransactions);
 }

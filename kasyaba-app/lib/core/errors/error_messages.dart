@@ -13,6 +13,22 @@ String friendlyErrorMessage(
 
   final status = error.response?.statusCode;
   if (status != null) {
+    final data = error.response?.data;
+    if (data is Map && data['error'] is Map) {
+      final errorMap = data['error'] as Map;
+      final fields = errorMap['fields'];
+      if (fields is Map && fields.isNotEmpty) {
+        final firstFieldMessage = fields.values.first?.toString();
+        if (firstFieldMessage != null && firstFieldMessage.isNotEmpty) {
+          return firstFieldMessage;
+        }
+      }
+      final message = errorMap['message']?.toString();
+      if (message != null && message.isNotEmpty && status < 500) {
+        return message;
+      }
+    }
+
     switch (status) {
       case 401:
         return 'Your session has expired. Please sign in again.';
@@ -24,13 +40,6 @@ String friendlyErrorMessage(
         return 'Too many requests. Please wait a moment and try again.';
     }
 
-    final data = error.response?.data;
-    if (data is Map && data['error'] is Map) {
-      final message = data['error']['message']?.toString();
-      if (message != null && message.isNotEmpty && status < 500) {
-        return message;
-      }
-    }
     if (status >= 500) {
       return 'The server is temporarily unavailable. Please try again shortly.';
     }

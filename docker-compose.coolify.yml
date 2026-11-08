@@ -1,0 +1,85 @@
+# Coolify Docker Compose deployment for Kasyaba (Test / Production backend with Supabase)
+#
+# How Coolify handles this:
+#   1. Coolify has its own built-in reverse proxy (Traefik/Caddy) that automatically
+#      provisions SSL certificates and routes your custom domain to port 3000.
+#   2. You paste or point this file in your Coolify dashboard (Service or Docker Compose application).
+#   3. Enter your Supabase environment variables in Coolify's Environment Variables UI.
+
+services:
+  # ── 1. One-shot Migration Runner ──────────────────────────
+  migrate:
+    build:
+      context: ./kasyaba-backend
+      dockerfile: Dockerfile
+      target: migrate
+    image: kasyaba-backend-migrate:latest
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - DIRECT_URL=${DIRECT_URL}
+    restart: "no"
+
+  # ── 2. Express API Server ─────────────────────────────────
+  api:
+    build:
+      context: ./kasyaba-backend
+      dockerfile: Dockerfile
+    image: kasyaba-backend:latest
+    restart: unless-stopped
+    expose:
+      - "3000"
+    ports:
+      - "3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=${DATABASE_URL}
+      - DIRECT_URL=${DIRECT_URL}
+      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
+      - ACCESS_TOKEN_TTL_MINUTES=${ACCESS_TOKEN_TTL_MINUTES:-15}
+      - REFRESH_TOKEN_TTL_DAYS=${REFRESH_TOKEN_TTL_DAYS:-30}
+      - GOOGLE_WEB_CLIENT_ID=${GOOGLE_WEB_CLIENT_ID:-}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-https://kasyaba.addtokart.tech}
+      - TRUST_PROXY=1
+      - SUPPORT_EMAIL=${SUPPORT_EMAIL:-support@kasyaba.app}
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL:-Kasyaba <noreply@kasyaba.app>}
+      - APP_NAME=${APP_NAME:-Kasyaba}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/health/live',(r)=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # ── 3. Background Cron Worker ────────────────────────────
+  worker:
+    build:
+      context: ./kasyaba-backend
+      dockerfile: Dockerfile
+    image: kasyaba-backend:latest
+    restart: unless-stopped
+    command: ["node", "dist/worker.js"]
+    deploy:
+      replicas: 1
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - DIRECT_URL=${DIRECT_URL}
+      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - WORKER_TIMEZONE=${WORKER_TIMEZONE:-Asia/Manila}
+      - SNAPSHOT_CRON=${SNAPSHOT_CRON:-10 0 * * *}
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL:-Kasyaba <noreply@kasyaba.app>}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      disable: true
+

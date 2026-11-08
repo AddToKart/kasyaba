@@ -3,7 +3,12 @@ import { prisma } from '../../config/database';
 import { logger } from '../../lib/logger';
 import { toDecimalOrZero } from '../../lib/decimal';
 import { withUserResponseCache } from '../../lib/user-cache';
-import { endOfZonedMonth, formatZonedDate, startOfZonedMonth } from '../../lib/zoned-dates';
+import {
+  endOfZonedMonth,
+  formatZonedDate,
+  startOfZonedDay,
+  startOfZonedMonth,
+} from '../../lib/zoned-dates';
 import * as forecastingService from '../forecasting/service';
 
 export function getDashboard(userId: string, period = 'month') {
@@ -42,7 +47,9 @@ async function buildDashboard(userId: string, _period = 'month') {
       where: {
         userId,
         status: 'upcoming',
-        dueDate: { gte: now },
+        // Due dates are stored at UTC midnight: compare against the start of
+        // the user's local day so today's bills stay visible after 00:00 UTC.
+        dueDate: { gte: startOfZonedDay(now, timeZone) },
       },
       orderBy: { dueDate: 'asc' },
       take: 5,

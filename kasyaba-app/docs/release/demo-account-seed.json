@@ -1,0 +1,235 @@
+{
+  "exportedAt": "2026-11-06T00:00:00.000Z",
+  "user": {
+    "displayName": "Kasyaba Play Reviewer",
+    "timezone": "Asia/Manila",
+    "currencyCode": "PHP",
+    "minimumBalanceThreshold": 5000,
+    "salaryAmount": 45000,
+    "paydayFrequency": "semi-monthly",
+    "paydaySchedule": "15th & 30th",
+    "financialAccounts": [
+      {
+        "id": "22222222-2222-4222-8222-222222222201",
+        "name": "Payroll Bank Account",
+        "type": "bank",
+        "openingBalance": 25000,
+        "currencyCode": "PHP"
+      },
+      {
+        "id": "22222222-2222-4222-8222-222222222202",
+        "name": "Everyday Cash",
+        "type": "cash",
+        "openingBalance": 3000,
+        "currencyCode": "PHP"
+      },
+      {
+        "id": "22222222-2222-4222-8222-222222222203",
+        "name": "GCash E-Wallet",
+        "type": "ewallet",
+        "openingBalance": 5000,
+        "currencyCode": "PHP"
+      }
+    ],
+    "expenseCategories": [
+      {
+        "id": "11111111-1111-4111-8111-111111111101",
+        "name": "Dining Out",
+        "iconKey": "restaurant"
+      },
+      {
+        "id": "11111111-1111-4111-8111-111111111102",
+        "name": "Groceries",
+        "iconKey": "shopping_cart"
+      },
+      {
+        "id": "11111111-1111-4111-8111-111111111103",
+        "name": "Commute",
+        "iconKey": "directions_bus"
+      },
+      {
+        "id": "11111111-1111-4111-8111-111111111104",
+        "name": "Electricity & Water",
+        "iconKey": "bolt"
+      },
+      {
+        "id": "11111111-1111-4111-8111-111111111105",
+        "name": "Home Rent",
+        "iconKey": "home"
+      }
+    ],
+    "incomeEntries": [
+      {
+        "id": "33333333-3333-4333-8333-333333333301",
+        "accountId": "22222222-2222-4222-8222-222222222201",
+        "amount": 22500,
+        "source": "Salary — 1st cutoff",
+        "receivedAt": "2026-11-01T00:00:00.000Z",
+        "status": "posted",
+        "notes": "Demo seed"
+      },
+      {
+        "id": "33333333-3333-4333-8333-333333333302",
+        "accountId": "22222222-2222-4222-8222-222222222201",
+        "amount": 22500,
+        "source": "Salary — 2nd cutoff",
+        "receivedAt": "2026-10-16T00:00:00.000Z",
+        "status": "posted",
+        "notes": "Demo seed"
+      }
+    ],
+    "expenseEntries": [
+      {
+        "id": "44444444-4444-4444-8444-444444444401",
+        "accountId": "22222222-2222-4222-8222-222222222201",
+        "categoryId": "11111111-1111-4111-8111-111111111105",
+        "amount": 12000,
+        "description": "Monthly rent",
+        "spentAt": "2026-11-01T00:00:00.000Z",
+        "status": "posted",
+        "notes": "Demo seed"
+      },
+      {
+        "id": "44444444-4444-4444-8444-444444444402",
+        "accountId": "22222222-2222-4222-8222-222222222203",
+        "categoryId": "11111111-1111-4111-8111-111111111102",
+        "amount": 2450,
+        "description": "Weekly groceries",
+        "spentAt": "2026-11-03T00:00:00.000Z",
+        "status": "posted",
+        "notes": "Demo seed"
+      },
+      {
+        "id": "44444444-4444-4444-8444-444444444403",
+        "accountId": "22222222-2222-4222-8222-222222222203",
+        "categoryId": "11111111-1111-4111-8111-111111111101",
+        "amount": 850,
+        "description": "Dinner with family",
+        "spentAt": "2026-11-04T00:00:00.000Z",
+        "status": "posted",
+        "notes": "Demo seed"
+      },
+      {
+        "id": "44444444-4444-4444-8444-444444444404",
+        "accountId": "22222222-2222-4222-8222-222222222202",
+        "categoryId": "11111111-1111-4111-8111-111111111103",
+        "amount": 320,
+        "description": "Jeepney and train fare",
+        "spentAt": "2026-11-05T00:00:00.000Z",
+        "status": "posted",
+        "notes": "Demo seed"
+      },
+      {
+        "id": "44444444-4444-4444-8444-444444444405",
+        "accountId": "22222222-2222-4222-8222-222222222201",
+        "categoryId": "11111111-1111-4111-8111-111111111104",
+        "amount": 2100,
+        "description": "Electricity bill",
+        "spentAt": "2026-10-28T00:00:00.000Z",
+        "status": "posted",
+        "notes": "Demo seed"
+      },
+      {
+        "id": "44444444-4444-4444-8444-444444444406",
+        "accountId": "22222222-2222-4222-8222-222222222201",
+        "categoryId": "11111111-1111-4111-8111-111111111104",
+        "amount": 1699,
+        "description": "Home internet",
+        "spentAt": "2026-10-25T00:00:00.000Z",
+        "status": "posted",
+        "notes": "Demo seed"
+      }
+    ],
+    "transfers": [
+      {
+        "id": "55555555-5555-4555-8555-555555555501",
+        "fromAccountId": "22222222-2222-4222-8222-222222222201",
+        "toAccountId": "22222222-2222-4222-8222-222222222203",
+        "amount": 5000,
+        "transferredAt": "2026-11-02T00:00:00.000Z",
+        "status": "posted",
+        "notes": "Demo seed — wallet top-up"
+      }
+    ],
+    "savingsGoals": [
+      {
+        "id": "66666666-6666-4666-8666-666666666601",
+        "name": "Emergency Fund",
+        "targetAmount": 60000,
+        "targetDate": "2027-06-30T00:00:00.000Z",
+        "status": "active",
+        "contributions": [
+          {
+            "id": "77777777-7777-4777-8777-777777777701",
+            "goalId": "66666666-6666-4666-8666-666666666601",
+            "amount": 5000,
+            "contributedAt": "2026-10-15T00:00:00.000Z",
+            "notes": "Demo seed"
+          },
+          {
+            "id": "77777777-7777-4777-8777-777777777702",
+            "goalId": "66666666-6666-4666-8666-666666666601",
+            "amount": 5000,
+            "contributedAt": "2026-11-02T00:00:00.000Z",
+            "notes": "Demo seed"
+          }
+        ]
+      }
+    ],
+    "budgets": [
+      {
+        "id": "88888888-8888-4888-8888-888888888801",
+        "categoryId": "11111111-1111-4111-8111-111111111101",
+        "amount": 6000,
+        "startsOn": "2026-11-01T00:00:00.000Z"
+      },
+      {
+        "id": "88888888-8888-4888-8888-888888888802",
+        "categoryId": "11111111-1111-4111-8111-111111111103",
+        "amount": 2000,
+        "startsOn": "2026-11-01T00:00:00.000Z"
+      },
+      {
+        "id": "88888888-8888-4888-8888-888888888803",
+        "categoryId": "11111111-1111-4111-8111-111111111104",
+        "amount": 5000,
+        "startsOn": "2026-11-01T00:00:00.000Z"
+      }
+    ],
+    "billTemplates": [
+      {
+        "id": "99999999-9999-4999-8999-999999999901",
+        "name": "Home Rent",
+        "defaultAmount": 12000,
+        "categoryId": "11111111-1111-4111-8111-111111111105",
+        "recurrence": "monthly",
+        "dayOfMonth": 1,
+        "startsOn": "2026-09-01T00:00:00.000Z",
+        "reminderLeadDays": 3,
+        "isActive": true
+      },
+      {
+        "id": "99999999-9999-4999-8999-999999999902",
+        "name": "Meralco Electricity",
+        "defaultAmount": 2100,
+        "categoryId": "11111111-1111-4111-8111-111111111104",
+        "recurrence": "monthly",
+        "dayOfMonth": 15,
+        "startsOn": "2026-09-15T00:00:00.000Z",
+        "reminderLeadDays": 2,
+        "isActive": true
+      },
+      {
+        "id": "99999999-9999-4999-8999-999999999903",
+        "name": "Home Internet",
+        "defaultAmount": 1699,
+        "categoryId": "11111111-1111-4111-8111-111111111104",
+        "recurrence": "monthly",
+        "dayOfMonth": 28,
+        "startsOn": "2026-09-28T00:00:00.000Z",
+        "reminderLeadDays": 2,
+        "isActive": true
+      }
+    ]
+  }
+}

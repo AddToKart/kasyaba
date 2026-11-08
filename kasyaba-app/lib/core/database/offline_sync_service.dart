@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../api/api_client.dart';
 import '../auth/auth_provider.dart';
 import '../connectivity/connectivity_service.dart';
-import '../providers/api_providers.dart';
+import '../providers/session_refresh_provider.dart';
 import 'cache_service.dart';
 
 /// Keeps the small local mutation queue moving after connectivity returns.
@@ -25,10 +25,10 @@ final offlineSyncProvider = Provider<void>((ref) {
     try {
       final synced = await cache.syncPendingTransactions(dio, userId);
       if (synced > 0) {
-        ref.invalidate(dashboardProvider);
-        ref.invalidate(paginatedTransactionsProvider);
-        ref.invalidate(transactionsProvider);
-        ref.invalidate(accountsProvider);
+        // A replay can touch balances, planning, budgets, goals, bills and
+        // alerts, not just the transaction list. Reuse the session-wide
+        // finance invalidation so no derived surface stays stale.
+        invalidateFinanceData(ref);
       }
     } finally {
       syncing = false;

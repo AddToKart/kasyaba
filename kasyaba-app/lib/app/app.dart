@@ -1,24 +1,59 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'router/router.dart';
+import 'theme/kasyaba_color_scheme.dart';
+import 'theme/kasyaba_tokens.dart';
 import '../core/connectivity/connectivity_service.dart';
 import '../core/database/offline_sync_service.dart';
 import '../core/notifications/bill_reminder_sync.dart';
+import '../core/notifications/notification_sync.dart';
 import '../core/providers/api_providers.dart';
+import '../core/providers/session_refresh_provider.dart';
 import '../core/providers/theme_provider.dart';
 import 'theme/app_theme.dart';
 
-class KasyabaApp extends ConsumerWidget {
+class KasyabaApp extends ConsumerStatefulWidget {
   const KasyabaApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<KasyabaApp> createState() => _KasyabaAppState();
+}
+
+class _KasyabaAppState extends ConsumerState<KasyabaApp>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      invalidateOnResume(ref);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final router = ref.watch(routerProvider);
     final isOnline = ref.watch(isOnlineProvider);
     final themeMode = ref.watch(themeModeProvider);
     ref.watch(offlineSyncProvider);
     ref.watch(billReminderSyncProvider);
+    ref.watch(paydayReminderSyncProvider);
+    ref.watch(alertNotificationSyncProvider);
+    ref.watch(goalMilestoneSyncProvider);
+    ref.watch(weeklySummarySyncProvider);
     ref.watch(accountBootstrapProvider);
+    ref.watch(sessionDataResetProvider);
 
     return MaterialApp.router(
       title: 'Kasyaba',
@@ -28,6 +63,7 @@ class KasyabaApp extends ConsumerWidget {
       themeMode: themeMode,
       routerConfig: router,
       builder: (context, child) {
+        final colors = context.kColors;
         return Stack(
           children: [
             child ?? const SizedBox.shrink(),
@@ -46,26 +82,29 @@ class KasyabaApp extends ConsumerWidget {
                       left: 16,
                       right: 16,
                     ),
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Color(0xFFDC2626), Color(0xFFB91C1C)],
+                    decoration: BoxDecoration(
+                      color: colors.card,
+                      borderRadius: BorderRadius.circular(
+                        KasyabaTokens.radiusDialog,
                       ),
+                      border: Border.all(color: colors.danger),
                     ),
-                    child: const Row(
+                    child: Row(
                       children: [
                         Icon(
                           Icons.wifi_off_rounded,
-                          color: Colors.white,
+                          color: colors.danger,
                           size: 18,
                         ),
-                        SizedBox(width: 8),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'No internet connection',
-                            style: TextStyle(
-                              color: Colors.white,
+                            'Offline — showing saved data. Changes you record '
+                            'will sync when you reconnect.',
+                            style: GoogleFonts.dmSans(
+                              color: colors.textPrimary,
                               fontSize: 13,
-                              fontWeight: FontWeight.w500,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),

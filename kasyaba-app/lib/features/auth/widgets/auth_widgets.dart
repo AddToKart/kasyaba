@@ -1,302 +1,147 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:reactive_forms/reactive_forms.dart';
-import '../../../app/theme/app_theme.dart';
+import '../../../app/theme/app_motion.dart';
+import '../../../app/theme/kasyaba_color_scheme.dart';
+import '../../../app/theme/kasyaba_tokens.dart';
 
 /// ─────────────────────────────────────────────────────────────
-///  Auth Design System — Luxury Dark Fintech Auth Widgets
+///  Auth Design System — Figma gradient recipes (Node 11:779)
+///
+///  Solid fills now resolve from [KasyabaColorScheme] via `context.kColors`.
+///  Only the dark-mode radial washes stay literal because they have no
+///  semantic token equivalent; light mode uses a palette-derived wash.
 /// ─────────────────────────────────────────────────────────────
+class AuthFigmaTokens {
+  AuthFigmaTokens._();
 
-// ── Background with soft radial emerald glow and subtle grid ──
-class AuthBackground extends StatelessWidget {
-  final Animation<double> rotateAnimation;
-  final bool isDark;
-  final Size size;
+  static const RadialGradient glowTopRight = RadialGradient(
+    center: Alignment(0.70, -0.84),
+    radius: 0.70,
+    colors: [Color(0xCC4F7596), Color(0x004F7596)],
+    stops: [0.0, 1.0],
+  );
 
-  const AuthBackground({
-    super.key,
-    required this.rotateAnimation,
-    required this.isDark,
-    required this.size,
-  });
+  static const RadialGradient glowBottomLeft = RadialGradient(
+    center: Alignment(-1.0, 1.0),
+    radius: 0.70,
+    colors: [KasyabaTokens.cello, Color(0x001E3A56)],
+    stops: [0.0, 1.0],
+  );
 
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: rotateAnimation,
-      builder: (_, _) {
-        return Container(
-          width: size.width,
-          height: size.height,
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.obsidian : AppColors.lightScaffold,
-          ),
-          child: Stack(
-            children: [
-              // Subtle background grid
-              _GridOverlay(size: size),
+  static const RadialGradient glowRight = RadialGradient(
+    center: Alignment(1.0, 0.50),
+    radius: 0.70,
+    colors: [Color(0xAB1E3A56), Color(0x001E3A56)],
+    stops: [0.0, 1.0],
+  );
 
-              // Soft radial emerald glow positioned behind header
-              Positioned(
-                top: -40,
-                left: (size.width - 340) / 2,
-                child: Container(
-                  width: 340,
-                  height: 300,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        Color.fromRGBO(16, 185, 129, 0.14),
-                        Colors.transparent,
-                      ],
-                      radius: 0.8,
-                    ),
-                  ),
-                ),
-              ),
+  static const RadialGradient forgotGlow = RadialGradient(
+    center: Alignment(0.80, -1.0),
+    radius: 0.70,
+    colors: [Color(0xAB4F7596), Color(0x004F7596)],
+    stops: [0.0, 1.0],
+  );
 
-              // Subtle champagne gold orb lower-left
-              Positioned(
-                bottom: -size.height * 0.1,
-                left: -size.width * 0.2,
-                child: Container(
-                  width: size.width * 0.6,
-                  height: size.width * 0.6,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        AppColors.gold400.withValues(alpha: 0.06),
-                        Colors.transparent,
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _GridOverlay extends StatelessWidget {
-  final Size size;
-  const _GridOverlay({required this.size});
-
-  @override
-  Widget build(BuildContext context) =>
-      CustomPaint(size: size, painter: _GridPainter());
-}
-
-class _GridPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0x0FFFFFFF) // subtle grid line
-      ..strokeWidth = 0.5;
-    const step = 44.0;
-    for (double x = 0; x < size.width; x += step) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-    for (double y = 0; y < size.height; y += step) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_GridPainter old) => false;
-}
-
-// ── Cohesive Brand Lockup Header ──
-class AuthBrandHeader extends StatelessWidget {
-  const AuthBrandHeader({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Sleek differentiator pill badge above brand
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-          decoration: BoxDecoration(
-            color: const Color(0x330F172A),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: AppColors.emerald500.withValues(alpha: 0.28),
-              width: 1,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.emerald500.withValues(alpha: 0.08),
-                blurRadius: 10,
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 6,
-                height: 6,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.emerald400,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.emerald400.withValues(alpha: 0.6),
-                      blurRadius: 5,
-                      spreadRadius: 1,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 7),
-              const Text(
-                '100% Deterministic • Zero AI • Private',
-                style: TextStyle(
-                  color: AppColors.emerald400,
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.6,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        // Brand Lockup: Geometric Emblem + Bold Wordmark
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Custom Geometric Emblem
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(13),
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF18181B), Color(0xFF121215)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                border: Border.all(
-                  color: AppColors.emerald500.withValues(alpha: 0.45),
-                  width: 1.2,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.emerald500.withValues(alpha: 0.25),
-                    blurRadius: 16,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Transform.rotate(
-                    angle: 0.785398, // 45 degrees diamond
-                    child: Container(
-                      width: 18,
-                      height: 18,
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: const Color(0x66D4AF37), // hairline gold
-                          width: 1,
-                        ),
-                        borderRadius: BorderRadius.circular(3),
-                      ),
-                    ),
-                  ),
-                  const Icon(
-                    Icons.account_balance_wallet_rounded,
-                    color: AppColors.emerald400,
-                    size: 20,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-
-            // Bold KASYABA wordmark
-            Builder(
-              builder: (ctx) {
-                final isDark = Theme.of(ctx).brightness == Brightness.dark;
-                return Text(
-                  'KASYABA',
-                  style: TextStyle(
-                    color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 26,
-                    letterSpacing: 2.4,
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
+  /// Soft porcelain wash derived from the active palette.
+  static RadialGradient lightGlow(KasyabaColorScheme colors) {
+    return RadialGradient(
+      center: const Alignment(0.70, -0.84),
+      radius: 1.1,
+      colors: <Color>[
+        colors.icon.withValues(alpha: 0.12),
+        colors.icon.withValues(alpha: 0.0),
       ],
+      stops: const <double>[0.0, 0.7],
     );
   }
 }
 
-// ── Glassmorphic Form Card (rgba(15, 23, 42, 0.75) with blur: 12px) ──
-class AuthFormCard extends StatelessWidget {
-  final Widget child;
+// ── Squircle Back Button (Node 11:3033 & 11:743) ──
+class AuthBackButton extends StatelessWidget {
+  final VoidCallback onPressed;
+  final double size;
+  final double radius;
+  final Color? backgroundColor;
+  final Color? borderColor;
+  final bool hasBlur;
 
-  const AuthFormCard({
+  const AuthBackButton({
     super.key,
-    required this.child,
+    required this.onPressed,
+    this.size = 50,
+    this.radius = 24,
+    this.backgroundColor,
+    this.borderColor,
+    this.hasBlur = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.surface800 : AppColors.lightCardSurface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: AppColors.subtleBorderAdaptive(isDark),
-            width: 1,
-          ),
-          boxShadow: const [],
-        ),
-        child: child,
+    final colors = context.kColors;
+    final bg = backgroundColor ?? colors.card;
+    final border = borderColor ?? colors.cardBorder;
+
+    Widget chevron = SvgPicture.asset(
+      'assets/images/back_chevron.svg',
+      width: 22,
+      height: 22,
+    );
+    if (!isDark) {
+      chevron = ColorFiltered(
+        colorFilter: ColorFilter.mode(colors.textPrimary, BlendMode.srcIn),
+        child: chevron,
+      );
+    }
+
+    Widget content = Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(radius),
+        border: Border.all(color: border, width: 1.0),
       ),
+      child: chevron,
+    );
+
+    if (hasBlur) {
+      content = ClipRRect(
+        borderRadius: BorderRadius.circular(radius),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 7, sigmaY: 7),
+          child: content,
+        ),
+      );
+    }
+
+    return GestureDetector(
+      onTap: onPressed,
+      behavior: HitTestBehavior.opaque,
+      child: content,
     );
   }
 }
 
-// ── Explicit Label + Focus-Reactive Input Field ──
-class AuthReactiveField extends StatefulWidget {
+// ── Capsule Inline Field (Node 11:3041-3045, height: 56, r=28, fill: Big Stone #16293F) ──
+class AuthCapsuleInlineField extends StatefulWidget {
   final String formControlName;
   final String label;
   final String hintText;
-  final IconData prefixIcon;
-  final bool obscureText;
-  final Widget? suffixIcon;
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
   final Map<String, ValidationMessageFunction>? validationMessages;
   final VoidCallback? onSubmitted;
 
-  const AuthReactiveField({
+  const AuthCapsuleInlineField({
     super.key,
     required this.formControlName,
     required this.label,
     required this.hintText,
-    required this.prefixIcon,
-    this.obscureText = false,
-    this.suffixIcon,
     this.keyboardType,
     this.textInputAction,
     this.validationMessages,
@@ -304,10 +149,10 @@ class AuthReactiveField extends StatefulWidget {
   });
 
   @override
-  State<AuthReactiveField> createState() => _AuthReactiveFieldState();
+  State<AuthCapsuleInlineField> createState() => _AuthCapsuleInlineFieldState();
 }
 
-class _AuthReactiveFieldState extends State<AuthReactiveField> {
+class _AuthCapsuleInlineFieldState extends State<AuthCapsuleInlineField> {
   final FocusNode _focusNode = FocusNode();
   bool _isFocused = false;
 
@@ -332,89 +177,566 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    const unfocusedIconColor = Color(0xFF64748B); // Muted slate
-    const focusedIconColor = AppColors.emerald500; // #10B981
+    final colors = context.kColors;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      height: 56,
+      padding: const EdgeInsets.symmetric(horizontal: 21),
+      decoration: BoxDecoration(
+        color: colors.inputFill,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: _isFocused ? colors.icon : colors.inputBorder,
+          width: _isFocused ? 1.5 : 1.0,
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Fixed width prefix label (Node 11:3042, w: 72)
+          SizedBox(
+            width: 72,
+            child: Text(
+              widget.label,
+              style: GoogleFonts.dmSans(
+                color: colors.textSecondary,
+                fontSize: 14,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          ),
+          // Text Input Field without background discoloration (Node 11:3044-3045)
+          Expanded(
+            child: Theme(
+              data: Theme.of(context).copyWith(
+                inputDecorationTheme: const InputDecorationTheme(
+                  filled: false,
+                  fillColor: Colors.transparent,
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  errorBorder: InputBorder.none,
+                  focusedErrorBorder: InputBorder.none,
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+              child: ReactiveTextField<dynamic>(
+                formControlName: widget.formControlName,
+                focusNode: _focusNode,
+                keyboardType: widget.keyboardType,
+                textInputAction: widget.textInputAction,
+                onSubmitted: widget.onSubmitted != null
+                    ? (_) => widget.onSubmitted!()
+                    : null,
+                style: GoogleFonts.dmSans(
+                  color: colors.textPrimary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+                decoration: InputDecoration(
+                  isDense: true,
+                  filled: false,
+                  fillColor: Colors.transparent,
+                  hoverColor: Colors.transparent,
+                  hintText: widget.hintText,
+                  hintStyle: GoogleFonts.dmSans(
+                    color: isDark
+                        ? colors.textPrimary.withValues(alpha: 0.45)
+                        : colors.textMuted,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  contentPadding: EdgeInsets.zero,
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  errorBorder: InputBorder.none,
+                  focusedErrorBorder: InputBorder.none,
+                ),
+                validationMessages: widget.validationMessages,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Background with deep navy radial gradients and vector radar overlay ──
+class AuthBackground extends StatelessWidget {
+  final Animation<double>? rotateAnimation;
+  final bool isDark;
+  final Size size;
+
+  const AuthBackground({
+    super.key,
+    this.rotateAnimation,
+    required this.isDark,
+    required this.size,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.kColors;
+    final radar = SvgPicture.asset(
+      'assets/images/background_radar.svg',
+      fit: BoxFit.cover,
+      alignment: Alignment.center,
+    );
+
+    if (!isDark) {
+      return SizedBox(
+        width: size.width,
+        height: size.height,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            ColoredBox(color: colors.canvas),
+            DecoratedBox(
+              decoration: BoxDecoration(gradient: colors.backgroundGradient),
+            ),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: AuthFigmaTokens.lightGlow(colors),
+              ),
+            ),
+            ColorFiltered(
+              colorFilter: ColorFilter.mode(colors.icon, BlendMode.srcIn),
+              child: radar,
+            ),
+          ],
+        ),
+      );
+    }
+
+    return SizedBox(
+      width: size.width,
+      height: size.height,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          ColoredBox(color: colors.canvas),
+          // Radial Gradient 1: circle at 85% 8%, rgba(79, 117, 150, 0.8) 0% to rgba(79, 117, 150, 0) 70%
+          const DecoratedBox(
+            decoration: BoxDecoration(gradient: AuthFigmaTokens.glowTopRight),
+          ),
+          // Radial Gradient 2: circle at 0% 100%, rgba(30, 58, 86, 1) 0% to rgba(30, 58, 86, 0) 70%
+          const DecoratedBox(
+            decoration: BoxDecoration(gradient: AuthFigmaTokens.glowBottomLeft),
+          ),
+          // Radial Gradient 3: circle at 100% 75%, rgba(30, 58, 86, 0.67) 0% to rgba(30, 58, 86, 0) 70%
+          const DecoratedBox(
+            decoration: BoxDecoration(gradient: AuthFigmaTokens.glowRight),
+          ),
+          // Vector radar background rings (Node 11:784)
+          radar,
+        ],
+      ),
+    );
+  }
+}
+
+// ── Background for Forgot Password Screen (Node 11:3031) ──
+class AuthForgotPassBackground extends StatelessWidget {
+  final Size size;
+  final bool isDark;
+
+  const AuthForgotPassBackground({
+    super.key,
+    required this.size,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.kColors;
+    final radar = SvgPicture.asset(
+      'assets/images/background_radar.svg',
+      fit: BoxFit.cover,
+      alignment: Alignment.center,
+    );
+
+    if (!isDark) {
+      return SizedBox(
+        width: size.width,
+        height: size.height,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            ColoredBox(color: colors.canvas),
+            DecoratedBox(
+              decoration: BoxDecoration(gradient: colors.backgroundGradient),
+            ),
+            ColorFiltered(
+              colorFilter: ColorFilter.mode(colors.icon, BlendMode.srcIn),
+              child: radar,
+            ),
+          ],
+        ),
+      );
+    }
+
+    return SizedBox(
+      width: size.width,
+      height: size.height,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          ColoredBox(color: colors.canvas),
+          // Radial Gradient: circle at 90% 0%, rgba(79, 117, 150, 0.67) 0% to 0% at 70%
+          const DecoratedBox(
+            decoration: BoxDecoration(gradient: AuthFigmaTokens.forgotGlow),
+          ),
+          // Subtle radar background rings (Node 11:784)
+          radar,
+        ],
+      ),
+    );
+  }
+}
+
+// ── Kasyaba 3-Pill Logo Mark (Node 11:793-11:796) ──
+// Legacy placeholder kept abstract no longer: renders the real brand mark.
+class KasyabaLogoMark extends StatelessWidget {
+  final double scale;
+  const KasyabaLogoMark({super.key, this.scale = 1.0});
+
+  @override
+  Widget build(BuildContext context) {
+    return Image.asset(
+      'assets/images/brand/kasyaba_mark.png',
+      width: 46 * scale,
+      height: 46 * scale,
+      fit: BoxFit.contain,
+    );
+  }
+}
+
+// ── Cohesive Brand Lockup Header (Node 11:791-11:798) ──
+class AuthBrandHeader extends StatelessWidget {
+  const AuthBrandHeader({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.kColors;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        const KasyabaLogoMark(),
+        const SizedBox(width: 12),
+        Text(
+          'Kasyaba',
+          style: GoogleFonts.bricolageGrotesque(
+            color: colors.textPrimary,
+            fontSize: 26,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Runway Hero Spline (Node 11:785-11:790) ──
+class RunwaySplineHero extends StatelessWidget {
+  final String tooltipText;
+  const RunwaySplineHero({super.key, this.tooltipText = 'Can I afford it?'});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = context.kColors;
+
+    Widget chart = SvgPicture.asset(
+      'assets/images/chart_vector.svg',
+      width: 342,
+      height: 150,
+      fit: BoxFit.fill,
+    );
+    if (!isDark) {
+      chart = ColorFiltered(
+        colorFilter: ColorFilter.mode(colors.icon, BlendMode.srcIn),
+        child: chart,
+      );
+    }
+
+    return Center(
+      child: SizedBox(
+        width: 342,
+        height: 150,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            // Exact vector chart path + gradient + node + dashed drop line
+            chart,
+            // Floating "Can I afford it?" tooltip pill at exact Figma position (x: 112, y: 0)
+            Positioned(
+              left: 112,
+              top: 0,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 7, sigmaY: 7),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 17,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? colors.cardHero.withValues(alpha: 0.55)
+                          : colors.card,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: isDark
+                            ? colors.icon.withValues(alpha: 0.28)
+                            : colors.cardBorder,
+                        width: 1.0,
+                      ),
+                    ),
+                    child: Text(
+                      tooltipText,
+                      style: GoogleFonts.dmSans(
+                        color: colors.textPrimary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Form Card (Node 11:807, 342px, r=32, p=23,19,21) ──
+class AuthFormCard extends StatelessWidget {
+  final Widget child;
+
+  const AuthFormCard({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = context.kColors;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(32),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 7, sigmaY: 7),
+        child: Container(
+          width: 342,
+          padding: const EdgeInsets.only(
+            top: 23,
+            left: 19,
+            right: 19,
+            bottom: 21,
+          ),
+          decoration: BoxDecoration(
+            color: isDark
+                ? colors.cardHero.withValues(alpha: 0.55)
+                : colors.card,
+            borderRadius: BorderRadius.circular(32),
+            border: Border.all(
+              color: isDark
+                  ? colors.icon.withValues(alpha: 0.28)
+                  : colors.cardBorder,
+              width: 1.0,
+            ),
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
+// ── Explicit Label + Focus-Reactive Input Field (Node 11:808-813 & 11:814-819) ──
+class AuthReactiveField extends StatefulWidget {
+  final String formControlName;
+  final String label;
+  final String hintText;
+  final IconData? prefixIcon;
+  final bool obscureText;
+  final bool isPasswordField;
+  final Widget? suffixIcon;
+  final TextInputType? keyboardType;
+  final TextInputAction? textInputAction;
+  final Map<String, ValidationMessageFunction>? validationMessages;
+  final VoidCallback? onSubmitted;
+
+  const AuthReactiveField({
+    super.key,
+    required this.formControlName,
+    required this.label,
+    required this.hintText,
+    this.prefixIcon,
+    this.obscureText = false,
+    this.isPasswordField = false,
+    this.suffixIcon,
+    this.keyboardType,
+    this.textInputAction,
+    this.validationMessages,
+    this.onSubmitted,
+  });
+
+  @override
+  State<AuthReactiveField> createState() => _AuthReactiveFieldState();
+}
+
+class _AuthReactiveFieldState extends State<AuthReactiveField> {
+  final FocusNode _focusNode = FocusNode();
+  bool _isFocused = false;
+  bool? _isObscured;
+
+  bool get _obscured =>
+      _isObscured ?? (widget.isPasswordField || widget.obscureText);
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode.addListener(() {
+      if (mounted) {
+        setState(() {
+          _isFocused = _focusNode.hasFocus;
+        });
+      }
+    });
+  }
+
+  @override
+  void didUpdateWidget(AuthReactiveField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.obscureText != oldWidget.obscureText &&
+        !widget.isPasswordField) {
+      _isObscured = widget.obscureText;
+    }
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = context.kColors;
+    final unfocusedIconColor = isDark ? colors.icon : colors.textSecondary;
+    final focusedIconColor = colors.textPrimary;
+
+    Widget? suffix = widget.suffixIcon;
+    if (widget.isPasswordField && suffix == null) {
+      suffix = GestureDetector(
+        onTap: () => setState(() => _isObscured = !_obscured),
+        behavior: HitTestBehavior.opaque,
+        child: Padding(
+          padding: const EdgeInsets.only(right: 18, left: 10),
+          child: Icon(
+            _obscured
+                ? Icons.visibility_off_outlined
+                : Icons.visibility_outlined,
+            color: _isFocused ? focusedIconColor : unfocusedIconColor,
+            size: 20,
+          ),
+        ),
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Explicit, crisp typography label
+        // Label in UPPERCASE (Node 11:810, 11:816)
         Text(
           widget.label.toUpperCase(),
-          style: const TextStyle(
-            color: Color(0xFF94A3B8),
+          style: GoogleFonts.dmSans(
+            color: isDark ? colors.icon : colors.textSecondary,
             fontSize: 11,
             fontWeight: FontWeight.w700,
-            letterSpacing: 0.8,
+            letterSpacing: 1.0,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 7),
 
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
-            boxShadow: const [],
-          ),
+        // Input container (height: 56, r: 28 capsule)
+        ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 56),
           child: ReactiveTextField<dynamic>(
             formControlName: widget.formControlName,
             focusNode: _focusNode,
-            obscureText: widget.obscureText,
+            obscureText: widget.isPasswordField
+                ? _obscured
+                : widget.obscureText,
             keyboardType: widget.keyboardType,
             textInputAction: widget.textInputAction,
             onSubmitted: widget.onSubmitted != null
                 ? (_) => widget.onSubmitted!()
                 : null,
-            style: TextStyle(
-              color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
-              fontSize: 14,
+            style: GoogleFonts.dmSans(
+              color: colors.textPrimary,
+              fontSize: 16,
               fontWeight: FontWeight.w500,
             ),
             decoration: InputDecoration(
+              isDense: true,
               hintText: widget.hintText,
-              hintStyle: const TextStyle(
-                color: Color(0xFF475569),
-                fontSize: 14,
+              hintStyle: GoogleFonts.dmSans(
+                color: isDark ? Colors.grey.shade600 : colors.textMuted,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
               ),
               filled: true,
-              fillColor: isDark ? AppColors.surface700 : AppColors.lightInputFill,
+              fillColor: isDark
+                  ? colors.canvas.withValues(alpha: 0.55)
+                  : colors.inputFill,
               contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 14,
+                horizontal: 22,
+                vertical: 17,
               ),
-              prefixIcon: Icon(
-                widget.prefixIcon,
-                color: _isFocused ? focusedIconColor : unfocusedIconColor,
-                size: 20,
+              prefixIcon: widget.prefixIcon != null
+                  ? Icon(
+                      widget.prefixIcon,
+                      color: _isFocused ? focusedIconColor : unfocusedIconColor,
+                      size: 20,
+                    )
+                  : null,
+              suffixIcon: suffix,
+              suffixIconConstraints: const BoxConstraints(
+                minWidth: 44,
+                minHeight: 44,
               ),
-              suffixIcon: widget.suffixIcon,
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(28),
                 borderSide: BorderSide(
-                  color: isDark ? const Color(0x14FFFFFF) : AppColors.lightBorderHairline,
-                  width: 1,
+                  color: isDark
+                      ? colors.icon.withValues(alpha: 0.35)
+                      : colors.inputBorder,
+                  width: 1.0,
                 ),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(
-                  color: focusedIconColor, // #10B981
-                  width: 1.2,
-                ),
+                borderRadius: BorderRadius.circular(28),
+                borderSide: BorderSide(color: colors.icon, width: 1.5),
               ),
               errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(
-                  color: AppColors.expense,
-                  width: 1,
-                ),
+                borderRadius: BorderRadius.circular(28),
+                borderSide: BorderSide(color: colors.danger, width: 1.0),
               ),
               focusedErrorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(
-                  color: AppColors.expense,
-                  width: 1.2,
-                ),
+                borderRadius: BorderRadius.circular(28),
+                borderSide: BorderSide(color: colors.danger, width: 1.5),
+              ),
+              errorStyle: GoogleFonts.dmSans(
+                color: colors.danger,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
               ),
             ),
             validationMessages: widget.validationMessages,
@@ -425,70 +747,53 @@ class _AuthReactiveFieldState extends State<AuthReactiveField> {
   }
 }
 
-// ── Primary Luxury Gradient Button (12px Radius) ──
-class AuthGradientButton extends StatelessWidget {
+// ── Primary Pill Button (Node 11:822-823, height: 60/56, r: 28, Periwinkle Gray) ──
+class AuthPrimaryPillButton extends StatelessWidget {
   final bool isLoading;
   final VoidCallback onPressed;
   final String label;
+  final double height;
 
-  const AuthGradientButton({
+  const AuthPrimaryPillButton({
     super.key,
     required this.isLoading,
     required this.onPressed,
     required this.label,
+    this.height = 60,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
-        gradient: isLoading
-            ? null
-            : const LinearGradient(
-                colors: [Color(0xFF059669), Color(0xFF10B981)],
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-              ),
-        boxShadow: isLoading
-            ? []
-            : [
-                BoxShadow(
-                  color: AppColors.emerald500.withValues(alpha: 0.35),
-                  blurRadius: 18,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-      ),
+    final colors = context.kColors;
+    return SizedBox(
+      height: height,
+      width: double.infinity,
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: isLoading
-              ? AppColors.surface600
-              : Colors.transparent,
-          foregroundColor: Colors.white,
-          shadowColor: Colors.transparent,
-          minimumSize: const Size.fromHeight(50),
+          backgroundColor: colors.primaryButton,
+          foregroundColor: colors.onPrimaryButton,
+          disabledBackgroundColor: colors.icon.withValues(alpha: 0.5),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(28),
           ),
           elevation: 0,
         ),
         child: isLoading
-            ? const SizedBox(
-                height: 20,
-                width: 20,
+            ? SizedBox(
+                height: 22,
+                width: 22,
                 child: CircularProgressIndicator(
-                  strokeWidth: 2.2,
-                  color: Colors.white,
+                  strokeWidth: 2.4,
+                  color: colors.onPrimaryButton,
                 ),
               )
             : Text(
                 label,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.3,
+                style: GoogleFonts.dmSans(
+                  color: colors.onPrimaryButton,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
       ),
@@ -496,39 +801,21 @@ class AuthGradientButton extends StatelessWidget {
   }
 }
 
-// ── Bottom Trust Footer ──
+// ── Bottom Reassurance Footnote (Node 11:828-830) ──
 class AuthTrustFooter extends StatelessWidget {
   const AuthTrustFooter({super.key});
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.surface800 : AppColors.lightCardSurface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.subtleBorderAdaptive(isDark)),
-      ),
-      child: const Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.shield_outlined,
-            size: 13,
-            color: AppColors.emerald500,
-          ),
-          SizedBox(width: 6),
-          Text(
-            '100% Deterministic • Zero AI',
-            style: TextStyle(
-              color: AppColors.textMuted,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.3,
-            ),
-          ),
-        ],
+    final colors = context.kColors;
+    return Text(
+      'Server-backed security. Instant on-device math.',
+      textAlign: TextAlign.center,
+      style: GoogleFonts.dmSans(
+        color: isDark ? colors.icon : colors.textSecondary,
+        fontSize: 12,
+        fontWeight: FontWeight.w400,
       ),
     );
   }
@@ -536,20 +823,24 @@ class AuthTrustFooter extends StatelessWidget {
 
 // ── Live 4-Segment Password Strength Indicator ──
 class PasswordStrengthBar extends StatelessWidget {
-  final int strength; // 0 to 4
+  final double strength; // 0 to 1
 
   const PasswordStrengthBar({super.key, required this.strength});
 
   @override
   Widget build(BuildContext context) {
-    if (strength <= 0) return const SizedBox.shrink();
+    final normalized = strength.clamp(0.0, 1.0);
+    if (normalized <= 0) return const SizedBox.shrink();
 
-    final (color, label) = switch (strength) {
-      1 => (AppColors.expense, 'Weak'),
-      2 => (AppColors.warning, 'Fair'),
-      3 => (AppColors.info, 'Good'),
-      _ => (AppColors.emerald400, 'Strong'),
+    final colors = context.kColors;
+    final filled = (normalized * 4).ceil().clamp(1, 4).toInt();
+    final (color, label) = switch (filled) {
+      1 => (colors.danger, 'Weak'),
+      2 => (colors.warning, 'Fair'),
+      3 => (colors.icon, 'Good'),
+      _ => (colors.success, 'Strong'),
     };
+    final trackColor = colors.cardBorder;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -557,14 +848,14 @@ class PasswordStrengthBar extends StatelessWidget {
         const SizedBox(height: 8),
         Row(
           children: List.generate(4, (index) {
-            final isFilled = index < strength;
+            final isFilled = index < filled;
             return Expanded(
               child: Container(
                 height: 4,
                 margin: EdgeInsets.only(right: index < 3 ? 6 : 0),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(2),
-                  color: isFilled ? color : const Color(0x22FFFFFF),
+                  color: isFilled ? color : trackColor,
                 ),
               ),
             );
@@ -574,20 +865,23 @@ class PasswordStrengthBar extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              '$label password',
-              style: TextStyle(
-                color: color,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
+            Expanded(
+              child: Text(
+                '$label password',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
-            const Text(
+            const SizedBox(width: 8),
+            Text(
               'Min. 8 characters',
-              style: TextStyle(
-                color: Color(0xFF64748B),
-                fontSize: 10,
-              ),
+              maxLines: 1,
+              style: TextStyle(color: colors.textMuted, fontSize: 10),
             ),
           ],
         ),
@@ -611,22 +905,23 @@ class PasswordMatchIndicator extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!hasConfirmText) return const SizedBox.shrink();
 
+    final colors = context.kColors;
+    final color = isMatching ? colors.success : colors.danger;
+
     return Padding(
       padding: const EdgeInsets.only(top: 8),
       child: Row(
         children: [
           Icon(
-            isMatching
-                ? Icons.check_circle_rounded
-                : Icons.cancel_outlined,
+            isMatching ? Icons.check_circle_rounded : Icons.cancel_outlined,
             size: 14,
-            color: isMatching ? AppColors.emerald400 : AppColors.expense,
+            color: color,
           ),
           const SizedBox(width: 6),
           Text(
             isMatching ? 'Passwords match' : 'Passwords do not match yet',
             style: TextStyle(
-              color: isMatching ? AppColors.emerald400 : AppColors.expense,
+              color: color,
               fontSize: 11,
               fontWeight: FontWeight.w600,
             ),
@@ -641,36 +936,30 @@ class PasswordMatchIndicator extends StatelessWidget {
 class AuthErrorBanner extends StatelessWidget {
   final String message;
 
-  const AuthErrorBanner({
-    super.key,
-    required this.message,
-  });
+  const AuthErrorBanner({super.key, required this.message});
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.kColors;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(10),
-        color: AppColors.expense.withValues(alpha: 0.12),
+        color: colors.dangerTint,
         border: Border.all(
-          color: AppColors.expense.withValues(alpha: 0.3),
+          color: colors.danger.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
       child: Row(
         children: [
-          const Icon(
-            Icons.error_outline_rounded,
-            color: AppColors.expense,
-            size: 18,
-          ),
+          Icon(Icons.error_outline_rounded, color: colors.danger, size: 18),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(
-                color: AppColors.expense,
+              style: TextStyle(
+                color: colors.danger,
                 fontWeight: FontWeight.w600,
                 fontSize: 12,
               ),
@@ -678,6 +967,189 @@ class AuthErrorBanner extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ── Terms of Service & Privacy Policy Checkbox (Figma Luxury Squircle) ──
+class AuthTermsCheckbox extends StatelessWidget {
+  final String formControlName;
+  final VoidCallback onTapTerms;
+  final VoidCallback onTapPrivacy;
+
+  const AuthTermsCheckbox({
+    super.key,
+    required this.formControlName,
+    required this.onTapTerms,
+    required this.onTapPrivacy,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = context.kColors;
+
+    return ReactiveFormField<bool, bool>(
+      formControlName: formControlName,
+      builder: (field) {
+        final isChecked = field.value ?? false;
+        final hasError = field.control.touched && field.control.hasErrors;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            InkWell(
+              onTap: () {
+                AppHaptics.selectionClick();
+                field.control.value = !isChecked;
+                field.control.markAsTouched();
+              },
+              borderRadius: BorderRadius.circular(8),
+              splashColor: Colors.transparent,
+              highlightColor: Colors.transparent,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Squircle Checkbox
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeOutCubic,
+                      width: 22,
+                      height: 22,
+                      margin: const EdgeInsets.only(top: 1, right: 12),
+                      decoration: BoxDecoration(
+                        color: isChecked ? colors.success : colors.card,
+                        borderRadius: BorderRadius.circular(7),
+                        border: Border.all(
+                          color: hasError
+                              ? colors.danger
+                              : (isChecked
+                                    ? colors.success
+                                    : colors.cardBorder),
+                          width: 1.5,
+                        ),
+                        boxShadow: isChecked
+                            ? [
+                                BoxShadow(
+                                  color: colors.success.withValues(alpha: 0.35),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ]
+                            : null,
+                      ),
+                      child: isChecked
+                          ? Center(
+                              child: Icon(
+                                Icons.check_rounded,
+                                size: 16,
+                                color: isDark
+                                    ? colors.canvas
+                                    : colors.onPrimaryButton,
+                              ),
+                            )
+                          : null,
+                    ),
+
+                    // Label with interactive links
+                    Expanded(
+                      child: Text.rich(
+                        TextSpan(
+                          text: 'I agree to the ',
+                          style: GoogleFonts.dmSans(
+                            fontSize: 13,
+                            color: isDark ? colors.icon : colors.textSecondary,
+                            height: 1.4,
+                          ),
+                          children: [
+                            WidgetSpan(
+                              alignment: PlaceholderAlignment.baseline,
+                              baseline: TextBaseline.alphabetic,
+                              child: GestureDetector(
+                                onTap: onTapTerms,
+                                child: Text(
+                                  'Terms & Conditions',
+                                  style: GoogleFonts.dmSans(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: colors.textPrimary,
+                                    decoration: TextDecoration.underline,
+                                    decorationColor: isDark
+                                        ? colors.icon
+                                        : colors.textSecondary,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const TextSpan(text: ' and '),
+                            WidgetSpan(
+                              alignment: PlaceholderAlignment.baseline,
+                              baseline: TextBaseline.alphabetic,
+                              child: GestureDetector(
+                                onTap: onTapPrivacy,
+                                child: Text(
+                                  'Privacy Policy',
+                                  style: GoogleFonts.dmSans(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: colors.textPrimary,
+                                    decoration: TextDecoration.underline,
+                                    decorationColor: isDark
+                                        ? colors.icon
+                                        : colors.textSecondary,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Inline validation error matching user reference image
+            AnimatedSize(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOutCubic,
+              child: hasError
+                  ? Padding(
+                      padding: const EdgeInsets.only(left: 34, top: 4),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(top: 1),
+                            child: Icon(
+                              Icons.error_outline_rounded,
+                              size: 13,
+                              color: colors.danger,
+                            ),
+                          ),
+                          const SizedBox(width: 5),
+                          Expanded(
+                            child: Text(
+                              'You must accept the Terms & Conditions to proceed',
+                              style: GoogleFonts.dmSans(
+                                color: colors.danger,
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w600,
+                                height: 1.3,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          ],
+        );
+      },
     );
   }
 }

@@ -48,11 +48,3 @@ final isOnlineProvider = Provider<bool>((ref) {
     error: (_, _) => true,
   );
 });
-
-/// Performs a one-shot connectivity check.
-///
-/// Useful for places that need a single snapshot rather than a stream.
-Future<bool> checkConnectivityOnce() async {
-  final results = await Connectivity().checkConnectivity();
-  return _resolveConnectivity(results) != null;
-}

@@ -16,12 +16,14 @@ export async function listAlerts(userId: string, query: Record<string, any>) {
     logger.error({ err, userId }, 'Alert evaluation failed');
   });
 
-  const where: any = { userId };
+  const where: any = {
+    userId,
+    dismissedAt: null,
+    resolvedAt: null,
+  };
 
   if (query.status === 'unread') {
     where.readAt = null;
-    where.dismissedAt = null;
-    where.resolvedAt = null;
   }
   if (query.type) where.type = query.type;
   if (query.severity) where.severity = query.severity;

@@ -1,16 +1,29 @@
+import 'dart:math' as math;
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
-import '../../../app/theme/app_theme.dart';
 import '../../../app/theme/app_motion.dart';
-import '../../../shared/widgets/pressable_scale.dart';
+import '../../../app/theme/kasyaba_color_scheme.dart';
+import '../../../shared/widgets/motion_components.dart';
+import '../../../core/connectivity/connectivity_service.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/providers/api_providers.dart';
+import '../../../core/providers/preference_providers.dart';
 import '../../../core/utils/currency_formatter.dart';
-import '../../../shared/widgets/modern_bottom_sheet.dart';
-import '../../../shared/widgets/modern_card.dart';
+import '../../../core/utils/deterministic_math.dart';
+import '../../../shared/widgets/app_state_widgets.dart';
+import '../../../shared/widgets/offline_status.dart';
+import '../../dashboard/widgets/dashboard_tokens.dart';
+import '../../dashboard/widgets/kasyaba_affordability_sheet.dart';
+import '../../dashboard/widgets/kasyaba_safe_spend_breakdown_sheet.dart';
 
+/// ─────────────────────────────────────────────────────────────
+///  Affordability Forecasting Screen — 1:1 Pixel-Perfect Figma (Node 85:110)
+/// ─────────────────────────────────────────────────────────────
 class PlanningScreen extends ConsumerStatefulWidget {
   const PlanningScreen({super.key});
 
@@ -19,786 +32,723 @@ class PlanningScreen extends ConsumerStatefulWidget {
 }
 
 class _PlanningScreenState extends ConsumerState<PlanningScreen> {
-  bool _showAllDays = false;
-
-  void _showScenarioLab(BuildContext context, PlanningOverview overview) {
-    ModernBottomSheet.show(
-      context: context,
-      title: 'What-If Simulator',
-      subtitle: 'Test a purchase or windfall without saving any changes.',
-      child: _WhatIfSimulatorSheet(overview: overview),
-    );
-  }
+  bool _isAssumptionsExpanded = false;
 
   @override
   Widget build(BuildContext context) {
     final planningAsync = ref.watch(planningProvider);
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final dashboardAsync = ref.watch(dashboardProvider);
+    final userProfileAsync = ref.watch(userProfileProvider);
+    final billsAsync = ref.watch(billsProvider);
+    final goalsAsync = ref.watch(goalsProvider);
+    final accountBalancesAsync = ref.watch(accountBalancesProvider);
+    final excludedAccountIds = ref.watch(excludedAccountsProvider);
+    final isOnline = ref.watch(isOnlineProvider);
+
+    final userProfile = userProfileAsync.valueOrNull;
+    final bills = billsAsync.valueOrNull ?? [];
+    final goals = goalsAsync.valueOrNull ?? [];
+    final hasInputError =
+        billsAsync.hasError || goalsAsync.hasError || userProfileAsync.hasError;
+
+    final topPadding = math.max(56.0, MediaQuery.paddingOf(context).top + 16.0);
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.obsidian : AppColors.lightScaffold,
-      appBar: AppBar(
-        title: Text(
-          'Daily Allowance & Runway',
-          style: TextStyle(
-            color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
-            fontWeight: FontWeight.w700,
+      backgroundColor: context.kColors.canvas,
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: BoxDecoration(
+          color: context.kColors.canvas,
+          gradient: context.kColors.backgroundGradient,
+        ),
+        child: RefreshIndicator(
+          color: context.kColors.textPrimary,
+          backgroundColor: context.kColors.card,
+          onRefresh: () async {
+            ref.invalidate(planningProvider);
+            ref.invalidate(dashboardProvider);
+          },
+          child: ListView(
+            padding: EdgeInsets.fromLTRB(
+              20,
+              topPadding,
+              20,
+              DashboardTokens.dockClearance,
+            ),
+            children: [
+              // ── 1. Page Header (Node 92:38) ────────────────────────
+              _ForecastingHeader(
+                onForecastIconTap: () {
+                  AppHaptics.selectionClick();
+                  final totalBalance =
+                      dashboardAsync.valueOrNull?.totalBalance ?? 0.0;
+                  final calc = calculateDailySafeSpend(
+                    totalLiquidBalance: adjustedLiquidBalance(
+                      dashboardTotalBalance: totalBalance,
+                      accountBalances: accountBalancesAsync.valueOrNull,
+                      excludedAccountIds: excludedAccountIds,
+                    ),
+                    bills: bills,
+                    goals: goals,
+                    profile: userProfile,
+                  );
+                  showSafeSpendBreakdownSheet(context, calc);
+                },
+              ),
+              const SizedBox(height: 24),
+
+              if (!isOnline) ...[
+                const NeedsInternetNotice(
+                  message:
+                      'Planning, health score, and forecasts need a connection.',
+                ),
+                const SizedBox(height: 16),
+              ],
+
+              // ── 2. Safe to Spend Today Hero Card (Node 85:1085) ────
+              dashboardAsync.when(
+                loading: () => const _HeroLoadingState(),
+                error: (err, _) => isOnline
+                    ? _ErrorCard(
+                        message: friendlyErrorMessage(err),
+                        onRetry: () => ref.invalidate(dashboardProvider),
+                      )
+                    : const SizedBox.shrink(),
+                data: (dashboard) {
+                  final adjustedBalance = adjustedLiquidBalance(
+                    dashboardTotalBalance: dashboard.totalBalance,
+                    accountBalances: accountBalancesAsync.valueOrNull,
+                    excludedAccountIds: excludedAccountIds,
+                  );
+                  final safeSpendCalc = calculateDailySafeSpend(
+                    totalLiquidBalance: adjustedBalance,
+                    bills: bills,
+                    goals: goals,
+                    profile: userProfile,
+                  );
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (hasInputError) ...[
+                        if (isOnline)
+                          KasyabaErrorCard(
+                            message:
+                                'Could not load your bills, goals, or profile. Safe-to-spend and allocation are hidden until all inputs load.',
+                            onRetry: () {
+                              ref.invalidate(billsProvider);
+                              ref.invalidate(goalsProvider);
+                              ref.invalidate(userProfileProvider);
+                            },
+                          ),
+                        const SizedBox(height: 16),
+                      ] else ...[
+                        FadeSlideEntrance.staggered(
+                          index: 0,
+                          child: _SafeSpendHeroCard(
+                            safeSpendCalc: safeSpendCalc,
+                            totalBalance: adjustedBalance,
+                            onTestPurchaseTap: () {
+                              AppHaptics.selectionClick();
+                              showKasyaBaAffordabilitySheet(context);
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+
+                        // ── 3. Allocation Card (Node 92:57) ──────────────
+                        FadeSlideEntrance.staggered(
+                          index: 1,
+                          child: _AllocationCard(safeSpendCalc: safeSpendCalc),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+
+                      // ── 4. Assumptions Card (Node 92:106) ────────────
+                      planningAsync.when(
+                        loading: () => const KasyabaLoadingSkeleton(lines: 3),
+                        error: (err, _) => isOnline
+                            ? KasyabaErrorCard(
+                                message: friendlyErrorMessage(err),
+                                onRetry: () => ref.invalidate(planningProvider),
+                              )
+                            : const SizedBox.shrink(),
+                        data: (overview) {
+                          return FadeSlideEntrance.staggered(
+                            index: 2,
+                            child: _AssumptionsCard(
+                              overview: overview,
+                              isExpanded: _isAssumptionsExpanded,
+                              onToggleExpand: () {
+                                AppHaptics.selectionClick();
+                                setState(() {
+                                  _isAssumptionsExpanded =
+                                      !_isAssumptionsExpanded;
+                                });
+                              },
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ],
           ),
         ),
-        iconTheme: IconThemeData(
-          color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
-        ),
-        actions: [
-          IconButton(
-            tooltip: 'Refresh plan',
-            onPressed: () => ref.invalidate(planningProvider),
-            icon: const Icon(Icons.refresh_rounded),
-          ),
-        ],
       ),
-      body: planningAsync.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.emerald500),
+    );
+  }
+}
+
+/// ── 1. Page Header (Node 92:38) ─────────────────────────────────────────
+class _ForecastingHeader extends StatelessWidget {
+  final VoidCallback onForecastIconTap;
+
+  const _ForecastingHeader({required this.onForecastIconTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Title Block
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Affordability Forecasting',
+                style: GoogleFonts.bricolageGrotesque(
+                  color: context.kColors.textPrimary,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Simulate any purchase before you spend. Evaluates bill conflicts, cash buffer, and savings goal delays.',
+                style: GoogleFonts.dmSans(
+                  color: context.kColors.textSecondary,
+                  fontSize: 14,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
         ),
-        error: (error, _) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: ModernCard(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.error_outline_rounded,
-                    color: AppColors.expense,
-                    size: 34,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Could not load your plan',
-                    style: theme.textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    friendlyErrorMessage(
-                      error,
-                      fallback: 'Something went wrong while loading your plan.',
-                    ),
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: AppColors.textMuted,
-                      fontSize: 12,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  FilledButton.tonal(
-                    onPressed: () => ref.invalidate(planningProvider),
-                    child: const Text('Try again'),
-                  ),
-                ],
+        const SizedBox(width: 14),
+
+        // Forecast / Math Breakdown Icon Button (44×44, r=24)
+        GestureDetector(
+          onTap: onForecastIconTap,
+          child: Container(
+            width: 44,
+            height: 44,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: context.kColors.card,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: context.kColors.cardBorder, width: 1),
+            ),
+            child: SvgPicture.asset(
+              'assets/images/forecast_icon.svg',
+              width: 22,
+              height: 22,
+              colorFilter: ColorFilter.mode(
+                context.kColors.textPrimary,
+                BlendMode.srcIn,
               ),
             ),
           ),
         ),
-        data: (overview) {
-          final milestoneEntries = _buildMilestoneEntries(overview.days);
-          final activeEventsCount = overview.days.where((d) {
-            return d.income > 0 ||
-                d.expenses > 0 ||
-                d.bills > 0 ||
-                d.pressure != 'clear';
-          }).length;
+      ],
+    );
+  }
+}
 
-          return RefreshIndicator(
-            color: AppColors.emerald500,
-            onRefresh: () async {
-              ref.invalidate(planningProvider);
-              await ref.read(planningProvider.future);
-            },
-            child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
-              children: [
-                _PlanningHero(
-                  overview: overview,
-                  onScenarioTap: () => _showScenarioLab(context, overview),
+/// ── 2. Safe to Spend Hero Card (Node 85:1085) ───────────────────────────
+class _SafeSpendHeroCard extends StatelessWidget {
+  final DailySafeSpendCalculation safeSpendCalc;
+  final double totalBalance;
+  final VoidCallback onTestPurchaseTap;
+
+  const _SafeSpendHeroCard({
+    required this.safeSpendCalc,
+    required this.totalBalance,
+    required this.onTestPurchaseTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final paydayDateStr = DateFormat('MMM d').format(safeSpendCalc.nextPayday);
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(28),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 7, sigmaY: 7),
+        child: Container(
+          padding: const EdgeInsets.all(21),
+          decoration: BoxDecoration(
+            color: context.kColors.cardHero,
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(
+              color: context.kColors.cardBorderStrong,
+              width: 1,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Label: SAFE TO SPEND TODAY
+              Text(
+                'SAFE TO SPEND TODAY',
+                style: GoogleFonts.dmSans(
+                  color: context.kColors.textSecondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.0,
                 ),
-                const SizedBox(height: 14),
-                _PlanningMetricRow(overview: overview),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.center,
+              ),
+              const SizedBox(height: 6),
+
+              // Large Amount (44px)
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  CurrencyFormatter.format(safeSpendCalc.dailySafeSpend),
+                  style: GoogleFonts.bricolageGrotesque(
+                    color: context.kColors.textPrimary,
+                    fontSize: 44,
+                    height: 46.2 / 44,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+
+              // Payday horizon
+              Text(
+                'For the next ${safeSpendCalc.daysUntilPayday} days, until $paydayDateStr payday',
+                style: GoogleFonts.dmSans(
+                  color: context.kColors.textSecondary,
+                  fontSize: 15,
+                ),
+              ),
+              const SizedBox(height: 14),
+
+              // Divider
+              Container(height: 1, color: context.kColors.cardBorder),
+              const SizedBox(height: 12),
+
+              // Total balance row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Total balance',
+                    style: GoogleFonts.dmSans(
+                      color: context.kColors.textSecondary,
+                      fontSize: 14,
+                    ),
+                  ),
+                  Text(
+                    CurrencyFormatter.format(totalBalance),
+                    style: GoogleFonts.dmSans(
+                      color: context.kColors.textPrimary,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      fontFeatures: CurrencyFormatter.tabularFigures,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+
+              // Test a purchase Button (308×56, r=28)
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: SpringTouch(
+                  scaleDown: 0.96,
+                  onTap: onTestPurchaseTap,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: context.kColors.primaryButton,
+                      borderRadius: BorderRadius.circular(28),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      'Test a purchase',
+                      style: GoogleFonts.dmSans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: context.kColors.onPrimaryButton,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// ── 3. Allocation Card (Node 92:57) ─────────────────────────────────────
+class _AllocationCard extends StatelessWidget {
+  final DailySafeSpendCalculation safeSpendCalc;
+
+  const _AllocationCard({required this.safeSpendCalc});
+
+  @override
+  Widget build(BuildContext context) {
+    final dailySpendRounded = safeSpendCalc.dailySafeSpend.round();
+    final titleSpendStr = dailySpendRounded > 0
+        ? '₱${NumberFormat('#,###').format(dailySpendRounded)}'
+        : '₱0';
+
+    // Compute dynamic proportions based on safeSpendCalc breakdown
+    final freeCash = math.max(0.0, safeSpendCalc.numerator);
+    final goalsCash = safeSpendCalc.scheduledGoalContributions;
+    final billsCash = safeSpendCalc.unpaidBillsDue;
+    final sum = freeCash + goalsCash + billsCash;
+
+    final hasProportions = sum > 0;
+    final freePct = hasProportions ? ((freeCash / sum) * 100).round() : 0;
+    final goalsPct = hasProportions ? ((goalsCash / sum) * 100).round() : 0;
+    final billsPct = hasProportions ? math.max(0, 100 - freePct - goalsPct) : 0;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: context.kColors.card,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: context.kColors.cardBorder, width: 1),
+      ),
+      padding: const EdgeInsets.all(19),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Section Title
+          Text(
+            'WHERE TODAY’S $titleSpendStr GOES',
+            style: GoogleFonts.dmSans(
+              color: context.kColors.textSecondary,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.0,
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          if (hasProportions) ...[
+            // Multi-Segment Bar (Height: 12, radius: 5, gap: 3)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(5),
+              child: SizedBox(
+                height: 12,
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: math.max(1, freePct),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: context.kColors.accentViolet,
+                          borderRadius: BorderRadius.circular(5),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 3),
+                    Expanded(
+                      flex: math.max(1, goalsPct),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: context.kColors.accentTeal,
+                          borderRadius: BorderRadius.circular(5),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 3),
+                    Expanded(
+                      flex: math.max(1, billsPct),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: context.kColors.warning,
+                          borderRadius: BorderRadius.circular(5),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // Legend Row
+            Row(
+              children: [
+                _LegendItem(
+                  color: context.kColors.accentViolet,
+                  label: 'Free $freePct%',
+                ),
+                const SizedBox(width: 14),
+                _LegendItem(
+                  color: context.kColors.accentTeal,
+                  label: 'Goals $goalsPct%',
+                ),
+                const SizedBox(width: 14),
+                _LegendItem(
+                  color: context.kColors.warning,
+                  label: 'Bills $billsPct%',
+                ),
+              ],
+            ),
+          ] else
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: context.kColors.canvas.withValues(alpha: 0.45),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: context.kColors.cardBorder),
+              ),
+              child: Text(
+                'No allocation data yet. Add unpaid bills or active goals to see where your money goes.',
+                style: GoogleFonts.dmSans(
+                  color: context.kColors.textSecondary,
+                  fontSize: 12.5,
+                  height: 1.4,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LegendItem extends StatelessWidget {
+  final Color color;
+  final String label;
+
+  const _LegendItem({required this.color, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+        const SizedBox(width: 5),
+        Text(
+          label,
+          style: GoogleFonts.dmSans(
+            color: context.kColors.textMuted,
+            fontSize: 11,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// ── 4. Assumptions Card (Node 92:106) ───────────────────────────────────
+class _AssumptionsCard extends StatelessWidget {
+  final PlanningOverview overview;
+  final bool isExpanded;
+  final VoidCallback onToggleExpand;
+
+  const _AssumptionsCard({
+    required this.overview,
+    required this.isExpanded,
+    required this.onToggleExpand,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final plannedCount = overview.days
+        .where((d) => d.expenses > 0 || d.bills > 0 || d.income > 0)
+        .length;
+    final totalPlannedOut =
+        overview.totalPlannedExpenses + overview.totalUpcomingBills;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: context.kColors.card,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: context.kColors.cardBorder, width: 1),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 19, vertical: 3),
+      child: Column(
+        children: [
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onToggleExpand,
+              borderRadius: BorderRadius.circular(20),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 13),
+                child: Row(
                   children: [
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Cash-Flow Runway',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w800,
-                              color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
+                            'Planned transactions',
+                            style: GoogleFonts.dmSans(
+                              color: context.kColors.textPrimary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const SizedBox(height: 2),
+                          const SizedBox(height: 1),
                           Text(
-                            '${DateFormat('MMM d').format(overview.from)} – ${DateFormat('MMM d').format(overview.to)} • ${overview.daysInWindow} days',
-                            style: const TextStyle(
-                              color: AppColors.textMuted,
+                            '$plannedCount scheduled in window · ${CurrencyFormatter.format(totalPlannedOut)} planned out',
+                            style: GoogleFonts.dmSans(
+                              color: context.kColors.textMuted,
                               fontSize: 12,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    _TimelineToggle(
-                      showAllDays: _showAllDays,
-                      milestoneCount: activeEventsCount,
-                      totalDays: overview.days.length,
-                      onToggle: (allDays) {
-                        setState(() => _showAllDays = allDays);
-                      },
+                    AnimatedRotation(
+                      turns: isExpanded ? 0.25 : 0.0,
+                      duration: const Duration(milliseconds: 200),
+                      child: SvgPicture.asset(
+                        'assets/images/assumptions_icon.svg',
+                        width: 18,
+                        height: 18,
+                        colorFilter: ColorFilter.mode(
+                          context.kColors.textMuted,
+                          BlendMode.srcIn,
+                        ),
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
-                if (!_showAllDays) ...[
-                  if (activeEventsCount == 0)
-                    _EmptyRunwayCard(
-                      currentBalance: overview.currentBalance,
-                      daysInWindow: overview.daysInWindow,
-                    )
-                  else
-                    ...milestoneEntries.map((entry) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: switch (entry) {
-                          _MilestoneEntry e => _PlanningDayTile(
-                              day: e.day,
-                              isMilestone: true,
-                            ),
-                          _QuietSpanEntry s => _QuietSpanTile(span: s),
-                        },
-                      );
-                    }),
-                ] else ...[
-                  ...overview.days.map((day) {
-                    final isAct = day.income > 0 ||
-                        day.expenses > 0 ||
-                        day.bills > 0 ||
-                        day.pressure != 'clear';
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: _PlanningDayTile(
-                        day: day,
-                        isMilestone: isAct,
-                      ),
-                    );
-                  }),
-                ],
-                const SizedBox(height: 12),
-                ModernCard(
-                  backgroundColor: isDark ? AppColors.surface800 : AppColors.lightCardSurface,
-                  borderColor: AppColors.subtleBorderAdaptive(isDark),
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(
-                        Icons.calculate_outlined,
-                        color: isDark ? AppColors.gold400 : AppColors.gold600,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'HOW THIS IS CALCULATED',
-                              style: TextStyle(
-                                color: isDark ? AppColors.gold400 : AppColors.gold600,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 1.0,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              overview.calculationNote,
-                              style: TextStyle(
-                                color: isDark
-                                    ? AppColors.textMuted
-                                    : AppColors.lightTextSecondary,
-                                fontSize: 12,
-                                height: 1.45,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+              ),
             ),
-          );
-        },
+          ),
+
+          // Collapsible planned days breakdown
+          if (isExpanded) ...[
+            Divider(color: context.kColors.cardBorder, height: 1),
+            const SizedBox(height: 10),
+            for (final day in overview.days.where(
+              (d) => d.expenses > 0 || d.bills > 0 || d.income > 0,
+            )) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      DateFormat('MMM d, E').format(day.date),
+                      style: GoogleFonts.dmSans(
+                        color: context.kColors.textSecondary,
+                        fontSize: 12,
+                      ),
+                    ),
+                    Text(
+                      day.bills > 0
+                          ? '-${CurrencyFormatter.format(day.bills)} (bills)'
+                          : (day.income > 0
+                                ? '+${CurrencyFormatter.format(day.income)} (income)'
+                                : '-${CurrencyFormatter.format(day.expenses)}'),
+                      style: GoogleFonts.dmSans(
+                        color: day.income > 0
+                            ? context.kColors.success
+                            : context.kColors.textPrimary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        fontFeatures: CurrencyFormatter.tabularFigures,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: 10),
+          ],
+        ],
       ),
     );
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// Timeline Entries for Milestones vs Quiet Periods
-// ─────────────────────────────────────────────────────────────
-sealed class _TimelineEntry {}
-
-class _MilestoneEntry extends _TimelineEntry {
-  final PlanningDay day;
-  _MilestoneEntry(this.day);
-}
-
-class _QuietSpanEntry extends _TimelineEntry {
-  final DateTime startDate;
-  final DateTime endDate;
-  final int daysCount;
-  final double balance;
-
-  _QuietSpanEntry({
-    required this.startDate,
-    required this.endDate,
-    required this.daysCount,
-    required this.balance,
-  });
-}
-
-List<_TimelineEntry> _buildMilestoneEntries(List<PlanningDay> days) {
-  final result = <_TimelineEntry>[];
-  final quietBuffer = <PlanningDay>[];
-
-  void flushQuiet() {
-    if (quietBuffer.isEmpty) return;
-    if (quietBuffer.length == 1) {
-      result.add(_MilestoneEntry(quietBuffer.first));
-    } else {
-      result.add(_QuietSpanEntry(
-        startDate: quietBuffer.first.date,
-        endDate: quietBuffer.last.date,
-        daysCount: quietBuffer.length,
-        balance: quietBuffer.last.projectedBalance,
-      ));
-    }
-    quietBuffer.clear();
-  }
-
-  for (final day in days) {
-    final hasActivity = day.income > 0 ||
-        day.expenses > 0 ||
-        day.bills > 0 ||
-        day.pressure == 'risk' ||
-        day.pressure == 'watch';
-    if (hasActivity) {
-      flushQuiet();
-      result.add(_MilestoneEntry(day));
-    } else {
-      quietBuffer.add(day);
-    }
-  }
-  flushQuiet();
-  return result;
-}
-
-// ─────────────────────────────────────────────────────────────
-// Timeline Toggle Pill Switcher
-// ─────────────────────────────────────────────────────────────
-class _TimelineToggle extends StatelessWidget {
-  final bool showAllDays;
-  final int milestoneCount;
-  final int totalDays;
-  final ValueChanged<bool> onToggle;
-
-  const _TimelineToggle({
-    required this.showAllDays,
-    required this.milestoneCount,
-    required this.totalDays,
-    required this.onToggle,
-  });
+/// ── Loading & Error States ──────────────────────────────────────────────
+class _HeroLoadingState extends StatelessWidget {
+  const _HeroLoadingState();
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      padding: const EdgeInsets.all(3),
+      height: 272,
       decoration: BoxDecoration(
-        color: isDark ? AppColors.surface800 : AppColors.lightInputFill,
-        borderRadius: BorderRadius.circular(20),
+        color: context.kColors.card,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: context.kColors.cardBorder),
+      ),
+      child: Center(
+        child: CircularProgressIndicator(color: context.kColors.textPrimary),
+      ),
+    );
+  }
+}
+
+class _ErrorCard extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+
+  const _ErrorCard({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: context.kColors.card,
+        borderRadius: BorderRadius.circular(28),
         border: Border.all(
-          color: AppColors.subtleBorderAdaptive(isDark),
-          width: 1,
+          color: context.kColors.danger.withValues(alpha: 0.4),
         ),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+      child: Column(
         children: [
-          _buildPill(
-            context: context,
-            label: 'Milestones ($milestoneCount)',
-            isSelected: !showAllDays,
-            onTap: () => onToggle(false),
-          ),
-          _buildPill(
-            context: context,
-            label: 'All ($totalDays)',
-            isSelected: showAllDays,
-            onTap: () => onToggle(true),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPill({
-    required BuildContext context,
-    required String label,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? (isDark ? AppColors.surface600 : AppColors.lightCardSurface)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
-          border: isSelected
-              ? Border.all(
-                  color: isDark ? const Color(0x55D4AF37) : AppColors.lightBorderSubtle,
-                  width: 1,
-                )
-              : null,
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected
-                ? (isDark ? AppColors.textDark : AppColors.lightTextPrimary)
-                : (isDark ? AppColors.textMuted : AppColors.lightTextSecondary),
-            fontSize: 11,
-            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// Empty Runway Card (when no bills exist)
-// ─────────────────────────────────────────────────────────────
-class _EmptyRunwayCard extends StatelessWidget {
-  final double currentBalance;
-  final int daysInWindow;
-
-  const _EmptyRunwayCard({
-    required this.currentBalance,
-    required this.daysInWindow,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return ModernCard(
-      backgroundColor: isDark ? AppColors.surface800 : AppColors.lightCardSurface,
-      borderColor: AppColors.subtleBorderAdaptive(isDark),
-      padding: const EdgeInsets.all(20),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.emerald500.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: AppColors.emerald500.withValues(alpha: 0.3),
-              ),
-            ),
-            child: const Icon(
-              Icons.event_available_rounded,
-              color: AppColors.emerald400,
-              size: 26,
+          Text(
+            message,
+            style: GoogleFonts.dmSans(
+              color: context.kColors.danger,
+              fontSize: 13,
             ),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'No Bills in this Runway',
-                  style: TextStyle(
-                    color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'No bills or scheduled outflows for the next $daysInWindow days. Your full ${_money(currentBalance)} is unencumbered for daily spending.',
-                  style: const TextStyle(
-                    color: AppColors.textMuted,
-                    fontSize: 12,
-                    height: 1.4,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// Quiet Span Tile (Groups inactive days into a single calm tile)
-// ─────────────────────────────────────────────────────────────
-class _QuietSpanTile extends StatelessWidget {
-  final _QuietSpanEntry span;
-
-  const _QuietSpanTile({required this.span});
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final startFormatted = DateFormat('MMM d').format(span.startDate);
-    final endFormatted = DateFormat('MMM d').format(span.endDate);
-
-    return ModernCard(
-      backgroundColor: isDark
-          ? AppColors.surface800.withValues(alpha: 0.5)
-          : AppColors.lightCardSurface,
-      borderColor: AppColors.subtleBorderAdaptive(isDark),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      child: Row(
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: isDark
-                  ? AppColors.surface700.withValues(alpha: 0.6)
-                  : AppColors.lightInputFill,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(
-              Icons.calendar_month_outlined,
-              color: AppColors.textMuted,
+          const SizedBox(height: 12),
+          TextButton.icon(
+            onPressed: onRetry,
+            icon: Icon(
+              Icons.refresh,
               size: 16,
+              color: context.kColors.textPrimary,
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      '$startFormatted – $endFormatted',
-                      style: TextStyle(
-                        color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isDark ? AppColors.surface700 : AppColors.lightInputFill,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        '${span.daysCount} quiet days',
-                        style: const TextStyle(
-                          color: AppColors.textMuted,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 3),
-                const Text(
-                  'No scheduled bills • Balance holds steady',
-                  style: TextStyle(
-                    color: AppColors.textMuted,
-                    fontSize: 11,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                _money(span.balance),
-                style: const TextStyle(
-                  color: AppColors.textMuted,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12,
-                  fontFeatures: CurrencyFormatter.tabularFigures,
-                ),
-              ),
-              const Text(
-                'holding',
-                style: TextStyle(
-                  color: AppColors.textMuted,
-                  fontSize: 9,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// Planning Hero Card (Human-First Narrative + Daily Safe-to-Spend)
-// ─────────────────────────────────────────────────────────────
-class _PlanningHero extends StatelessWidget {
-  final PlanningOverview overview;
-  final VoidCallback onScenarioTap;
-
-  const _PlanningHero({
-    required this.overview,
-    required this.onScenarioTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final statusColor = _statusColor(overview.status);
-    final toFormatted = DateFormat('MMMM d').format(overview.to);
-
-    return ModernCard(
-      gradient: isDark ? AppColors.gradientHeroCard : null,
-      backgroundColor: isDark ? null : AppColors.lightCardSurface,
-      borderColor: AppColors.subtleBorderAdaptive(isDark),
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 7,
-                    height: 7,
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.gold400 : AppColors.gold600,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: (isDark ? AppColors.gold400 : AppColors.gold600).withValues(alpha: 0.5),
-                          blurRadius: 4,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'DAILY SPENDING ALLOWANCE',
-                    style: TextStyle(
-                      color: isDark ? AppColors.gold400 : AppColors.gold600,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.1,
-                    ),
-                  ),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-                decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.16),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: statusColor.withValues(alpha: 0.3),
-                    width: 1,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: statusColor,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      _statusLabel(overview.status),
-                      style: TextStyle(
-                        color: statusColor,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            _money(overview.safeToSpendPerDay),
-            style: TextStyle(
-              color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
-              fontSize: 38,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -1.0,
-              fontFeatures: CurrencyFormatter.tabularFigures,
-            ),
-          ),
-          Text(
-            'safe to spend per day for the next ${overview.daysInWindow} days',
-            style: const TextStyle(
-              color: AppColors.textMuted,
-              fontSize: 13,
-            ),
-          ),
-          const SizedBox(height: 18),
-
-          // ── Human narrative bridge container ──
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: isDark
-                  ? AppColors.surface700.withValues(alpha: 0.45)
-                  : AppColors.lightInputFill,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: AppColors.subtleBorderAdaptive(isDark),
-                width: 1,
-              ),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  Icons.lightbulb_outline_rounded,
-                  color: isDark ? AppColors.gold400 : AppColors.gold600,
-                  size: 20,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: RichText(
-                    text: TextSpan(
-                      style: TextStyle(
-                        color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
-                        fontSize: 12,
-                        height: 1.45,
-                      ),
-                      children: [
-                        const TextSpan(text: 'Starting from '),
-                        TextSpan(
-                          text: _money(overview.currentBalance),
-                          style: TextStyle(
-                            fontWeight: FontWeight.w800,
-                            color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
-                          ),
-                        ),
-                        if (overview.committedOutflow > 0) ...[
-                          const TextSpan(text: ', reserving '),
-                          TextSpan(
-                            text: '-${_money(overview.committedOutflow)}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.expense,
-                            ),
-                          ),
-                          const TextSpan(text: ' for bills'),
-                        ],
-                        if (overview.totalPlannedIncome > 0) ...[
-                          const TextSpan(text: ' and adding '),
-                          TextSpan(
-                            text: '+${_money(overview.totalPlannedIncome)}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.income,
-                            ),
-                          ),
-                          const TextSpan(text: ' expected income'),
-                        ],
-                        const TextSpan(text: ', you have '),
-                        TextSpan(
-                          text: _money(overview.projectedClosingBalance),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.emerald400,
-                          ),
-                        ),
-                        TextSpan(
-                          text: ' free for daily living until $toFormatted.',
-                        ),
-                        if (overview.minimumBalanceThreshold > 0)
-                          TextSpan(
-                            text:
-                                '\n(Safety cushion of ${_money(overview.minimumBalanceThreshold)} stays untouched).',
-                            style: TextStyle(
-                              color: isDark ? AppColors.textMuted : AppColors.lightTextSecondary,
-                              fontSize: 11,
-                              fontStyle: FontStyle.italic,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 18),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: onScenarioTap,
-              icon: const Icon(Icons.tune_rounded, size: 18),
-              label: const Text('Simulate a "What-If" Purchase'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: isDark ? AppColors.gold300 : AppColors.gold600,
-                side: BorderSide(
-                  color: (isDark ? AppColors.gold500 : AppColors.gold600).withValues(alpha: isDark ? 0.5 : 0.6),
-                  width: 1,
-                ),
-                backgroundColor: (isDark ? AppColors.gold500 : AppColors.gold500).withValues(alpha: isDark ? 0.08 : 0.12),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+            label: Text(
+              'Retry',
+              style: GoogleFonts.dmSans(
+                color: context.kColors.textPrimary,
+                fontWeight: FontWeight.bold,
               ),
             ),
           ),
@@ -807,860 +757,3 @@ class _PlanningHero extends StatelessWidget {
     );
   }
 }
-
-// ─────────────────────────────────────────────────────────────
-// 3 High-Signal Metric Cards
-// ─────────────────────────────────────────────────────────────
-class _PlanningMetricRow extends StatelessWidget {
-  final PlanningOverview overview;
-
-  const _PlanningMetricRow({required this.overview});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final toFormatted = DateFormat('MMM d').format(overview.to);
-
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: _PlanningMetric(
-                label: 'Current Cash',
-                sublabel: 'In Wallets',
-                value: _money(overview.currentBalance),
-                color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
-                icon: Icons.account_balance_wallet_outlined,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _PlanningMetric(
-                label: 'Due for Bills',
-                sublabel: 'Reserved',
-                value: overview.committedOutflow > 0
-                    ? '-${_money(overview.committedOutflow)}'
-                    : '₱0.00',
-                color: overview.committedOutflow > 0
-                    ? AppColors.expense
-                    : AppColors.textMuted,
-                icon: Icons.receipt_long_outlined,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _PlanningMetric(
-                label: 'Free to Spend',
-                sublabel: 'Until $toFormatted',
-                value: _money(overview.projectedClosingBalance),
-                color: AppColors.emerald400,
-                icon: Icons.check_circle_outline_rounded,
-              ),
-            ),
-          ],
-        ),
-        if (overview.totalPlannedIncome > 0) ...[
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: AppColors.income.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: AppColors.income.withValues(alpha: 0.25),
-              ),
-            ),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.trending_up_rounded,
-                  color: AppColors.income,
-                  size: 16,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    '+${_money(overview.totalPlannedIncome)} planned income factored into this window',
-                    style: const TextStyle(
-                      color: AppColors.income,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-class _PlanningMetric extends StatelessWidget {
-  final String label;
-  final String sublabel;
-  final String value;
-  final Color color;
-  final IconData icon;
-
-  const _PlanningMetric({
-    required this.label,
-    required this.sublabel,
-    required this.value,
-    required this.color,
-    required this.icon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return ModernCard(
-      backgroundColor: isDark ? AppColors.surface800 : AppColors.lightCardSurface,
-      borderColor: AppColors.subtleBorderAdaptive(isDark),
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Flexible(
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              Icon(
-                icon,
-                color: isDark ? AppColors.textMuted : AppColors.lightTextSecondary,
-                size: 14,
-              ),
-            ],
-          ),
-          const SizedBox(height: 2),
-          Text(
-            sublabel,
-            style: TextStyle(
-              color: isDark ? AppColors.textMuted : AppColors.lightTextSecondary,
-              fontSize: 10,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: color == AppColors.textDark
-                  ? (isDark ? AppColors.textDark : AppColors.lightTextPrimary)
-                  : color,
-              fontWeight: FontWeight.w900,
-              fontSize: 13,
-              fontFeatures: CurrencyFormatter.tabularFigures,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// Enhanced Planning Day Tile (Active Bill / Milestone Highlight)
-// ─────────────────────────────────────────────────────────────
-class _PlanningDayTile extends StatelessWidget {
-  final PlanningDay day;
-  final bool isMilestone;
-
-  const _PlanningDayTile({
-    required this.day,
-    this.isMilestone = false,
-  });
-
-  bool _isToday(DateTime d) {
-    final now = DateTime.now();
-    return d.year == now.year && d.month == now.month && d.day == now.day;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final color = _statusColor(day.pressure);
-    final isToday = _isToday(day.date);
-
-    final eventWidgets = <Widget>[];
-    if (day.bills > 0) {
-      eventWidgets.add(
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.receipt_long_rounded,
-              color: AppColors.expense,
-              size: 13,
-            ),
-            const SizedBox(width: 4),
-            Text(
-              '-${_money(day.bills)} bills due',
-              style: const TextStyle(
-                color: AppColors.expense,
-                fontWeight: FontWeight.w700,
-                fontSize: 12,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-    if (day.expenses > 0) {
-      eventWidgets.add(
-        Text(
-          '-${_money(day.expenses)} planned',
-          style: const TextStyle(
-            color: AppColors.expense,
-            fontSize: 11,
-          ),
-        ),
-      );
-    }
-    if (day.income > 0) {
-      eventWidgets.add(
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.arrow_downward_rounded,
-              color: AppColors.income,
-              size: 13,
-            ),
-            const SizedBox(width: 4),
-            Text(
-              '+${_money(day.income)} income',
-              style: const TextStyle(
-                color: AppColors.income,
-                fontWeight: FontWeight.w700,
-                fontSize: 12,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-    if (eventWidgets.isEmpty) {
-      eventWidgets.add(
-        const Text(
-          'No scheduled activity',
-          style: TextStyle(
-            color: AppColors.textMuted,
-            fontSize: 11,
-          ),
-        ),
-      );
-    }
-
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    final defaultBorder = AppColors.subtleBorderAdaptive(isDark);
-    final milestoneBorder = (day.bills > 0
-        ? AppColors.expense.withValues(alpha: 0.3)
-        : AppColors.income.withValues(alpha: 0.3));
-
-    return ModernCard(
-      backgroundColor: isMilestone
-          ? (isDark ? AppColors.surface800 : AppColors.lightCardSurface)
-          : (isDark ? AppColors.surface900 : AppColors.lightInputFill),
-      borderColor: isMilestone && (day.bills > 0 || day.income > 0)
-          ? milestoneBorder
-          : defaultBorder,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      child: Row(
-        children: [
-          Container(
-            width: 4,
-            height: 44,
-            decoration: BoxDecoration(
-              color: isMilestone
-                  ? color
-                  : (isDark ? AppColors.surface600 : AppColors.lightBorderSubtle),
-              borderRadius: BorderRadius.circular(4),
-            ),
-          ),
-          const SizedBox(width: 12),
-          SizedBox(
-            width: 58,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  isToday ? 'TODAY' : DateFormat('EEE').format(day.date),
-                  style: TextStyle(
-                    color: isToday
-                        ? (isDark ? AppColors.gold300 : AppColors.gold600)
-                        : (isDark ? AppColors.textMuted : AppColors.lightTextSecondary),
-                    fontWeight: isToday ? FontWeight.w800 : FontWeight.w500,
-                    fontSize: 11,
-                    letterSpacing: isToday ? 0.3 : 0,
-                  ),
-                ),
-                Text(
-                  DateFormat('MMM d').format(day.date),
-                  style: TextStyle(
-                    color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 13,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: eventWidgets,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                _money(day.projectedBalance),
-                style: TextStyle(
-                  color: isMilestone ? color : AppColors.textMuted,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 12,
-                  fontFeatures: CurrencyFormatter.tabularFigures,
-                ),
-              ),
-              const Text(
-                'balance',
-                style: TextStyle(
-                  color: AppColors.textMuted,
-                  fontSize: 9,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// What-If Spending Simulator Sheet
-// ─────────────────────────────────────────────────────────────
-class _WhatIfSimulatorSheet extends StatefulWidget {
-  final PlanningOverview overview;
-
-  const _WhatIfSimulatorSheet({required this.overview});
-
-  @override
-  State<_WhatIfSimulatorSheet> createState() => _WhatIfSimulatorSheetState();
-}
-
-class _WhatIfSimulatorSheetState extends State<_WhatIfSimulatorSheet> {
-  final _expenseController = TextEditingController();
-  final _incomeController = TextEditingController();
-  final _savingsController = TextEditingController();
-
-  int _selectedPresetIndex = -1;
-
-  @override
-  void dispose() {
-    _expenseController.dispose();
-    _incomeController.dispose();
-    _savingsController.dispose();
-    super.dispose();
-  }
-
-  void _applyPreset({
-    required int index,
-    double? expense,
-    double? income,
-  }) {
-    setState(() {
-      _selectedPresetIndex = index;
-      if (expense != null) {
-        _expenseController.text = expense.toStringAsFixed(0);
-      } else {
-        _expenseController.clear();
-      }
-      if (income != null) {
-        _incomeController.text = income.toStringAsFixed(0);
-      } else {
-        _incomeController.clear();
-      }
-      _savingsController.clear();
-    });
-  }
-
-  void _reset() {
-    setState(() {
-      _selectedPresetIndex = -1;
-      _expenseController.clear();
-      _incomeController.clear();
-      _savingsController.clear();
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    double readAmount(TextEditingController controller) {
-      return double.tryParse(controller.text.trim()) ?? 0.0;
-    }
-
-    final addedExpense = readAmount(_expenseController);
-    final addedIncome = readAmount(_incomeController);
-    final addedSavings = readAmount(_savingsController);
-
-    final simulatedClosing = widget.overview.projectedClosingBalance +
-        addedIncome -
-        addedExpense -
-        addedSavings;
-    final simulatedBuffer =
-        simulatedClosing - widget.overview.minimumBalanceThreshold;
-    final simulatedDaily =
-        simulatedBuffer > 0 && widget.overview.daysInWindow > 0
-            ? simulatedBuffer / widget.overview.daysInWindow
-            : 0.0;
-
-    final dailyDelta = simulatedDaily - widget.overview.safeToSpendPerDay;
-    final closingDelta =
-        simulatedClosing - widget.overview.projectedClosingBalance;
-    final hasModifications =
-        addedExpense > 0 || addedIncome > 0 || addedSavings > 0;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // ── Quick Presets ──
-        Text(
-          'QUICK PRESETS',
-          style: TextStyle(
-            color: isDark ? AppColors.gold400 : AppColors.gold600,
-            fontSize: 10,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 1.0,
-          ),
-        ),
-        const SizedBox(height: 8),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              _PresetChip(
-                label: 'Dinner (-₱1.5k)',
-                isSelected: _selectedPresetIndex == 0,
-                onTap: () => _applyPreset(index: 0, expense: 1500),
-              ),
-              const SizedBox(width: 8),
-              _PresetChip(
-                label: 'Shopping (-₱5k)',
-                isSelected: _selectedPresetIndex == 1,
-                onTap: () => _applyPreset(index: 1, expense: 5000),
-              ),
-              const SizedBox(width: 8),
-              _PresetChip(
-                label: 'Gadget (-₱15k)',
-                isSelected: _selectedPresetIndex == 2,
-                onTap: () => _applyPreset(index: 2, expense: 15000),
-              ),
-              const SizedBox(width: 8),
-              _PresetChip(
-                label: 'Bonus (+₱10k)',
-                isSelected: _selectedPresetIndex == 3,
-                onTap: () => _applyPreset(index: 3, income: 10000),
-              ),
-              const SizedBox(width: 8),
-              _PresetChip(
-                label: 'Reset',
-                isSelected: false,
-                isReset: true,
-                onTap: _reset,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 18),
-
-        // ── Input Fields ──
-        _ScenarioAmountField(
-          controller: _expenseController,
-          label: 'One-time extra expense (e.g. big buy)',
-          icon: Icons.remove_circle_outline_rounded,
-          color: AppColors.expense,
-          onChanged: (_) => setState(() => _selectedPresetIndex = -1),
-        ),
-        const SizedBox(height: 12),
-        _ScenarioAmountField(
-          controller: _incomeController,
-          label: 'One-time windfall or side income',
-          icon: Icons.add_circle_outline_rounded,
-          color: AppColors.income,
-          onChanged: (_) => setState(() => _selectedPresetIndex = -1),
-        ),
-        const SizedBox(height: 12),
-        _ScenarioAmountField(
-          controller: _savingsController,
-          label: 'Extra savings to lock away',
-          icon: Icons.savings_outlined,
-          color: AppColors.info,
-          onChanged: (_) => setState(() => _selectedPresetIndex = -1),
-        ),
-        const SizedBox(height: 20),
-
-        // ── Real-time Simulated Outcome Card ──
-        ModernCard(
-          backgroundColor: isDark ? AppColors.surface700 : AppColors.lightCardSurface,
-          borderColor: simulatedBuffer < 0
-              ? AppColors.expense.withValues(alpha: 0.5)
-              : (isDark ? const Color(0x44D4AF37) : AppColors.lightBorderHairline),
-          padding: const EdgeInsets.all(18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'SIMULATED IMPACT',
-                    style: TextStyle(
-                      color: isDark ? AppColors.gold400 : AppColors.gold600,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.1,
-                    ),
-                  ),
-                  if (hasModifications)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: (simulatedBuffer < 0
-                                ? AppColors.expense
-                                : AppColors.emerald500)
-                            .withValues(alpha: 0.16),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        simulatedBuffer < 0 ? 'DEFICIT RISK' : 'FEASIBLE',
-                        style: TextStyle(
-                          color: simulatedBuffer < 0
-                              ? AppColors.expense
-                              : AppColors.emerald400,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'New Daily Allowance',
-                          style: TextStyle(
-                            color: AppColors.textMuted,
-                            fontSize: 11,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _money(simulatedDaily),
-                          style: TextStyle(
-                            color: simulatedDaily > 0
-                                ? AppColors.emerald400
-                                : AppColors.expense,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
-                            fontFeatures: CurrencyFormatter.tabularFigures,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          hasModifications
-                              ? (dailyDelta < -0.01
-                                  ? '-${_money(dailyDelta.abs())}/day'
-                                  : dailyDelta > 0.01
-                                      ? '+${_money(dailyDelta)}/day'
-                                      : 'No change')
-                              : 'current: ${_money(widget.overview.safeToSpendPerDay)}/day',
-                          style: TextStyle(
-                            color: dailyDelta < -0.01
-                                ? AppColors.expense
-                                : dailyDelta > 0.01
-                                    ? AppColors.income
-                                    : AppColors.textMuted,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    width: 1,
-                    height: 48,
-                    color: AppColors.subtleBorderAdaptive(isDark),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Projected Close',
-                          style: TextStyle(
-                            color: AppColors.textMuted,
-                            fontSize: 11,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _money(simulatedClosing),
-                          style: TextStyle(
-                            color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
-                            fontFeatures: CurrencyFormatter.tabularFigures,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          hasModifications
-                              ? (closingDelta < -0.01
-                                  ? '-${_money(closingDelta.abs())}'
-                                  : closingDelta > 0.01
-                                      ? '+${_money(closingDelta)}'
-                                      : 'No change')
-                              : 'at window end',
-                          style: TextStyle(
-                            color: closingDelta < -0.01
-                                ? AppColors.expense
-                                : closingDelta > 0.01
-                                    ? AppColors.income
-                                    : AppColors.textMuted,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-
-              // ── Plain-English Verdict ──
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: (simulatedBuffer < 0
-                          ? AppColors.expense
-                          : hasModifications
-                              ? AppColors.emerald500
-                              : (isDark ? AppColors.surface800 : AppColors.lightInputFill))
-                      .withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: (simulatedBuffer < 0
-                            ? AppColors.expense
-                            : hasModifications
-                                ? AppColors.emerald500
-                                : (isDark ? AppColors.surface600 : AppColors.lightBorderHairline))
-                        .withValues(alpha: 0.25),
-                  ),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(
-                      simulatedBuffer < 0
-                          ? Icons.warning_amber_rounded
-                          : hasModifications
-                              ? Icons.check_circle_outline_rounded
-                              : Icons.info_outline_rounded,
-                      color: simulatedBuffer < 0
-                          ? AppColors.expense
-                          : hasModifications
-                              ? AppColors.emerald400
-                              : AppColors.textMuted,
-                      size: 18,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        simulatedBuffer < 0
-                            ? 'Warning: This purchase breaks your budget by ${_money(simulatedBuffer.abs())}. You will run out of funds before the window ends.'
-                            : hasModifications
-                                ? 'Safe! You can afford this. Your daily allowance will adjust to ${_money(simulatedDaily)}/day.'
-                                : 'Type an amount or tap a preset above to test how a decision alters your daily allowance. Nothing is saved.',
-                        style: TextStyle(
-                          color: simulatedBuffer < 0
-                              ? AppColors.expense
-                              : hasModifications
-                                  ? AppColors.emerald400
-                                  : AppColors.textMuted,
-                          fontSize: 12,
-                          height: 1.4,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 18),
-        FilledButton.tonal(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Done'),
-        ),
-      ],
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// Preset Chip Widget
-// ─────────────────────────────────────────────────────────────
-class _PresetChip extends StatelessWidget {
-  final String label;
-  final bool isSelected;
-  final bool isReset;
-  final VoidCallback onTap;
-
-  const _PresetChip({
-    required this.label,
-    required this.isSelected,
-    this.isReset = false,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return PressableScale(
-      onTap: () {
-        AppHaptics.selectionClick();
-        onTap();
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.emerald500.withValues(alpha: isDark ? 0.2 : 0.12)
-              : isReset
-                  ? (isDark ? AppColors.surface700 : AppColors.lightInputFill)
-                  : (isDark ? AppColors.surface800 : AppColors.lightInputFill),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected
-                ? AppColors.emerald500
-                : (isDark
-                    ? AppColors.surface600.withValues(alpha: 0.5)
-                    : AppColors.lightBorderHairline),
-            width: 1,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected
-                ? AppColors.emerald500
-                : isReset
-                    ? (isDark ? AppColors.textMuted : AppColors.textMutedL)
-                    : (isDark ? AppColors.textDark : AppColors.textLight),
-            fontSize: 11,
-            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// Scenario Amount Input Field
-// ─────────────────────────────────────────────────────────────
-class _ScenarioAmountField extends StatelessWidget {
-  final TextEditingController controller;
-  final String label;
-  final IconData icon;
-  final Color color;
-  final ValueChanged<String> onChanged;
-
-  const _ScenarioAmountField({
-    required this.controller,
-    required this.label,
-    required this.icon,
-    required this.color,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      onChanged: onChanged,
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, color: color, size: 20),
-        prefixText: '₱ ',
-        suffixIcon: controller.text.isNotEmpty
-            ? IconButton(
-                icon: const Icon(Icons.clear_rounded, size: 16),
-                onPressed: () {
-                  controller.clear();
-                  onChanged('');
-                },
-              )
-            : null,
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// Helper Utilities
-// ─────────────────────────────────────────────────────────────
-Color _statusColor(String status) {
-  return switch (status) {
-    'risk' => AppColors.expense,
-    'watch' => AppColors.warning,
-    _ => AppColors.emerald400,
-  };
-}
-
-String _statusLabel(String status) {
-  return switch (status) {
-    'risk' => 'AT RISK',
-    'watch' => 'WATCH',
-    _ => 'ON TRACK',
-  };
-}
-
-String _money(double value) => CurrencyFormatter.format(value);

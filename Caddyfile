@@ -1,0 +1,24 @@
+# Caddy configuration for Kasyaba Production
+# Automatically provisions and renews TLS certificates via Let's Encrypt / ZeroSSL
+
+{$DOMAIN:localhost} {
+    # Compress responses for mobile network efficiency
+    encode zstd gzip
+
+    # Proxy all traffic to the Node.js API container
+    reverse_proxy api:3000 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+
+    # Security headers
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+}
+

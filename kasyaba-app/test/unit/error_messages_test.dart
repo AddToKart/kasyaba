@@ -63,6 +63,45 @@ void main() {
       );
     });
 
+    test('prefers server message over generic session message on 401 if present', () {
+      final error = DioException(
+        requestOptions: options(),
+        response: Response(
+          requestOptions: options(),
+          statusCode: 401,
+          data: {
+            'error': {'message': 'Current password is incorrect'},
+          },
+        ),
+      );
+      expect(
+        friendlyErrorMessage(error),
+        'Current password is incorrect',
+      );
+    });
+
+    test('prefers specific field error message over generic validation message', () {
+      final error = DioException(
+        requestOptions: options(),
+        response: Response(
+          requestOptions: options(),
+          statusCode: 400,
+          data: {
+            'error': {
+              'message': 'The request contains invalid fields.',
+              'fields': {
+                'recurrence': 'Invalid recurrence format',
+              },
+            },
+          },
+        ),
+      );
+      expect(
+        friendlyErrorMessage(error),
+        'Invalid recurrence format',
+      );
+    });
+
     test('falls back for non-Dio errors', () {
       expect(
         friendlyErrorMessage(StateError('boom')),

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:reactive_forms/reactive_forms.dart';
-import '../../../app/theme/app_theme.dart';
+import '../../../app/theme/kasyaba_color_scheme.dart';
 import '../../../core/auth/auth_provider.dart';
 import '../widgets/auth_widgets.dart';
 
@@ -21,7 +22,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     ),
     'password': FormControl<String>(validators: [Validators.required]),
   });
-  bool _obscurePassword = true;
 
   late final AnimationController _bgController;
   late final AnimationController _entryController;
@@ -62,7 +62,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     formGroup.markAllAsTouched();
     if (!formGroup.valid) return;
     try {
-      await ref.read(authProvider.notifier).login(
+      await ref
+          .read(authProvider.notifier)
+          .login(
             formGroup.control('email').value as String,
             formGroup.control('password').value as String,
           );
@@ -70,57 +72,68 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     } catch (_) {}
   }
 
+  void _onForgotPasswordTapped(BuildContext context) {
+    if (GoRouter.maybeOf(context) != null) {
+      context.push('/forgot-password');
+    } else {
+      _showForgotPasswordHelp(context);
+    }
+  }
+
   void _showForgotPasswordHelp(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: isDark ? AppColors.surface800 : AppColors.lightCardSurface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
-          side: BorderSide(
-            color: isDark ? const Color(0x14FFFFFF) : AppColors.lightBorderHairline,
-          ),
-        ),
-        title: Row(
-          children: [
-            const Icon(
-              Icons.lock_reset_rounded,
-              color: AppColors.gold400,
-              size: 22,
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        final colors = ctx.kColors;
+        return AlertDialog(
+          backgroundColor: isDark
+              ? colors.cardHero.withValues(alpha: 0.55)
+              : colors.card,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(
+              color: isDark
+                  ? colors.icon.withValues(alpha: 0.28)
+                  : colors.cardBorder,
             ),
-            const SizedBox(width: 10),
-            Text(
-              'Reset Password',
-              style: TextStyle(
-                color: AppColors.textPrimary(isDark),
-                fontWeight: FontWeight.w800,
-                fontSize: 17,
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.lock_reset_rounded, color: colors.icon, size: 22),
+              const SizedBox(width: 10),
+              Text(
+                'Reset Password',
+                style: GoogleFonts.bricolageGrotesque(
+                  color: colors.textPrimary,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 18,
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            'Enter the email you signed up with. We will send you a link to choose a new password.',
+            style: GoogleFonts.dmSans(
+              color: isDark ? colors.icon : colors.textSecondary,
+              fontSize: 13,
+              height: 1.5,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(
+                'Understood',
+                style: GoogleFonts.dmSans(
+                  color: isDark ? colors.textPrimary : colors.success,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ],
-        ),
-        content: const Text(
-          'For your privacy and security, password resets are processed via your verified email address or master recovery key. Contact support or your administrator to request a reset token.',
-          style: TextStyle(
-            color: AppColors.textMuted,
-            fontSize: 13,
-            height: 1.5,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text(
-              'Understood',
-              style: TextStyle(
-                color: AppColors.emerald400,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -129,12 +142,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     final authState = ref.watch(authProvider);
     final size = MediaQuery.sizeOf(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = context.kColors;
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.obsidian : AppColors.lightScaffold,
+      backgroundColor: colors.canvas,
       body: Stack(
         children: [
-          // ── Background with grid & emerald aura ───────────
+          // ── Background with exact Figma radial gradients & radar rings (Node 11:782-784) ──
           AuthBackground(
             rotateAnimation: _bgRotate,
             isDark: isDark,
@@ -147,187 +161,192 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
               child: SingleChildScrollView(
                 physics: const ClampingScrollPhysics(),
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 22,
-                  vertical: 24,
+                  horizontal: 24,
+                  vertical: 16,
                 ),
-                child: FadeTransition(
-                  opacity: _fadeIn,
-                  child: SlideTransition(
-                    position: _slideUp,
-                    child: ReactiveForm(
-                      formGroup: formGroup,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          // ── Upgraded Brand Header Lockup ──
-                          const AuthBrandHeader(),
-                          const SizedBox(height: 24),
-
-                          // ── Screen Title ──────────────────
-                          Center(
-                            child: Column(
-                              children: [
-                                Text(
-                                  'Welcome Back',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 26,
-                                    letterSpacing: -0.6,
-                                    color: isDark ? AppColors.textDark : AppColors.lightTextPrimary,
-                                  ),
-                                ),
-                                SizedBox(height: 6),
-                                Text(
-                                  'Sign in to access your financial runway',
-                                  style: TextStyle(
-                                    fontSize: 13.5,
-                                    color: AppColors.textMuted,
-                                    height: 1.4,
-                                  ),
-                                ),
-                              ],
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 342),
+                  child: FadeTransition(
+                    opacity: _fadeIn,
+                    child: SlideTransition(
+                      position: _slideUp,
+                      child: ReactiveForm(
+                        formGroup: formGroup,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // ── Top Brand Header Lockup (Node 11:791, 342x44) ──
+                            const SizedBox(height: 12),
+                            const Align(
+                              alignment: Alignment.centerLeft,
+                              child: AuthBrandHeader(),
                             ),
-                          ),
-                          const SizedBox(height: 28),
+                            const SizedBox(height: 22),
 
-                          // ── Glassmorphic Form Card ────────
-                          AuthFormCard(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                if (authState.error != null) ...[
-                                  AuthErrorBanner(
-                                    message: authState.error!,
-                                  ),
-                                  const SizedBox(height: 18),
-                                ],
-
-                                // Explicit label + envelope icon
-                                AuthReactiveField(
-                                  formControlName: 'email',
-                                  label: 'Email Address',
-                                  hintText: 'name@example.com',
-                                  prefixIcon: Icons.mail_outline_rounded,
-                                  keyboardType: TextInputType.emailAddress,
-                                  textInputAction: TextInputAction.next,
-                                  validationMessages: {
-                                    ValidationMessage.required: (_) =>
-                                        'Email is required',
-                                    ValidationMessage.email: (_) =>
-                                        'Enter a valid email address',
-                                  },
-                                ),
-                                const SizedBox(height: 16),
-
-                                // Explicit label + lock icon
-                                AuthReactiveField(
-                                  formControlName: 'password',
-                                  label: 'Password',
-                                  hintText: '••••••••',
-                                  prefixIcon: Icons.lock_outline_rounded,
-                                  obscureText: _obscurePassword,
-                                  textInputAction: TextInputAction.done,
-                                  onSubmitted: _handleLogin,
-                                  suffixIcon: IconButton(
-                                    tooltip: _obscurePassword
-                                        ? 'Show password'
-                                        : 'Hide password',
-                                    icon: Icon(
-                                      _obscurePassword
-                                          ? Icons.visibility_off_outlined
-                                          : Icons.visibility_outlined,
-                                      size: 19,
-                                    ),
-                                    color: const Color(0xFF64748B),
-                                    onPressed: () => setState(
-                                      () =>
-                                          _obscurePassword = !_obscurePassword,
-                                    ),
-                                  ),
-                                  validationMessages: {
-                                    ValidationMessage.required: (_) =>
-                                        'Password is required',
-                                  },
-                                ),
-                                const SizedBox(height: 10),
-
-                                // Right-aligned "Forgot Password?" link
-                                Align(
-                                  alignment: Alignment.centerRight,
-                                  child: TextButton(
-                                    onPressed: () =>
-                                        _showForgotPasswordHelp(context),
-                                    style: TextButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 4,
-                                        vertical: 2,
-                                      ),
-                                      minimumSize: Size.zero,
-                                      tapTargetSize:
-                                          MaterialTapTargetSize.shrinkWrap,
-                                    ),
-                                    child: const Text(
-                                      'Forgot Password?',
-                                      style: TextStyle(
-                                        color: Color(0xFF94A3B8),
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 18),
-
-                                // Primary Sign In button (12px radius)
-                                AuthGradientButton(
-                                  isLoading: authState.isLoading,
-                                  onPressed: _handleLogin,
-                                  label: 'Sign In',
-                                ),
-                              ],
+                            // ── Runway Hero Spline + Tooltip (Node 11:785, 342x150) ──
+                            const RunwaySplineHero(
+                              tooltipText: 'Can I afford it?',
                             ),
-                          ),
-                          const SizedBox(height: 20),
+                            const SizedBox(height: 18),
 
-                          // ── Register Navigation Link ──────
-                          Center(
-                            child: TextButton(
-                              onPressed: () => context.go('/register'),
-                              style: TextButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 8,
-                                ),
+                            // ── Screen Title (Node 11:799) ──
+                            Text(
+                              'Welcome back.',
+                              style: GoogleFonts.bricolageGrotesque(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 32,
+                                height: 1.1,
+                                color: colors.textPrimary,
                               ),
-                              child: RichText(
-                                text: const TextSpan(
-                                  children: [
-                                    TextSpan(
-                                      text: "Don't have an account?  ",
-                                      style: TextStyle(
-                                        color: Color(0xFF94A3B8),
-                                        fontSize: 13.5,
+                            ),
+                            const SizedBox(height: 8),
+
+                            // ── Subtitle (Node 11:803) ──
+                            Text(
+                              'Pick up where your runway left off.',
+                              style: GoogleFonts.dmSans(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w400,
+                                height: 1.45,
+                                color: isDark
+                                    ? colors.icon
+                                    : colors.textSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: 18),
+
+                            // ── Form Card (Node 11:806, 342px, r=32) ──
+                            AuthFormCard(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  if (authState.error != null) ...[
+                                    AuthErrorBanner(message: authState.error!),
+                                    const SizedBox(height: 12),
+                                  ],
+
+                                  // EMAIL Field
+                                  AuthReactiveField(
+                                    formControlName: 'email',
+                                    label: 'Email',
+                                    hintText: 'name@example.com',
+                                    keyboardType: TextInputType.emailAddress,
+                                    textInputAction: TextInputAction.next,
+                                    validationMessages: {
+                                      ValidationMessage.required: (_) =>
+                                          'Email is required',
+                                      ValidationMessage.email: (_) =>
+                                          'Enter a valid email address',
+                                    },
+                                  ),
+                                  const SizedBox(height: 14),
+
+                                  // PASSWORD Field
+                                  AuthReactiveField(
+                                    formControlName: 'password',
+                                    label: 'Password',
+                                    hintText: '••••••••',
+                                    isPasswordField: true,
+                                    textInputAction: TextInputAction.done,
+                                    onSubmitted: _handleLogin,
+                                    validationMessages: {
+                                      ValidationMessage.required: (_) =>
+                                          'Password is required',
+                                    },
+                                  ),
+                                  const SizedBox(height: 12),
+
+                                  // Right-aligned "Forgot password?" link (Node 11:820)
+                                  Align(
+                                    alignment: Alignment.centerRight,
+                                    child: GestureDetector(
+                                      onTap: () =>
+                                          _onForgotPasswordTapped(context),
+                                      behavior: HitTestBehavior.opaque,
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 2,
+                                        ),
+                                        child: Text(
+                                          'Forgot password?',
+                                          style: GoogleFonts.dmSans(
+                                            color: isDark
+                                                ? colors.icon
+                                                : colors.textSecondary,
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
                                       ),
                                     ),
-                                    TextSpan(
-                                      text: 'Create one',
-                                      style: TextStyle(
-                                        color: AppColors.emerald400,
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 13.5,
+                                  ),
+                                  const SizedBox(height: 12),
+
+                                  // Primary Pill Button (Node 11:822, 60px high, r=28)
+                                  AuthPrimaryPillButton(
+                                    isLoading: authState.isLoading,
+                                    onPressed: _handleLogin,
+                                    label: 'Sign in',
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+
+                            // ── Footer Navigation Link (Node 11:824-827) ──
+                            Center(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      'New to Kasyaba? ',
+                                      style: GoogleFonts.dmSans(
+                                        color: isDark
+                                            ? colors.icon
+                                            : colors.textSecondary,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w400,
+                                      ),
+                                    ),
+                                    GestureDetector(
+                                      onTap: () => context.go('/register'),
+                                      behavior: HitTestBehavior.opaque,
+                                      child: Container(
+                                        padding: const EdgeInsets.only(
+                                          bottom: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          border: Border(
+                                            bottom: BorderSide(
+                                              color: colors.secondaryBorder,
+                                              width: 2.0,
+                                            ),
+                                          ),
+                                        ),
+                                        child: Text(
+                                          'Create account',
+                                          style: GoogleFonts.dmSans(
+                                            color: colors.textPrimary,
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 14,
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 12),
+                            const SizedBox(height: 14),
 
-                          // ── Bottom Trust Footer ───────────
-                          const AuthTrustFooter(),
-                        ],
+                            // ── Bottom Reassurance Footnote (Node 11:828-830) ──
+                            const AuthTrustFooter(),
+                            const SizedBox(height: 16),
+                          ],
+                        ),
                       ),
                     ),
                   ),

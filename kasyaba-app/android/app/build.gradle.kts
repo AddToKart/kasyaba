@@ -15,8 +15,13 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.kasyaba.app"
-    compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    // Explicit Play release pins (Phase E-6). Google Play requires new app
+    // submissions and updates to target API 35+; Flutter 3.44 resolves these
+    // constants to API 36, which is installed in this build environment.
+    // Keep minSdk on Flutter's supported floor (24) so the plugin set and
+    // generated registrants stay in sync with the SDK.
+    compileSdk = 36
+    ndkVersion = flutter.ndkVersion // 28.2.13676358 with Flutter 3.44.2.
 
     compileOptions {
         isCoreLibraryDesugaringEnabled = true
@@ -26,8 +31,8 @@ android {
 
     defaultConfig {
         applicationId = "com.kasyaba.app"
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        minSdk = flutter.minSdkVersion // 24 with Flutter 3.44.2.
+        targetSdk = 36 // Play target-API requirement (>= 35).
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }

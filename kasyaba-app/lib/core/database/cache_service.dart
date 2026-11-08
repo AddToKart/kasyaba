@@ -1,11 +1,11 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:convert';
-import 'package:uuid/uuid.dart';
 
 import 'package:dio/dio.dart';
 import 'package:drift/drift.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 
-import '../providers/api_providers.dart';
+import '../api/category_resolver.dart';
 import 'database.dart';
 import 'database_provider.dart';
 
@@ -13,41 +13,105 @@ class CacheService {
   final AppDatabase _db;
   static const _uuid = Uuid();
 
+  static const String snapshotKeyDashboard = 'dashboard';
+  static const String snapshotKeyAccounts = 'accounts';
+  static const String snapshotKeyCategories = 'categories';
+  static const String snapshotKeyBills = 'bills';
+  static const String snapshotKeyGoals = 'goals';
+  static const String snapshotKeyBudgets = 'budgets';
+  static const String snapshotKeyAlerts = 'alerts';
+
+  static const int maxTransactionSnapshots = 10;
+  static const String _transactionSnapshotPrefix = 'transactions:';
+
   CacheService(this._db);
 
-  /// Serializes [DashboardData] for one user and upserts it into the cache table.
-  ///
-  /// The cache table intentionally keeps one small row, so the user id is
-  /// stored inside the payload. This prevents a later offline session from
-  /// reading the previous user's dashboard after an account switch.
-  Future<void> cacheDashboard(DashboardData data, String userId) async {
-    await _db
-        .into(_db.cachedDashboard)
-        .insertOnConflictUpdate(
-          CachedDashboardCompanion(
-            id: const Value(1),
-            json: Value(jsonEncode({'userId': userId, 'data': data.toJson()})),
-            updatedAt: Value(DateTime.now()),
-          ),
-        );
+  /// A stable key for a paginated transaction view.
+  static String transactionsKey({int page = 1, DateTime? from, DateTime? to}) {
+    String datePart(DateTime? value) {
+      if (value == null) return 'all';
+      // Match the date string sent as the `from`/`to` query parameter.
+      return value.toIso8601String().split('T')[0];
+    }
+
+    return '${_transactionSnapshotPrefix}page:$page:'
+        'from:${datePart(from)}:to:${datePart(to)}';
   }
 
-  /// Returns the cached dashboard for [userId], or null if no matching cache exists.
-  Future<DashboardData?> getCachedDashboard(String userId) async {
-    final row = await _db.select(_db.cachedDashboard).getSingleOrNull();
-    if (row == null) return null;
-    try {
-      final envelope = jsonDecode(row.json) as Map<String, dynamic>;
-      if (envelope['userId'] != userId ||
-          envelope['data'] is! Map<String, dynamic>) {
-        return null;
-      }
-      return DashboardData.fromJson(envelope['data'] as Map<String, dynamic>);
-    } on FormatException {
-      return null;
-    } on TypeError {
-      return null;
+  /// Upserts a JSON snapshot for one user and key.
+  Future<void> putSnapshot({
+    required String userId,
+    required String key,
+    required String json,
+    DateTime? fetchedAt,
+  }) async {
+    await _db
+        .into(_db.cachedSnapshots)
+        .insertOnConflictUpdate(
+          CachedSnapshotsCompanion.insert(
+            userId: userId,
+            key: key,
+            json: json,
+            fetchedAt: fetchedAt ?? DateTime.now(),
+          ),
+        );
+    if (key.startsWith(_transactionSnapshotPrefix)) {
+      await _pruneTransactionSnapshots(userId);
     }
+  }
+
+  /// Returns a stored snapshot for [userId]/[key], or null when absent.
+  Future<({String json, DateTime fetchedAt})?> getSnapshot(
+    String userId,
+    String key,
+  ) async {
+    final row =
+        await (_db.select(_db.cachedSnapshots)
+              ..where((t) => t.userId.equals(userId) & t.key.equals(key)))
+            .getSingleOrNull();
+    if (row == null) return null;
+    return (json: row.json, fetchedAt: row.fetchedAt);
+  }
+
+  /// Clears every read snapshot for [userId] while keeping the offline queue.
+  Future<void> deleteSnapshotsFor(String userId) async {
+    await (_db.delete(
+      _db.cachedSnapshots,
+    )..where((t) => t.userId.equals(userId))).go();
+  }
+
+  /// Clears every snapshot and queued mutation for [userId].
+  Future<void> deleteAllForUser(String userId) async {
+    await (_db.delete(
+      _db.cachedSnapshots,
+    )..where((t) => t.userId.equals(userId))).go();
+    await (_db.delete(
+      _db.offlineTransactions,
+    )..where((t) => t.userId.equals(userId))).go();
+  }
+
+  Future<void> _pruneTransactionSnapshots(String userId) async {
+    final rows =
+        await (_db.select(_db.cachedSnapshots)
+              ..where(
+                (t) =>
+                    t.userId.equals(userId) &
+                    t.key.like('$_transactionSnapshotPrefix%'),
+              )
+              ..orderBy([
+                (t) => OrderingTerm.asc(t.fetchedAt),
+                (t) => OrderingTerm.asc(t.key),
+              ]))
+            .get();
+    if (rows.length <= maxTransactionSnapshots) return;
+
+    final staleKeys = rows
+        .take(rows.length - maxTransactionSnapshots)
+        .map((row) => row.key)
+        .toList();
+    await (_db.delete(
+      _db.cachedSnapshots,
+    )..where((t) => t.userId.equals(userId) & t.key.isIn(staleKeys))).go();
   }
 
   /// Queues a transaction for offline sync.
@@ -79,11 +143,12 @@ class CacheService {
     String userId,
   ) async {
     return (_db.select(_db.offlineTransactions)..where(
-      (t) =>
-          t.syncedAt.isNull() &
-          t.failedAt.isNull() &
-          t.userId.equals(userId),
-    )).get();
+          (t) =>
+              t.syncedAt.isNull() &
+              t.failedAt.isNull() &
+              t.userId.equals(userId),
+        ))
+        .get();
   }
 
   /// Returns all offline transactions for [userId] (both pending and failed).
@@ -97,15 +162,14 @@ class CacheService {
   }
 
   /// Watches all transactions for [userId] that have not been synced yet.
-  Stream<List<OfflineTransaction>> watchPendingSyncTransactions(
-    String userId,
-  ) {
+  Stream<List<OfflineTransaction>> watchPendingSyncTransactions(String userId) {
     return (_db.select(_db.offlineTransactions)..where(
-      (t) =>
-          t.syncedAt.isNull() &
-          t.failedAt.isNull() &
-          t.userId.equals(userId),
-    )).watch();
+          (t) =>
+              t.syncedAt.isNull() &
+              t.failedAt.isNull() &
+              t.userId.equals(userId),
+        ))
+        .watch();
   }
 
   /// Replays only transaction entries for the currently authenticated user.
@@ -116,12 +180,46 @@ class CacheService {
     for (final transaction in pending) {
       try {
         final data = jsonDecode(transaction.json) as Map<String, dynamic>;
-        final path = switch (transaction.type) {
-          'expense' => '/expenses',
-          'income' => '/income',
-          'transfer' => '/transfers',
-          _ => null,
-        };
+        String? path;
+        Map<String, dynamic> payload = data;
+
+        if (transaction.type == 'expense') {
+          final categoryId = data['categoryId']?.toString() ?? '';
+          if (!isCategoryUuid(categoryId)) {
+            final categoryName = data['categoryName']?.toString().trim();
+            if (categoryName == null || categoryName.isEmpty) {
+              await markFailed(
+                transaction.id,
+                'Choose an expense category first.',
+              );
+              continue;
+            }
+            // The queue stores a placeholder category id (often a legacy
+            // `cat_food` value). Resolve it against the server right before
+            // replay so the UUID is current even after several offline days.
+            data['categoryId'] = await resolveCategoryId(
+              dio: dio,
+              categoryId: categoryId,
+              categoryName: categoryName,
+            );
+          }
+          path = '/expenses';
+        } else if (transaction.type == 'income') {
+          path = '/income';
+        } else if (transaction.type == 'transfer') {
+          path = '/transfers';
+        } else if (transaction.type == 'goal_contribution') {
+          final goalId = data['goalId']?.toString();
+          if (goalId == null || goalId.isEmpty) {
+            await markFailed(
+              transaction.id,
+              'Queued goal contribution has no goal id',
+            );
+            continue;
+          }
+          payload = Map<String, dynamic>.from(data)..remove('goalId');
+          path = '/goals/$goalId/contributions';
+        }
 
         // Older/unsupported queued operations must not be sent with an
         // ambiguous payload. Keep them out of the retry loop and expose the
@@ -130,9 +228,15 @@ class CacheService {
           await markFailed(transaction.id, 'Unsupported offline operation');
           continue;
         }
-        await dio.post(path, data: data);
+        await dio.post(path, data: payload);
         await markSynced(transaction.id);
         syncedCount++;
+      } on CategoryResolutionException catch (error) {
+        if (error.queueable) {
+          await recordRetry(transaction, error.message);
+        } else {
+          await markFailed(transaction.id, error.message);
+        }
       } on DioException catch (error) {
         final message = _errorMessage(error);
         if (_isRetryable(error)) {
@@ -174,56 +278,63 @@ class CacheService {
 
   /// Marks a queued transaction as synced.
   Future<void> markSynced(String id) async {
-    await (_db.update(_db.offlineTransactions)..where((t) => t.id.equals(id)))
-        .write(
-          OfflineTransactionsCompanion(
-            syncedAt: Value(DateTime.now()),
-            lastError: const Value(null),
-          ),
-        );
+    await (_db.update(
+      _db.offlineTransactions,
+    )..where((t) => t.id.equals(id))).write(
+      OfflineTransactionsCompanion(
+        syncedAt: Value(DateTime.now()),
+        lastError: const Value(null),
+      ),
+    );
   }
 
-  Future<void> recordRetry(OfflineTransaction transaction, String message) async {
+  Future<void> recordRetry(
+    OfflineTransaction transaction,
+    String message,
+  ) async {
     final nextRetryCount = transaction.retryCount + 1;
-    await (_db.update(_db.offlineTransactions)
-          ..where((t) => t.id.equals(transaction.id)))
-        .write(
-          OfflineTransactionsCompanion(
-            retryCount: Value(nextRetryCount),
-            lastError: Value(message),
-            failedAt: nextRetryCount >= 5
-                ? Value(DateTime.now())
-                : const Value(null),
-          ),
-        );
+    await (_db.update(
+      _db.offlineTransactions,
+    )..where((t) => t.id.equals(transaction.id))).write(
+      OfflineTransactionsCompanion(
+        retryCount: Value(nextRetryCount),
+        lastError: Value(message),
+        failedAt: nextRetryCount >= 5
+            ? Value(DateTime.now())
+            : const Value(null),
+      ),
+    );
   }
 
   Future<void> markFailed(String id, String message) async {
-    await (_db.update(_db.offlineTransactions)..where((t) => t.id.equals(id)))
-        .write(
-          OfflineTransactionsCompanion(
-            failedAt: Value(DateTime.now()),
-            lastError: Value(message),
-          ),
-        );
+    await (_db.update(
+      _db.offlineTransactions,
+    )..where((t) => t.id.equals(id))).write(
+      OfflineTransactionsCompanion(
+        failedAt: Value(DateTime.now()),
+        lastError: Value(message),
+      ),
+    );
   }
 
   /// Resets a failed offline transaction so it will be retried on next sync.
   Future<void> retryFailedTransaction(String id) async {
-    await (_db.update(_db.offlineTransactions)..where((t) => t.id.equals(id)))
-        .write(
-          const OfflineTransactionsCompanion(
-            retryCount: Value(0),
-            lastError: Value(null),
-            failedAt: Value(null),
-          ),
-        );
+    await (_db.update(
+      _db.offlineTransactions,
+    )..where((t) => t.id.equals(id))).write(
+      const OfflineTransactionsCompanion(
+        retryCount: Value(0),
+        lastError: Value(null),
+        failedAt: Value(null),
+      ),
+    );
   }
 
   /// Permanently deletes an offline transaction from the local queue.
   Future<void> deleteOfflineTransaction(String id) async {
-    await (_db.delete(_db.offlineTransactions)..where((t) => t.id.equals(id)))
-        .go();
+    await (_db.delete(
+      _db.offlineTransactions,
+    )..where((t) => t.id.equals(id))).go();
   }
 }
 
